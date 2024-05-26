@@ -1,2 +1,3 @@
 # pokeRogueBot
- 
+
+brew install tesseract
