@@ -27,3 +27,4 @@ replay_pid*
 /bin/webdriver/chromeDriver.app
 *.png
 /bin/webdriver/Google Chrome for Testing.app
+/target
