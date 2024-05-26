@@ -26,3 +26,4 @@ replay_pid*
 .DS_Store
 /bin/webdriver/chromeDriver.app
 *.png
+/bin/webdriver/Google Chrome for Testing.app
