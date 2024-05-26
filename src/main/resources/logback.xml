@@ -1,23 +1,14 @@
 <configuration>
-
-    <!-- File Appender für das Überschreiben bei jedem App-Start -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <!-- Legt fest, dass die Datei bei jedem Start neu geschrieben wird -->
-        <file>Logs/app.log</file>
-        <append>false</append>
-
-        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>Logs/app.%i.log.zip</fileNamePattern>
-            <minIndex>1</minIndex>
-            <maxIndex>1</maxIndex>
+        <file>./Logs/app.log</file>
+        <prudent>true</prudent>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>application.%d{yyyy-MM-dd_HH-mm}.log</fileNamePattern>
+            <maxHistory>10</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
         </rollingPolicy>
-
-        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
-            <maxFileSize>1GB</maxFileSize>
-        </triggeringPolicy>
-
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n</pattern>
+            <pattern>%-4relative [%thread] %-5level %logger{35} - %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -28,9 +19,9 @@
         </encoder>
     </appender>
 
-    <!-- Root logger -->
-    <root level="info">
-        <appender-ref ref="FILE" />
+    <!-- Root logger with two appenders -->
+    <root level="debug">
         <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
     </root>
 </configuration>

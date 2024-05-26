@@ -12,6 +12,35 @@ spring:
         ddl-auto: update
         show-sql: true
 
+ocr:
+  language: deu
+  datapath: /opt/homebrew/Cellar/tesseract/5.3.4_1/share/tessdata
+  jnaLibraryPath: /opt/homebrew/opt/tesseract/lib/
+
 handler:
   login:
-    delayForFirstCheckMs: 5000
+    retryCount: 5
+    retryDelayMs: 2000
+    targetUrl: "https://pokerogue.net/"
+    delayForFirstCheckMs: 12000
+    loginFormSearchWords:
+      - "Benutzername"
+      - "Passwort"
+      - "Melde"
+      - "dich"
+      - "an"
+      - "oder"
+      - "erstelle"
+      - "einen"
+      - "Account"
+      - "zum"
+      - "starten"
+      - "Keine"
+      - "Email"
+      - "nötig"
+    loginFormOcrConfidenceThreshhold: 0.7
+
+logging:
+  level:
+    ROOT: INFO
+    com.sfh: DEBUG

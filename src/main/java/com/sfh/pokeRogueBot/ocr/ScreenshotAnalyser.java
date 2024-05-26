@@ -1,25 +1,43 @@
 package com.sfh.pokeRogueBot.ocr;
 
+import com.sfh.pokeRogueBot.model.OcrResult;
+import lombok.extern.slf4j.Slf4j;
 import net.sourceforge.tess4j.ITesseract;
-import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
 
 @Component
+@Slf4j
 public class ScreenshotAnalyser {
-    public static void analyseFile(String path) throws TesseractException {
+
+    private final ITesseract instance;
+
+    public ScreenshotAnalyser(ITesseract instance,
+                              @Value("${ocr.language}") String language,
+                              @Value("${ocr.datapath}") String datapath) {
+        this.instance = instance;
+
+        instance.setDatapath(datapath);
+        instance.setLanguage(language);
+    }
+
+    public OcrResult doOcr(String path) {
         File imageFile = new File(path);
-        ITesseract instance = new Tesseract();
-        instance.setLanguage("deu");
-        instance.setDatapath("/opt/homebrew/Cellar/tesseract/5.3.4_1/share/tessdata");
+
         try {
-            String result = instance.doOCR(imageFile);
-            System.out.println("Bild: " + path + ", Extrahierte Daten: " + result);
-        } catch (TesseractException e) {
-            System.err.println(e.getMessage());
-            throw e;
+            String extractedText = instance.doOCR(imageFile);
+
+            return new OcrResult(
+                    extractedText,
+                    path
+            );
+        } catch (Exception e) {
+            log.error("Error while doing OCR: " + e.getMessage(), e);
         }
+
+        return null;
     }
 }

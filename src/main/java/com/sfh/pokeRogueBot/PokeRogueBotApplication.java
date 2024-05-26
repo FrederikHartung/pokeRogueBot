@@ -1,6 +1,10 @@
 package com.sfh.pokeRogueBot;
 
+import com.sfh.pokeRogueBot.bot.Bot;
+import com.sfh.pokeRogueBot.bot.SimpleBot;
 import com.sfh.pokeRogueBot.handler.LoginHandler;
+import com.sfh.pokeRogueBot.service.ScreenshotService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ConfigurableBootstrapContext;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -9,18 +13,16 @@ import org.springframework.context.ConfigurableApplicationContext;
 import java.io.File;
 
 @SpringBootApplication
+@Slf4j
 public class PokeRogueBotApplication {
 
 	public static void main(String[] args) {
-		System.setProperty("jna.library.path", "/opt/homebrew/opt/tesseract/lib/");
-		System.setProperty("TESSDATA_PREFIX", "/opt/homebrew/Cellar/tesseract/5.3.4_1/share/");
-
 		ConfigurableApplicationContext context = SpringApplication.run(PokeRogueBotApplication.class, args);
 		try{
-			LoginHandler loginHandler = context.getBean(LoginHandler.class);
-			loginHandler.login();
-		} catch (Exception e) {
-			e.printStackTrace();
+			Bot bot = context.getBean(SimpleBot.class);
+            bot.start();
+        } catch (Exception e) {
+			log.error("Error starting the bot: " + e.getMessage(), e);
 		}
 	}
 }
