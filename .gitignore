@@ -24,4 +24,5 @@ hs_err_pid*
 replay_pid*
 /.idea
 .DS_Store
-/bin/webdriver/Google Chrome for Testing.app
+/bin/webdriver/chromeDriver.app
+*.png
