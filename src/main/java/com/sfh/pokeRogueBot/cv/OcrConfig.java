@@ -1,4 +1,4 @@
-package com.sfh.pokeRogueBot.ocr;
+package com.sfh.pokeRogueBot.cv;
 
 import net.sourceforge.tess4j.ITesseract;
 import net.sourceforge.tess4j.Tesseract;

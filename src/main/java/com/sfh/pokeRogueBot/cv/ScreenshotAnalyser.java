@@ -1,9 +1,8 @@
-package com.sfh.pokeRogueBot.ocr;
+package com.sfh.pokeRogueBot.cv;
 
 import com.sfh.pokeRogueBot.model.OcrResult;
 import lombok.extern.slf4j.Slf4j;
 import net.sourceforge.tess4j.ITesseract;
-import net.sourceforge.tess4j.TesseractException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 

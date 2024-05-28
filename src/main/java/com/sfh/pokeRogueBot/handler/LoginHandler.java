@@ -3,7 +3,7 @@ package com.sfh.pokeRogueBot.handler;
 import com.sfh.pokeRogueBot.browser.NavigationClient;
 import com.sfh.pokeRogueBot.model.OcrResult;
 import com.sfh.pokeRogueBot.model.exception.NoLoginFormFoundException;
-import com.sfh.pokeRogueBot.ocr.ScreenshotAnalyser;
+import com.sfh.pokeRogueBot.cv.ScreenshotAnalyser;
 import com.sfh.pokeRogueBot.service.ScreenshotService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.retry.support.RetryTemplate;
