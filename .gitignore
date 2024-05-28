@@ -28,3 +28,4 @@ replay_pid*
 *.png
 /bin/webdriver/Google Chrome for Testing.app
 /target
+*.db
