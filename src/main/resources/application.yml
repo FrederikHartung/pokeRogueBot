@@ -22,7 +22,7 @@ handler:
     retryCount: 5
     retryDelayMs: 2000
     targetUrl: "https://pokerogue.net/"
-    delayForFirstCheckMs: 12000
+    delayForFirstCheckMs: 15000
     loginFormSearchWords:
       - "Benutzername"
       - "Passwort"

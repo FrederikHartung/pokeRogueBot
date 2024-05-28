@@ -12,15 +12,4 @@ public class OpenCvClient {
         nu.pattern.OpenCV.loadLocally();
     }
 
-    public static void test(){
-        try{
-            String imagePath = "./bin/screenshots/login_0.png";
-
-            // Das Bild wird hier geladen
-            Mat image = Imgcodecs.imread(imagePath);
-        }
-        catch (Exception e){
-            log.error("Error while loading OpenCV: " + e.getMessage(), e);
-        }
-    }
 }

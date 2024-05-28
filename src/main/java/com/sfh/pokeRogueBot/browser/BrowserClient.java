@@ -4,10 +4,7 @@ import com.sfh.pokeRogueBot.config.Constants;
 import com.sfh.pokeRogueBot.service.ScreenshotService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
-import org.openqa.selenium.By;
-import org.openqa.selenium.OutputType;
-import org.openqa.selenium.TakesScreenshot;
-import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.*;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.beans.factory.DisposableBean;
@@ -31,13 +28,17 @@ public class BrowserClient implements DisposableBean, ScreenshotClient, Navigati
 
     @Override
     public void takeScreenshot(String path) {
-        try{
-            File scrFile = ((TakesScreenshot)driver).getScreenshotAs(OutputType.FILE);
+        try {
+            // Finde das Canvas-Element auf der Webseite
+            WebElement canvasElement = driver.findElement(By.tagName(CANVAS));
+
+            // Mache einen Screenshot nur vom Canvas-Element
+            File scrFile = canvasElement.getScreenshotAs(OutputType.FILE);
             FileUtils.copyFile(scrFile, new File(path));
-            log.debug("Screenshot saved to " + path);
-        }
-        catch (Exception e){
-            log.error("Error while taking screenshots", e);
+
+            log.debug("Screenshot of canvas saved to " + path);
+        } catch (Exception e) {
+            log.error("Error while taking screenshot of canvas", e);
         }
     }
 

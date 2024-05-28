@@ -40,6 +40,8 @@ public class LoginHandler {
     public boolean login() {
         boolean loginFormVisible = checkIfLoginFormIsVisible();
 
+        //todo: find coordinates of login form and click on it
+
         return loginFormVisible;
     }
 

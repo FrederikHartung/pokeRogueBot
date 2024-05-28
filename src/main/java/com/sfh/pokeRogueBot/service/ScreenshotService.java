@@ -20,7 +20,7 @@ public class ScreenshotService {
     }
 
     public void deleteAllOldScreenshots(){
-        File folder = new File(Constants.SCREENSHOT_DIR);
+        File folder = new File(Constants.SCREENSHOTS_TEMP_DIR);
         File[] files = folder.listFiles();
         if(files == null){
             return;
@@ -42,7 +42,7 @@ public class ScreenshotService {
     }
 
     public String takeScreenshot(String screenshotPrefix){
-        String pathToSaveTo = Constants.SCREENSHOT_DIR + screenshotPrefix + "_" + lastScreenshotNumber + Constants.SCREENSHOT_FILE_EXTENSION;
+        String pathToSaveTo = Constants.SCREENSHOTS_TEMP_DIR + screenshotPrefix + "_" + lastScreenshotNumber + Constants.SCREENSHOT_FILE_EXTENSION;
         screenshotClient.takeScreenshot(pathToSaveTo);
         lastScreenshotNumber++;
         return pathToSaveTo;
