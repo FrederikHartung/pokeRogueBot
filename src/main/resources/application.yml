@@ -19,8 +19,8 @@ ocr:
 
 handler:
   login:
-    retryCount: 5
-    retryDelayMs: 2000
+    retryCount: 9
+    retryDelayMs: 5000
     targetUrl: "https://pokerogue.net/"
     delayForFirstCheckMs: 15000
     loginFormSearchWords:
