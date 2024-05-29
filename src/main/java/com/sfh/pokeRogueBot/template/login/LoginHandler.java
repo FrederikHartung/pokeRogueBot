@@ -1,4 +1,4 @@
-package com.sfh.pokeRogueBot.handler;
+package com.sfh.pokeRogueBot.template.login;
 
 import com.sfh.pokeRogueBot.browser.NavigationClient;
 import com.sfh.pokeRogueBot.cv.OpenCvClient;
@@ -45,7 +45,7 @@ public class LoginHandler {
 
         //todo: find coordinates of login form and click on it
         String screenshotPath = screenshotService.getLastScreenshotPath();
-        openCvClient.findObject(screenshotPath, LoginTemplates.PATH_BENUTZERNAME, "benutzername");
+        openCvClient.findObject(screenshotPath, BenutzernameTemplate.PATH, "benutzername");
 
         return loginFormVisible;
     }

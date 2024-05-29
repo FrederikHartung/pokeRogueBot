@@ -2,16 +2,13 @@ package com.sfh.pokeRogueBot;
 
 import com.sfh.pokeRogueBot.bot.Bot;
 import com.sfh.pokeRogueBot.bot.SimpleBot;
-import com.sfh.pokeRogueBot.cv.OpenCvClient;
-import com.sfh.pokeRogueBot.handler.LoginHandler;
-import com.sfh.pokeRogueBot.service.ScreenshotService;
+import com.sfh.pokeRogueBot.template.Template;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.ConfigurableBootstrapContext;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
-import java.io.File;
+import java.util.List;
 
 @SpringBootApplication
 @Slf4j
