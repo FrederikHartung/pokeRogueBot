@@ -13,11 +13,34 @@ public class TempFileCleaner {
 
     public void deleteTempData(){
         deleteOldScreenshots();
+        deleteOldClickScreenshots();
         deleteOldCvResults();
     }
 
     private void deleteOldScreenshots(){
-        File folder = new File(Constants.SCREENSHOTS_TEMP_DIR);
+        File folder = new File(Constants.DIR_SCREENSHOTS_TEMP);
+        File[] files = folder.listFiles();
+        if(files == null){
+            return;
+        }
+
+        for(File file : files){
+            if(null == file){
+                continue;
+            }
+
+            if(file.isFile()){
+                try{
+                    Files.deleteIfExists(file.toPath());
+                } catch (Exception e){
+                    log.error("Could not delete file: " + file.getName());
+                }
+            }
+        }
+    }
+
+    private void deleteOldClickScreenshots(){
+        File folder = new File(Constants.DIR_SCREENSHOTS_CLICK_TEMP);
         File[] files = folder.listFiles();
         if(files == null){
             return;
@@ -39,7 +62,7 @@ public class TempFileCleaner {
     }
 
     private void deleteOldCvResults(){
-        File folder = new File(Constants.CV_RESULTS_TEMP_DIR);
+        File folder = new File(Constants.DIR_CV_RESULTS_TEMP);
         File[] files = folder.listFiles();
         if(files == null){
             return;

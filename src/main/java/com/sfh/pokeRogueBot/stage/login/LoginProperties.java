@@ -1,4 +1,4 @@
-package com.sfh.pokeRogueBot.template.login;
+package com.sfh.pokeRogueBot.stage.login;
 
 import lombok.Getter;
 import lombok.Setter;

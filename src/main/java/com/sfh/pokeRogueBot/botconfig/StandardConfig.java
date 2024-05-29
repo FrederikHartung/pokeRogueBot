@@ -2,7 +2,7 @@ package com.sfh.pokeRogueBot.botconfig;
 
 import com.sfh.pokeRogueBot.filehandler.TempFileCleaner;
 import com.sfh.pokeRogueBot.template.TemplateManager;
-import com.sfh.pokeRogueBot.template.login.LoginHandler;
+import com.sfh.pokeRogueBot.stage.login.LoginHandler;
 import org.springframework.stereotype.Component;
 
 @Component

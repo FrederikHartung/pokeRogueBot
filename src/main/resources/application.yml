@@ -19,10 +19,10 @@ ocr:
 
 handler:
   login:
-    retryCount: 9
+    retryCount: 11
     retryDelayMs: 5000
     targetUrl: "https://pokerogue.net/"
-    delayForFirstCheckMs: 15000
+    delayForFirstCheckMs: 5000
     loginFormSearchWords:
       - "Benutzername"
       - "Passwort"

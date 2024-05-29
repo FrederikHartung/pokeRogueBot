@@ -1,11 +1,13 @@
-package com.sfh.pokeRogueBot.template.login;
+package com.sfh.pokeRogueBot.stage.login;
 
 import com.sfh.pokeRogueBot.browser.NavigationClient;
 import com.sfh.pokeRogueBot.cv.OpenCvClient;
+import com.sfh.pokeRogueBot.model.CvResult;
 import com.sfh.pokeRogueBot.model.OcrResult;
 import com.sfh.pokeRogueBot.model.exception.NoLoginFormFoundException;
 import com.sfh.pokeRogueBot.cv.ScreenshotAnalyser;
 import com.sfh.pokeRogueBot.service.ScreenshotService;
+import com.sfh.pokeRogueBot.template.login.EingabeMaskeTemplate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.support.RetryTemplateBuilder;
@@ -45,7 +47,21 @@ public class LoginHandler {
 
         //todo: find coordinates of login form and click on it
         String screenshotPath = screenshotService.getLastScreenshotPath();
-        openCvClient.findObject(screenshotPath, BenutzernameTemplate.PATH, "benutzername");
+        List<CvResult> results = openCvClient.findObjects(screenshotPath, new EingabeMaskeTemplate(), 2);
+        if (results.isEmpty()) {
+            log.error("No input forms found");
+            return false;
+        }
+
+        log.info("Found " + results.size() + " input forms on screen");
+
+        CvResult firstInputForm = results.get(0);
+        int x = firstInputForm.getX() + firstInputForm.getWidth() / 2;
+        int y = firstInputForm.getY() + firstInputForm.getHeight() / 2;
+        screenshotService.takeScreenshotAndMarkClickPoint(x, y, "login_benutzername");
+        navigationClient.clickAndTypeAtCanvas(x, y, "Benutzname");
+        screenshotService.takeScreenshot("login_benutzername_filled");
+
 
         return loginFormVisible;
     }
