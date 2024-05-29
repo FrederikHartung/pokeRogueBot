@@ -1,6 +1,7 @@
 package com.sfh.pokeRogueBot.handler;
 
 import com.sfh.pokeRogueBot.browser.NavigationClient;
+import com.sfh.pokeRogueBot.cv.OpenCvClient;
 import com.sfh.pokeRogueBot.model.OcrResult;
 import com.sfh.pokeRogueBot.model.exception.NoLoginFormFoundException;
 import com.sfh.pokeRogueBot.cv.ScreenshotAnalyser;
@@ -21,11 +22,12 @@ public class LoginHandler {
     private final ScreenshotAnalyser screenshotAnalyser;
     private final LoginProperties loginProperties;
     private final RetryTemplate retryTemplate;
+    private final OpenCvClient openCvClient;
 
     public LoginHandler(ScreenshotService screenshotService,
                         NavigationClient navigationClient,
                         ScreenshotAnalyser screenshotAnalyser,
-                        LoginProperties loginProperties) {
+                        LoginProperties loginProperties, OpenCvClient openCvClient) {
         this.screenshotService = screenshotService;
         this.navigationClient = navigationClient;
         this.screenshotAnalyser = screenshotAnalyser;
@@ -35,17 +37,20 @@ public class LoginHandler {
                 .fixedBackoff(loginProperties.getRetryDelayMs())
                 .retryOn(NoLoginFormFoundException.class)
                 .build();
+        this.openCvClient = openCvClient;
     }
 
-    public boolean login() {
+    public boolean login() throws NoLoginFormFoundException {
         boolean loginFormVisible = checkIfLoginFormIsVisible();
 
         //todo: find coordinates of login form and click on it
+        String screenshotPath = screenshotService.getLastScreenshotPath();
+        openCvClient.findObject(screenshotPath, LoginTemplates.PATH_BENUTZERNAME, "benutzername");
 
         return loginFormVisible;
     }
 
-    private boolean checkIfLoginFormIsVisible(){
+    private boolean checkIfLoginFormIsVisible() throws NoLoginFormFoundException {
         try{
             navigationClient.navigateToTarget(loginProperties.getTargetUrl(), loginProperties.getDelayForFirstCheckMs());
 

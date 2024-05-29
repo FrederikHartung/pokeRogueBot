@@ -20,7 +20,6 @@ public class PokeRogueBotApplication {
 	public static void main(String[] args) {
 		ConfigurableApplicationContext context = SpringApplication.run(PokeRogueBotApplication.class, args);
 		try{
-			OpenCvClient.test();
 			Bot bot = context.getBean(SimpleBot.class);
             bot.start();
         } catch (Exception e) {

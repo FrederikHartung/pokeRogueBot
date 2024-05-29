@@ -2,5 +2,7 @@
 
 1. Install tesseract
 brew install tesseract
-2. Install ocenCV
-   https://opencv-java-tutorials.readthedocs.io/en/latest/01-installing-opencv-for-java.html
+
+
+todo: template Klasse mit Konstanten, wo ihr Pfad ist mit Validierung am Start, ob alle da sind und ggf. Backupp einmal täglich
+

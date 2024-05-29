@@ -1,23 +1,23 @@
 package com.sfh.pokeRogueBot.botconfig;
 
+import com.sfh.pokeRogueBot.filehandler.TempFileCleaner;
 import com.sfh.pokeRogueBot.handler.LoginHandler;
-import com.sfh.pokeRogueBot.service.ScreenshotService;
 import org.springframework.stereotype.Component;
 
 @Component
 public class StandardConfig implements Config {
 
-    private final ScreenshotService screenshotService;
     private final LoginHandler loginHandler;
+    private final TempFileCleaner tempFileCleaner;
 
-    public StandardConfig(ScreenshotService screenshotService, LoginHandler loginHandler) {
-        this.screenshotService = screenshotService;
+    public StandardConfig(LoginHandler loginHandler, TempFileCleaner tempFileCleaner) {
         this.loginHandler = loginHandler;
+        this.tempFileCleaner = tempFileCleaner;
     }
 
     @Override
-    public void applay() {
-        screenshotService.deleteAllOldScreenshots();
+    public void applay() throws Exception {
+        tempFileCleaner.deleteTempData();
         loginHandler.login();
     }
 }
