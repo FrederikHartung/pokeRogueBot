@@ -4,6 +4,7 @@ import com.sfh.pokeRogueBot.config.Constants;
 import com.sfh.pokeRogueBot.cv.OpenCvClient;
 import com.sfh.pokeRogueBot.filehandler.HtmlFilehandler;
 import com.sfh.pokeRogueBot.filehandler.ScreenshotFilehandler;
+import com.sfh.pokeRogueBot.filehandler.StringFilehandler;
 import com.sfh.pokeRogueBot.model.CvResult;
 import com.sfh.pokeRogueBot.model.UserData;
 import com.sfh.pokeRogueBot.model.enums.TemplateIdentificationType;
@@ -144,6 +145,7 @@ public class BrowserClient implements DisposableBean, NavigationClient {
                     CvResult result = openCvClient.findTemplateInBufferedImage(img, action.getTarget());
                     if(action.getTarget().persistResultWhenFindingTemplate()){
                         makeScreenshotAndMarkCalculatedClickPoint(result.getX(), result.getY(), action.getTarget().getFilenamePrefix());
+                        saveCalculatedClickPoint(result.getX(), result.getY(), action.getTarget().getFilenamePrefix());
                     }
 
                     //todo: click on canvas
@@ -252,7 +254,10 @@ public class BrowserClient implements DisposableBean, NavigationClient {
         }
     }
 
-    private void saveCalculatedClickPoint()
+    private void saveCalculatedClickPoint(int x, int y, String fileNamePrefix){
+        String content = "x: " + x + ", y: " + y;
+        StringFilehandler.persist("calculated_click_point", fileNamePrefix, content);
+    }
 
     @Override
     public void clickAndTypeAtCanvas(int x, int y, String text) {

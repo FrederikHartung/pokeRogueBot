@@ -45,10 +45,7 @@ public class LoginHandler {
     public boolean login() throws Exception {
         boolean isLoginRequired = navigateToTargetAndCheckLoginForm(loginProperties, new LoginScreenTemplate());
 
-        UserData userData = UserDataProvider.getUserdata(loginProperties.getUserDataPath());
-
-
-        screenshotFilehandler.takeScreenshot("login_benutzername_filled");
+        //UserData userData = UserDataProvider.getUserdata(loginProperties.getUserDataPath());
 
         return isLoginRequired;
     }
@@ -58,7 +55,7 @@ public class LoginHandler {
             navigationClient.navigateTo(loginProperties.getTargetUrl(), loginProperties.getDelayForFirstCheckMs());
             boolean isLoginFormVisible = navigationClient.isVisible(new LoginScreenTemplate(), false);
             if(isLoginFormVisible){
-
+                dsggsddg //todo
             }
 
             log.debug("Successfully found login form");
