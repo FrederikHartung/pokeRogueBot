@@ -76,8 +76,8 @@ public class OpenCvClient {
                 int floodFillWidth = smallImage.cols() / 2;
                 int floodFillHeight = smallImage.rows() / 2;
                 Rect floodRect = new Rect(
-                        (int) Math.max(matchLoc.x - floodFillWidth / 2, 0),
-                        (int) Math.max(matchLoc.y - floodFillHeight / 2, 0),
+                        (int) Math.max(matchLoc.x - (floodFillWidth / 2d), 0),
+                        (int) Math.max(matchLoc.y - (floodFillHeight / 2d), 0),
                         floodFillWidth,
                         floodFillHeight
                 );
@@ -90,7 +90,9 @@ public class OpenCvClient {
 
                 // Ergebnis hinzufügen
                 log.debug(template.getFilenamePrefix() + ": Found object at x: " + (int) matchLoc.x + ", y: " + (int) matchLoc.y + " with width: " + smallImage.cols() + ", height: " + smallImage.rows());
-                results.add(new CvResult((int) matchLoc.x, (int) matchLoc.y, smallImage.cols(), smallImage.rows()));
+                int xMiddle = (int)(matchLoc.x + (smallImage.cols() / 2d));
+                int yMiddle = (int)(matchLoc.y + (smallImage.rows() / 2d));
+                results.add(new CvResult((int) matchLoc.x, xMiddle, (int) matchLoc.y, yMiddle, smallImage.cols(), smallImage.rows()));
             }
 
             if(template.persistResultWhenFindingTemplate() && !results.isEmpty()){

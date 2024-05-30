@@ -184,10 +184,11 @@ public class BrowserClient implements DisposableBean, NavigationClient {
                 BufferedImage img = null;
                 try {
                     img = ImageIO.read(scrFile);
+                    log.info("handleClick: " + action.getTarget().getFilenamePrefix());
                     CvResult result = openCvClient.findTemplateInBufferedImage(img, action.getTarget());
                     if(action.getTarget().persistResultWhenFindingTemplate()){
-                        makeScreenshotAndMarkCalculatedClickPoint(result.getX(), result.getY(), action.getTarget().getFilenamePrefix());
-                        saveCalculatedClickPoint(result.getX(), result.getY(), action.getTarget().getFilenamePrefix());
+                        makeScreenshotAndMarkCalculatedClickPoint(result, action.getTarget().getFilenamePrefix());
+                        saveCalculatedClickPoint(result, action.getTarget().getFilenamePrefix());
                     }
 
                     //todo: click on canvas
@@ -282,7 +283,7 @@ public class BrowserClient implements DisposableBean, NavigationClient {
         passwordField.sendKeys(userData.getPassword());
     }
 
-    public void makeScreenshotAndMarkCalculatedClickPoint(int x, int y, String fileNamePrefix) {
+    public void makeScreenshotAndMarkCalculatedClickPoint(CvResult cvResult, String fileNamePrefix) {
         try {
             // Finde das Canvas-Element auf der Webseite
             WebElement canvasElement = getCanvas();
@@ -293,8 +294,9 @@ public class BrowserClient implements DisposableBean, NavigationClient {
 
             // Grafikobjekt erstellen, um darauf zu zeichnen
             Graphics2D g2d = img.createGraphics();
+            log.info(fileNamePrefix + ": painting in red at x: " + cvResult.getX() + ", y: " + cvResult.getY());
             g2d.setColor(Color.RED);  // Setze die Farbe auf Rot
-            g2d.fillOval(x - 5, y - 5, 10, 10);  // Zeichne einen Kreis um den Klickpunkt
+            g2d.fillOval(cvResult.getMiddlePointX() - 5, cvResult.getMiddlePointY() - 5, 10, 10);  // Zeichne einen Kreis um den Klickpunkt
 
             // Ressourcen freigeben
             g2d.dispose();
@@ -311,8 +313,8 @@ public class BrowserClient implements DisposableBean, NavigationClient {
         }
     }
 
-    private void saveCalculatedClickPoint(int x, int y, String fileNamePrefix){
-        String content = "x: " + x + ", y: " + y;
+    private void saveCalculatedClickPoint(CvResult cvResult, String fileNamePrefix){
+        String content = "cvResult: " + cvResult;
         StringFilehandler.persist("calculated_click_point", fileNamePrefix, content);
     }
 
