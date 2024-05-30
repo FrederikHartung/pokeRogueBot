@@ -18,4 +18,5 @@ public class LoginProperties {
     private int delayForFirstCheckMs;
     private List<String> loginFormSearchWords;
     private double loginFormOcrConfidenceThreshhold;
+    private String userDataPath;
 }

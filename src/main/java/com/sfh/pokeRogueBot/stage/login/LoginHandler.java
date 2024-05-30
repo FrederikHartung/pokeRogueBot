@@ -1,9 +1,11 @@
 package com.sfh.pokeRogueBot.stage.login;
 
 import com.sfh.pokeRogueBot.browser.NavigationClient;
+import com.sfh.pokeRogueBot.config.UserDataProvider;
 import com.sfh.pokeRogueBot.cv.OpenCvClient;
 import com.sfh.pokeRogueBot.model.CvResult;
 import com.sfh.pokeRogueBot.model.OcrResult;
+import com.sfh.pokeRogueBot.model.UserData;
 import com.sfh.pokeRogueBot.model.exception.NoLoginFormFoundException;
 import com.sfh.pokeRogueBot.cv.ScreenshotAnalyser;
 import com.sfh.pokeRogueBot.service.ScreenshotService;
@@ -42,10 +44,10 @@ public class LoginHandler {
         this.openCvClient = openCvClient;
     }
 
-    public boolean login() throws NoLoginFormFoundException {
+    public boolean login() throws Exception {
         boolean loginFormVisible = checkIfLoginFormIsVisible();
+        UserData userData = UserDataProvider.getUserdata(loginProperties.getUserDataPath());
 
-        //todo: find coordinates of login form and click on it
         String screenshotPath = screenshotService.getLastScreenshotPath();
         List<CvResult> results = openCvClient.findObjects(screenshotPath, new EingabeMaskeTemplate(), 2);
         if (results.isEmpty()) {
@@ -61,7 +63,6 @@ public class LoginHandler {
         screenshotService.takeScreenshotAndMarkClickPoint(x, y, "login_benutzername");
         navigationClient.clickAndTypeAtCanvas(x, y, "Benutzname");
         screenshotService.takeScreenshot("login_benutzername_filled");
-
 
         return loginFormVisible;
     }

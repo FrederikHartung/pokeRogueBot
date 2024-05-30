@@ -4,10 +4,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.openqa.selenium.*;
 import org.openqa.selenium.Point;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.imageio.ImageIO;
@@ -22,10 +25,20 @@ import java.time.temporal.ChronoUnit;
 public class BrowserClient implements DisposableBean, ScreenshotClient, NavigationClient {
 
     private static final String CANVAS = "canvas";
-    private final WebDriver driver;
+    private WebDriver driver;
+    private final boolean closeOnExit;
 
-    public BrowserClient(WebDriver driver) {
-        this.driver = driver;
+    public BrowserClient(@Value("${browser.closeOnExit:false}") boolean closeOnExit) {
+        this.closeOnExit = closeOnExit;
+    }
+
+
+    private WebDriver getWebDriver() {
+        ChromeOptions options = new ChromeOptions();
+
+        // Pfad zum Benutzerdatenverzeichnis festlegen
+        options.addArguments("user-data-dir=./bin/webdriver/profile/");
+        return new ChromeDriver(options);
     }
 
     @Override
@@ -46,6 +59,10 @@ public class BrowserClient implements DisposableBean, ScreenshotClient, Navigati
 
     @Override
     public void navigateToTarget(String targetUrl, int waitTimeForLoadingMs) throws InterruptedException {
+        if(null == this.driver){
+            this.driver = getWebDriver();
+        }
+
         driver.get(targetUrl);
 
         new WebDriverWait(driver, Duration.of(waitTimeForLoadingMs, ChronoUnit.MILLIS)).until(
@@ -108,27 +125,13 @@ public class BrowserClient implements DisposableBean, ScreenshotClient, Navigati
         }
     }
 
-    public void focusAndSetInputText(WebDriver driver, WebElement element, String text) {
-        JavascriptExecutor js = (JavascriptExecutor) driver;
-        js.executeScript("arguments[0].focus(); arguments[0].value = arguments[1];", element, text);
-    }
-
-    public void markClickPosition(WebDriver driver, WebElement canvasElement, int x, int y) {
-        JavascriptExecutor js = (JavascriptExecutor) driver;
-        String script =
-                "const ctx = arguments[0].getContext('2d');" +
-                        "ctx.fillStyle = 'red';" +
-                        "ctx.beginPath();" +
-                        "ctx.arc(arguments[1], arguments[2], 10, 0, 2 * Math.PI);" +
-                        "ctx.fill();";
-        js.executeScript(script, canvasElement, x, y);
-    }
-
     @Override
     public void destroy() throws Exception {
         try{
-            driver.quit();
-            log.debug("Browser closed");
+            if(closeOnExit){
+                driver.quit();
+                log.debug("Browser closed");
+            }
         }
         catch (Exception e){
             log.error("Error while closing browser", e);

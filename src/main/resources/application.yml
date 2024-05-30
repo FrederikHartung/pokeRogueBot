@@ -17,6 +17,9 @@ ocr:
   datapath: /opt/homebrew/Cellar/tesseract/5.3.4_1/share/tessdata
   jnaLibraryPath: /opt/homebrew/opt/tesseract/lib/
 
+browser:
+  closeOnExit: false
+
 handler:
   login:
     retryCount: 11
@@ -39,6 +42,7 @@ handler:
       - "Email"
       - "nötig"
     loginFormOcrConfidenceThreshhold: 0.7
+    userDataPath: "src/main/resources/users.txt"
 
 logging:
   level:

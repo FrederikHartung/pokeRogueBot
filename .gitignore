@@ -30,3 +30,4 @@ replay_pid*
 /target
 *.db
 /bin/webdriver/profile
+src/main/resources/users.txt
