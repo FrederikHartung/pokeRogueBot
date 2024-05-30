@@ -22,7 +22,7 @@ public class ScreenshotFilehandler {
         try {
             FileUtils.moveFile(scrFile, new File(filePath));
             TempFileManager.fileIndex++;
-            log.info("Screenshot persistet: " + filePath);
+            log.info("Screenshot persisted: " + filePath);
         } catch (Exception e) {
             log.error("Error while saving screenshot to: " + filePath, e);
         }

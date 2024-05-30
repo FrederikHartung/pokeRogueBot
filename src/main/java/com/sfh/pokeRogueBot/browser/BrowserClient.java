@@ -241,9 +241,12 @@ public class BrowserClient implements DisposableBean, NavigationClient {
             // Ressourcen freigeben
             g2d.dispose();
 
-            File exportFile = new File(Constants.DIR_TEMP + "temp." + Constants.SCREENSHOT_FILE_EXTENSION);
-            ImageIO.write(img, Constants.SCREENSHOT_FILE_EXTENSION.replace(".", ""), exportFile);
-            ScreenshotFilehandler.persistScreenshot(exportFile, fileNamePrefix);
+            // Speichere das veränderte Bild in eine temporäre Datei
+            File tempFile = new File(Constants.DIR_TEMP + "temp." + Constants.SCREENSHOT_FILE_EXTENSION);
+            ImageIO.write(img, Constants.SCREENSHOT_FILE_EXTENSION.replace(".", ""), tempFile);
+
+            // Persistiere den Screenshot
+            ScreenshotFilehandler.persistScreenshot(tempFile, fileNamePrefix);
         } catch (Exception e) {
             log.error("Error while taking screenshot of canvas and marking click point for: " + fileNamePrefix, e);
         }
