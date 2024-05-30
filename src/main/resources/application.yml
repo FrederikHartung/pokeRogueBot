@@ -25,7 +25,6 @@ handler:
   login:
     retryCount: 11
     retryDelayMs: 5000
-    targetUrl: "https://pokerogue.net/"
     delayForFirstCheckMs: 5000
     loginFormSearchWords:
       - "Benutzername"
@@ -43,7 +42,6 @@ handler:
       - "Email"
       - "nötig"
     loginFormOcrConfidenceThreshhold: 0.7
-    userDataPath: "src/main/resources/users.txt"
 
 logging:
   level:

@@ -1,16 +1,11 @@
 package com.sfh.pokeRogueBot.stage.login;
 
 import com.sfh.pokeRogueBot.browser.NavigationClient;
+import com.sfh.pokeRogueBot.config.Constants;
 import com.sfh.pokeRogueBot.config.UserDataProvider;
-import com.sfh.pokeRogueBot.cv.OpenCvClient;
 import com.sfh.pokeRogueBot.model.UserData;
-import com.sfh.pokeRogueBot.model.exception.NoLoginFormFoundException;
-import com.sfh.pokeRogueBot.cv.ScreenshotAnalyser;
-import com.sfh.pokeRogueBot.filehandler.ScreenshotFilehandler;
-import com.sfh.pokeRogueBot.template.login.LoginScreenTemplate;
+import com.sfh.pokeRogueBot.model.exception.LoginException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.retry.support.RetryTemplate;
-import org.springframework.retry.support.RetryTemplateBuilder;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -19,70 +14,40 @@ import java.util.List;
 @Slf4j
 public class LoginHandler {
 
-    private final ScreenshotFilehandler screenshotFilehandler;
     private final NavigationClient navigationClient;
-    private final ScreenshotAnalyser screenshotAnalyser;
-    private final LoginProperties loginProperties;
-    private final RetryTemplate retryTemplate;
-    private final OpenCvClient openCvClient;
 
-    public LoginHandler(ScreenshotFilehandler screenshotFilehandler,
-                        NavigationClient navigationClient,
-                        ScreenshotAnalyser screenshotAnalyser,
-                        LoginProperties loginProperties, OpenCvClient openCvClient) {
-        this.screenshotFilehandler = screenshotFilehandler;
+    public LoginHandler(NavigationClient navigationClient) {
         this.navigationClient = navigationClient;
-        this.screenshotAnalyser = screenshotAnalyser;
-        this.loginProperties = loginProperties;
-        this.retryTemplate = new RetryTemplateBuilder()
-                .maxAttempts(loginProperties.getRetryCount())
-                .fixedBackoff(loginProperties.getRetryDelayMs())
-                .retryOn(NoLoginFormFoundException.class)
-                .build();
-        this.openCvClient = openCvClient;
     }
 
     public boolean login() throws Exception {
-        boolean isLoginRequired = navigateToTargetAndCheckLoginForm(loginProperties, new LoginScreenTemplate());
+        UserData userData = UserDataProvider.getUserdata(Constants.PATH_TO_USER_DATA);
+        LoginScreenStage loginScreenStage = new LoginScreenStage(userData);
+        boolean isLoginFormVisible = navigateToTargetAndCheckLoginForm(loginScreenStage);
+        if(isLoginFormVisible){
+            navigationClient.handleStage(loginScreenStage);
+            log.debug("handled LoginScreenStage");
+        }
 
-        //UserData userData = UserDataProvider.getUserdata(loginProperties.getUserDataPath());
-
-        return isLoginRequired;
+        //todo
+        return true;
     }
 
-    private boolean navigateToTargetAndCheckLoginForm(LoginProperties properties, LoginScreenTemplate template) throws NoLoginFormFoundException {
+    private boolean navigateToTargetAndCheckLoginForm(LoginScreenStage loginScreenStage) throws LoginException {
         try{
-            navigationClient.navigateTo(loginProperties.getTargetUrl(), loginProperties.getDelayForFirstCheckMs());
-            boolean isLoginFormVisible = navigationClient.isVisible(new LoginScreenTemplate(), false);
+            navigationClient.navigateTo(Constants.TARGET_URL);
+            boolean isLoginFormVisible = navigationClient.isStageVisible(loginScreenStage);
             if(isLoginFormVisible){
-                dsggsddg //todo
+                log.debug("Login form found");
+                return true;
             }
-
-            log.debug("Successfully found login form");
-            return true;
+            else{
+                log.debug("No login form found");
+                return false;
+            }
         }
         catch (Exception e){
-            log.error("Error while logging in: " + e.getMessage(), e);
+            throw new LoginException(e.getMessage(), e);
         }
-
-        return false;
-    }
-
-    private boolean isLoginForm(String message) {
-        log.debug("Checking if message is login form: " + message);
-
-        List<String> searchWords = loginProperties.getLoginFormSearchWords();
-        final double loginFormOcrConfidenceThreshhold = loginProperties.getLoginFormOcrConfidenceThreshhold();
-        double foundWords = 0;
-        for(String searchWord : searchWords){
-            if(message.contains(searchWord)){
-                foundWords++;
-            }
-        }
-
-        double confidence = foundWords / searchWords.size();
-
-        log.debug("Found login form with confidence: " + confidence + ", threshhold: " + loginFormOcrConfidenceThreshhold);
-        return confidence >= loginFormOcrConfidenceThreshhold;
     }
 }

@@ -12,11 +12,11 @@ public class StringFilehandler {
     }
 
     public static void persist(String exportType, String fileNamePrefix, String text) {
-        String filePath = Constants.DIR_TEMP + TempFileManager.fileIndex + "_" + exportType + "_" + fileNamePrefix + ".txt";
+        String filePath = Constants.DIR_TEMP + TempFileManager.getFileIndex() + "_" + exportType + "_" + fileNamePrefix + ".txt";
 
         try {
             Files.write(Paths.get(filePath), text.getBytes());
-            TempFileManager.fileIndex++;
+            TempFileManager.incrementFileIndex();
             log.debug(exportType + " persisted: " + filePath);
         } catch (Exception e) {
             log.error("Error while persisting " + exportType + ": " + filePath, e);

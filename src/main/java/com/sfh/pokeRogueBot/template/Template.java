@@ -8,9 +8,6 @@ public interface Template {
     String getTemplatePath();
     String getFilenamePrefix();
     String getXpath() throws NotSupportedException;
-    Template[] getSubTemplates();
     TemplateIdentificationType getIdentificationType();
-    TemplateActionType[] getTemplateActionTypesToPerform();
-    TemplateAction[] getTemplateActionsToPerform();
     boolean persistResultWhenFindingTemplate();
 }

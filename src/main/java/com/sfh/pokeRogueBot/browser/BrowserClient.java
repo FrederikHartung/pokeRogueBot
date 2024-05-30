@@ -9,10 +9,10 @@ import com.sfh.pokeRogueBot.model.CvResult;
 import com.sfh.pokeRogueBot.model.UserData;
 import com.sfh.pokeRogueBot.model.enums.TemplateIdentificationType;
 import com.sfh.pokeRogueBot.model.exception.BrowserExeption;
+import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.template.Template;
 import com.sfh.pokeRogueBot.template.TemplateAction;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.FileUtils;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -51,7 +51,6 @@ public class BrowserClient implements DisposableBean, NavigationClient {
         this.defaultWaitTimeAfterAction = defaultWaitTimeAfterAction;
     }
 
-
     private WebDriver getWebDriver() {
         ChromeOptions options = new ChromeOptions();
 
@@ -59,6 +58,7 @@ public class BrowserClient implements DisposableBean, NavigationClient {
         options.addArguments("user-data-dir=./bin/webdriver/profile/");
         return new ChromeDriver(options);
     }
+
 
     public void persistScreenshot(String fileNamePrefix) {
         try {
@@ -79,7 +79,7 @@ public class BrowserClient implements DisposableBean, NavigationClient {
     }
 
     @Override
-    public void navigateTo(String targetUrl, int waitTimeForLoadingMs) {
+    public void navigateTo(String targetUrl) {
         if(null == this.driver){
             this.driver = getWebDriver();
         }
@@ -96,25 +96,25 @@ public class BrowserClient implements DisposableBean, NavigationClient {
         return canvas;
     }
 
-    public boolean isVisible(Template template, boolean persistResultWhenFindingTemplate) {
+    public boolean isStageVisible(Stage stage) {
         List<Template> templatesToCheck = new LinkedList<>();
-        templatesToCheck.add(template);
-        templatesToCheck.addAll(Arrays.stream(template.getSubTemplates()).toList());
+        templatesToCheck.add(stage);
+        templatesToCheck.addAll(Arrays.stream(stage.getSubTemplates()).toList());
 
-        log.debug("Checking if template is visible: " + template.getFilenamePrefix());
+        log.debug("Checking if stage is visible: " + stage.getFilenamePrefix());
         for (Template templateToCheck : templatesToCheck) {
             if(!checkIfTemplateIsVisible(templateToCheck)){
-                log.debug("Template not visible: " + templateToCheck.getFilenamePrefix());
+                log.debug("stage not visible: " + templateToCheck.getFilenamePrefix());
                 return false;
             }
         }
 
-        log.debug("Template is visible: " + template.getFilenamePrefix());
+        log.debug("stage is visible: " + stage.getFilenamePrefix());
         return true;
     }
 
-    public void handleTemplate(Template template){
-        TemplateAction[] actionsToPerform = template.getTemplateActionsToPerform();
+    public void handleStage(Stage stage){
+        TemplateAction[] actionsToPerform = stage.getTemplateActionsToPerform();
         for (TemplateAction action : actionsToPerform) {
             switch (action.getActionType()) {
                 case CLICK:
@@ -259,7 +259,7 @@ public class BrowserClient implements DisposableBean, NavigationClient {
         StringFilehandler.persist("calculated_click_point", fileNamePrefix, content);
     }
 
-    @Override
+    @Deprecated
     public void clickAndTypeAtCanvas(int x, int y, String text) {
         try {
             // Lokalisieren des Input-Feldes

@@ -17,11 +17,11 @@ public class ScreenshotFilehandler {
     }
 
     public static void persistScreenshot(File scrFile, String fileNamePrefix) {
-        String filePath = Constants.DIR_TEMP + TempFileManager.fileIndex + "_screenshot_" + fileNamePrefix + Constants.SCREENSHOT_FILE_EXTENSION;
+        String filePath = Constants.DIR_TEMP + TempFileManager.getFileIndex() + "_screenshot_" + fileNamePrefix + Constants.SCREENSHOT_FILE_EXTENSION;
 
         try {
             FileUtils.moveFile(scrFile, new File(filePath));
-            TempFileManager.fileIndex++;
+            TempFileManager.incrementFileIndex();
             log.info("Screenshot persisted: " + filePath);
         } catch (Exception e) {
             log.error("Error while saving screenshot to: " + filePath, e);

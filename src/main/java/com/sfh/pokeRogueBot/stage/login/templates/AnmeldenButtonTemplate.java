@@ -1,10 +1,8 @@
-package com.sfh.pokeRogueBot.template.login;
+package com.sfh.pokeRogueBot.stage.login.templates;
 
-import com.sfh.pokeRogueBot.model.enums.TemplateActionType;
 import com.sfh.pokeRogueBot.model.enums.TemplateIdentificationType;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.template.Template;
-import com.sfh.pokeRogueBot.template.TemplateAction;
 
 public class AnmeldenButtonTemplate implements Template {
 
@@ -27,24 +25,8 @@ public class AnmeldenButtonTemplate implements Template {
     }
 
     @Override
-    public Template[] getSubTemplates() {
-        return new Template[0];
-    }
-
-    @Override
     public TemplateIdentificationType getIdentificationType() {
         return TemplateIdentificationType.IMAGE;
-    }
-
-    @Override
-    public TemplateActionType[] getTemplateActionTypesToPerform() {
-        return new TemplateActionType[TemplateActionType.CLICK.ordinal()];
-    }
-
-    @Override
-    public TemplateAction[] getTemplateActionsToPerform() {
-        TemplateAction clickAction = new TemplateAction(TemplateActionType.CLICK, this);
-        return new TemplateAction[]{clickAction};
     }
 
     @Override

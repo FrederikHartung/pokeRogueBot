@@ -14,11 +14,11 @@ public class HtmlFilehandler {
     }
 
     public static void persistPageBody(String fileNamePrefix, String bodyText) {
-        String filePath = Constants.DIR_TEMP + TempFileManager.fileIndex + "_body_" + fileNamePrefix + ".html";
+        String filePath = Constants.DIR_TEMP + TempFileManager.getFileIndex() + "_body_" + fileNamePrefix + ".html";
 
         try {
             Files.write(Paths.get(filePath), bodyText.getBytes());
-            TempFileManager.fileIndex++;
+            TempFileManager.incrementFileIndex();
             log.debug("Page body persisted: " + filePath);
         } catch (Exception e) {
             log.error("Error while persisting page body: " + filePath, e);

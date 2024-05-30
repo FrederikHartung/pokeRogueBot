@@ -11,10 +11,10 @@ public class CvResultFilehandler {
     }
 
     public static void persist(String fileNamePrefix, Mat image) {
-        String fileName = Constants.DIR_TEMP + TempFileManager.fileIndex + "_cv_" + fileNamePrefix + ".png";
+        String fileName = Constants.DIR_TEMP + TempFileManager.getFileIndex() + "_cv_" + fileNamePrefix + ".png";
         try {
             Imgcodecs.imwrite(fileName, image);
-            TempFileManager.fileIndex++;
+            TempFileManager.incrementFileIndex();
             log.debug("cvResult persisted: " + fileName);
         } catch (Exception e) {
             log.error("Error while persisting cvResult: " + fileName, e);

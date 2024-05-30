@@ -11,12 +11,11 @@ import java.util.List;
 @Component
 @Getter
 @Setter
+@Deprecated
 public class LoginProperties {
     private int retryCount;
     private int retryDelayMs;
-    private String targetUrl;
     private int delayForFirstCheckMs;
     private List<String> loginFormSearchWords;
     private double loginFormOcrConfidenceThreshhold;
-    private String userDataPath;
 }
