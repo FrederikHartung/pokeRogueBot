@@ -1,14 +1,20 @@
 package com.sfh.pokeRogueBot.browser;
 
+import com.sfh.pokeRogueBot.config.Constants;
+import com.sfh.pokeRogueBot.cv.OpenCvClient;
+import com.sfh.pokeRogueBot.filehandler.HtmlFilehandler;
+import com.sfh.pokeRogueBot.filehandler.ScreenshotFilehandler;
+import com.sfh.pokeRogueBot.model.CvResult;
 import com.sfh.pokeRogueBot.model.UserData;
+import com.sfh.pokeRogueBot.model.enums.TemplateIdentificationType;
 import com.sfh.pokeRogueBot.model.exception.BrowserExeption;
+import com.sfh.pokeRogueBot.template.Template;
+import com.sfh.pokeRogueBot.template.TemplateAction;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.openqa.selenium.*;
-import org.openqa.selenium.Point;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.beans.factory.DisposableBean;
@@ -21,17 +27,27 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 
 @Component
 @Slf4j
-public class BrowserClient implements DisposableBean, ScreenshotClient, NavigationClient {
+public class BrowserClient implements DisposableBean, NavigationClient {
 
-    private static final String CANVAS = "canvas";
+    public static final String BODY = "body";
+    public static final String INNER_HTML = "innerHTML";
     private WebDriver driver;
+    private final OpenCvClient openCvClient;
     private final boolean closeOnExit;
+    private final int defaultWaitTimeAfterAction; //to let the browser render the changes
+    private WebElement canvas;
 
-    public BrowserClient(@Value("${browser.closeOnExit:false}") boolean closeOnExit) {
+    public BrowserClient(OpenCvClient openCvClient, @Value("${browser.closeOnExit:false}") boolean closeOnExit,
+                         @Value("${browser.defaultWaitTimeAfterAction:500}") int defaultWaitTimeAfterAction) {
+        this.openCvClient = openCvClient;
         this.closeOnExit = closeOnExit;
+        this.defaultWaitTimeAfterAction = defaultWaitTimeAfterAction;
     }
 
 
@@ -43,34 +59,158 @@ public class BrowserClient implements DisposableBean, ScreenshotClient, Navigati
         return new ChromeDriver(options);
     }
 
-    @Override
-    public void takeScreenshot(String path) {
+    public void persistScreenshot(String fileNamePrefix) {
         try {
             if(null == this.driver){
                 throw new BrowserExeption("No webdriver available");
             }
 
             // Finde das Canvas-Element auf der Webseite
-            WebElement canvasElement = driver.findElement(By.tagName(CANVAS));
+            WebElement canvasElement = getCanvas();
 
             // Mache einen Screenshot nur vom Canvas-Element
             File scrFile = canvasElement.getScreenshotAs(OutputType.FILE);
-            FileUtils.copyFile(scrFile, new File(path));
+            ScreenshotFilehandler.persistScreenshot(scrFile, fileNamePrefix);
 
-            log.debug("Screenshot of canvas saved to " + path);
         } catch (Exception e) {
             log.error("Error while taking screenshot of canvas", e);
         }
     }
 
     @Override
-    public void navigateAndLogin(String targetUrl, int waitTimeForLoadingMs, UserData userData) throws InterruptedException {
+    public void navigateTo(String targetUrl, int waitTimeForLoadingMs) {
         if(null == this.driver){
             this.driver = getWebDriver();
         }
 
         driver.get(targetUrl);
 
+        waitDefault();
+    }
+
+    private WebElement getCanvas(){
+        if(null == canvas){
+            canvas = driver.findElement(By.tagName("canvas"));
+        }
+        return canvas;
+    }
+
+    public boolean isVisible(Template template, boolean persistResultWhenFindingTemplate) {
+        List<Template> templatesToCheck = new LinkedList<>();
+        templatesToCheck.add(template);
+        templatesToCheck.addAll(Arrays.stream(template.getSubTemplates()).toList());
+
+        log.debug("Checking if template is visible: " + template.getFilenamePrefix());
+        for (Template templateToCheck : templatesToCheck) {
+            if(!checkIfTemplateIsVisible(templateToCheck)){
+                log.debug("Template not visible: " + templateToCheck.getFilenamePrefix());
+                return false;
+            }
+        }
+
+        log.debug("Template is visible: " + template.getFilenamePrefix());
+        return true;
+    }
+
+    public void handleTemplate(Template template){
+        TemplateAction[] actionsToPerform = template.getTemplateActionsToPerform();
+        for (TemplateAction action : actionsToPerform) {
+            switch (action.getActionType()) {
+                case CLICK:
+                    handleClick(action);
+                    break;
+                case WAIT:
+                    waitDefault();
+                    break;
+                default:
+                    log.error("Unknown action: " + action);
+            }
+        }
+    }
+
+    private void handleClick(TemplateAction action){
+        TemplateIdentificationType target = action.getTarget().getIdentificationType();
+        switch (target) {
+            case X_PATH:
+                WebElement element = driver.findElement(By.xpath(action.getTarget().getXpath()));
+                element.click();
+                break;
+            case IMAGE:
+                WebElement canvasElement = getCanvas();
+                File scrFile = canvasElement.getScreenshotAs(OutputType.FILE);
+                BufferedImage img = null;
+                try {
+                    img = ImageIO.read(scrFile);
+                    CvResult result = openCvClient.findTemplateInBufferedImage(img, action.getTarget());
+                    if(action.getTarget().persistResultWhenFindingTemplate()){
+                        makeScreenshotAndMarkCalculatedClickPoint(result.getX(), result.getY(), action.getTarget().getFilenamePrefix());
+                    }
+
+                    //todo: click on canvas
+
+                } catch (Exception e) {
+                    log.error("Error while reading screenshot in handleClick for: " + action, e);
+                }
+
+                break;
+            default:
+                log.error("Unknown identification type: " + target);
+        }
+    }
+
+    private void persistPageBody(String fileNamePrefix) {
+        WebElement bodyElement = driver.findElement(By.tagName(BODY));
+        String bodyText = bodyElement.getAttribute(INNER_HTML);
+
+        HtmlFilehandler.persistPageBody(fileNamePrefix, bodyText);
+    }
+
+    private boolean checkIfTemplateIsVisible(Template template) {
+        if (template.getIdentificationType() == TemplateIdentificationType.X_PATH) {
+            try {
+                WebDriverWait wait = new WebDriverWait(driver, Duration.of(10, ChronoUnit.SECONDS));
+                wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath(template.getXpath())));
+                log.debug("visibility check with x_path: Template visible: " + template.getFilenamePrefix());
+                return true;
+            } catch (Exception e) {
+                log.error("Error while checking if template is visible with x_path for template: " + template.getFilenamePrefix(), e);
+                persistPageBody(template.getFilenamePrefix());
+            }
+
+            log.debug("visibility check with x_path: Template not visible: " + template.getFilenamePrefix());
+            return false;
+        }
+        else if(template.getIdentificationType() == TemplateIdentificationType.IMAGE){
+            try {
+                File scrFile = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
+                BufferedImage img = ImageIO.read(scrFile);
+
+                if (null != openCvClient.findTemplateInBufferedImage(img, template)) {
+                    log.debug("visibility check with image: Template visible: " + template.getFilenamePrefix());
+                    return true;
+                }
+
+                log.debug("visibility check with image: Template not visible: " + template.getFilenamePrefix());
+                return false;
+            } catch (Exception e) {
+                log.error("Error while checking if template is visible with image for template: " + template.getFilenamePrefix(), e);
+            }
+        }
+
+        log.debug("Template not visible: " + template.getFilenamePrefix());
+        return false;
+    }
+
+    private void waitDefault() {
+        try {
+            Thread.sleep(defaultWaitTimeAfterAction);
+        } catch (InterruptedException e) {
+            log.error("Error while waiting", e);
+        }
+    }
+
+    @Deprecated
+    private void fillLoginFormAndClickLogin(UserData userData, int waitTimeForLoadingMs){
         WebDriverWait wait = new WebDriverWait(driver, Duration.of(waitTimeForLoadingMs, ChronoUnit.MILLIS));
 
         // Warten, bis das erste Text-Eingabefeld sichtbar ist
@@ -82,16 +222,12 @@ public class BrowserClient implements DisposableBean, ScreenshotClient, Navigati
         // Benutzerdaten in die Eingabefelder einfügen
         usernameField.sendKeys(userData.getUsername());
         passwordField.sendKeys(userData.getPassword());
-
-        Thread.sleep(500);
-        log.debug("filled login form");
     }
 
-    @Override
-    public void makeScreenshotAndMarkClickPoint(int x, int y, String path) {
+    public void makeScreenshotAndMarkCalculatedClickPoint(int x, int y, String fileNamePrefix) {
         try {
             // Finde das Canvas-Element auf der Webseite
-            WebElement canvasElement = driver.findElement(By.tagName(CANVAS));
+            WebElement canvasElement = getCanvas();
 
             // Mache einen Screenshot nur vom Canvas-Element
             File scrFile = canvasElement.getScreenshotAs(OutputType.FILE);
@@ -105,15 +241,15 @@ public class BrowserClient implements DisposableBean, ScreenshotClient, Navigati
             // Ressourcen freigeben
             g2d.dispose();
 
-            // Speichere das veränderte Bild
-            File outputfile = new File(path);
-            ImageIO.write(img, "png", outputfile);
-
-            log.debug("Screenshot of canvas with marked click point saved to " + path);
+            File exportFile = new File(Constants.DIR_TEMP + "temp." + Constants.SCREENSHOT_FILE_EXTENSION);
+            ImageIO.write(img, Constants.SCREENSHOT_FILE_EXTENSION.replace(".", ""), exportFile);
+            ScreenshotFilehandler.persistScreenshot(exportFile, fileNamePrefix);
         } catch (Exception e) {
-            log.error("Error while taking screenshot of canvas and marking click point", e);
+            log.error("Error while taking screenshot of canvas and marking click point for: " + fileNamePrefix, e);
         }
     }
+
+    private void saveCalculatedClickPoint()
 
     @Override
     public void clickAndTypeAtCanvas(int x, int y, String text) {
@@ -135,7 +271,7 @@ public class BrowserClient implements DisposableBean, ScreenshotClient, Navigati
             inputElement.sendKeys(text);
 
             log.debug("Username entered successfully.");
-            Thread.sleep(500);
+            waitDefault();
         } catch (Exception e) {
             log.error("Error while entering username: " + e.getMessage(), e);
         }

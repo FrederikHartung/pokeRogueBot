@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.botconfig;
 
-import com.sfh.pokeRogueBot.filehandler.TempFileCleaner;
+import com.sfh.pokeRogueBot.filehandler.TempFileManager;
 import com.sfh.pokeRogueBot.template.TemplateManager;
 import com.sfh.pokeRogueBot.stage.login.LoginHandler;
 import org.springframework.stereotype.Component;
@@ -9,19 +9,19 @@ import org.springframework.stereotype.Component;
 public class StandardConfig implements Config {
 
     private final LoginHandler loginHandler;
-    private final TempFileCleaner tempFileCleaner;
+    private final TempFileManager tempFileManager;
     private final TemplateManager templateManager;
 
-    public StandardConfig(LoginHandler loginHandler, TempFileCleaner tempFileCleaner, TemplateManager templateManager) {
+    public StandardConfig(LoginHandler loginHandler, TempFileManager tempFileManager, TemplateManager templateManager) {
         this.loginHandler = loginHandler;
-        this.tempFileCleaner = tempFileCleaner;
+        this.tempFileManager = tempFileManager;
         this.templateManager = templateManager;
     }
 
     @Override
     public void applay() throws Exception {
         templateManager.checkIfAllTemplatesArePresent();
-        tempFileCleaner.deleteTempData();
+        tempFileManager.deleteTempData();
         loginHandler.login();
     }
 }

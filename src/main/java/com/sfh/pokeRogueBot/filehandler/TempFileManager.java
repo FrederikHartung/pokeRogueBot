@@ -1,6 +1,8 @@
 package com.sfh.pokeRogueBot.filehandler;
 
 import com.sfh.pokeRogueBot.config.Constants;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -9,7 +11,9 @@ import java.nio.file.Files;
 
 @Component
 @Slf4j
-public class TempFileCleaner {
+public class TempFileManager {
+
+    public static int fileIndex = 0;
 
     public void deleteTempData(){
         deleteOldScreenshots();

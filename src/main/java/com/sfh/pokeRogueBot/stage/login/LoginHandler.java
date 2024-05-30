@@ -6,7 +6,8 @@ import com.sfh.pokeRogueBot.cv.OpenCvClient;
 import com.sfh.pokeRogueBot.model.UserData;
 import com.sfh.pokeRogueBot.model.exception.NoLoginFormFoundException;
 import com.sfh.pokeRogueBot.cv.ScreenshotAnalyser;
-import com.sfh.pokeRogueBot.service.ScreenshotService;
+import com.sfh.pokeRogueBot.filehandler.ScreenshotFilehandler;
+import com.sfh.pokeRogueBot.template.login.LoginScreenTemplate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.support.RetryTemplateBuilder;
@@ -18,18 +19,18 @@ import java.util.List;
 @Slf4j
 public class LoginHandler {
 
-    private final ScreenshotService screenshotService;
+    private final ScreenshotFilehandler screenshotFilehandler;
     private final NavigationClient navigationClient;
     private final ScreenshotAnalyser screenshotAnalyser;
     private final LoginProperties loginProperties;
     private final RetryTemplate retryTemplate;
     private final OpenCvClient openCvClient;
 
-    public LoginHandler(ScreenshotService screenshotService,
+    public LoginHandler(ScreenshotFilehandler screenshotFilehandler,
                         NavigationClient navigationClient,
                         ScreenshotAnalyser screenshotAnalyser,
                         LoginProperties loginProperties, OpenCvClient openCvClient) {
-        this.screenshotService = screenshotService;
+        this.screenshotFilehandler = screenshotFilehandler;
         this.navigationClient = navigationClient;
         this.screenshotAnalyser = screenshotAnalyser;
         this.loginProperties = loginProperties;
@@ -42,17 +43,23 @@ public class LoginHandler {
     }
 
     public boolean login() throws Exception {
+        boolean isLoginRequired = navigateToTargetAndCheckLoginForm(loginProperties, new LoginScreenTemplate());
+
         UserData userData = UserDataProvider.getUserdata(loginProperties.getUserDataPath());
-        boolean isLoginFormFilledWithUserData = fillLoginFormWithUserData(userData);
 
-        screenshotService.takeScreenshot("login_benutzername_filled");
 
-        return isLoginFormFilledWithUserData;
+        screenshotFilehandler.takeScreenshot("login_benutzername_filled");
+
+        return isLoginRequired;
     }
 
-    private boolean fillLoginFormWithUserData(UserData userData) throws NoLoginFormFoundException {
+    private boolean navigateToTargetAndCheckLoginForm(LoginProperties properties, LoginScreenTemplate template) throws NoLoginFormFoundException {
         try{
-            navigationClient.navigateAndLogin(loginProperties.getTargetUrl(), loginProperties.getDelayForFirstCheckMs(), userData);
+            navigationClient.navigateTo(loginProperties.getTargetUrl(), loginProperties.getDelayForFirstCheckMs());
+            boolean isLoginFormVisible = navigationClient.isVisible(new LoginScreenTemplate(), false);
+            if(isLoginFormVisible){
+
+            }
 
             log.debug("Successfully found login form");
             return true;

@@ -1,9 +1,13 @@
 package com.sfh.pokeRogueBot.browser;
 
 import com.sfh.pokeRogueBot.model.UserData;
+import com.sfh.pokeRogueBot.template.Template;
 
 public interface NavigationClient {
 
-    void navigateAndLogin(String targetUrl, int waitTimeForLoadingMs, UserData userData) throws InterruptedException;
+    void navigateTo(String targetUrl, int waitTimeForLoadingMs) throws InterruptedException;
+    boolean isVisible(Template template, boolean persistResultWhenFindingTemplate);
+
+    @Deprecated
     void clickAndTypeAtCanvas(int x, int y, String text);
 }

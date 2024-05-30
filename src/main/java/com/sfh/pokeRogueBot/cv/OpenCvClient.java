@@ -1,6 +1,7 @@
 package com.sfh.pokeRogueBot.cv;
 
 import com.sfh.pokeRogueBot.config.Constants;
+import com.sfh.pokeRogueBot.filehandler.CvResultFilehandler;
 import com.sfh.pokeRogueBot.model.CvResult;
 import com.sfh.pokeRogueBot.template.Template;
 import lombok.extern.slf4j.Slf4j;
@@ -9,6 +10,10 @@ import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.springframework.stereotype.Component;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,19 +25,31 @@ public class OpenCvClient {
         nu.pattern.OpenCV.loadLocally();
     }
 
-    private int fileIndex = 0;
-
-    public CvResult findObject(String pathToBigImage, Template template) {
-        List<CvResult> results = findObjects(pathToBigImage, template, 1);
+    public CvResult findTemplateInFile(String pathToBigImage, Template template) {
+        List<CvResult> results = findTemplatesInFile(pathToBigImage, template, 1);
         return results.isEmpty() ? null : results.get(0);
     }
 
-    public List<CvResult> findObjects(String pathToBigImage, Template template, int bestResults) {
+    public CvResult findTemplateInBufferedImage(BufferedImage bufferedImage, Template template) throws IOException {
+        List<CvResult> results = findTemplatesInBufferedImage(bufferedImage, template, 1);
+        return results.isEmpty() ? null : results.get(0);
+    }
+
+    public List<CvResult> findTemplatesInFile(String pathToBigImage, Template template, int bestResults) {
+        Mat bigImage = Imgcodecs.imread(pathToBigImage);
+        Mat smallImage = Imgcodecs.imread(template.getTemplatePath());
+        return findMat(bigImage, smallImage, template, bestResults);
+    }
+
+    public List<CvResult> findTemplatesInBufferedImage(BufferedImage screenshot, Template template, int bestResults) throws IOException {
+        Mat bigImage = bufferedImageToMat(screenshot);
+        Mat smallImage = Imgcodecs.imread(template.getTemplatePath());
+        return findMat(bigImage, smallImage, template, bestResults);
+    }
+
+    private List<CvResult> findMat(Mat bigImage, Mat smallImage, Template template, int bestResults) {
         List<CvResult> results = new ArrayList<>();
         try {
-            Mat bigImage = Imgcodecs.imread(pathToBigImage);
-            Mat smallImage = Imgcodecs.imread(template.getTemplatePath());
-
             // Ergebnis-Matrix initialisieren
             int resultCols = bigImage.cols() - smallImage.cols() + 1;
             int resultRows = bigImage.rows() - smallImage.rows() + 1;
@@ -58,18 +75,23 @@ public class OpenCvClient {
                 );
                 Imgproc.rectangle(result, floodRect.tl(), floodRect.br(), new Scalar(1), Core.FILLED);
 
-
-                // Rechteck um das gefundene Objekt zeichnen
-                Imgproc.rectangle(bigImage, matchLoc, new Point(matchLoc.x + smallImage.cols(), matchLoc.y + smallImage.rows()), new Scalar(0, 255, 0), 2);
+                if(template.persistResultWhenFindingTemplate()){
+                    // Rechteck um das gefundene Objekt zeichnen
+                    Imgproc.rectangle(bigImage, matchLoc, new Point(matchLoc.x + smallImage.cols(), matchLoc.y + smallImage.rows()), new Scalar(0, 255, 0), 2);
+                }
 
                 // Ergebnis hinzufügen
-                log.info("Found object at x: " + (int) matchLoc.x + ", y: " + (int) matchLoc.y + " with width: " + smallImage.cols() + ", height: " + smallImage.rows());
+                log.debug("Found object at x: " + (int) matchLoc.x + ", y: " + (int) matchLoc.y + " with width: " + smallImage.cols() + ", height: " + smallImage.rows());
                 results.add(new CvResult((int) matchLoc.x, (int) matchLoc.y, smallImage.cols(), smallImage.rows()));
             }
 
-            // Bild mit den Rechtecken exportieren
-            Imgcodecs.imwrite(Constants.DIR_CV_RESULTS_TEMP + fileIndex + "_" + template.getFilenamePrefix() + ".png", bigImage);
-            fileIndex++;
+            if(template.persistResultWhenFindingTemplate() && !results.isEmpty()){
+                CvResultFilehandler.persist(template.getFilenamePrefix(), bigImage);
+            }
+
+            if(results.isEmpty()){
+                CvResultFilehandler.persist(template.getFilenamePrefix(), bigImage);
+            }
 
         } catch (Exception e) {
             log.error("Error while searching for object: " + e.getMessage(), e);
@@ -77,4 +99,13 @@ public class OpenCvClient {
         return results;
     }
 
+    private Mat bufferedImageToMat(BufferedImage bufferedImage) throws IOException {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        ImageIO.write(bufferedImage, ".png", byteArrayOutputStream);  // Specify the format
+        byteArrayOutputStream.flush();
+        byte[] byteArray = byteArrayOutputStream.toByteArray();
+        byteArrayOutputStream.close();
+
+        return Imgcodecs.imdecode(new MatOfByte(byteArray), Imgcodecs.IMREAD_UNCHANGED);
+    }
 }
