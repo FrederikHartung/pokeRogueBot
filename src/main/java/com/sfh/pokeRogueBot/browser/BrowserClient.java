@@ -1,5 +1,7 @@
 package com.sfh.pokeRogueBot.browser;
 
+import com.sfh.pokeRogueBot.model.UserData;
+import com.sfh.pokeRogueBot.model.exception.BrowserExeption;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.openqa.selenium.*;
@@ -44,6 +46,10 @@ public class BrowserClient implements DisposableBean, ScreenshotClient, Navigati
     @Override
     public void takeScreenshot(String path) {
         try {
+            if(null == this.driver){
+                throw new BrowserExeption("No webdriver available");
+            }
+
             // Finde das Canvas-Element auf der Webseite
             WebElement canvasElement = driver.findElement(By.tagName(CANVAS));
 
@@ -58,17 +64,27 @@ public class BrowserClient implements DisposableBean, ScreenshotClient, Navigati
     }
 
     @Override
-    public void navigateToTarget(String targetUrl, int waitTimeForLoadingMs) throws InterruptedException {
+    public void navigateAndLogin(String targetUrl, int waitTimeForLoadingMs, UserData userData) throws InterruptedException {
         if(null == this.driver){
             this.driver = getWebDriver();
         }
 
         driver.get(targetUrl);
 
-        new WebDriverWait(driver, Duration.of(waitTimeForLoadingMs, ChronoUnit.MILLIS)).until(
-                ExpectedConditions.presenceOfElementLocated(By.tagName(CANVAS)));
-        Thread.sleep(waitTimeForLoadingMs);
-        log.debug("Navigated to target " + targetUrl);
+        WebDriverWait wait = new WebDriverWait(driver, Duration.of(waitTimeForLoadingMs, ChronoUnit.MILLIS));
+
+        // Warten, bis das erste Text-Eingabefeld sichtbar ist
+        WebElement usernameField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//input[@type='text' and @maxlength='16']")));
+
+        // Warten, bis das erste Passwort-Eingabefeld sichtbar ist
+        WebElement passwordField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//input[@type='password' and @maxlength='64']")));
+
+        // Benutzerdaten in die Eingabefelder einfügen
+        usernameField.sendKeys(userData.getUsername());
+        passwordField.sendKeys(userData.getPassword());
+
+        Thread.sleep(500);
+        log.debug("filled login form");
     }
 
     @Override

@@ -3,13 +3,10 @@ package com.sfh.pokeRogueBot.stage.login;
 import com.sfh.pokeRogueBot.browser.NavigationClient;
 import com.sfh.pokeRogueBot.config.UserDataProvider;
 import com.sfh.pokeRogueBot.cv.OpenCvClient;
-import com.sfh.pokeRogueBot.model.CvResult;
-import com.sfh.pokeRogueBot.model.OcrResult;
 import com.sfh.pokeRogueBot.model.UserData;
 import com.sfh.pokeRogueBot.model.exception.NoLoginFormFoundException;
 import com.sfh.pokeRogueBot.cv.ScreenshotAnalyser;
 import com.sfh.pokeRogueBot.service.ScreenshotService;
-import com.sfh.pokeRogueBot.template.login.EingabeMaskeTemplate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.support.RetryTemplateBuilder;
@@ -45,42 +42,17 @@ public class LoginHandler {
     }
 
     public boolean login() throws Exception {
-        boolean loginFormVisible = checkIfLoginFormIsVisible();
         UserData userData = UserDataProvider.getUserdata(loginProperties.getUserDataPath());
+        boolean isLoginFormFilledWithUserData = fillLoginFormWithUserData(userData);
 
-        String screenshotPath = screenshotService.getLastScreenshotPath();
-        List<CvResult> results = openCvClient.findObjects(screenshotPath, new EingabeMaskeTemplate(), 2);
-        if (results.isEmpty()) {
-            log.error("No input forms found");
-            return false;
-        }
-
-        log.info("Found " + results.size() + " input forms on screen");
-
-        CvResult firstInputForm = results.get(0);
-        int x = firstInputForm.getX() + firstInputForm.getWidth() / 2;
-        int y = firstInputForm.getY() + firstInputForm.getHeight() / 2;
-        screenshotService.takeScreenshotAndMarkClickPoint(x, y, "login_benutzername");
-        navigationClient.clickAndTypeAtCanvas(x, y, "Benutzname");
         screenshotService.takeScreenshot("login_benutzername_filled");
 
-        return loginFormVisible;
+        return isLoginFormFilledWithUserData;
     }
 
-    private boolean checkIfLoginFormIsVisible() throws NoLoginFormFoundException {
+    private boolean fillLoginFormWithUserData(UserData userData) throws NoLoginFormFoundException {
         try{
-            navigationClient.navigateToTarget(loginProperties.getTargetUrl(), loginProperties.getDelayForFirstCheckMs());
-
-            retryTemplate.execute(context -> {
-                String screnshotPath = screenshotService.takeScreenshot("login");
-                OcrResult result = screenshotAnalyser.doOcr(screnshotPath);
-
-                if(isLoginForm(result.getText())){
-                    return null;
-                }
-
-                throw new NoLoginFormFoundException("No login form found after "+ loginProperties.getRetryCount() + " retries");
-            });
+            navigationClient.navigateAndLogin(loginProperties.getTargetUrl(), loginProperties.getDelayForFirstCheckMs(), userData);
 
             log.debug("Successfully found login form");
             return true;

@@ -1,9 +1,9 @@
 package com.sfh.pokeRogueBot.browser;
 
-import org.openqa.selenium.WebDriver;
+import com.sfh.pokeRogueBot.model.UserData;
 
 public interface NavigationClient {
 
-    void navigateToTarget(String targetUrl, int waitTimeForLoadingMs) throws InterruptedException;
+    void navigateAndLogin(String targetUrl, int waitTimeForLoadingMs, UserData userData) throws InterruptedException;
     void clickAndTypeAtCanvas(int x, int y, String text);
 }
