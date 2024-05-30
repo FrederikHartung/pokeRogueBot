@@ -29,3 +29,5 @@ replay_pid*
 /bin/webdriver/Google Chrome for Testing.app
 /target
 *.db
+/bin/webdriver/profile
+src/main/resources/users.txt

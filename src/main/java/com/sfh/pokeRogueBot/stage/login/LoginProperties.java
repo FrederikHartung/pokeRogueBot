@@ -1,4 +1,4 @@
-package com.sfh.pokeRogueBot.handler;
+package com.sfh.pokeRogueBot.stage.login;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -11,10 +11,10 @@ import java.util.List;
 @Component
 @Getter
 @Setter
+@Deprecated
 public class LoginProperties {
     private int retryCount;
     private int retryDelayMs;
-    private String targetUrl;
     private int delayForFirstCheckMs;
     private List<String> loginFormSearchWords;
     private double loginFormOcrConfidenceThreshhold;

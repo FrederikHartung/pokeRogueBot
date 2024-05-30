@@ -17,12 +17,20 @@ ocr:
   datapath: /opt/homebrew/Cellar/tesseract/5.3.4_1/share/tessdata
   jnaLibraryPath: /opt/homebrew/opt/tesseract/lib/
 
+browser:
+  closeOnExit: true
+  defaultWaitTimeAfterAction: 500
+  waitTimeForRenderAfterNavigation: 5000
+  retry:
+    maxAttempts: 5
+    backoffPeriod: 1000
+
+
 handler:
   login:
-    retryCount: 5
-    retryDelayMs: 2000
-    targetUrl: "https://pokerogue.net/"
-    delayForFirstCheckMs: 12000
+    retryCount: 11
+    retryDelayMs: 5000
+    delayForFirstCheckMs: 5000
     loginFormSearchWords:
       - "Benutzername"
       - "Passwort"

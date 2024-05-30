@@ -1,6 +1,10 @@
 package com.sfh.pokeRogueBot.browser;
 
+import com.sfh.pokeRogueBot.stage.Stage;
+
 public interface NavigationClient {
 
-    void navigateToTarget(String targetUrl, int waitTimeForLoadingMs) throws InterruptedException;
+    void navigateTo(String targetUrl);
+    boolean isStageVisible(Stage stage);
+    void handleStage(Stage stage);
 }

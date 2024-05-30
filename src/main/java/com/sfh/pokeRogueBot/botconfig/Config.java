@@ -1,5 +1,5 @@
 package com.sfh.pokeRogueBot.botconfig;
 
 public interface Config {
-    void applay();
+    void applay() throws Exception;
 }

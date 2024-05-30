@@ -16,7 +16,12 @@ public class SimpleBot implements Bot {
 
     @Override
     public void start() {
-        standardConfig.applay();
+        try {
+            standardConfig.applay();
+        }
+        catch (Exception e){
+            log.error("Error while starting simple bot", e);
+        }
     }
 }
 
