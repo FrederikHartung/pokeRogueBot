@@ -62,7 +62,8 @@ public class LoginScreenStage implements Template, Stage {
         TextInputTemplateAction passwortAction = new TextInputTemplateAction(PASSWORT_INPUT, userData.getPassword());
         TemplateAction waitAction = new TemplateAction(TemplateActionType.WAIT, null);
         TemplateAction screenshotAction = new TemplateAction(TemplateActionType.TAKE_SCREENSHOT, this);
-        return new TemplateAction[]{benutzernameAction, passwortAction, waitAction, screenshotAction};
+        TemplateAction clickAction = new TemplateAction(TemplateActionType.CLICK, ANMELDEN_BUTTON);
+        return new TemplateAction[]{benutzernameAction, passwortAction, waitAction, screenshotAction, clickAction};
     }
 
     @Override

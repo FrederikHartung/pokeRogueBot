@@ -2,6 +2,7 @@ package com.sfh.pokeRogueBot.cv;
 
 import com.sfh.pokeRogueBot.config.Constants;
 import com.sfh.pokeRogueBot.filehandler.CvResultFilehandler;
+import com.sfh.pokeRogueBot.filehandler.ScreenshotFilehandler;
 import com.sfh.pokeRogueBot.model.CvResult;
 import com.sfh.pokeRogueBot.template.Template;
 import lombok.extern.slf4j.Slf4j;
@@ -55,13 +56,20 @@ public class OpenCvClient {
             int resultRows = bigImage.rows() - smallImage.rows() + 1;
             Mat result = new Mat(resultRows, resultCols, CvType.CV_32FC1);
 
-            // Template Matching durchführen
-            Imgproc.matchTemplate(bigImage, smallImage, result, Imgproc.TM_SQDIFF);
+            int filter = Imgproc.TM_SQDIFF_NORMED;
+
+            double threshold = 0.1;
+            Imgproc.matchTemplate(bigImage, smallImage, result, filter);
             Core.normalize(result, result, 0, 1, Core.NORM_MINMAX, -1, new Mat());
 
             // Mehrfache beste Ergebnisse finden
             for (int i = 0; i < bestResults; i++) {
                 Core.MinMaxLocResult mmr = Core.minMaxLoc(result);
+                if (mmr.minVal > threshold) {
+                    break;  // Stop if the match quality is below the threshold
+                }
+                log.debug(template.getFilenamePrefix() + ": min: " + mmr.minVal + ", max: " + mmr.maxVal);
+                log.debug("-----------------------------------------------------------");
                 Point matchLoc = mmr.minLoc;
 
                 // Bereich um den gefundenen Punkt vergrößern, um Wiederholungen zu vermeiden
@@ -81,7 +89,7 @@ public class OpenCvClient {
                 }
 
                 // Ergebnis hinzufügen
-                log.debug("Found object at x: " + (int) matchLoc.x + ", y: " + (int) matchLoc.y + " with width: " + smallImage.cols() + ", height: " + smallImage.rows());
+                log.debug(template.getFilenamePrefix() + ": Found object at x: " + (int) matchLoc.x + ", y: " + (int) matchLoc.y + " with width: " + smallImage.cols() + ", height: " + smallImage.rows());
                 results.add(new CvResult((int) matchLoc.x, (int) matchLoc.y, smallImage.cols(), smallImage.rows()));
             }
 
@@ -101,7 +109,7 @@ public class OpenCvClient {
 
     private Mat bufferedImageToMat(BufferedImage bufferedImage) throws IOException {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        ImageIO.write(bufferedImage, ".png", byteArrayOutputStream);  // Specify the format
+        ImageIO.write(bufferedImage, Constants.IMAGE_IO_FILE_EXTENSION, byteArrayOutputStream);  // Specify the format
         byteArrayOutputStream.flush();
         byte[] byteArray = byteArrayOutputStream.toByteArray();
         byteArrayOutputStream.close();

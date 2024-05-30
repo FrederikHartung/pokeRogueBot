@@ -9,6 +9,7 @@ import com.sfh.pokeRogueBot.model.CvResult;
 import com.sfh.pokeRogueBot.model.UserData;
 import com.sfh.pokeRogueBot.model.enums.TemplateIdentificationType;
 import com.sfh.pokeRogueBot.model.exception.BrowserExeption;
+import com.sfh.pokeRogueBot.model.exception.TemplateNotFoundException;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.template.Template;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
@@ -21,6 +22,8 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.retry.support.RetryTemplate;
+import org.springframework.retry.support.RetryTemplateBuilder;
 import org.springframework.stereotype.Component;
 
 import javax.imageio.ImageIO;
@@ -39,17 +42,32 @@ public class BrowserClient implements DisposableBean, NavigationClient {
 
     public static final String BODY = "body";
     public static final String INNER_HTML = "innerHTML";
-    private WebDriver driver;
+
     private final OpenCvClient openCvClient;
+    private final RetryTemplate retryTemplate;
     private final boolean closeOnExit;
     private final int defaultWaitTimeAfterAction; //to let the browser render the changes
-    private WebElement canvas;
+    private final int waitTimeForRenderAfterNavigation;
 
-    public BrowserClient(OpenCvClient openCvClient, @Value("${browser.closeOnExit:false}") boolean closeOnExit,
-                         @Value("${browser.defaultWaitTimeAfterAction:500}") int defaultWaitTimeAfterAction) {
+    private WebElement canvas;
+    private WebDriver driver;
+
+
+    public BrowserClient(OpenCvClient openCvClient,
+                         @Value("${browser.closeOnExit:false}") boolean closeOnExit,
+                         @Value("${browser.defaultWaitTimeAfterAction:500}") int defaultWaitTimeAfterAction,
+                         @Value("${browser.retry.maxAttempts:5}") int maxAttempts,
+                         @Value("${browser.retry.backoffPeriod:1000}") long backoffPeriod,
+                         @Value("${browser.waitTimeForRenderAfterNavigation:5000}") int waitTimeForRenderAfterNavigation) {
         this.openCvClient = openCvClient;
         this.closeOnExit = closeOnExit;
         this.defaultWaitTimeAfterAction = defaultWaitTimeAfterAction;
+        this.waitTimeForRenderAfterNavigation = waitTimeForRenderAfterNavigation;
+        this.retryTemplate = new RetryTemplateBuilder()
+                .maxAttempts(maxAttempts)
+                .fixedBackoff(backoffPeriod)
+                .retryOn(TemplateNotFoundException.class)
+                .build();
     }
 
     private WebDriver getWebDriver() {
@@ -57,6 +75,9 @@ public class BrowserClient implements DisposableBean, NavigationClient {
 
         // Pfad zum Benutzerdatenverzeichnis festlegen
         options.addArguments("user-data-dir=./bin/webdriver/profile/");
+        options.addArguments("window-size=1920,1080");  // Set the desired window size
+        options.addArguments("disable-resize");        // Prevent the window from being resized
+
         return new ChromeDriver(options);
     }
 
@@ -87,7 +108,7 @@ public class BrowserClient implements DisposableBean, NavigationClient {
 
         driver.get(targetUrl);
 
-        waitDefault();
+        waitMs(waitTimeForRenderAfterNavigation);
     }
 
     private WebElement getCanvas(){
@@ -205,19 +226,25 @@ public class BrowserClient implements DisposableBean, NavigationClient {
         }
         else if(template.getIdentificationType() == TemplateIdentificationType.IMAGE){
             try {
-                File scrFile = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-                BufferedImage img = ImageIO.read(scrFile);
 
-                if (null != openCvClient.findTemplateInBufferedImage(img, template)) {
-                    log.debug("visibility check with image: Template visible: " + template.getFilenamePrefix());
-                    return true;
-                }
+                return retryTemplate.execute(context -> {
+                    File scrFile = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
+                    BufferedImage img = ImageIO.read(scrFile);
 
-                log.debug("visibility check with image: Template not visible: " + template.getFilenamePrefix());
-                return false;
-            } catch (Exception e) {
+                    if (null != openCvClient.findTemplateInBufferedImage(img, template)) {
+                        log.debug("visibility check with image: Template visible: " + template.getFilenamePrefix());
+                        return true;
+                    }
+
+                    throw new TemplateNotFoundException("Template not found in image: " + template.getFilenamePrefix());
+                });
+            } catch (TemplateNotFoundException e){
+                log.debug("Template not found in image: " + template.getFilenamePrefix());
+            }
+            catch (Exception e) {
                 log.error("Error while checking if template is visible with image for template: " + template.getFilenamePrefix(), e);
             }
+
         }
 
         log.debug("Template not visible: " + template.getFilenamePrefix());
@@ -227,6 +254,14 @@ public class BrowserClient implements DisposableBean, NavigationClient {
     private void waitDefault() {
         try {
             Thread.sleep(defaultWaitTimeAfterAction);
+        } catch (InterruptedException e) {
+            log.error("Error while waiting", e);
+        }
+    }
+
+    private void waitMs(int ms) {
+        try {
+            Thread.sleep(ms);
         } catch (InterruptedException e) {
             log.error("Error while waiting", e);
         }
@@ -265,8 +300,9 @@ public class BrowserClient implements DisposableBean, NavigationClient {
             g2d.dispose();
 
             // Speichere das veränderte Bild in eine temporäre Datei
-            File tempFile = new File(Constants.DIR_TEMP + "temp." + Constants.SCREENSHOT_FILE_EXTENSION);
-            ImageIO.write(img, Constants.SCREENSHOT_FILE_EXTENSION.replace(".", ""), tempFile);
+            String filePath = Constants.DIR_TEMP + "temp." + Constants.SCREENSHOT_FILE_EXTENSION;
+            File tempFile = new File(filePath);
+            ImageIO.write(img, Constants.IMAGE_IO_FILE_EXTENSION, tempFile);
 
             // Persistiere den Screenshot
             ScreenshotFilehandler.persistScreenshot(tempFile, fileNamePrefix);
