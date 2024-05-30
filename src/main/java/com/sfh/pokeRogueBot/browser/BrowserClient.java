@@ -11,7 +11,8 @@ import com.sfh.pokeRogueBot.model.enums.TemplateIdentificationType;
 import com.sfh.pokeRogueBot.model.exception.BrowserExeption;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.template.Template;
-import com.sfh.pokeRogueBot.template.TemplateAction;
+import com.sfh.pokeRogueBot.template.actions.TemplateAction;
+import com.sfh.pokeRogueBot.template.actions.TextInputTemplateAction;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -123,9 +124,29 @@ public class BrowserClient implements DisposableBean, NavigationClient {
                 case WAIT:
                     waitDefault();
                     break;
+                case TAKE_SCREENSHOT:
+                    persistScreenshot(action.getTarget().getFilenamePrefix());
+                    break;
+                case ENTER_TEXT:
+                    handleTextInput((TextInputTemplateAction) action);
+                    break;
                 default:
                     log.error("Unknown action: " + action);
             }
+        }
+    }
+
+    private void handleTextInput(TextInputTemplateAction action) throws BrowserExeption {
+        TemplateIdentificationType target = action.getTarget().getIdentificationType();
+        switch (target) {
+            case X_PATH:
+                WebElement element = driver.findElement(By.xpath(action.getTarget().getXpath()));
+                element.sendKeys(action.getText());
+                break;
+            case IMAGE:
+                throw new BrowserExeption("Not implemented yet");
+            default:
+                log.error("Unknown identification type: " + target);
         }
     }
 

@@ -1,32 +1,42 @@
 package com.sfh.pokeRogueBot.template;
 
 import com.sfh.pokeRogueBot.model.exception.TemplateNotFoundException;
+import com.sfh.pokeRogueBot.stage.login.LoginScreenStage;
+import com.sfh.pokeRogueBot.stage.login.templates.AnmeldenButtonTemplate;
+import com.sfh.pokeRogueBot.stage.login.templates.BenutzernameInputTemplate;
+import com.sfh.pokeRogueBot.stage.login.templates.PasswortInputTemplate;
 import lombok.extern.slf4j.Slf4j;
-import org.reflections.Reflections;
-import org.reflections.scanners.SubTypesScanner;
-import org.reflections.util.ClasspathHelper;
-import org.reflections.util.ConfigurationBuilder;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 @Slf4j
 @Component
 public class TemplateManager {
 
-    private final List<Template> templates = new LinkedList<>();
+
+    public List<String> getTemplatePaths() {
+        List<String> templatePaths = new LinkedList<>();
+
+        //login stage
+        templatePaths.add(LoginScreenStage.PATH);
+        templatePaths.add(AnmeldenButtonTemplate.PATH);
+        templatePaths.add(BenutzernameInputTemplate.PATH);
+        templatePaths.add(PasswortInputTemplate.PATH);
+
+        return templatePaths;
+    }
 
     public void checkIfAllTemplatesArePresent () throws TemplateNotFoundException {
-        importAllTemplates();
+        List<String> templatePaths = getTemplatePaths();
 
         boolean aTemplateWasNotFound = false;
-        for (Template template : templates) {
-            File file = new File(template.getTemplatePath());
+        for (String templatePath : templatePaths) {
+            File file = new File(templatePath);
             if (!file.exists()) {
-                log.error("Template not found: " + template.getTemplatePath());
+                log.error("Template not found: " + templatePath);
                 aTemplateWasNotFound = true;
             }
         }
@@ -35,21 +45,6 @@ public class TemplateManager {
             throw new TemplateNotFoundException("Not all templates were found");
         }
 
-        log.debug("imported templates: " + templates.size());
-    }
-
-    private void importAllTemplates() {
-        Reflections reflections = new Reflections(new ConfigurationBuilder()
-                .setUrls(ClasspathHelper.forJavaClassPath())
-                .setScanners(new SubTypesScanner(false)));
-
-        Set<Class<? extends Template>> classes = reflections.getSubTypesOf(Template.class);
-        for (Class<? extends Template> aClass : classes) {
-            try {
-                templates.add(aClass.newInstance());
-            } catch (InstantiationException | IllegalAccessException e) {
-                log.error("Error while importing templates: " + e.getMessage(), e);
-            }
-        }
+        log.debug("imported templates: " + templatePaths.size());
     }
 }

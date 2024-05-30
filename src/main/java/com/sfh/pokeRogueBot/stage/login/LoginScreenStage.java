@@ -5,11 +5,17 @@ import com.sfh.pokeRogueBot.model.enums.TemplateActionType;
 import com.sfh.pokeRogueBot.model.enums.TemplateIdentificationType;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.template.Template;
-import com.sfh.pokeRogueBot.template.TemplateAction;
+import com.sfh.pokeRogueBot.template.actions.TemplateAction;
 import com.sfh.pokeRogueBot.stage.login.templates.AnmeldenButtonTemplate;
 import com.sfh.pokeRogueBot.stage.login.templates.BenutzernameInputTemplate;
 import com.sfh.pokeRogueBot.stage.login.templates.PasswortInputTemplate;
+import com.sfh.pokeRogueBot.template.actions.TextInputTemplateAction;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+@AllArgsConstructor
+@NoArgsConstructor
 public class LoginScreenStage implements Template, Stage {
 
     public static final String PATH = "./data/templates/login/login-screen.png";
@@ -19,12 +25,7 @@ public class LoginScreenStage implements Template, Stage {
     public static final BenutzernameInputTemplate BENUTZERNAME_INPUT = new BenutzernameInputTemplate();
     public static final PasswortInputTemplate PASSWORT_INPUT = new PasswortInputTemplate();
 
-    private final UserData userData;
-
-    public LoginScreenStage(UserData userData) {
-        this.userData = userData;
-    }
-
+    private UserData userData;
 
     @Override
     public String getTemplatePath() {
@@ -53,8 +54,12 @@ public class LoginScreenStage implements Template, Stage {
 
     @Override
     public TemplateAction[] getTemplateActionsToPerform() {
-        TemplateAction benutzernameAction = new TemplateAction(TemplateActionType.ENTER_TEXT, BENUTZERNAME_INPUT);
-        TemplateAction passwortAction = new TemplateAction(TemplateActionType.ENTER_TEXT, PASSWORT_INPUT);
+        if(userData == null){
+            throw new IllegalStateException("UserData must be set before calling getTemplateActionsToPerform. Use the allArgsConstructor to set the userData.");
+        }
+
+        TextInputTemplateAction benutzernameAction = new TextInputTemplateAction(BENUTZERNAME_INPUT, userData.getUsername());
+        TextInputTemplateAction passwortAction = new TextInputTemplateAction(PASSWORT_INPUT, userData.getPassword());
         TemplateAction waitAction = new TemplateAction(TemplateActionType.WAIT, null);
         TemplateAction screenshotAction = new TemplateAction(TemplateActionType.TAKE_SCREENSHOT, this);
         return new TemplateAction[]{benutzernameAction, passwortAction, waitAction, screenshotAction};
