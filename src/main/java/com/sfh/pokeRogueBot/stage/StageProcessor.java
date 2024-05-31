@@ -14,6 +14,7 @@ import com.sfh.pokeRogueBot.template.Template;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
 import com.sfh.pokeRogueBot.template.actions.TextInputTemplateAction;
 import lombok.extern.slf4j.Slf4j;
+import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.WebElement;
 import org.springframework.beans.factory.annotation.Value;
@@ -79,76 +80,6 @@ public class StageProcessor {
         return true;
     }
 
-    public void handleStage(Stage stage){
-        TemplateAction[] actionsToPerform = stage.getTemplateActionsToPerform();
-        for (TemplateAction action : actionsToPerform) {
-            switch (action.getActionType()) {
-                case CLICK:
-                    handleClick(action);
-                    break;
-                case WAIT:
-                    waitDefault();
-                    break;
-                case TAKE_SCREENSHOT:
-                    persistScreenshot(action.getTarget().getFilenamePrefix());
-                    break;
-                case ENTER_TEXT:
-                    handleTextInput((TextInputTemplateAction) action);
-                    break;
-                default:
-                    log.error("Unknown action: " + action);
-            }
-        }
-    }
-
-    private void handleTextInput(TextInputTemplateAction action) {
-        //if action.getTarget() is a HtmlTemplate, we can persist the page body
-        Template template = action.getTarget();
-        if(template instanceof HtmlTemplate htmlTemplate){
-            WebElement element = browserClient.getElementByXpath(htmlTemplate.getXpath());
-            element.sendKeys(action.getText());
-            return;
-        }
-
-        log.error(UNKNOWN_IDENTIFICATION_TYPE + template);
-    }
-
-    private void handleClick(TemplateAction action){
-        Template template = action.getTarget();
-        if(template instanceof HtmlTemplate htmlTemplate){
-            WebElement element = browserClient.getElementByXpath(htmlTemplate.getXpath());
-            element.click();
-            return;
-        }
-        else if(template instanceof CvTemplate cvTemplate){
-            WebElement canvasElement = browserClient.getCanvas();
-            File scrFile = canvasElement.getScreenshotAs(OutputType.FILE);
-            BufferedImage img = null;
-            try {
-                img = ImageIO.read(scrFile);
-                log.info("handleClick: " + cvTemplate.getFilenamePrefix());
-                CvResult result = cvClient.findTemplateInBufferedImage(img, cvTemplate);
-                if(cvTemplate.persistResultWhenFindingTemplate()){
-                    saveCalculatedClickPoint(result, cvTemplate.getFilenamePrefix());
-                }
-
-                //todo: click on canvas
-
-            } catch (Exception e) {
-                log.error("Error while reading screenshot in handleClick for: " + action, e);
-            }
-
-            return;
-        }
-
-        log.error(UNKNOWN_IDENTIFICATION_TYPE + template);
-    }
-
-    private void persistPageBody(String fileNamePrefix) {
-        String bodyText = browserClient.getBodyAsText();
-        HtmlFilehandler.persistPageBody(fileNamePrefix, bodyText);
-    }
-
     private boolean checkIfTemplateIsVisible(Template template) {
         if (template instanceof HtmlTemplate htmlTemplate) {
             boolean isVisible = browserClient.waitUntilElementIsVisible(htmlTemplate.getXpath(), maxWaitTimeForElementToBeVisible);
@@ -186,6 +117,64 @@ public class StageProcessor {
         return false;
     }
 
+    // -------------------- handle --------------------
+
+    public void handleStage(Stage stage) throws NoSuchElementException, IOException {
+        TemplateAction[] actionsToPerform = stage.getTemplateActionsToPerform();
+        for (TemplateAction action : actionsToPerform) {
+            switch (action.getActionType()) {
+                case CLICK:
+                    handleClick(action);
+                    break;
+                case WAIT:
+                    waitDefault();
+                    break;
+                case TAKE_SCREENSHOT:
+                    persistScreenshot(action.getTarget().getFilenamePrefix());
+                    break;
+                case ENTER_TEXT:
+                    handleTextInput((TextInputTemplateAction) action);
+                    break;
+                default:
+                    log.error("Unknown action: " + action);
+            }
+        }
+    }
+
+    private void handleTextInput(TextInputTemplateAction action) throws NoSuchElementException {
+        Template template = action.getTarget();
+        if(template instanceof HtmlTemplate htmlTemplate){
+            browserClient.sendKeysToElement(htmlTemplate.getXpath(), action.getText());
+            return;
+        }
+
+        log.error(UNKNOWN_IDENTIFICATION_TYPE + template);
+    }
+
+    private void handleClick(TemplateAction action) throws NoSuchElementException, IOException {
+        Template template = action.getTarget();
+        if(template instanceof HtmlTemplate htmlTemplate){
+            browserClient.clickOnElement(htmlTemplate.getXpath());
+            return;
+        }
+        else if(template instanceof CvTemplate cvTemplate){
+            BufferedImage img = takeScreenshot();
+            log.debug("handleClick: " + cvTemplate.getFilenamePrefix());
+            CvResult result = cvClient.findTemplateInBufferedImage(img, cvTemplate);
+            if(cvTemplate.persistResultWhenFindingTemplate()){
+                saveCalculatedClickPoint(result, cvTemplate.getFilenamePrefix());
+            }
+
+            browserClient.clickOnPoint(result.getMiddlePointX(), result.getMiddlePointY());
+
+            return;
+        }
+
+        log.error(UNKNOWN_IDENTIFICATION_TYPE + template);
+    }
+
+    // -------------------- util --------------------
+
     private void waitDefault() {
         try {
             Thread.sleep(defaultWaitTimeAfterAction);
@@ -194,6 +183,7 @@ public class StageProcessor {
         }
     }
 
+    // -------------------- persisting --------------------
     private void saveCalculatedClickPoint(CvResult cvResult, String fileNamePrefix){
         String content = "cvResult: " + cvResult;
         StringFilehandler.persist("calculated_click_point", fileNamePrefix, content);
@@ -213,5 +203,10 @@ public class StageProcessor {
         } catch (Exception e) {
             log.error("Error while taking screenshot of canvas", e);
         }
+    }
+
+    private void persistPageBody(String fileNamePrefix) {
+        String bodyText = browserClient.getBodyAsText();
+        HtmlFilehandler.persistPageBody(fileNamePrefix, bodyText);
     }
 }

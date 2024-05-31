@@ -3,6 +3,7 @@ package com.sfh.pokeRogueBot.cv;
 import com.sfh.pokeRogueBot.model.cv.CvProcessingAlgorithm;
 import com.sfh.pokeRogueBot.model.cv.CvResult;
 import com.sfh.pokeRogueBot.stage.login.templates.AnmeldenButtonTemplate;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -18,7 +19,6 @@ class OpenCvClientTest {
     OpenCvClient cvClient;
     CvProcessingAlgorithm algorithm = CvProcessingAlgorithm.TM_CCOEFF_NORMED;
     AnmeldenButtonTemplate anmeldenButtonTemplate;
-
 
     @BeforeEach
     void setUp() {

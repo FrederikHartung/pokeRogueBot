@@ -1,5 +1,6 @@
 package com.sfh.pokeRogueBot.browser;
 
+import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebElement;
 
 import java.awt.image.BufferedImage;
@@ -8,6 +9,7 @@ import java.io.IOException;
 public interface BrowserClient {
 
     void navigateTo(String targetUrl);
+
     WebElement getCanvas();
 
     WebElement getElementByXpath(String xpath);
@@ -17,4 +19,10 @@ public interface BrowserClient {
     BufferedImage takeScreenshotFromCanvas() throws IOException;
 
     boolean waitUntilElementIsVisible(String xpath, int maxWaitTimeInSeconds);
+
+    void sendKeysToElement(String xpath, String text) throws NoSuchElementException;
+
+    void clickOnElement(String xpath);
+
+    void clickOnPoint(int middlePointX, int middlePointY);
 }

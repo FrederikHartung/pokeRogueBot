@@ -18,7 +18,7 @@ ocr:
   jnaLibraryPath: /opt/homebrew/opt/tesseract/lib/
 
 browser:
-  closeOnExit: true
+  closeOnExit: false
   waitTimeForRenderAfterNavigation: 5000
   pathChromeUserDir: "./bin/webdriver/profile/"
 

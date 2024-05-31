@@ -1,10 +1,11 @@
 package com.sfh.pokeRogueBot.browser;
 
-import com.sfh.pokeRogueBot.cv.OpenCvClient;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.interactions.MoveTargetOutOfBoundsException;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.beans.factory.DisposableBean;
@@ -14,7 +15,6 @@ import org.springframework.stereotype.Component;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -34,8 +34,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient {
     private WebDriver driver;
 
 
-    public ChromeBrowserClient(OpenCvClient openCvClient,
-                               @Value("${browser.closeOnExit:false}") boolean closeOnExit,
+    public ChromeBrowserClient(@Value("${browser.closeOnExit:false}") boolean closeOnExit,
                                @Value("${browser.waitTimeForRenderAfterNavigation:5000}") int waitTimeForRenderAfterNavigation,
                                @Value("${browser.pathChromeUserDir}") String pathChromeUserDir) {
         this.closeOnExit = closeOnExit;
@@ -113,6 +112,49 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient {
         catch (Exception e){
             log.error("Error while waiting for element to be visible", e);
             return false;
+        }
+    }
+
+    @Override
+    public void sendKeysToElement(String xpath, String text) throws NoSuchElementException {
+        WebElement element = getElementByXpath(xpath);
+        element.sendKeys(text);
+    }
+
+    @Override
+    public void clickOnElement(String xpath) {
+        WebElement element = getElementByXpath(xpath);
+        element.click();
+    }
+
+    @Override
+    public void clickOnPoint(int middlePointX, int middlePointY) {
+        WebElement canvasElement = getCanvas();
+        Actions actions = new Actions(driver);
+
+        // Get the canvas element's size and position
+        Rectangle canvasRect = canvasElement.getRect();
+        int canvasWidth = canvasRect.getWidth();
+        int canvasHeight = canvasRect.getHeight();
+        int canvasX = canvasRect.getX();
+        int canvasY = canvasRect.getY();
+
+        log.debug("Canvas position and size: x=" + canvasX + ", y=" + canvasY + ", width=" + canvasWidth + ", height=" + canvasHeight);
+
+        // Calculate the absolute position to click
+        int clickX = canvasX + middlePointX;
+        int clickY = canvasY + middlePointY;
+
+        log.debug("Attempting to click at absolute position: " + clickX + ", " + clickY);
+
+        try {
+            actions.moveToElement(canvasElement, middlePointX, middlePointY)
+                    .click()
+                    .perform();
+            log.debug("Clicked on point: " + middlePointX + ", " + middlePointY);
+        } catch (MoveTargetOutOfBoundsException e) {
+            log.error("Target out of bounds. Canvas size: width=" + canvasWidth + ", height=" + canvasHeight + ". Click position: x=" + clickX + ", y=" + clickY, e);
+            throw e;
         }
     }
 }
