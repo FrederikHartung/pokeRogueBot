@@ -109,6 +109,10 @@ public class OpenCvClient {
         return results;
     }
 
+    private void applyImgProc(int procAlgorithm){
+
+    }
+
     private Mat bufferedImageToMat(BufferedImage bufferedImage) throws IOException {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         ImageIO.write(bufferedImage, Constants.IMAGE_IO_FILE_EXTENSION, byteArrayOutputStream);  // Specify the format

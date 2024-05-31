@@ -1,6 +1,7 @@
 package com.sfh.pokeRogueBot.template;
 
+import org.opencv.core.Point;
+
 public interface KnownClickPositionOnParentTemplate {
-    int getX();
-    int getY();
+    Point getClickPositionOnParent();
 }
