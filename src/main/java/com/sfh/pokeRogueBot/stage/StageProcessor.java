@@ -12,7 +12,7 @@ import com.sfh.pokeRogueBot.template.CvTemplate;
 import com.sfh.pokeRogueBot.template.HtmlTemplate;
 import com.sfh.pokeRogueBot.template.Template;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
-import com.sfh.pokeRogueBot.template.actions.TextInputTemplateAction;
+import com.sfh.pokeRogueBot.template.actions.TextInputAction;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.OutputType;
@@ -22,7 +22,6 @@ import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.support.RetryTemplateBuilder;
 import org.springframework.stereotype.Component;
 
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -36,7 +35,8 @@ public class StageProcessor {
 
     public static final String UNKNOWN_IDENTIFICATION_TYPE = "Unknown identification type: ";
 
-    private final int defaultWaitTimeAfterAction; //to let the browser render the changes
+    private final int waitTimeAfterAction; //to let the browser render quick changes
+    private final int waitTimeForRendering; //to let the browser render changes after stage switching
     private final int maxWaitTimeForElementToBeVisible; //in ms
 
     private final BrowserClient browserClient;
@@ -46,14 +46,16 @@ public class StageProcessor {
     public StageProcessor(
             ChromeBrowserClient chromeBrowserClient,
             OpenCvClient cvClient,
-            @Value("${stage-processor.defaultWaitTimeAfterAction:500}") int defaultWaitTimeAfterAction,
+            @Value("${stage-processor.waitTimeAfterAction:500}") int waitTimeAfterAction,
+            @Value("${stage-processor.waitTimeForRendering:2000}") int waitTimeForRendering,
             @Value("${stage-processor.maxWaitTimeForElementToBeVisible:500}") int maxWaitTimeForElementToBeVisible,
             @Value("${stage-processor.retry.maxAttemptsForSearchingTemplates:5}") int maxAttemptsForSearchingTemplates,
             @Value("${stage-processor.retry.backoffPeriodForSearchingTemplates:1000}") long backoffPeriodForSearchingTemplates) {
+        this.waitTimeForRendering = waitTimeForRendering;
         this.browserClient = chromeBrowserClient;
         this.cvClient = cvClient;
 
-        this.defaultWaitTimeAfterAction = defaultWaitTimeAfterAction;
+        this.waitTimeAfterAction = waitTimeAfterAction;
         this.maxWaitTimeForElementToBeVisible = maxWaitTimeForElementToBeVisible;
 
         this.retryTemplateForFindingTemplates = new RetryTemplateBuilder()
@@ -64,9 +66,7 @@ public class StageProcessor {
     }
 
     public boolean isStageVisible(Stage stage) {
-        List<Template> templatesToCheck = new LinkedList<>();
-        templatesToCheck.add(stage);
-        templatesToCheck.addAll(Arrays.stream(stage.getTemplatesToValidateStage()).toList());
+        List<Template> templatesToCheck = new LinkedList<>(Arrays.stream(stage.getTemplatesToValidateStage()).toList());
 
         log.debug("Checking if stage is visible: " + stage.getFilenamePrefix());
         for (Template templateToCheck : templatesToCheck) {
@@ -82,7 +82,7 @@ public class StageProcessor {
 
     private boolean checkIfTemplateIsVisible(Template template) {
         if (template instanceof HtmlTemplate htmlTemplate) {
-            boolean isVisible = browserClient.waitUntilElementIsVisible(htmlTemplate.getXpath(), maxWaitTimeForElementToBeVisible);
+            boolean isVisible = browserClient.waitUntilElementIsVisible(htmlTemplate.getXpath(), maxWaitTimeForElementToBeVisible, template.getFilenamePrefix());
             if(isVisible){
                 log.debug("visibility check with x_path: Template visible: " + template.getFilenamePrefix());
                 return true;
@@ -133,15 +133,17 @@ public class StageProcessor {
                     persistScreenshot(action.getTarget().getFilenamePrefix());
                     break;
                 case ENTER_TEXT:
-                    handleTextInput((TextInputTemplateAction) action);
+                    handleTextInput((TextInputAction) action);
                     break;
                 default:
                     log.error("Unknown action: " + action);
             }
         }
+
+        waitForRender();
     }
 
-    private void handleTextInput(TextInputTemplateAction action) throws NoSuchElementException {
+    private void handleTextInput(TextInputAction action) throws NoSuchElementException {
         Template template = action.getTarget();
         if(template instanceof HtmlTemplate htmlTemplate){
             browserClient.sendKeysToElement(htmlTemplate.getXpath(), action.getText());
@@ -177,7 +179,15 @@ public class StageProcessor {
 
     private void waitDefault() {
         try {
-            Thread.sleep(defaultWaitTimeAfterAction);
+            Thread.sleep(waitTimeAfterAction);
+        } catch (InterruptedException e) {
+            log.error("Error while waiting", e);
+        }
+    }
+
+    private void waitForRender(){
+        try {
+            Thread.sleep(waitTimeForRendering);
         } catch (InterruptedException e) {
             log.error("Error while waiting", e);
         }
@@ -199,7 +209,6 @@ public class StageProcessor {
 
             File scrFile = canvasElement.getScreenshotAs(OutputType.FILE);
             ScreenshotFilehandler.persistScreenshot(scrFile, fileNamePrefix);
-
         } catch (Exception e) {
             log.error("Error while taking screenshot of canvas", e);
         }

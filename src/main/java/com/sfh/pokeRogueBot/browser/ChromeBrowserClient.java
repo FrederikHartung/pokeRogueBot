@@ -37,7 +37,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient {
     public ChromeBrowserClient(@Value("${browser.closeOnExit:false}") boolean closeOnExit,
                                @Value("${browser.waitTimeForRenderAfterNavigation:5000}") int waitTimeForRenderAfterNavigation,
                                @Value("${browser.pathChromeUserDir}") String pathChromeUserDir,
-                               @Value("${browser.deleteCookiesOnStart:false}") boolean useInkognito) {
+                               @Value("${browser.useInkognito:false}") boolean useInkognito) {
         this.closeOnExit = closeOnExit;
         this.waitTimeForRenderAfterNavigation = waitTimeForRenderAfterNavigation;
         this.pathChromeUserDir = pathChromeUserDir;
@@ -109,14 +109,18 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient {
     }
 
     @Override
-    public boolean waitUntilElementIsVisible(String xpath, int maxWaitTimeInSeconds) {
+    public boolean waitUntilElementIsVisible(String xpath, int maxWaitTimeInSeconds, String fileNamePrefix) {
         try{
-            WebDriverWait wait = new WebDriverWait(driver, Duration.of(maxWaitTimeInSeconds, ChronoUnit.SECONDS));
+            WebDriverWait wait = new WebDriverWait(driver, Duration.of(maxWaitTimeInSeconds, ChronoUnit.MILLIS));
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath(xpath)));
             return true;
         }
+        catch (TimeoutException e){
+            log.error("Element not visible after " + maxWaitTimeInSeconds + " seconds: " + fileNamePrefix);
+            return false;
+        }
         catch (Exception e){
-            log.error("Error while waiting for element to be visible", e);
+            log.error("Error while waiting for element to be visible: " + fileNamePrefix, e);
             return false;
         }
     }

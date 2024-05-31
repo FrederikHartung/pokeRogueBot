@@ -18,7 +18,7 @@ public interface BrowserClient {
 
     BufferedImage takeScreenshotFromCanvas() throws IOException;
 
-    boolean waitUntilElementIsVisible(String xpath, int maxWaitTimeInSeconds);
+    boolean waitUntilElementIsVisible(String xpath, int maxWaitTimeInSeconds, String fileNamePrefix);
 
     void sendKeysToElement(String xpath, String text) throws NoSuchElementException;
 

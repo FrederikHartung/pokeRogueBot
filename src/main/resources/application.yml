@@ -21,13 +21,12 @@ browser:
   closeOnExit: false
   waitTimeForRenderAfterNavigation: 5000
   pathChromeUserDir: "./bin/webdriver/profile/"
-  deleteCookiesOnStart: false
-  useInkognito: true
-
+  useInkognito: false
 
 stage-processor:
-  defaultWaitTimeAfterAction: 500
-  maxWaitTimeForElementToBeVisible: 10000
+  waitTimeAfterAction: 500
+  waitTimeForRendering: 5000
+  maxWaitTimeForElementToBeVisible: 2000
   retry:
     maxAttemptsForSearchingTemplates: 5
     backoffPeriodForSearchingTemplates: 1000

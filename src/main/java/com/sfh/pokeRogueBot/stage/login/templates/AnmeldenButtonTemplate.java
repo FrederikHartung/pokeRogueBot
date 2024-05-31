@@ -24,7 +24,7 @@ public class AnmeldenButtonTemplate implements CvTemplate, KnownClickPosition {
 
     @Override
     public boolean persistResultWhenFindingTemplate() {
-        return true;
+        return false;
     }
 
     @Override

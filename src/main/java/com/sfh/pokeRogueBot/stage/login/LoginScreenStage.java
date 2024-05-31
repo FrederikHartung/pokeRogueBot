@@ -9,7 +9,7 @@ import com.sfh.pokeRogueBot.template.actions.TemplateAction;
 import com.sfh.pokeRogueBot.stage.login.templates.AnmeldenButtonTemplate;
 import com.sfh.pokeRogueBot.stage.login.templates.BenutzernameInputTemplate;
 import com.sfh.pokeRogueBot.stage.login.templates.PasswortInputTemplate;
-import com.sfh.pokeRogueBot.template.actions.TextInputTemplateAction;
+import com.sfh.pokeRogueBot.template.actions.TextInputAction;
 
 public class LoginScreenStage implements HtmlTemplate, Stage {
 
@@ -55,8 +55,8 @@ public class LoginScreenStage implements HtmlTemplate, Stage {
             throw new IllegalStateException("UserData must be set before calling getTemplateActionsToPerform. Use the allArgsConstructor to set the userData.");
         }
 
-        TextInputTemplateAction benutzernameAction = new TextInputTemplateAction(BENUTZERNAME_INPUT, userData.getUsername());
-        TextInputTemplateAction passwortAction = new TextInputTemplateAction(PASSWORT_INPUT, userData.getPassword());
+        TextInputAction benutzernameAction = new TextInputAction(BENUTZERNAME_INPUT, userData.getUsername());
+        TextInputAction passwortAction = new TextInputAction(PASSWORT_INPUT, userData.getPassword());
         TemplateAction clickAction = new TemplateAction(TemplateActionType.CLICK, ANMELDEN_BUTTON);
         return new TemplateAction[]{benutzernameAction, passwortAction, clickAction};
     }

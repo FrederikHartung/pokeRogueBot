@@ -5,4 +5,5 @@ public enum TemplateActionType {
     CLICK,
     WAIT,
     TAKE_SCREENSHOT,
+    PRESS_KEY,
 }

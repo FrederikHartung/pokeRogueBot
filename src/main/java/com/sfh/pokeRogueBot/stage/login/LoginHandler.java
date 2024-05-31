@@ -6,6 +6,7 @@ import com.sfh.pokeRogueBot.config.UserDataProvider;
 import com.sfh.pokeRogueBot.model.UserData;
 import com.sfh.pokeRogueBot.model.exception.LoginException;
 import com.sfh.pokeRogueBot.stage.StageProcessor;
+import com.sfh.pokeRogueBot.stage.newgame.NewGameStage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -24,31 +25,21 @@ public class LoginHandler {
     public boolean login() throws Exception {
         UserData userData = UserDataProvider.getUserdata(Constants.PATH_TO_USER_DATA);
         LoginScreenStage loginScreenStage = new LoginScreenStage(userData);
-        boolean isLoginFormVisible = navigateToTargetAndCheckLoginForm(loginScreenStage);
+        browserClient.navigateTo(Constants.TARGET_URL);
+
+        boolean isLoginFormVisible = stageProcessor.isStageVisible(loginScreenStage);
         if(isLoginFormVisible){
+            log.info("Login form found");
             stageProcessor.handleStage(loginScreenStage);
-            log.debug("handled LoginScreenStage");
+            log.info("handled LoginScreenStage");
         }
+        else{
+            log.debug("No login form found");
+        }
+
+        boolean isNewGameStageVisible = stageProcessor.isStageVisible(new NewGameStage());
 
         //todo
         return true;
-    }
-
-    private boolean navigateToTargetAndCheckLoginForm(LoginScreenStage loginScreenStage) throws LoginException {
-        try{
-            browserClient.navigateTo(Constants.TARGET_URL);
-            boolean isLoginFormVisible = stageProcessor.isStageVisible(loginScreenStage);
-            if(isLoginFormVisible){
-                log.debug("Login form found");
-                return true;
-            }
-            else{
-                log.debug("No login form found");
-                return false;
-            }
-        }
-        catch (Exception e){
-            throw new LoginException(e.getMessage(), e);
-        }
     }
 }
