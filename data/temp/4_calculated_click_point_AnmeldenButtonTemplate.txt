@@ -1,1 +1,0 @@
-cvResult: CvResult{x=526, middlePointX=625, y=407, middlePointY=452, width=198, height=90}
