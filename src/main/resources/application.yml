@@ -21,6 +21,8 @@ browser:
   closeOnExit: false
   waitTimeForRenderAfterNavigation: 5000
   pathChromeUserDir: "./bin/webdriver/profile/"
+  deleteCookiesOnStart: false
+  useInkognito: true
 
 
 stage-processor:

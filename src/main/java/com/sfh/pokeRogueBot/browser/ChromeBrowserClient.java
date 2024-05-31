@@ -23,10 +23,10 @@ import java.time.temporal.ChronoUnit;
 @Component
 public class ChromeBrowserClient implements DisposableBean, BrowserClient {
 
-
     private final boolean closeOnExit;
     private final int waitTimeForRenderAfterNavigation;
     private final String pathChromeUserDir;
+    private final boolean useInkognito;
 
     /**
      * The instance of the WebDriver is created when first time calling navigateTo()
@@ -36,10 +36,12 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient {
 
     public ChromeBrowserClient(@Value("${browser.closeOnExit:false}") boolean closeOnExit,
                                @Value("${browser.waitTimeForRenderAfterNavigation:5000}") int waitTimeForRenderAfterNavigation,
-                               @Value("${browser.pathChromeUserDir}") String pathChromeUserDir) {
+                               @Value("${browser.pathChromeUserDir}") String pathChromeUserDir,
+                               @Value("${browser.deleteCookiesOnStart:false}") boolean useInkognito) {
         this.closeOnExit = closeOnExit;
         this.waitTimeForRenderAfterNavigation = waitTimeForRenderAfterNavigation;
         this.pathChromeUserDir = pathChromeUserDir;
+        this.useInkognito = useInkognito;
     }
 
     @Override
@@ -48,6 +50,10 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient {
             ChromeOptions options = new ChromeOptions();
 
             options.addArguments("user-data-dir=" + pathChromeUserDir);
+            if(useInkognito){
+                options.addArguments("--incognito");
+                log.debug("starting in incognito mode");
+            }
             this.driver = new ChromeDriver(options);
         }
 
@@ -132,7 +138,14 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient {
         WebElement canvasElement = getCanvas();
         Actions actions = new Actions(driver);
 
-        // Get the canvas element's size and position
+        // Scrollen Sie zum Canvas-Element, um sicherzustellen, dass es im Viewport sichtbar ist
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", canvasElement);
+
+        // Warten Sie, bis das Canvas-Element sichtbar und klickbar ist
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        wait.until(ExpectedConditions.elementToBeClickable(canvasElement));
+
+        // Holen Sie sich die Größe und Position des Canvas-Elements
         Rectangle canvasRect = canvasElement.getRect();
         int canvasWidth = canvasRect.getWidth();
         int canvasHeight = canvasRect.getHeight();
@@ -141,14 +154,14 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient {
 
         log.debug("Canvas position and size: x=" + canvasX + ", y=" + canvasY + ", width=" + canvasWidth + ", height=" + canvasHeight);
 
-        // Calculate the absolute position to click
+        // Berechnen Sie die absolute Position zum Klicken
         int clickX = canvasX + middlePointX;
         int clickY = canvasY + middlePointY;
 
         log.debug("Attempting to click at absolute position: " + clickX + ", " + clickY);
 
         try {
-            actions.moveToElement(canvasElement, middlePointX, middlePointY)
+            actions.moveByOffset(clickX, clickY)
                     .click()
                     .perform();
             log.debug("Clicked on point: " + middlePointX + ", " + middlePointY);
