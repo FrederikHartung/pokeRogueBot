@@ -19,12 +19,16 @@ ocr:
 
 browser:
   closeOnExit: true
-  defaultWaitTimeAfterAction: 500
   waitTimeForRenderAfterNavigation: 5000
-  retry:
-    maxAttempts: 5
-    backoffPeriod: 1000
+  pathChromeUserDir: "./bin/webdriver/profile/"
 
+
+stage-processor:
+  defaultWaitTimeAfterAction: 500
+  maxWaitTimeForElementToBeVisible: 10000
+  retry:
+    maxAttemptsForSearchingTemplates: 5
+    backoffPeriodForSearchingTemplates: 1000
 
 handler:
   login:

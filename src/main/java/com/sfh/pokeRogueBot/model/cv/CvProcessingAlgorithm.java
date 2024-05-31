@@ -1,4 +1,4 @@
-package com.sfh.pokeRogueBot.model;
+package com.sfh.pokeRogueBot.model.cv;
 
 import com.sfh.pokeRogueBot.model.enums.CvFilterType;
 import lombok.Getter;

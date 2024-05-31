@@ -1,19 +1,16 @@
 package com.sfh.pokeRogueBot.stage.login.templates;
 
-import com.sfh.pokeRogueBot.model.CvProcessingAlgorithm;
-import com.sfh.pokeRogueBot.model.enums.TemplateIdentificationType;
-import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
+import com.sfh.pokeRogueBot.template.CvTemplate;
 import com.sfh.pokeRogueBot.template.KnownClickPosition;
-import com.sfh.pokeRogueBot.template.Template;
 import org.opencv.core.Point;
 
-import java.util.Map;
-
-public class AnmeldenButtonTemplate implements Template, KnownClickPosition {
+public class AnmeldenButtonTemplate implements CvTemplate, KnownClickPosition {
 
     public static final String PATH = "./data/templates/login/login-anmelden-button.png";
     public static final String NAME = AnmeldenButtonTemplate.class.getSimpleName();
-    private static final Point clickPoint = new Point(407, 320);
+    private static final Point clickPoint = new Point(618, 447);
+    private static final int WIDTH_PARENT = 1479;
+    private static final int HEIGHT_PARENT = 832;
 
     @Override
     public String getTemplatePath() {
@@ -26,16 +23,6 @@ public class AnmeldenButtonTemplate implements Template, KnownClickPosition {
     }
 
     @Override
-    public String getXpath() throws NotSupportedException {
-        throw new NotSupportedException("AnmeldenButtonTemplate does not support getXpath()");
-    }
-
-    @Override
-    public TemplateIdentificationType getIdentificationType() {
-        return TemplateIdentificationType.IMAGE;
-    }
-
-    @Override
     public boolean persistResultWhenFindingTemplate() {
         return true;
     }
@@ -43,5 +30,15 @@ public class AnmeldenButtonTemplate implements Template, KnownClickPosition {
     @Override
     public Point getClickPositionOnParent() {
         return clickPoint;
+    }
+
+    @Override
+    public int getParentWidth() {
+        return WIDTH_PARENT;
+    }
+
+    @Override
+    public int getParentHeight() {
+        return HEIGHT_PARENT;
     }
 }

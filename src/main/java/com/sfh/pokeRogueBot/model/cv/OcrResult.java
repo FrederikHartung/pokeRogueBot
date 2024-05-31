@@ -1,4 +1,4 @@
-package com.sfh.pokeRogueBot.model;
+package com.sfh.pokeRogueBot.model.cv;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

@@ -1,23 +1,24 @@
 package com.sfh.pokeRogueBot.stage.login;
 
-import com.sfh.pokeRogueBot.browser.NavigationClient;
+import com.sfh.pokeRogueBot.browser.BrowserClient;
 import com.sfh.pokeRogueBot.config.Constants;
 import com.sfh.pokeRogueBot.config.UserDataProvider;
 import com.sfh.pokeRogueBot.model.UserData;
 import com.sfh.pokeRogueBot.model.exception.LoginException;
+import com.sfh.pokeRogueBot.stage.StageProcessor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 @Component
 @Slf4j
 public class LoginHandler {
 
-    private final NavigationClient navigationClient;
+    private final StageProcessor stageProcessor;
+    private final BrowserClient browserClient;
 
-    public LoginHandler(NavigationClient navigationClient) {
-        this.navigationClient = navigationClient;
+    public LoginHandler(StageProcessor stageProcessor, BrowserClient browserClient) {
+        this.stageProcessor = stageProcessor;
+        this.browserClient = browserClient;
     }
 
     public boolean login() throws Exception {
@@ -25,7 +26,7 @@ public class LoginHandler {
         LoginScreenStage loginScreenStage = new LoginScreenStage(userData);
         boolean isLoginFormVisible = navigateToTargetAndCheckLoginForm(loginScreenStage);
         if(isLoginFormVisible){
-            navigationClient.handleStage(loginScreenStage);
+            stageProcessor.handleStage(loginScreenStage);
             log.debug("handled LoginScreenStage");
         }
 
@@ -35,8 +36,8 @@ public class LoginHandler {
 
     private boolean navigateToTargetAndCheckLoginForm(LoginScreenStage loginScreenStage) throws LoginException {
         try{
-            navigationClient.navigateTo(Constants.TARGET_URL);
-            boolean isLoginFormVisible = navigationClient.isStageVisible(loginScreenStage);
+            browserClient.navigateTo(Constants.TARGET_URL);
+            boolean isLoginFormVisible = stageProcessor.isStageVisible(loginScreenStage);
             if(isLoginFormVisible){
                 log.debug("Login form found");
                 return true;

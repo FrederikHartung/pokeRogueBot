@@ -1,9 +1,8 @@
 package com.sfh.pokeRogueBot.stage.login.templates;
 
-import com.sfh.pokeRogueBot.model.enums.TemplateIdentificationType;
-import com.sfh.pokeRogueBot.template.Template;
+import com.sfh.pokeRogueBot.template.HtmlTemplate;
 
-public class BenutzernameInputTemplate implements Template {
+public class BenutzernameInputTemplate implements HtmlTemplate {
 
     public static final String PATH = "./data/templates/login/login-eingabemaske.png";
     public static final String NAME = BenutzernameInputTemplate.class.getSimpleName();
@@ -22,11 +21,6 @@ public class BenutzernameInputTemplate implements Template {
     @Override
     public String getXpath() {
         return XPATH;
-    }
-
-    @Override
-    public TemplateIdentificationType getIdentificationType() {
-        return TemplateIdentificationType.X_PATH;
     }
 
     @Override

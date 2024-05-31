@@ -1,6 +1,5 @@
 package com.sfh.pokeRogueBot.filehandler;
 
-import com.sfh.pokeRogueBot.browser.ScreenshotClient;
 import com.sfh.pokeRogueBot.config.Constants;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;

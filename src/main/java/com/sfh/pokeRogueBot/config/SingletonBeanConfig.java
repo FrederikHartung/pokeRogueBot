@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.config;
 
-import com.sfh.pokeRogueBot.model.CvProcessingAlgorithm;
+import com.sfh.pokeRogueBot.model.cv.CvProcessingAlgorithm;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

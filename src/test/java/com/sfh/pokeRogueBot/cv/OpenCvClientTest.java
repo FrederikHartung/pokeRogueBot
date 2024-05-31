@@ -1,9 +1,8 @@
 package com.sfh.pokeRogueBot.cv;
 
-import com.sfh.pokeRogueBot.model.CvProcessingAlgorithm;
-import com.sfh.pokeRogueBot.model.CvResult;
+import com.sfh.pokeRogueBot.model.cv.CvProcessingAlgorithm;
+import com.sfh.pokeRogueBot.model.cv.CvResult;
 import com.sfh.pokeRogueBot.stage.login.templates.AnmeldenButtonTemplate;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -17,7 +16,7 @@ class OpenCvClientTest {
     private static final String PATH_ANMELDEN_BUTTON = "./src/test/java/com/sfh/pokeRogueBot/cv/cvTestFiles/login-anmelden-button.png";
 
     OpenCvClient cvClient;
-    CvProcessingAlgorithm algorithm = CvProcessingAlgorithm.TM_SQDIFF;
+    CvProcessingAlgorithm algorithm = CvProcessingAlgorithm.TM_CCOEFF_NORMED;
     AnmeldenButtonTemplate anmeldenButtonTemplate;
 
 
@@ -37,10 +36,10 @@ class OpenCvClientTest {
     void configureMocksAndSpies(){
         //AnmeldenButtonTemplate
         doReturn(PATH_ANMELDEN_BUTTON).when(anmeldenButtonTemplate).getTemplatePath();
-        doReturn(false).when(anmeldenButtonTemplate).persistResultWhenFindingTemplate();
+        doReturn(true).when(anmeldenButtonTemplate).persistResultWhenFindingTemplate();
         doCallRealMethod().when(anmeldenButtonTemplate).getFilenamePrefix();
-        doCallRealMethod().when(anmeldenButtonTemplate).getIdentificationType();
-        doCallRealMethod().when(anmeldenButtonTemplate).getXpath();
+        doCallRealMethod().when(anmeldenButtonTemplate).getParentHeight();
+        doCallRealMethod().when(anmeldenButtonTemplate).getParentWidth();
     }
 
     @Test
@@ -58,7 +57,7 @@ class OpenCvClientTest {
 
         //assert
         assertNotNull(result);
-        assertEquals(correctTemplate.getClickPositionOnParent().x, result.getX());
-        assertEquals(correctTemplate.getClickPositionOnParent().y, result.getY());
+        assertEquals(correctTemplate.getClickPositionOnParent().x, result.getMiddlePointX());
+        assertEquals(correctTemplate.getClickPositionOnParent().y, result.getMiddlePointY());
     }
 }
