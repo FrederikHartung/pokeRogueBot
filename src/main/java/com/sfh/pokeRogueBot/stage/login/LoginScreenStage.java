@@ -58,9 +58,7 @@ public class LoginScreenStage implements HtmlTemplate, Stage {
         TextInputTemplateAction benutzernameAction = new TextInputTemplateAction(BENUTZERNAME_INPUT, userData.getUsername());
         TextInputTemplateAction passwortAction = new TextInputTemplateAction(PASSWORT_INPUT, userData.getPassword());
         TemplateAction clickAction = new TemplateAction(TemplateActionType.CLICK, ANMELDEN_BUTTON);
-        TemplateAction waitAction = new TemplateAction(TemplateActionType.WAIT, null);
-        TemplateAction screnshotAction = new TemplateAction(TemplateActionType.TAKE_SCREENSHOT, null);
-        return new TemplateAction[]{benutzernameAction, passwortAction, clickAction, waitAction, screnshotAction};
+        return new TemplateAction[]{benutzernameAction, passwortAction, clickAction};
     }
 
     @Override
