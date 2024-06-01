@@ -63,9 +63,4 @@ public class LoginScreenStage implements HtmlTemplate, Stage {
                 passwortAction,
                 clickAction};
     }
-
-    @Override
-    public boolean persistResultWhenFindingTemplate() {
-        return false;
-    }
 }

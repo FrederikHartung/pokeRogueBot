@@ -3,7 +3,7 @@ package com.sfh.pokeRogueBot.stage.newgame;
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.model.enums.TemplateActionType;
 import com.sfh.pokeRogueBot.stage.Stage;
-import com.sfh.pokeRogueBot.stage.newgame.templates.IntroScreenTemplate;
+import com.sfh.pokeRogueBot.stage.newgame.templates.IntroScreenCvTemplate;
 import com.sfh.pokeRogueBot.template.Template;
 import com.sfh.pokeRogueBot.template.actions.PressKeyAction;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
@@ -14,7 +14,7 @@ public class NewGameStage implements Stage {
 
     @Override
     public Template[] getTemplatesToValidateStage() {
-        return new Template[]{new IntroScreenTemplate()};
+        return new Template[]{new IntroScreenCvTemplate()};
     }
 
     @Override
@@ -45,10 +45,5 @@ public class NewGameStage implements Stage {
     @Override
     public String getFilenamePrefix() {
         return NAME;
-    }
-
-    @Override
-    public boolean persistResultWhenFindingTemplate() {
-        return false;
     }
 }

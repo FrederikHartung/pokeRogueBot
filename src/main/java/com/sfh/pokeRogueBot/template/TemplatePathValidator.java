@@ -6,7 +6,7 @@ import com.sfh.pokeRogueBot.stage.login.templates.AnmeldenButtonTemplate;
 import com.sfh.pokeRogueBot.stage.login.templates.BenutzernameInputTemplate;
 import com.sfh.pokeRogueBot.stage.login.templates.PasswortInputTemplate;
 import com.sfh.pokeRogueBot.stage.newgame.NewGameStage;
-import com.sfh.pokeRogueBot.stage.newgame.templates.IntroScreenTemplate;
+import com.sfh.pokeRogueBot.stage.newgame.templates.IntroScreenCvTemplate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -29,7 +29,7 @@ public class TemplatePathValidator {
 
         //new game stage
         templatePaths.add(NewGameStage.PATH);
-        templatePaths.add(IntroScreenTemplate.PATH);
+        templatePaths.add(IntroScreenCvTemplate.PATH);
 
         return templatePaths;
     }

@@ -2,9 +2,9 @@ package com.sfh.pokeRogueBot.stage.newgame.templates;
 
 import com.sfh.pokeRogueBot.template.CvTemplate;
 
-public class IntroScreenTemplate implements CvTemplate {
+public class IntroScreenCvTemplate implements CvTemplate {
 
-    public static final String PATH = "./data/templates/newgame/introScreenTemplate.png";
+    public static final String PATH = "./data/templates/newgame/introScreenCvTemplate.png";
 
     @Override
     public int getParentWidth() {
@@ -23,7 +23,7 @@ public class IntroScreenTemplate implements CvTemplate {
 
     @Override
     public String getFilenamePrefix() {
-        return IntroScreenTemplate.class.getSimpleName();
+        return IntroScreenCvTemplate.class.getSimpleName();
     }
 
     @Override

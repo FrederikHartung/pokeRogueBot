@@ -85,7 +85,7 @@ public class OpenCvClient {
         return Collections.emptyList();
     }
 
-    private List<CvResult> applyImgProc(CvProcessingAlgorithm algorithm, Mat bigImage, Mat smallImage, Mat result, Template template, int bestResults) {
+    private List<CvResult> applyImgProc(CvProcessingAlgorithm algorithm, Mat bigImage, Mat smallImage, Mat result, CvTemplate template, int bestResults) {
         List<CvResult> results = new ArrayList<>();
         Imgproc.matchTemplate(bigImage, smallImage, result, algorithm.getAlgorithm());
         Core.normalize(result, result, 0, 1, Core.NORM_MINMAX, -1, new Mat());
