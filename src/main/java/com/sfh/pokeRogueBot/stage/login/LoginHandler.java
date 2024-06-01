@@ -46,7 +46,6 @@ public class LoginHandler {
             log.debug("No new game stage found");
         }
 
-        //todo
         return true;
     }
 }

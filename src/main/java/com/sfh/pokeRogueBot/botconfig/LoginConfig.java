@@ -6,13 +6,13 @@ import com.sfh.pokeRogueBot.stage.login.LoginHandler;
 import org.springframework.stereotype.Component;
 
 @Component
-public class StandardConfig implements Config {
+public class LoginConfig implements Config {
 
     private final LoginHandler loginHandler;
     private final TempFileManager tempFileManager;
     private final TemplatePathValidator templatePathValidator;
 
-    public StandardConfig(LoginHandler loginHandler, TempFileManager tempFileManager, TemplatePathValidator templatePathValidator) {
+    public LoginConfig(LoginHandler loginHandler, TempFileManager tempFileManager, TemplatePathValidator templatePathValidator) {
         this.loginHandler = loginHandler;
         this.tempFileManager = tempFileManager;
         this.templatePathValidator = templatePathValidator;
