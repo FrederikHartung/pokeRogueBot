@@ -1,17 +1,17 @@
-package com.sfh.pokeRogueBot.stage.newgame;
+package com.sfh.pokeRogueBot.stage.intro;
 
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.model.enums.TemplateActionType;
 import com.sfh.pokeRogueBot.stage.Stage;
-import com.sfh.pokeRogueBot.stage.newgame.templates.IntroScreenCvTemplate;
-import com.sfh.pokeRogueBot.stage.newgame.templates.IntroScreenTextTemplate;
+import com.sfh.pokeRogueBot.stage.intro.templates.IntroScreenCvTemplate;
+import com.sfh.pokeRogueBot.stage.intro.templates.IntroScreenTextTemplate;
 import com.sfh.pokeRogueBot.template.Template;
 import com.sfh.pokeRogueBot.template.actions.PressKeyAction;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
 
-public class NewGameStage implements Stage {
-    public static final String PATH = "./data/templates/newgame/newgame-screen.png";
-    private static final String NAME = NewGameStage.class.getSimpleName();
+public class IntroStage implements Stage {
+    public static final String PATH = "./data/templates/intro/intro-screen.png";
+    private static final String NAME = IntroStage.class.getSimpleName();
 
     @Override
     public Template[] getTemplatesToValidateStage() {

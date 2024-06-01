@@ -1,10 +1,10 @@
-package com.sfh.pokeRogueBot.stage.newgame.templates;
+package com.sfh.pokeRogueBot.stage.intro.templates;
 
 import com.sfh.pokeRogueBot.template.OcrTemplate;
 
 public class IntroScreenTextTemplate implements OcrTemplate {
 
-    public static final String PATH = "./data/templates/newgame/introScreenCvTemplate.png";
+    public static final String PATH = "./data/templates/intro/introScreenCvTemplate.png";
     private static final String NAME = IntroScreenTextTemplate.class.getSimpleName();
 
     @Override
@@ -29,7 +29,7 @@ public class IntroScreenTextTemplate implements OcrTemplate {
 
     @Override
     public double getConfidenceThreshhold() {
-        return 0.8;
+        return 0.7;
     }
 
     @Override

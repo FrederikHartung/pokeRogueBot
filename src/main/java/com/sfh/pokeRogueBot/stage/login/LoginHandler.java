@@ -4,9 +4,8 @@ import com.sfh.pokeRogueBot.browser.BrowserClient;
 import com.sfh.pokeRogueBot.config.Constants;
 import com.sfh.pokeRogueBot.config.UserDataProvider;
 import com.sfh.pokeRogueBot.model.UserData;
-import com.sfh.pokeRogueBot.model.exception.LoginException;
 import com.sfh.pokeRogueBot.stage.StageProcessor;
-import com.sfh.pokeRogueBot.stage.newgame.NewGameStage;
+import com.sfh.pokeRogueBot.stage.intro.IntroStage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -37,11 +36,11 @@ public class LoginHandler {
             log.debug("No login form found");
         }
 
-        boolean isNewGameStageVisible = stageProcessor.isStageVisible(new NewGameStage());
+        boolean isNewGameStageVisible = stageProcessor.isStageVisible(new IntroStage());
         if(isNewGameStageVisible){
             log.info("New game stage found");
-            stageProcessor.handleStage(new NewGameStage());
-            log.info("handled NewGameStage");
+            stageProcessor.handleStage(new IntroStage());
+            log.info("handled IntroStage");
         }
         else{
             log.debug("No new game stage found");
