@@ -1,20 +1,17 @@
 package com.sfh.pokeRogueBot.stage.startgame.templates;
 
+import com.sfh.pokeRogueBot.model.cv.ParentSize;
 import com.sfh.pokeRogueBot.template.CvTemplate;
 
 public class StartGameCvTemplate implements CvTemplate {
 
     public static final String PATH = "./data/templates/startgame/startgame-cvtemplate.png";
     private static final String NAME = StartGameCvTemplate.class.getSimpleName();
+    private static final ParentSize PARENT_SIZE = new ParentSize(1474, 829);
 
     @Override
-    public int getParentWidth() {
-        return 1474;
-    }
-
-    @Override
-    public int getParentHeight() {
-        return 829;
+    public ParentSize getParentSize() {
+        return PARENT_SIZE;
     }
 
     @Override

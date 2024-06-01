@@ -38,8 +38,7 @@ class OpenCvClientTest {
         doReturn(PATH_ANMELDEN_BUTTON).when(anmeldenButtonTemplate).getTemplatePath();
         doReturn(true).when(anmeldenButtonTemplate).persistResultWhenFindingTemplate();
         doCallRealMethod().when(anmeldenButtonTemplate).getFilenamePrefix();
-        doCallRealMethod().when(anmeldenButtonTemplate).getParentHeight();
-        doCallRealMethod().when(anmeldenButtonTemplate).getParentWidth();
+        doCallRealMethod().when(anmeldenButtonTemplate).getParentSize();
     }
 
     @Test
@@ -57,7 +56,7 @@ class OpenCvClientTest {
 
         //assert
         assertNotNull(result);
-        assertEquals(correctTemplate.getClickPositionOnParent().x, result.getMiddlePointX());
-        assertEquals(correctTemplate.getClickPositionOnParent().y, result.getMiddlePointY());
+        assertEquals(correctTemplate.getClickPositionOnParent().getX(), result.getMiddlePointX());
+        assertEquals(correctTemplate.getClickPositionOnParent().getY(), result.getMiddlePointY());
     }
 }

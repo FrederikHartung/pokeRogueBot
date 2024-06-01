@@ -7,7 +7,8 @@ import com.sfh.pokeRogueBot.cv.OpenCvClient;
 import com.sfh.pokeRogueBot.filehandler.HtmlFilehandler;
 import com.sfh.pokeRogueBot.filehandler.ScreenshotFilehandler;
 import com.sfh.pokeRogueBot.filehandler.StringFilehandler;
-import com.sfh.pokeRogueBot.model.cv.CvResult;
+import com.sfh.pokeRogueBot.model.cv.*;
+import com.sfh.pokeRogueBot.model.cv.Point;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.exception.TemplateNotFoundException;
 import com.sfh.pokeRogueBot.template.CvTemplate;
@@ -17,6 +18,7 @@ import com.sfh.pokeRogueBot.template.Template;
 import com.sfh.pokeRogueBot.template.actions.PressKeyAction;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
 import com.sfh.pokeRogueBot.template.actions.TextInputAction;
+import com.sfh.pokeRogueBot.util.ImageUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.OutputType;
@@ -26,6 +28,8 @@ import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.support.RetryTemplateBuilder;
 import org.springframework.stereotype.Component;
 
+import java.awt.*;
+import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -79,6 +83,7 @@ public class StageProcessor {
         for (Template templateToCheck : templatesToCheck) {
             if(!checkIfTemplateIsVisible(templateToCheck)){
                 log.debug("stage not visible: " + stage.getFilenamePrefix() + " because template: " + templateToCheck.getFilenamePrefix() + " is not found");
+                persistScreenshot(stage.getFilenamePrefix() + "_not_visible");
                 return false;
             }
         }
@@ -102,7 +107,19 @@ public class StageProcessor {
     }
 
     private boolean checkIfOcrTemplateIsVisible(OcrTemplate ocrTemplate) throws IOException {
-        BufferedImage img = takeScreenshot();
+        BufferedImage scaledImg = ImageUtils.scaleImage(ocrTemplate.getFilenamePrefix(), takeScreenshot(), ocrTemplate.getOcrPosition().getParentSize());
+
+        Point topLeft = ocrTemplate.getOcrPosition().getTopLeft();
+        Size ocrSize = ocrTemplate.getOcrPosition().getSize();
+        BufferedImage img = scaledImg.getSubimage(topLeft.getX(), topLeft.getY(), ocrSize.getWidth(), ocrSize.getHeight());
+
+        //todo
+        log.debug(ocrTemplate.getFilenamePrefix() +  ", topleft x: " + topLeft.getX() + ", y: " + topLeft.getY() + ", width: " + ocrSize.getWidth() + ", height: " + ocrSize.getHeight());
+
+        if(ocrTemplate.persistSourceImageForDebugging()){
+            ScreenshotFilehandler.persistBufferedImage(img, ocrTemplate.getFilenamePrefix() + "_ocrSource");
+        }
+
         String ocrResult = ocrScreenshotAnalyser.doOcr(img).getText().toLowerCase();
         int foundStrings = 0;
         int totalStrings = ocrTemplate.getExpectedTexts().length;
@@ -219,9 +236,6 @@ public class StageProcessor {
             BufferedImage img = takeScreenshot();
             log.debug("handleClick: " + cvTemplate.getFilenamePrefix());
             CvResult result = cvClient.findTemplateInBufferedImage(img, cvTemplate);
-            if(cvTemplate.persistResultWhenFindingTemplate()){
-                saveCalculatedClickPoint(result, cvTemplate.getFilenamePrefix());
-            }
 
             browserClient.clickOnPoint(result.getMiddlePointX(), result.getMiddlePointY());
 
@@ -232,10 +246,7 @@ public class StageProcessor {
     }
 
     // -------------------- persisting --------------------
-    private void saveCalculatedClickPoint(CvResult cvResult, String fileNamePrefix){
-        String content = "cvResult: " + cvResult;
-        StringFilehandler.persist("calculated_click_point", fileNamePrefix, content);
-    }
+
 
     public BufferedImage takeScreenshot() throws IOException {
         return browserClient.takeScreenshotFromCanvas();

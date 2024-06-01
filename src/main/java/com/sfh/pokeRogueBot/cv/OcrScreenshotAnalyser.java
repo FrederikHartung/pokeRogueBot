@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.awt.image.BufferedImage;
-import java.io.File;
 
 @Component
 @Slf4j

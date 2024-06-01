@@ -2,20 +2,25 @@ package com.sfh.pokeRogueBot.cv;
 
 import com.sfh.pokeRogueBot.config.Constants;
 import com.sfh.pokeRogueBot.filehandler.CvResultFilehandler;
+import com.sfh.pokeRogueBot.filehandler.StringFilehandler;
 import com.sfh.pokeRogueBot.model.cv.CvProcessingAlgorithm;
 import com.sfh.pokeRogueBot.model.cv.CvResult;
+import com.sfh.pokeRogueBot.model.cv.ParentSize;
 import com.sfh.pokeRogueBot.model.enums.CvFilterType;
 import com.sfh.pokeRogueBot.template.CvTemplate;
 import com.sfh.pokeRogueBot.template.Template;
 import lombok.extern.slf4j.Slf4j;
 import org.opencv.core.*;
+import org.opencv.core.Point;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.springframework.stereotype.Component;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -55,16 +60,21 @@ public class OpenCvClient {
     }
 
     public List<CvResult> findTemplatesInBufferedImage(BufferedImage screenshot, CvTemplate template, int bestResults) throws IOException {
+        screenshot = removeAlphaChannel(screenshot);
+        File file = new File(template.getTemplatePath());
+        BufferedImage smallImageBufferedImage = ImageIO.read(file);
+        smallImageBufferedImage = removeAlphaChannel(smallImageBufferedImage);
         Mat bigImage = bufferedImageToMat(screenshot);
-        Mat smallImage = Imgcodecs.imread(template.getTemplatePath());
+
+        Mat smallImage = bufferedImageToMat(smallImageBufferedImage);
         return findMat(bigImage, smallImage, template, bestResults);
     }
 
     private List<CvResult> findMat(Mat bigImage, Mat smallImage, CvTemplate template, int bestResults) {
         try {
-            // Berechne die Skalierungsfaktoren
-            double scaleX = (double) bigImage.cols() / template.getParentWidth();
-            double scaleY = (double) bigImage.rows() / template.getParentHeight();
+            ParentSize parentSize = template.getParentSize();
+            double scaleX = (double) bigImage.cols() / parentSize.getWidth();
+            double scaleY = (double) bigImage.rows() / parentSize.getHeight();
             log.debug(template.getFilenamePrefix() + ": scaleX: " + scaleX + ", scaleY: " + scaleY);
 
             // Skaliere das Template
@@ -88,7 +98,7 @@ public class OpenCvClient {
     private List<CvResult> applyImgProc(CvProcessingAlgorithm algorithm, Mat bigImage, Mat smallImage, Mat result, CvTemplate template, int bestResults) {
         List<CvResult> results = new ArrayList<>();
         Imgproc.matchTemplate(bigImage, smallImage, result, algorithm.getAlgorithm());
-        Core.normalize(result, result, 0, 1, Core.NORM_MINMAX, -1, new Mat());
+        Core.normalize(result, result, 0, 255, Core.NORM_MINMAX, -1, new Mat());
 
         for (int i = 0; i < bestResults; i++) {
             Core.MinMaxLocResult mmr = Core.minMaxLoc(result);
@@ -101,7 +111,6 @@ public class OpenCvClient {
             log.debug(template.getFilenamePrefix() + ": min: " + mmr.minVal + ", max: " + mmr.maxVal);
             Point matchLoc = algorithm.getFilterType() == CvFilterType.HIGHEST_Result ? mmr.maxLoc : mmr.minLoc;
 
-            // Bereich um den gefundenen Punkt vergrößern, um Wiederholungen zu vermeiden
             int floodFillWidth = smallImage.cols() / 2;
             int floodFillHeight = smallImage.rows() / 2;
             Rect floodRect = new Rect(
@@ -137,6 +146,9 @@ public class OpenCvClient {
 
         if(template.persistResultWhenFindingTemplate() && !results.isEmpty()){
             CvResultFilehandler.persist(template.getFilenamePrefix(), bigImage);
+            for(CvResult cvResult : results){
+                saveCalculatedClickPoint(cvResult, template.getFilenamePrefix());
+            }
         }
 
         if(results.isEmpty()){
@@ -155,4 +167,39 @@ public class OpenCvClient {
 
         return Imgcodecs.imdecode(new MatOfByte(byteArray), Imgcodecs.IMREAD_UNCHANGED);
     }
+
+    private String checkColorType(BufferedImage image) {
+        switch (image.getType()) {
+            case BufferedImage.TYPE_3BYTE_BGR:
+                return "TYPE_3BYTE_BGR";
+            case BufferedImage.TYPE_4BYTE_ABGR:
+                return "TYPE_4BYTE_ABGR";
+            case BufferedImage.TYPE_INT_RGB:
+                return "TYPE_INT_RGB";
+            case BufferedImage.TYPE_INT_ARGB:
+                return "TYPE_INT_ARGB";
+            case BufferedImage.TYPE_BYTE_GRAY:
+                return "TYPE_BYTE_GRAY";
+            case BufferedImage.TYPE_USHORT_GRAY:
+                return "TYPE_USHORT_GRAY";
+            default:
+                return "Other type: " + image.getType();
+        }
+    }
+
+    private BufferedImage removeAlphaChannel(BufferedImage image) {
+        if (image.getType() == BufferedImage.TYPE_4BYTE_ABGR) {
+            BufferedImage newImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_3BYTE_BGR);
+            Graphics2D g = newImage.createGraphics();
+            g.drawImage(image, 0, 0, null);
+            g.dispose();
+            return newImage;
+        }
+        return image;
+    }
+
+    private void saveCalculatedClickPoint(CvResult cvResult, String fileNamePrefix){
+        StringFilehandler.persist("calculated_click_point", fileNamePrefix, cvResult.toString());
+    }
+
 }

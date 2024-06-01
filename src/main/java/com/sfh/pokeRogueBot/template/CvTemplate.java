@@ -1,16 +1,10 @@
 package com.sfh.pokeRogueBot.template;
 
+import com.sfh.pokeRogueBot.model.cv.ParentSize;
+import com.sfh.pokeRogueBot.model.cv.Point;
+
 public interface CvTemplate extends Template {
 
-    /**
-     * Returns the desired width of the parent of the template for scaling
-     */
-    int getParentWidth();
-
-    /**
-     * Returns the desired height of the parent of the template for scaling
-     */
-    int getParentHeight();
-
+    ParentSize getParentSize();
     boolean persistResultWhenFindingTemplate();
 }

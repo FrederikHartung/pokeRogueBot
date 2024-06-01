@@ -29,8 +29,7 @@ OcrTemplate: The bot tries to find the OcrTemplate with the tesseract OCR engine
 For each CvTemplate a screenshot with the picture to find in the Canvas screenshot has to be provided in the data/templates folder.
 
 ## todo
--if i make a screenshot for a template from a already existing gamescreenshot, the new screenshot is twice the size
--validate, if the first todo is linked to the display size of my machine
+-use getScaledImage everywhere
 
 
    

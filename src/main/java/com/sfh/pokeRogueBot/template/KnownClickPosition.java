@@ -1,13 +1,7 @@
 package com.sfh.pokeRogueBot.template;
 
-import org.opencv.core.Point;
+import com.sfh.pokeRogueBot.model.cv.Point;
 
-/**
- * Interface for templates that have a known click position on their parent.
- */
-public interface KnownClickPosition {
-    /**
-     * Returns the click position in the middle on the parent of the template.
-     */
+public interface KnownClickPosition extends CvTemplate{
     Point getClickPositionOnParent();
 }

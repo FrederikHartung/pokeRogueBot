@@ -23,9 +23,13 @@ public class IntroStage implements Stage {
 
     @Override
     public TemplateAction[] getTemplateActionsToPerform() {
+        TemplateAction takeSceenshot = new TemplateAction(TemplateActionType.TAKE_SCREENSHOT, this);
         TemplateAction pressSpaceAction = new PressKeyAction(this, KeyToPress.SPACE);
         TemplateAction waitAction = new TemplateAction(TemplateActionType.WAIT_LONGER, null);
         return new TemplateAction[] {
+                waitAction,
+                waitAction,
+                takeSceenshot,
                 pressSpaceAction, //welcome screen
                 waitAction,
                 pressSpaceAction, //not monetised screen
