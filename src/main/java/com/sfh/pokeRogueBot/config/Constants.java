@@ -11,4 +11,5 @@ public class Constants {
 
     public static final String SCREENSHOT_FILE_EXTENSION = ".png";
     public static final String IMAGE_IO_FILE_EXTENSION = "png";
+
 }

@@ -5,11 +5,11 @@ import com.sfh.pokeRogueBot.template.Template;
 import lombok.Getter;
 
 @Getter
-public class TextInputTemplateAction extends TemplateAction {
+public class TextInputAction extends TemplateAction {
 
     private final String text;
 
-    public TextInputTemplateAction(Template target, String text) {
+    public TextInputAction(Template target, String text) {
         super(TemplateActionType.ENTER_TEXT, target);
         this.text = text;
     }

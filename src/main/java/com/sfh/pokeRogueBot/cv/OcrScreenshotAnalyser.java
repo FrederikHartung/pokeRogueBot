@@ -1,37 +1,36 @@
 package com.sfh.pokeRogueBot.cv;
 
-import com.sfh.pokeRogueBot.model.OcrResult;
+import com.sfh.pokeRogueBot.model.cv.OcrResult;
 import lombok.extern.slf4j.Slf4j;
 import net.sourceforge.tess4j.ITesseract;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.awt.image.BufferedImage;
 import java.io.File;
 
 @Component
 @Slf4j
-public class ScreenshotAnalyser {
+public class OcrScreenshotAnalyser {
 
     private final ITesseract instance;
 
-    public ScreenshotAnalyser(ITesseract instance,
-                              @Value("${ocr.language}") String language,
-                              @Value("${ocr.datapath}") String datapath) {
+    public OcrScreenshotAnalyser(ITesseract instance,
+                                 @Value("${ocr.language}") String language,
+                                 @Value("${ocr.datapath}") String datapath) {
         this.instance = instance;
 
         instance.setDatapath(datapath);
         instance.setLanguage(language);
     }
 
-    public OcrResult doOcr(String path) {
-        File imageFile = new File(path);
+    public OcrResult doOcr(BufferedImage image) {
 
         try {
-            String extractedText = instance.doOCR(imageFile);
+            String extractedText = instance.doOCR(image);
 
             return new OcrResult(
-                    extractedText,
-                    path
+                    extractedText
             );
         } catch (Exception e) {
             log.error("Error while doing OCR: " + e.getMessage(), e);

@@ -18,13 +18,18 @@ ocr:
   jnaLibraryPath: /opt/homebrew/opt/tesseract/lib/
 
 browser:
-  closeOnExit: true
-  defaultWaitTimeAfterAction: 500
+  closeOnExit: false
   waitTimeForRenderAfterNavigation: 5000
-  retry:
-    maxAttempts: 5
-    backoffPeriod: 1000
+  pathChromeUserDir: "./bin/webdriver/profile/"
+  useInkognito: false
 
+stage-processor:
+  waitTimeAfterAction: 1000
+  waitTimeForRendering: 5000
+  maxWaitTimeForElementToBeVisible: 2000
+  retry:
+    maxAttemptsForSearchingTemplates: 5
+    backoffPeriodForSearchingTemplates: 1000
 
 handler:
   login:

@@ -1,53 +1,51 @@
 package com.sfh.pokeRogueBot.stage.login;
 
-import com.sfh.pokeRogueBot.browser.NavigationClient;
+import com.sfh.pokeRogueBot.browser.BrowserClient;
 import com.sfh.pokeRogueBot.config.Constants;
 import com.sfh.pokeRogueBot.config.UserDataProvider;
 import com.sfh.pokeRogueBot.model.UserData;
-import com.sfh.pokeRogueBot.model.exception.LoginException;
+import com.sfh.pokeRogueBot.stage.StageProcessor;
+import com.sfh.pokeRogueBot.stage.intro.IntroStage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 @Component
 @Slf4j
 public class LoginHandler {
 
-    private final NavigationClient navigationClient;
+    private final StageProcessor stageProcessor;
+    private final BrowserClient browserClient;
 
-    public LoginHandler(NavigationClient navigationClient) {
-        this.navigationClient = navigationClient;
+    public LoginHandler(StageProcessor stageProcessor, BrowserClient browserClient) {
+        this.stageProcessor = stageProcessor;
+        this.browserClient = browserClient;
     }
 
     public boolean login() throws Exception {
         UserData userData = UserDataProvider.getUserdata(Constants.PATH_TO_USER_DATA);
         LoginScreenStage loginScreenStage = new LoginScreenStage(userData);
-        boolean isLoginFormVisible = navigateToTargetAndCheckLoginForm(loginScreenStage);
+        browserClient.navigateTo(Constants.TARGET_URL);
+
+        boolean isLoginFormVisible = stageProcessor.isStageVisible(loginScreenStage);
         if(isLoginFormVisible){
-            navigationClient.handleStage(loginScreenStage);
-            log.debug("handled LoginScreenStage");
+            log.info("Login form found");
+            stageProcessor.handleStage(loginScreenStage);
+            log.info("handled LoginScreenStage");
+        }
+        else{
+            log.debug("No login form found");
         }
 
-        //todo
+        boolean isNewGameStageVisible = stageProcessor.isStageVisible(new IntroStage());
+        if(isNewGameStageVisible){
+            log.info("New game stage found");
+            stageProcessor.handleStage(new IntroStage());
+            log.info("handled IntroStage");
+        }
+        else{
+            log.debug("No new game stage found");
+        }
+
         return true;
-    }
-
-    private boolean navigateToTargetAndCheckLoginForm(LoginScreenStage loginScreenStage) throws LoginException {
-        try{
-            navigationClient.navigateTo(Constants.TARGET_URL);
-            boolean isLoginFormVisible = navigationClient.isStageVisible(loginScreenStage);
-            if(isLoginFormVisible){
-                log.debug("Login form found");
-                return true;
-            }
-            else{
-                log.debug("No login form found");
-                return false;
-            }
-        }
-        catch (Exception e){
-            throw new LoginException(e.getMessage(), e);
-        }
     }
 }

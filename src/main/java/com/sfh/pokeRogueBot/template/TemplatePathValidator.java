@@ -5,6 +5,9 @@ import com.sfh.pokeRogueBot.stage.login.LoginScreenStage;
 import com.sfh.pokeRogueBot.stage.login.templates.AnmeldenButtonTemplate;
 import com.sfh.pokeRogueBot.stage.login.templates.BenutzernameInputTemplate;
 import com.sfh.pokeRogueBot.stage.login.templates.PasswortInputTemplate;
+import com.sfh.pokeRogueBot.stage.intro.IntroStage;
+import com.sfh.pokeRogueBot.stage.intro.templates.IntroScreenCvTemplate;
+import com.sfh.pokeRogueBot.stage.intro.templates.IntroScreenTextTemplate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -14,8 +17,7 @@ import java.util.List;
 
 @Slf4j
 @Component
-public class TemplateManager {
-
+public class TemplatePathValidator {
 
     public List<String> getTemplatePaths() {
         List<String> templatePaths = new LinkedList<>();
@@ -25,6 +27,11 @@ public class TemplateManager {
         templatePaths.add(AnmeldenButtonTemplate.PATH);
         templatePaths.add(BenutzernameInputTemplate.PATH);
         templatePaths.add(PasswortInputTemplate.PATH);
+
+        //new game stage
+        templatePaths.add(IntroStage.PATH);
+        templatePaths.add(IntroScreenCvTemplate.PATH);
+        templatePaths.add(IntroScreenTextTemplate.PATH);
 
         return templatePaths;
     }
