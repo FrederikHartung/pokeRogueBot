@@ -19,15 +19,11 @@ public class NewGameStage implements Stage {
 
     @Override
     public TemplateAction[] getTemplateActionsToPerform() {
-        TemplateAction screenshotAction = new TemplateAction(TemplateActionType.TAKE_SCREENSHOT, this);
-        TemplateAction pressKeyAction = new PressKeyAction(TemplateActionType.PRESS_KEY, this, KeyToPress.SPACE);
-        TemplateAction waitAction = new TemplateAction(TemplateActionType.WAIT, null);
-        TemplateAction screenshotAction2 = new TemplateAction(TemplateActionType.TAKE_SCREENSHOT, this);
+        TemplateAction pressSpaceAction = new PressKeyAction(this, KeyToPress.SPACE);
+        TemplateAction waitAction = new TemplateAction(TemplateActionType.WAIT_LONGER, null);
         return new TemplateAction[] {
-                screenshotAction,
-                pressKeyAction,
-                waitAction,
-                screenshotAction2
+                pressSpaceAction, //welcome screen
+                waitAction
         };
     }
 

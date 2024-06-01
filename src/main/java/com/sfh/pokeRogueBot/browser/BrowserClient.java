@@ -1,5 +1,6 @@
 package com.sfh.pokeRogueBot.browser;
 
+import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebElement;
 
@@ -25,4 +26,6 @@ public interface BrowserClient {
     void clickOnElement(String xpath);
 
     void clickOnPoint(int middlePointX, int middlePointY);
+
+    void pressKey(KeyToPress keyToPress);
 }

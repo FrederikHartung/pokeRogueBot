@@ -21,10 +21,10 @@ browser:
   closeOnExit: false
   waitTimeForRenderAfterNavigation: 5000
   pathChromeUserDir: "./bin/webdriver/profile/"
-  useInkognito: false
+  useInkognito: true
 
 stage-processor:
-  waitTimeAfterAction: 500
+  waitTimeAfterAction: 1000
   waitTimeForRendering: 5000
   maxWaitTimeForElementToBeVisible: 2000
   retry:

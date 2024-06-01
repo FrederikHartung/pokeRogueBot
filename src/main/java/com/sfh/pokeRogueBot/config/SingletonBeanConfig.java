@@ -9,6 +9,6 @@ public class SingletonBeanConfig {
 
     @Bean
     public CvProcessingAlgorithm createCvProcessingAlgorithm(){
-        return CvProcessingAlgorithm.TM_CCOEFF_NORMED;
+        return CvProcessingAlgorithm.TM_SQDIFF;
     }
 }

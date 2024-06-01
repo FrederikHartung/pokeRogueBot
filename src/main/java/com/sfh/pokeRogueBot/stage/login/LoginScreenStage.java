@@ -55,10 +55,14 @@ public class LoginScreenStage implements HtmlTemplate, Stage {
             throw new IllegalStateException("UserData must be set before calling getTemplateActionsToPerform. Use the allArgsConstructor to set the userData.");
         }
 
+        TemplateAction waitAction = new TemplateAction(TemplateActionType.WAIT_LONGER, null);
         TextInputAction benutzernameAction = new TextInputAction(BENUTZERNAME_INPUT, userData.getUsername());
         TextInputAction passwortAction = new TextInputAction(PASSWORT_INPUT, userData.getPassword());
         TemplateAction clickAction = new TemplateAction(TemplateActionType.CLICK, ANMELDEN_BUTTON);
-        return new TemplateAction[]{benutzernameAction, passwortAction, clickAction};
+        return new TemplateAction[]{
+                waitAction,
+                benutzernameAction,
+                passwortAction, clickAction};
     }
 
     @Override

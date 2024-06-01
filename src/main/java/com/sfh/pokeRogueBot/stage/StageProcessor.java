@@ -7,10 +7,12 @@ import com.sfh.pokeRogueBot.filehandler.HtmlFilehandler;
 import com.sfh.pokeRogueBot.filehandler.ScreenshotFilehandler;
 import com.sfh.pokeRogueBot.filehandler.StringFilehandler;
 import com.sfh.pokeRogueBot.model.cv.CvResult;
+import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.exception.TemplateNotFoundException;
 import com.sfh.pokeRogueBot.template.CvTemplate;
 import com.sfh.pokeRogueBot.template.HtmlTemplate;
 import com.sfh.pokeRogueBot.template.Template;
+import com.sfh.pokeRogueBot.template.actions.PressKeyAction;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
 import com.sfh.pokeRogueBot.template.actions.TextInputAction;
 import lombok.extern.slf4j.Slf4j;
@@ -127,7 +129,18 @@ public class StageProcessor {
                     handleClick(action);
                     break;
                 case WAIT:
-                    waitDefault();
+                    try {
+                        Thread.sleep(waitTimeAfterAction);
+                    } catch (InterruptedException e) {
+                        log.error("Error while waiting", e);
+                    }
+                    break;
+                case WAIT_LONGER:
+                    try {
+                        Thread.sleep(waitTimeAfterAction * 2);
+                    } catch (InterruptedException e) {
+                        log.error("Error while waiting", e);
+                    }
                     break;
                 case TAKE_SCREENSHOT:
                     persistScreenshot(action.getTarget().getFilenamePrefix());
@@ -135,12 +148,20 @@ public class StageProcessor {
                 case ENTER_TEXT:
                     handleTextInput((TextInputAction) action);
                     break;
+                case PRESS_KEY:
+                    browserClient.pressKey(((PressKeyAction) action).getKeyToPress());
+                    break;
                 default:
                     log.error("Unknown action: " + action);
+                    throw new NotSupportedException("Template action not supported: " + action.getActionType());
             }
         }
 
-        waitForRender();
+        try {
+            Thread.sleep(waitTimeForRendering);
+        } catch (InterruptedException e) {
+            log.error("Error while waiting", e);
+        }
     }
 
     private void handleTextInput(TextInputAction action) throws NoSuchElementException {
@@ -150,7 +171,7 @@ public class StageProcessor {
             return;
         }
 
-        log.error(UNKNOWN_IDENTIFICATION_TYPE + template);
+        log.error(UNKNOWN_IDENTIFICATION_TYPE + " in handleTextInput: " + template);
     }
 
     private void handleClick(TemplateAction action) throws NoSuchElementException, IOException {
@@ -172,25 +193,7 @@ public class StageProcessor {
             return;
         }
 
-        log.error(UNKNOWN_IDENTIFICATION_TYPE + template);
-    }
-
-    // -------------------- util --------------------
-
-    private void waitDefault() {
-        try {
-            Thread.sleep(waitTimeAfterAction);
-        } catch (InterruptedException e) {
-            log.error("Error while waiting", e);
-        }
-    }
-
-    private void waitForRender(){
-        try {
-            Thread.sleep(waitTimeForRendering);
-        } catch (InterruptedException e) {
-            log.error("Error while waiting", e);
-        }
+        log.error(UNKNOWN_IDENTIFICATION_TYPE + " in handleClick: " + template);
     }
 
     // -------------------- persisting --------------------

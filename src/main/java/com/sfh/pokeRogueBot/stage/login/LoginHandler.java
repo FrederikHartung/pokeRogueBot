@@ -38,6 +38,14 @@ public class LoginHandler {
         }
 
         boolean isNewGameStageVisible = stageProcessor.isStageVisible(new NewGameStage());
+        if(isNewGameStageVisible){
+            log.info("New game stage found");
+            stageProcessor.handleStage(new NewGameStage());
+            log.info("handled NewGameStage");
+        }
+        else{
+            log.debug("No new game stage found");
+        }
 
         //todo
         return true;

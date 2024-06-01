@@ -1,5 +1,7 @@
 package com.sfh.pokeRogueBot.browser;
 
+import com.sfh.pokeRogueBot.model.enums.KeyToPress;
+import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -172,6 +174,23 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient {
         } catch (MoveTargetOutOfBoundsException e) {
             log.error("Target out of bounds. Canvas size: width=" + canvasWidth + ", height=" + canvasHeight + ". Click position: x=" + clickX + ", y=" + clickY, e);
             throw e;
+        }
+    }
+
+    @Override
+    public void pressKey(KeyToPress keyToPress) {
+        Actions actions = new Actions(driver);
+        switch (keyToPress){
+            case SPACE:
+                log.debug("Pressing SPACE");
+                WebElement canvasElement = getCanvas();
+                actions.moveToElement(canvasElement)
+                        .sendKeys(Keys.SPACE)
+                        .perform();
+                break;
+            default:
+                log.error("Unknown key to press: " + keyToPress);
+                throw new NotSupportedException("Unknown key to press in browser: " + keyToPress);
         }
     }
 }
