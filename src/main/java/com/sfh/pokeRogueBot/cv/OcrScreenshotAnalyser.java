@@ -6,6 +6,7 @@ import net.sourceforge.tess4j.ITesseract;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.awt.image.BufferedImage;
 import java.io.File;
 
 @Component
@@ -23,15 +24,13 @@ public class OcrScreenshotAnalyser {
         instance.setLanguage(language);
     }
 
-    public OcrResult doOcr(String path) {
-        File imageFile = new File(path);
+    public OcrResult doOcr(BufferedImage image) {
 
         try {
-            String extractedText = instance.doOCR(imageFile);
+            String extractedText = instance.doOCR(image);
 
             return new OcrResult(
-                    extractedText,
-                    path
+                    extractedText
             );
         } catch (Exception e) {
             log.error("Error while doing OCR: " + e.getMessage(), e);

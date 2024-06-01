@@ -4,6 +4,7 @@ import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.model.enums.TemplateActionType;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.stage.newgame.templates.IntroScreenCvTemplate;
+import com.sfh.pokeRogueBot.stage.newgame.templates.IntroScreenTextTemplate;
 import com.sfh.pokeRogueBot.template.Template;
 import com.sfh.pokeRogueBot.template.actions.PressKeyAction;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
@@ -14,7 +15,10 @@ public class NewGameStage implements Stage {
 
     @Override
     public Template[] getTemplatesToValidateStage() {
-        return new Template[]{new IntroScreenCvTemplate()};
+        return new Template[]{
+                new IntroScreenCvTemplate(),
+                new IntroScreenTextTemplate(),
+        };
     }
 
     @Override

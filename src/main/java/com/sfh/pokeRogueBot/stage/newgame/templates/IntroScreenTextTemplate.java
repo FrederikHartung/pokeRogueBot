@@ -8,23 +8,27 @@ public class IntroScreenTextTemplate implements OcrTemplate {
     private static final String NAME = IntroScreenTextTemplate.class.getSimpleName();
 
     @Override
-    public String[] getOcrTexts() {
+    public String[] getExpectedTexts() {
         return new String[]{
-                "Willkommen",
+                "willkommen",
                 "bei",
-                "PokeRogue",
-                "Dies",
+                "poke",
+                "rogue",
+                "dies",
                 "ist",
                 "ein",
-                "kampforiejtiertes",
-                "Pokemon-Fangame",
+                "kampf",
+                "orientiertes",
+                "pokemon",
+                "fangame",
                 "mit",
-                "Roguelite-Elementen",
+                "roguelite",
+                "elementen"
         };
     }
 
     @Override
-    public double getMinConfidence() {
+    public double getConfidenceThreshhold() {
         return 0.8;
     }
 

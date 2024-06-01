@@ -2,6 +2,7 @@ package com.sfh.pokeRogueBot.stage;
 
 import com.sfh.pokeRogueBot.browser.ChromeBrowserClient;
 import com.sfh.pokeRogueBot.browser.BrowserClient;
+import com.sfh.pokeRogueBot.cv.OcrScreenshotAnalyser;
 import com.sfh.pokeRogueBot.cv.OpenCvClient;
 import com.sfh.pokeRogueBot.filehandler.HtmlFilehandler;
 import com.sfh.pokeRogueBot.filehandler.ScreenshotFilehandler;
@@ -11,6 +12,7 @@ import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.exception.TemplateNotFoundException;
 import com.sfh.pokeRogueBot.template.CvTemplate;
 import com.sfh.pokeRogueBot.template.HtmlTemplate;
+import com.sfh.pokeRogueBot.template.OcrTemplate;
 import com.sfh.pokeRogueBot.template.Template;
 import com.sfh.pokeRogueBot.template.actions.PressKeyAction;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
@@ -43,11 +45,13 @@ public class StageProcessor {
 
     private final BrowserClient browserClient;
     private final OpenCvClient cvClient;
+    private final OcrScreenshotAnalyser ocrScreenshotAnalyser;
     private final RetryTemplate retryTemplateForFindingTemplates;
 
     public StageProcessor(
             ChromeBrowserClient chromeBrowserClient,
             OpenCvClient cvClient,
+            OcrScreenshotAnalyser ocrScreenshotAnalyser,
             @Value("${stage-processor.waitTimeAfterAction:500}") int waitTimeAfterAction,
             @Value("${stage-processor.waitTimeForRendering:2000}") int waitTimeForRendering,
             @Value("${stage-processor.maxWaitTimeForElementToBeVisible:500}") int maxWaitTimeForElementToBeVisible,
@@ -59,6 +63,7 @@ public class StageProcessor {
 
         this.waitTimeAfterAction = waitTimeAfterAction;
         this.maxWaitTimeForElementToBeVisible = maxWaitTimeForElementToBeVisible;
+        this.ocrScreenshotAnalyser = ocrScreenshotAnalyser;
 
         this.retryTemplateForFindingTemplates = new RetryTemplateBuilder()
                 .maxAttempts(maxAttemptsForSearchingTemplates)
@@ -67,7 +72,7 @@ public class StageProcessor {
                 .build();
     }
 
-    public boolean isStageVisible(Stage stage) {
+    public boolean isStageVisible(Stage stage) throws Exception {
         List<Template> templatesToCheck = new LinkedList<>(Arrays.stream(stage.getTemplatesToValidateStage()).toList());
 
         log.debug("Checking if stage is visible: " + stage.getFilenamePrefix());
@@ -82,7 +87,7 @@ public class StageProcessor {
         return true;
     }
 
-    private boolean checkIfTemplateIsVisible(Template template) {
+    private boolean checkIfTemplateIsVisible(Template template) throws Exception {
         if (template instanceof HtmlTemplate htmlTemplate) {
             boolean isVisible = browserClient.waitUntilElementIsVisible(htmlTemplate.getXpath(), maxWaitTimeForElementToBeVisible, template.getFilenamePrefix());
             if(isVisible){
@@ -114,9 +119,25 @@ public class StageProcessor {
                 log.error("Error while checking if template is visible with image for template: " + template.getFilenamePrefix(), e);
             }
         }
+        else if(template instanceof OcrTemplate ocrTemplate){
+            BufferedImage img = takeScreenshot();
+            String ocrResult = ocrScreenshotAnalyser.doOcr(img).getText().toLowerCase();
+            int foundStrings = 0;
+            int totalStrings = ocrTemplate.getExpectedTexts().length;
+            for (String expectedText : ocrTemplate.getExpectedTexts()) {
+                if(ocrResult.contains(expectedText)){
+                    foundStrings++;
+                }
+            }
 
-        log.debug("Template not visible: " + template.getFilenamePrefix());
-        return false;
+            double confidence = (double)foundStrings / totalStrings;
+            log.debug("OCR result: " + ocrResult);
+            log.debug(ocrTemplate.getFilenamePrefix() + ": OCR confidence: " + confidence);
+
+            return confidence > ocrTemplate.getConfidenceThreshhold();
+        }
+
+        throw new NotSupportedException(UNKNOWN_IDENTIFICATION_TYPE + " in checkIfTemplateIsVisible: " + template);
     }
 
     // -------------------- handle --------------------

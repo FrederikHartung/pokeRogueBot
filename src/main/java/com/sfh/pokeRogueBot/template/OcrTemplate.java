@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.template;
 
 public interface OcrTemplate extends Template{
-    String[] getOcrTexts();
-    double getMinConfidence();
+    String[] getExpectedTexts();
+    double getConfidenceThreshhold();
 }
