@@ -87,57 +87,71 @@ public class StageProcessor {
         return true;
     }
 
-    private boolean checkIfTemplateIsVisible(Template template) throws Exception {
+    private boolean checkIfTemplateIsVisible(Template template) throws IOException {
         if (template instanceof HtmlTemplate htmlTemplate) {
-            boolean isVisible = browserClient.waitUntilElementIsVisible(htmlTemplate.getXpath(), maxWaitTimeForElementToBeVisible, template.getFilenamePrefix());
-            if(isVisible){
-                log.debug("visibility check with x_path: Template visible: " + template.getFilenamePrefix());
-                return true;
-            }
-            else{
-                log.debug("visibility check with x_path: Template not visible: " + template.getFilenamePrefix());
-                persistPageBody(template.getFilenamePrefix());
-                return false;
-            }
+            return checkIfHtmlTemplateIsVisible(htmlTemplate);
         }
         else if(template instanceof CvTemplate cvTemplate){
-            try {
-                return retryTemplateForFindingTemplates.execute(context -> {
-                    BufferedImage img = takeScreenshot();
-
-                    if (null != cvClient.findTemplateInBufferedImage(img, cvTemplate)) {
-                        log.debug("visibility check with image: Template visible: " + template.getFilenamePrefix());
-                        return true;
-                    }
-
-                    throw new TemplateNotFoundException("Template not found in image: " + template.getFilenamePrefix());
-                });
-            } catch (TemplateNotFoundException e){
-                log.debug("Template not found in image: " + template.getFilenamePrefix());
-            }
-            catch (Exception e) {
-                log.error("Error while checking if template is visible with image for template: " + template.getFilenamePrefix(), e);
-            }
+            return checkIfCvTemplateIsVisible(cvTemplate);
         }
         else if(template instanceof OcrTemplate ocrTemplate){
-            BufferedImage img = takeScreenshot();
-            String ocrResult = ocrScreenshotAnalyser.doOcr(img).getText().toLowerCase();
-            int foundStrings = 0;
-            int totalStrings = ocrTemplate.getExpectedTexts().length;
-            for (String expectedText : ocrTemplate.getExpectedTexts()) {
-                if(ocrResult.contains(expectedText)){
-                    foundStrings++;
-                }
-            }
-
-            double confidence = (double)foundStrings / totalStrings;
-            log.debug("OCR result: " + ocrResult);
-            log.debug(ocrTemplate.getFilenamePrefix() + ": OCR confidence: " + confidence);
-
-            return confidence > ocrTemplate.getConfidenceThreshhold();
+            return checkIfOcrTemplateIsVisible(ocrTemplate);
         }
 
         throw new NotSupportedException(UNKNOWN_IDENTIFICATION_TYPE + " in checkIfTemplateIsVisible: " + template);
+    }
+
+    private boolean checkIfOcrTemplateIsVisible(OcrTemplate ocrTemplate) throws IOException {
+        BufferedImage img = takeScreenshot();
+        String ocrResult = ocrScreenshotAnalyser.doOcr(img).getText().toLowerCase();
+        int foundStrings = 0;
+        int totalStrings = ocrTemplate.getExpectedTexts().length;
+        for (String expectedText : ocrTemplate.getExpectedTexts()) {
+            if(ocrResult.contains(expectedText)){
+                foundStrings++;
+            }
+        }
+
+        double confidence = (double)foundStrings / totalStrings;
+        log.debug("OCR result: " + ocrResult);
+        log.debug(ocrTemplate.getFilenamePrefix() + ": OCR confidence: " + confidence);
+
+        return confidence > ocrTemplate.getConfidenceThreshhold();
+    }
+
+    private boolean checkIfCvTemplateIsVisible(CvTemplate cvTemplate){
+        try {
+            return retryTemplateForFindingTemplates.execute(context -> {
+                BufferedImage img = takeScreenshot();
+
+                if (null != cvClient.findTemplateInBufferedImage(img, cvTemplate)) {
+                    log.debug("visibility check with image: Template visible: " + cvTemplate.getFilenamePrefix());
+                    return true;
+                }
+
+                throw new TemplateNotFoundException("Template not found in image: " + cvTemplate.getFilenamePrefix());
+            });
+        } catch (TemplateNotFoundException e){
+            log.debug("Template not found in image: " + cvTemplate.getFilenamePrefix());
+        }
+        catch (Exception e) {
+            log.error("Error while checking if template is visible with image for template: " + cvTemplate.getFilenamePrefix(), e);
+        }
+
+        return false;
+    }
+
+    private boolean checkIfHtmlTemplateIsVisible(HtmlTemplate htmlTemplate){
+        boolean isVisible = browserClient.waitUntilElementIsVisible(htmlTemplate.getXpath(), maxWaitTimeForElementToBeVisible, htmlTemplate.getFilenamePrefix());
+        if(isVisible){
+            log.debug("visibility check with x_path: Template visible: " + htmlTemplate.getFilenamePrefix());
+            return true;
+        }
+        else{
+            log.debug("visibility check with x_path: Template not visible: " + htmlTemplate.getFilenamePrefix());
+            persistPageBody(htmlTemplate.getFilenamePrefix());
+            return false;
+        }
     }
 
     // -------------------- handle --------------------

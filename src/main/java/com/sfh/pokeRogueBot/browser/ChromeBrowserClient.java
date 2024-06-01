@@ -63,7 +63,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient {
 
         try {
             if(useInkognito){
-                Thread.sleep(waitTimeForRenderAfterNavigation * 3); // longer wait time for inkognito mode because assets have to be loaded
+                Thread.sleep(waitTimeForRenderAfterNavigation * 4); // longer wait time for inkognito mode because assets have to be loaded
             }
             else {
                 Thread.sleep(waitTimeForRenderAfterNavigation);

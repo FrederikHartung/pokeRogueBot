@@ -14,36 +14,34 @@ import org.springframework.stereotype.Component;
 public class LoginHandler {
 
     private final StageProcessor stageProcessor;
-    private final BrowserClient browserClient;
 
-    public LoginHandler(StageProcessor stageProcessor, BrowserClient browserClient) {
+    public LoginHandler(StageProcessor stageProcessor) {
         this.stageProcessor = stageProcessor;
-        this.browserClient = browserClient;
     }
 
     public boolean login() throws Exception {
         UserData userData = UserDataProvider.getUserdata(Constants.PATH_TO_USER_DATA);
         LoginScreenStage loginScreenStage = new LoginScreenStage(userData);
-        browserClient.navigateTo(Constants.TARGET_URL);
 
         boolean isLoginFormVisible = stageProcessor.isStageVisible(loginScreenStage);
         if(isLoginFormVisible){
-            log.info("Login form found");
+            log.info("LoginScreenStage found");
             stageProcessor.handleStage(loginScreenStage);
             log.info("handled LoginScreenStage");
         }
         else{
-            log.debug("No login form found");
+            log.debug("No LoginScreenStage found");
         }
 
-        boolean isNewGameStageVisible = stageProcessor.isStageVisible(new IntroStage());
+        IntroStage introStage = new IntroStage();
+        boolean isNewGameStageVisible = stageProcessor.isStageVisible(introStage);
         if(isNewGameStageVisible){
-            log.info("New game stage found");
-            stageProcessor.handleStage(new IntroStage());
+            log.info("IntroStage found");
+            stageProcessor.handleStage(introStage);
             log.info("handled IntroStage");
         }
         else{
-            log.debug("No new game stage found");
+            log.debug("No IntroStage found");
         }
 
         return true;

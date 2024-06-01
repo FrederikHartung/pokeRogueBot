@@ -28,6 +28,6 @@ public class IntroScreenCvTemplate implements CvTemplate {
 
     @Override
     public boolean persistResultWhenFindingTemplate() {
-        return true;
+        return false;
     }
 }

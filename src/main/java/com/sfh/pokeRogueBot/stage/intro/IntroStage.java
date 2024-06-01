@@ -36,8 +36,7 @@ public class IntroStage implements Stage {
                 waitAction,
                 pressSpaceAction, //use discord for error reports screen
                 waitAction,
-                pressSpaceAction, //check hardware acceleration screen
-                waitAction,
+                pressSpaceAction
         };
     }
 
