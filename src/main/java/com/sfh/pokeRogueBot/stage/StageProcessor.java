@@ -1,14 +1,14 @@
 package com.sfh.pokeRogueBot.stage;
 
-import com.sfh.pokeRogueBot.browser.ChromeBrowserClient;
 import com.sfh.pokeRogueBot.browser.BrowserClient;
+import com.sfh.pokeRogueBot.browser.ChromeBrowserClient;
 import com.sfh.pokeRogueBot.cv.OcrScreenshotAnalyser;
 import com.sfh.pokeRogueBot.cv.OpenCvClient;
 import com.sfh.pokeRogueBot.filehandler.HtmlFilehandler;
 import com.sfh.pokeRogueBot.filehandler.ScreenshotFilehandler;
-import com.sfh.pokeRogueBot.filehandler.StringFilehandler;
-import com.sfh.pokeRogueBot.model.cv.*;
+import com.sfh.pokeRogueBot.model.cv.CvResult;
 import com.sfh.pokeRogueBot.model.cv.Point;
+import com.sfh.pokeRogueBot.model.cv.Size;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.exception.TemplateNotFoundException;
 import com.sfh.pokeRogueBot.template.CvTemplate;
@@ -18,20 +18,15 @@ import com.sfh.pokeRogueBot.template.Template;
 import com.sfh.pokeRogueBot.template.actions.PressKeyAction;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
 import com.sfh.pokeRogueBot.template.actions.TextInputAction;
-import com.sfh.pokeRogueBot.util.ImageUtils;
+import com.sfh.pokeRogueBot.service.ImageService;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.NoSuchElementException;
-import org.openqa.selenium.OutputType;
-import org.openqa.selenium.WebElement;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.support.RetryTemplateBuilder;
 import org.springframework.stereotype.Component;
 
-import java.awt.*;
-import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -51,16 +46,19 @@ public class StageProcessor {
     private final OpenCvClient cvClient;
     private final OcrScreenshotAnalyser ocrScreenshotAnalyser;
     private final RetryTemplate retryTemplateForFindingTemplates;
+    private final ImageService imageService;
 
     public StageProcessor(
             ChromeBrowserClient chromeBrowserClient,
             OpenCvClient cvClient,
             OcrScreenshotAnalyser ocrScreenshotAnalyser,
+            ImageService imageService,
             @Value("${stage-processor.waitTimeAfterAction:500}") int waitTimeAfterAction,
             @Value("${stage-processor.waitTimeForRendering:2000}") int waitTimeForRendering,
             @Value("${stage-processor.maxWaitTimeForElementToBeVisible:500}") int maxWaitTimeForElementToBeVisible,
             @Value("${stage-processor.retry.maxAttemptsForSearchingTemplates:5}") int maxAttemptsForSearchingTemplates,
             @Value("${stage-processor.retry.backoffPeriodForSearchingTemplates:1000}") long backoffPeriodForSearchingTemplates) {
+
         this.waitTimeForRendering = waitTimeForRendering;
         this.browserClient = chromeBrowserClient;
         this.cvClient = cvClient;
@@ -68,6 +66,7 @@ public class StageProcessor {
         this.waitTimeAfterAction = waitTimeAfterAction;
         this.maxWaitTimeForElementToBeVisible = maxWaitTimeForElementToBeVisible;
         this.ocrScreenshotAnalyser = ocrScreenshotAnalyser;
+        this.imageService = imageService;
 
         this.retryTemplateForFindingTemplates = new RetryTemplateBuilder()
                 .maxAttempts(maxAttemptsForSearchingTemplates)
@@ -79,11 +78,15 @@ public class StageProcessor {
     public boolean isStageVisible(Stage stage) throws Exception {
         List<Template> templatesToCheck = new LinkedList<>(Arrays.stream(stage.getTemplatesToValidateStage()).toList());
 
+        waitLongerAfterAction();
+        createScreenshot(stage);
+
         log.debug("Checking if stage is visible: " + stage.getFilenamePrefix());
         for (Template templateToCheck : templatesToCheck) {
             if(!checkIfTemplateIsVisible(templateToCheck)){
                 log.debug("stage not visible: " + stage.getFilenamePrefix() + " because template: " + templateToCheck.getFilenamePrefix() + " is not found");
-                persistScreenshot(stage.getFilenamePrefix() + "_not_visible");
+                String prefix = stage.getFilenamePrefix() + "_not_visible";
+                persistScreenshot(imageService.takeScreenshot(prefix), prefix );
                 return false;
             }
         }
@@ -107,20 +110,17 @@ public class StageProcessor {
     }
 
     private boolean checkIfOcrTemplateIsVisible(OcrTemplate ocrTemplate) throws IOException {
-        BufferedImage scaledImg = ImageUtils.scaleImage(ocrTemplate.getFilenamePrefix(), takeScreenshot(), ocrTemplate.getOcrPosition().getParentSize());
-
-        Point topLeft = ocrTemplate.getOcrPosition().getTopLeft();
-        Size ocrSize = ocrTemplate.getOcrPosition().getSize();
-        BufferedImage img = scaledImg.getSubimage(topLeft.getX(), topLeft.getY(), ocrSize.getWidth(), ocrSize.getHeight());
-
-        //todo
-        log.debug(ocrTemplate.getFilenamePrefix() +  ", topleft x: " + topLeft.getX() + ", y: " + topLeft.getY() + ", width: " + ocrSize.getWidth() + ", height: " + ocrSize.getHeight());
+        BufferedImage canvas = imageService.takeScreenshot(ocrTemplate.getFilenamePrefix() + "_ocrSource");
+        BufferedImage ocrImage = imageService.getSubImage(
+                canvas,
+                ocrTemplate.getOcrPosition().getTopLeft(),
+                ocrTemplate.getOcrPosition().getSize());
 
         if(ocrTemplate.persistSourceImageForDebugging()){
-            ScreenshotFilehandler.persistBufferedImage(img, ocrTemplate.getFilenamePrefix() + "_ocrSource");
+            ScreenshotFilehandler.persistBufferedImage(ocrImage, ocrTemplate.getFilenamePrefix() + "_ocrSource");
         }
 
-        String ocrResult = ocrScreenshotAnalyser.doOcr(img).getText().toLowerCase();
+        String ocrResult = ocrScreenshotAnalyser.doOcr(ocrImage).getText().toLowerCase();
         int foundStrings = 0;
         int totalStrings = ocrTemplate.getExpectedTexts().length;
         for (String expectedText : ocrTemplate.getExpectedTexts()) {
@@ -139,9 +139,10 @@ public class StageProcessor {
     private boolean checkIfCvTemplateIsVisible(CvTemplate cvTemplate){
         try {
             return retryTemplateForFindingTemplates.execute(context -> {
-                BufferedImage img = takeScreenshot();
+                BufferedImage canvasImg = imageService.takeScreenshot(cvTemplate.getFilenamePrefix());
+                BufferedImage templateImg = imageService.loadTemplate(cvTemplate.getTemplatePath());
 
-                if (null != cvClient.findTemplateInBufferedImage(img, cvTemplate)) {
+                if (null != cvClient.findTemplateInBufferedImage(canvasImg, templateImg, cvTemplate)) {
                     log.debug("visibility check with image: Template visible: " + cvTemplate.getFilenamePrefix());
                     return true;
                 }
@@ -181,21 +182,13 @@ public class StageProcessor {
                     handleClick(action);
                     break;
                 case WAIT:
-                    try {
-                        Thread.sleep(waitTimeAfterAction);
-                    } catch (InterruptedException e) {
-                        log.error("Error while waiting", e);
-                    }
+                    waitAfterAction();
                     break;
                 case WAIT_LONGER:
-                    try {
-                        Thread.sleep(waitTimeAfterAction * 2);
-                    } catch (InterruptedException e) {
-                        log.error("Error while waiting", e);
-                    }
+                    waitLongerAfterAction();
                     break;
                 case TAKE_SCREENSHOT:
-                    persistScreenshot(action.getTarget().getFilenamePrefix());
+                    createScreenshot(action.getTarget());
                     break;
                 case ENTER_TEXT:
                     handleTextInput((TextInputAction) action);
@@ -211,6 +204,26 @@ public class StageProcessor {
 
         try {
             Thread.sleep(waitTimeForRendering);
+        } catch (InterruptedException e) {
+            log.error("Error while waiting", e);
+        }
+    }
+
+    private void createScreenshot(Template template) throws IOException {
+        persistScreenshot(imageService.takeScreenshot(template.getFilenamePrefix()), template.getFilenamePrefix());
+    }
+
+    private void waitLongerAfterAction() {
+        try {
+            Thread.sleep(waitTimeAfterAction * 2);
+        } catch (InterruptedException e) {
+            log.error("Error while waiting", e);
+        }
+    }
+
+    private void waitAfterAction() {
+        try {
+            Thread.sleep(waitTimeAfterAction);
         } catch (InterruptedException e) {
             log.error("Error while waiting", e);
         }
@@ -233,9 +246,11 @@ public class StageProcessor {
             return;
         }
         else if(template instanceof CvTemplate cvTemplate){
-            BufferedImage img = takeScreenshot();
             log.debug("handleClick: " + cvTemplate.getFilenamePrefix());
-            CvResult result = cvClient.findTemplateInBufferedImage(img, cvTemplate);
+
+            BufferedImage canvasImg = imageService.takeScreenshot(cvTemplate.getFilenamePrefix() + "_click");
+            BufferedImage templateImg = imageService.loadTemplate(cvTemplate.getTemplatePath());
+            CvResult result = cvClient.findTemplateInBufferedImage(canvasImg, templateImg, cvTemplate);
 
             browserClient.clickOnPoint(result.getMiddlePointX(), result.getMiddlePointY());
 
@@ -247,17 +262,9 @@ public class StageProcessor {
 
     // -------------------- persisting --------------------
 
-
-    public BufferedImage takeScreenshot() throws IOException {
-        return browserClient.takeScreenshotFromCanvas();
-    }
-
-    public void persistScreenshot(String fileNamePrefix) {
+    public void persistScreenshot(BufferedImage image, String fileNamePrefix) {
         try {
-            WebElement canvasElement = browserClient.getCanvas();
-
-            File scrFile = canvasElement.getScreenshotAs(OutputType.FILE);
-            ScreenshotFilehandler.persistScreenshot(scrFile, fileNamePrefix);
+            ScreenshotFilehandler.persistBufferedImage(image, fileNamePrefix);
         } catch (Exception e) {
             log.error("Error while taking screenshot of canvas", e);
         }

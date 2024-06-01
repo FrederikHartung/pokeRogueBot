@@ -1,6 +1,5 @@
 package com.sfh.pokeRogueBot.stage.startgame;
 
-import com.sfh.pokeRogueBot.model.enums.TemplateActionType;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.stage.startgame.templates.StartGameCvTemplate;
 import com.sfh.pokeRogueBot.stage.startgame.templates.StartGameOcrTemplate;

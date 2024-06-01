@@ -5,22 +5,18 @@ import com.sfh.pokeRogueBot.filehandler.CvResultFilehandler;
 import com.sfh.pokeRogueBot.filehandler.StringFilehandler;
 import com.sfh.pokeRogueBot.model.cv.CvProcessingAlgorithm;
 import com.sfh.pokeRogueBot.model.cv.CvResult;
-import com.sfh.pokeRogueBot.model.cv.ParentSize;
 import com.sfh.pokeRogueBot.model.enums.CvFilterType;
 import com.sfh.pokeRogueBot.template.CvTemplate;
-import com.sfh.pokeRogueBot.template.Template;
 import lombok.extern.slf4j.Slf4j;
-import org.opencv.core.*;
 import org.opencv.core.Point;
+import org.opencv.core.*;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.springframework.stereotype.Component;
 
 import javax.imageio.ImageIO;
-import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -43,51 +39,21 @@ public class OpenCvClient {
         this.algorithm = algorithm;
     }
 
-    public CvResult findTemplateInFile(String pathToBigImage, CvTemplate template) {
-        List<CvResult> results = findTemplatesInFile(pathToBigImage, template, 1);
+
+    public CvResult findTemplateInBufferedImage(BufferedImage canvas, BufferedImage templateImage, CvTemplate template) throws IOException {
+        List<CvResult> results = findMat(canvas, templateImage, template, 1);
         return results.isEmpty() ? null : results.get(0);
     }
 
-    public CvResult findTemplateInBufferedImage(BufferedImage bufferedImage, CvTemplate template) throws IOException {
-        List<CvResult> results = findTemplatesInBufferedImage(bufferedImage, template, 1);
-        return results.isEmpty() ? null : results.get(0);
-    }
-
-    public List<CvResult> findTemplatesInFile(String pathToBigImage, CvTemplate template, int bestResults) {
-        Mat bigImage = Imgcodecs.imread(pathToBigImage);
-        Mat smallImage = Imgcodecs.imread(template.getTemplatePath());
-        return findMat(bigImage, smallImage, template, bestResults);
-    }
-
-    public List<CvResult> findTemplatesInBufferedImage(BufferedImage screenshot, CvTemplate template, int bestResults) throws IOException {
-        screenshot = removeAlphaChannel(screenshot);
-        File file = new File(template.getTemplatePath());
-        BufferedImage smallImageBufferedImage = ImageIO.read(file);
-        smallImageBufferedImage = removeAlphaChannel(smallImageBufferedImage);
-        Mat bigImage = bufferedImageToMat(screenshot);
-
-        Mat smallImage = bufferedImageToMat(smallImageBufferedImage);
-        return findMat(bigImage, smallImage, template, bestResults);
-    }
-
-    private List<CvResult> findMat(Mat bigImage, Mat smallImage, CvTemplate template, int bestResults) {
+    private List<CvResult> findMat(BufferedImage canvasImg, BufferedImage templateImg, CvTemplate template, int bestResults) throws IOException {
+        Mat bigImage = bufferedImageToMat(canvasImg);
+        Mat smallImage = bufferedImageToMat(templateImg);
         try {
-            ParentSize parentSize = template.getParentSize();
-            double scaleX = (double) bigImage.cols() / parentSize.getWidth();
-            double scaleY = (double) bigImage.rows() / parentSize.getHeight();
-            log.debug(template.getFilenamePrefix() + ": scaleX: " + scaleX + ", scaleY: " + scaleY);
-
-            // Skaliere das Template
-            Mat scaledTemplate = new Mat();
-            Imgproc.resize(smallImage, scaledTemplate, new Size(smallImage.cols() * scaleX, smallImage.rows() * scaleY));
-
-            // Ergebnis-Matrix initialisieren
-            int resultCols = bigImage.cols() - scaledTemplate.cols() + 1;
-            int resultRows = bigImage.rows() - scaledTemplate.rows() + 1;
+            int resultCols = bigImage.cols() - smallImage.cols() + 1;
+            int resultRows = bigImage.rows() - smallImage.rows() + 1;
             Mat result = new Mat(resultRows, resultCols, CvType.CV_32FC1);
 
-            return applyImgProc(algorithm, bigImage, scaledTemplate, result, template, bestResults);
-
+            return applyImgProc(algorithm, bigImage, smallImage, result, template, bestResults);
         } catch (Exception e) {
             log.error("Error while searching for object: " + e.getMessage(), e);
         }
@@ -98,7 +64,7 @@ public class OpenCvClient {
     private List<CvResult> applyImgProc(CvProcessingAlgorithm algorithm, Mat bigImage, Mat smallImage, Mat result, CvTemplate template, int bestResults) {
         List<CvResult> results = new ArrayList<>();
         Imgproc.matchTemplate(bigImage, smallImage, result, algorithm.getAlgorithm());
-        Core.normalize(result, result, 0, 255, Core.NORM_MINMAX, -1, new Mat());
+        Core.normalize(result, result, 0, 1, Core.NORM_MINMAX, -1, new Mat());
 
         for (int i = 0; i < bestResults; i++) {
             Core.MinMaxLocResult mmr = Core.minMaxLoc(result);
@@ -166,36 +132,6 @@ public class OpenCvClient {
         byteArrayOutputStream.close();
 
         return Imgcodecs.imdecode(new MatOfByte(byteArray), Imgcodecs.IMREAD_UNCHANGED);
-    }
-
-    private String checkColorType(BufferedImage image) {
-        switch (image.getType()) {
-            case BufferedImage.TYPE_3BYTE_BGR:
-                return "TYPE_3BYTE_BGR";
-            case BufferedImage.TYPE_4BYTE_ABGR:
-                return "TYPE_4BYTE_ABGR";
-            case BufferedImage.TYPE_INT_RGB:
-                return "TYPE_INT_RGB";
-            case BufferedImage.TYPE_INT_ARGB:
-                return "TYPE_INT_ARGB";
-            case BufferedImage.TYPE_BYTE_GRAY:
-                return "TYPE_BYTE_GRAY";
-            case BufferedImage.TYPE_USHORT_GRAY:
-                return "TYPE_USHORT_GRAY";
-            default:
-                return "Other type: " + image.getType();
-        }
-    }
-
-    private BufferedImage removeAlphaChannel(BufferedImage image) {
-        if (image.getType() == BufferedImage.TYPE_4BYTE_ABGR) {
-            BufferedImage newImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_3BYTE_BGR);
-            Graphics2D g = newImage.createGraphics();
-            g.drawImage(image, 0, 0, null);
-            g.dispose();
-            return newImage;
-        }
-        return image;
     }
 
     private void saveCalculatedClickPoint(CvResult cvResult, String fileNamePrefix){

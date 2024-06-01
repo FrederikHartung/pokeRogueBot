@@ -3,12 +3,10 @@ package com.sfh.pokeRogueBot.stage.login;
 import com.sfh.pokeRogueBot.model.UserData;
 import com.sfh.pokeRogueBot.model.enums.TemplateActionType;
 import com.sfh.pokeRogueBot.stage.Stage;
+import com.sfh.pokeRogueBot.stage.login.templates.*;
 import com.sfh.pokeRogueBot.template.HtmlTemplate;
 import com.sfh.pokeRogueBot.template.Template;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
-import com.sfh.pokeRogueBot.stage.login.templates.AnmeldenButtonTemplate;
-import com.sfh.pokeRogueBot.stage.login.templates.BenutzernameInputTemplate;
-import com.sfh.pokeRogueBot.stage.login.templates.PasswortInputTemplate;
 import com.sfh.pokeRogueBot.template.actions.TextInputAction;
 
 public class LoginScreenStage implements HtmlTemplate, Stage {
@@ -46,7 +44,14 @@ public class LoginScreenStage implements HtmlTemplate, Stage {
      */
     @Override
     public Template[] getTemplatesToValidateStage() {
-        return new Template[]{BENUTZERNAME_INPUT, PASSWORT_INPUT, ANMELDEN_BUTTON};
+        return new Template[]{
+                BENUTZERNAME_INPUT,
+                PASSWORT_INPUT,
+                ANMELDEN_BUTTON,
+                new BenutzernameTemplate(),
+                new PasswordTemplate(),
+                new RegistrierenButtonTemplate()
+        };
     }
 
     @Override

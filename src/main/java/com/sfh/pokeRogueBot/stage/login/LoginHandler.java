@@ -1,6 +1,5 @@
 package com.sfh.pokeRogueBot.stage.login;
 
-import com.sfh.pokeRogueBot.browser.BrowserClient;
 import com.sfh.pokeRogueBot.config.Constants;
 import com.sfh.pokeRogueBot.config.UserDataProvider;
 import com.sfh.pokeRogueBot.model.UserData;

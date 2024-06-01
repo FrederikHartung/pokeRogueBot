@@ -27,6 +27,7 @@ CvTemplate: The bot tries to find the CvTemplate with the OpenCV TemplateMatchin
 OcrTemplate: The bot tries to find the OcrTemplate with the tesseract OCR engine.
 
 For each CvTemplate a screenshot with the picture to find in the Canvas screenshot has to be provided in the data/templates folder.
+Templates have to be added to the TemplatePathValidator with their Path and in their Stage in the TemplatesToValidate
 
 ## todo
 -use getScaledImage everywhere

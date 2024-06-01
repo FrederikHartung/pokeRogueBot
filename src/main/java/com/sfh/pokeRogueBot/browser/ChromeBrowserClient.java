@@ -23,7 +23,7 @@ import java.time.temporal.ChronoUnit;
 
 @Slf4j
 @Component
-public class ChromeBrowserClient implements DisposableBean, BrowserClient {
+public class ChromeBrowserClient implements DisposableBean, BrowserClient, ImageClient {
 
     private final boolean closeOnExit;
     private final int waitTimeForRenderAfterNavigation;
@@ -63,6 +63,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient {
 
         try {
             if(useInkognito){
+                log.info("waiting for asset download in inkognito mode...");
                 Thread.sleep(waitTimeForRenderAfterNavigation * 4); // longer wait time for inkognito mode because assets have to be loaded
             }
             else {
@@ -73,8 +74,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient {
         }
     }
 
-    @Override
-    public WebElement getCanvas(){
+    private WebElement getCanvas(){
         return driver.findElement(By.tagName("canvas"));
     }
 

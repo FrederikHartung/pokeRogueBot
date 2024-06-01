@@ -3,8 +3,8 @@ package com.sfh.pokeRogueBot.botconfig;
 import com.sfh.pokeRogueBot.browser.BrowserClient;
 import com.sfh.pokeRogueBot.config.Constants;
 import com.sfh.pokeRogueBot.filehandler.TempFileManager;
-import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import com.sfh.pokeRogueBot.stage.login.LoginHandler;
+import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import org.springframework.stereotype.Component;
 
 @Component

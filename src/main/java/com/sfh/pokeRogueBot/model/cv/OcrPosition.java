@@ -7,11 +7,8 @@ public class OcrPosition {
     private final Point topLeft;
     private final Size size;
 
-    private final ParentSize parentSize;
-
-    public OcrPosition(Point topLeft, Size size, ParentSize parentSize) {
+    public OcrPosition(Point topLeft, Size size) {
         this.topLeft = topLeft;
         this.size = size;
-        this.parentSize = parentSize;
     }
 }
