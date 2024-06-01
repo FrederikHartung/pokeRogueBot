@@ -78,7 +78,7 @@ public class StageProcessor {
         log.debug("Checking if stage is visible: " + stage.getFilenamePrefix());
         for (Template templateToCheck : templatesToCheck) {
             if(!checkIfTemplateIsVisible(templateToCheck)){
-                log.debug("stage not visible: " + templateToCheck.getFilenamePrefix());
+                log.debug("stage not visible: " + stage.getFilenamePrefix() + " because template: " + templateToCheck.getFilenamePrefix() + " is not found");
                 return false;
             }
         }
