@@ -2,6 +2,8 @@ package com.sfh.pokeRogueBot.stage.startgame;
 
 import com.sfh.pokeRogueBot.model.enums.TemplateActionType;
 import com.sfh.pokeRogueBot.stage.Stage;
+import com.sfh.pokeRogueBot.stage.startgame.templates.StartGameCvTemplate;
+import com.sfh.pokeRogueBot.stage.startgame.templates.StartGameOcrTemplate;
 import com.sfh.pokeRogueBot.template.Template;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
 
@@ -11,14 +13,15 @@ public class StartGameStage implements Stage {
 
     @Override
     public Template[] getTemplatesToValidateStage() {
-        return new Template[0];
+        return new Template[]{
+                new StartGameCvTemplate(),
+                new StartGameOcrTemplate(),
+        };
     }
 
     @Override
     public TemplateAction[] getTemplateActionsToPerform() {
-        TemplateAction screenAction = new TemplateAction(TemplateActionType.TAKE_SCREENSHOT, this);
         return new TemplateAction[]{
-                screenAction,
         };
     }
 
