@@ -23,7 +23,17 @@ public class NewGameStage implements Stage {
         TemplateAction waitAction = new TemplateAction(TemplateActionType.WAIT_LONGER, null);
         return new TemplateAction[] {
                 pressSpaceAction, //welcome screen
-                waitAction
+                waitAction,
+                pressSpaceAction, //not monetised screen
+                waitAction,
+                pressSpaceAction, //copyright screen
+                waitAction,
+                pressSpaceAction, //game is still in development screen
+                waitAction,
+                pressSpaceAction, //use discord for error reports screen
+                waitAction,
+                pressSpaceAction, //check hardware acceleration screen
+                waitAction,
         };
     }
 

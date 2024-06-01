@@ -62,7 +62,12 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient {
         driver.get(targetUrl);
 
         try {
-            Thread.sleep(waitTimeForRenderAfterNavigation);
+            if(useInkognito){
+                Thread.sleep(waitTimeForRenderAfterNavigation * 3); // longer wait time for inkognito mode because assets have to be loaded
+            }
+            else {
+                Thread.sleep(waitTimeForRenderAfterNavigation);
+            }
         } catch (InterruptedException e) {
             log.error("Error while waiting", e);
         }
