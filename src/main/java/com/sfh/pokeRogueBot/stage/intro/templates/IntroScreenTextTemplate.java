@@ -7,12 +7,15 @@ import com.sfh.pokeRogueBot.template.OcrTemplate;
 
 public class IntroScreenTextTemplate implements OcrTemplate {
 
-    public static final String PATH = "./data/templates/intro/introScreenCvTemplate.png";
+    public static final String PATH = "./data/templates/intro/intro-text.png";
     private static final String NAME = IntroScreenTextTemplate.class.getSimpleName();
-    private static final OcrPosition OCR_POSITION = new OcrPosition(
-            new Point(42, 650),
-            new Size(1330, 150)
-    );
+    private final OcrPosition ocrPosition;
+    private final boolean persistSourceImageForDebugging;
+
+    public IntroScreenTextTemplate(OcrPosition ocrPosition, boolean persistSourceImageForDebugging) {
+        this.ocrPosition = ocrPosition;
+        this.persistSourceImageForDebugging = persistSourceImageForDebugging;
+    }
 
     @Override
     public String[] getExpectedTexts() {
@@ -41,12 +44,12 @@ public class IntroScreenTextTemplate implements OcrTemplate {
 
     @Override
     public OcrPosition getOcrPosition() {
-        return OCR_POSITION;
+        return ocrPosition;
     }
 
     @Override
     public boolean persistSourceImageForDebugging() {
-        return true;
+        return persistSourceImageForDebugging;
     }
 
     @Override

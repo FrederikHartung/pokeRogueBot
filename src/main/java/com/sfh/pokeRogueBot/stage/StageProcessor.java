@@ -78,9 +78,6 @@ public class StageProcessor {
     public boolean isStageVisible(Stage stage) throws Exception {
         List<Template> templatesToCheck = new LinkedList<>(Arrays.stream(stage.getTemplatesToValidateStage()).toList());
 
-        waitLongerAfterAction();
-        createScreenshot(stage);
-
         log.debug("Checking if stage is visible: " + stage.getFilenamePrefix());
         for (Template templateToCheck : templatesToCheck) {
             if(!checkIfTemplateIsVisible(templateToCheck)){

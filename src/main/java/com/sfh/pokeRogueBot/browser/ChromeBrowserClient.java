@@ -1,7 +1,9 @@
 package com.sfh.pokeRogueBot.browser;
 
+import com.sfh.pokeRogueBot.model.cv.ScaleFactor;
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
+import com.sfh.pokeRogueBot.util.ScalingUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -145,14 +147,16 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
     }
 
     @Override
-    public void clickOnPoint(int middlePointX, int middlePointY) {
+    public void clickOnPoint(Point clickPoint) throws IOException {
         WebElement canvasElement = getCanvas();
+        BufferedImage screenshot = takeScreenshotFromCanvas();
+        ScaleFactor scaleFactor = ScalingUtils.calcScaleFactor(screenshot);
         Actions actions = new Actions(driver);
 
-        // Scrollen Sie zum Canvas-Element, um sicherzustellen, dass es im Viewport sichtbar ist
+        // scroll to the canvas element
         ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", canvasElement);
 
-        // Warten Sie, bis das Canvas-Element sichtbar und klickbar ist
+        // wait till the canvas element is clickable
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         wait.until(ExpectedConditions.elementToBeClickable(canvasElement));
 
@@ -163,7 +167,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
         int canvasX = canvasRect.getX();
         int canvasY = canvasRect.getY();
 
-        log.debug("Canvas position and size: x=" + canvasX + ", y=" + canvasY + ", width=" + canvasWidth + ", height=" + canvasHeight);
+        //log.debug("Canvas position and size: x=" + canvasX + ", y=" + canvasY + ", width=" + canvasWidth + ", height=" + canvasHeight);
 
         // Berechnen Sie die absolute Position zum Klicken
         int clickX = canvasX + middlePointX;

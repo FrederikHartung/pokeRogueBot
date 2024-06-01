@@ -3,8 +3,10 @@ package com.sfh.pokeRogueBot.service;
 import com.sfh.pokeRogueBot.browser.ImageClient;
 import com.sfh.pokeRogueBot.config.Constants;
 import com.sfh.pokeRogueBot.model.cv.Point;
+import com.sfh.pokeRogueBot.model.cv.ScaleFactor;
 import com.sfh.pokeRogueBot.model.cv.Size;
 import com.sfh.pokeRogueBot.model.exception.ImageValidationException;
+import com.sfh.pokeRogueBot.util.ScalingUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -33,16 +35,15 @@ public class BrowserImageService implements ImageService {
     public BufferedImage takeScreenshot(String filenamePrefix) throws ImageValidationException, IOException {
         BufferedImage canvas = imageClient.takeScreenshotFromCanvas();
 
-        double scaleFactorX = (double) canvas.getWidth() / Constants.STANDARDISED_CANVAS_WIDTH;
-        double scaleFactorY = (double) canvas.getHeight() / Constants.STANDARDISED_CANVAS_HEIGHT;
+        ScaleFactor scaleFactor = ScalingUtils.calcScaleFactor(canvas);
 
-        BufferedImage scaledImage = scaleImage(canvas, scaleFactorX, scaleFactorY);
+        BufferedImage scaledImage = scaleImage(canvas, scaleFactor.getScaleFactorWidth(), scaleFactor.getScaleFactorHeight());
         scaledImage = removeAlphaChannel(scaledImage);
 
         validateImage(scaledImage);
 
         //todo: remove logging methode
-        log.debug(filenamePrefix + ", scaleFactorX: " + scaleFactorX + " scaleFactorY: " + scaleFactorY);
+        log.debug(filenamePrefix + ", scaleFactorX: " + scaleFactor.getScaleFactorWidth() + " scaleFactorY: " + scaleFactor.getScaleFactorHeight());
         return scaledImage;
     }
 

@@ -2,16 +2,13 @@ package com.sfh.pokeRogueBot.template;
 
 import com.sfh.pokeRogueBot.model.exception.TemplateNotFoundException;
 import com.sfh.pokeRogueBot.stage.intro.IntroStage;
-import com.sfh.pokeRogueBot.stage.intro.templates.IntroScreenCvTemplate;
-import com.sfh.pokeRogueBot.stage.intro.templates.IntroScreenTextTemplate;
 import com.sfh.pokeRogueBot.stage.login.LoginScreenStage;
-import com.sfh.pokeRogueBot.stage.login.templates.*;
 import com.sfh.pokeRogueBot.stage.startgame.StartGameStage;
-import com.sfh.pokeRogueBot.stage.startgame.templates.StartGameCvTemplate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -22,23 +19,20 @@ public class TemplatePathValidator {
     public List<String> getTemplatePaths() {
         List<String> templatePaths = new LinkedList<>();
 
-        //log
-        templatePaths.add(LoginScreenStage.PATH);
-        templatePaths.add(AnmeldenButtonTemplate.PATH);
-        templatePaths.add(RegistrierenButtonTemplate.PATH);
-        templatePaths.add(BenutzernameTemplate.PATH);
-        templatePaths.add(PasswordTemplate.PATH);
-        templatePaths.add(BenutzernameInputTemplate.PATH);
-        templatePaths.add(PasswortInputTemplate.PATH);
+        //login stage
+        LoginScreenStage loginScreenStage = new LoginScreenStage();
+        templatePaths.add(loginScreenStage.getTemplatePath());
+        templatePaths.addAll(Arrays.stream(loginScreenStage.getTemplatesToValidateStage()).map(Template::getTemplatePath).toList());
 
-        //new game stage
-        templatePaths.add(IntroStage.PATH);
-        templatePaths.add(IntroScreenCvTemplate.PATH);
-        templatePaths.add(IntroScreenTextTemplate.PATH);
+        //intro stage
+        IntroStage introStage = new IntroStage();
+        templatePaths.add(introStage.getTemplatePath());
+        templatePaths.addAll(Arrays.stream(introStage.getTemplatesToValidateStage()).map(Template::getTemplatePath).toList());
 
         //startgame stage
-        templatePaths.add(StartGameStage.PATH);
-        templatePaths.add(StartGameCvTemplate.PATH);
+        StartGameStage startGameStage = new StartGameStage();
+        templatePaths.add(startGameStage.getTemplatePath());
+        templatePaths.addAll(Arrays.stream(startGameStage.getTemplatesToValidateStage()).map(Template::getTemplatePath).toList());
 
         return templatePaths;
     }

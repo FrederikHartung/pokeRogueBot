@@ -19,8 +19,7 @@ public class LoginHandler {
     }
 
     public boolean login() throws Exception {
-        UserData userData = UserDataProvider.getUserdata(Constants.PATH_TO_USER_DATA);
-        LoginScreenStage loginScreenStage = new LoginScreenStage(userData);
+        LoginScreenStage loginScreenStage = new LoginScreenStage();
 
         boolean isLoginFormVisible = stageProcessor.isStageVisible(loginScreenStage);
         if(isLoginFormVisible){
