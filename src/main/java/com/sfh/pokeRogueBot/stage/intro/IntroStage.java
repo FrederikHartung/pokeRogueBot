@@ -39,7 +39,7 @@ public class IntroStage implements Stage {
                                 new Point(11, 615),
                                 new Size(1360, 200)
                         ),
-                        true
+                        false
                 )
         };
     }
