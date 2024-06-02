@@ -1,11 +1,10 @@
 package com.sfh.pokeRogueBot.browser;
 
+import com.sfh.pokeRogueBot.model.cv.Point;
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import org.openqa.selenium.NoSuchElementException;
-import org.openqa.selenium.Point;
 import org.openqa.selenium.WebElement;
 
-import java.awt.image.BufferedImage;
 import java.io.IOException;
 
 public interface BrowserClient {
@@ -21,8 +20,6 @@ public interface BrowserClient {
     void sendKeysToElement(String xpath, String text) throws NoSuchElementException;
 
     void clickOnElement(String xpath);
-
-    void clickOnPoint(int middlePointX, int middlePointY) throws IOException;
 
     void clickOnPoint(Point clickPoint) throws IOException;
 

@@ -4,6 +4,7 @@ import com.sfh.pokeRogueBot.model.cv.ScaleFactor;
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.util.ScalingUtils;
+import com.sfh.pokeRogueBot.model.cv.Point;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -160,18 +161,15 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         wait.until(ExpectedConditions.elementToBeClickable(canvasElement));
 
-        // Holen Sie sich die Größe und Position des Canvas-Elements
         Rectangle canvasRect = canvasElement.getRect();
         int canvasWidth = canvasRect.getWidth();
         int canvasHeight = canvasRect.getHeight();
         int canvasX = canvasRect.getX();
         int canvasY = canvasRect.getY();
 
-        //log.debug("Canvas position and size: x=" + canvasX + ", y=" + canvasY + ", width=" + canvasWidth + ", height=" + canvasHeight);
-
-        // Berechnen Sie die absolute Position zum Klicken
-        int clickX = canvasX + middlePointX;
-        int clickY = canvasY + middlePointY;
+        // calc the scaled position to click
+        int clickX = canvasX + (int)Math.round(clickPoint.getX() * scaleFactor.getScaleFactorWidth());
+        int clickY = canvasY + (int)Math.round(clickPoint.getY() * scaleFactor.getScaleFactorHeight());
 
         log.debug("Attempting to click at absolute position: " + clickX + ", " + clickY);
 
@@ -179,7 +177,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
             actions.moveByOffset(clickX, clickY)
                     .click()
                     .perform();
-            log.debug("Clicked on point: " + middlePointX + ", " + middlePointY);
+            log.debug("Clicked on point: " + clickX + ", " + clickY);
         } catch (MoveTargetOutOfBoundsException e) {
             log.error("Target out of bounds. Canvas size: width=" + canvasWidth + ", height=" + canvasHeight + ". Click position: x=" + clickX + ", y=" + clickY, e);
             throw e;

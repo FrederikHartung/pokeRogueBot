@@ -249,7 +249,7 @@ public class StageProcessor {
             BufferedImage templateImg = imageService.loadTemplate(cvTemplate.getTemplatePath());
             CvResult result = cvClient.findTemplateInBufferedImage(canvasImg, templateImg, cvTemplate);
 
-            browserClient.clickOnPoint(result.getMiddlePointX(), result.getMiddlePointY());
+            browserClient.clickOnPoint(new Point(result.getMiddlePointX(), result.getMiddlePointY()));
 
             return;
         }
