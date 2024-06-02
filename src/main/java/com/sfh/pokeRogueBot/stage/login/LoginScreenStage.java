@@ -4,15 +4,23 @@ import com.sfh.pokeRogueBot.config.Constants;
 import com.sfh.pokeRogueBot.config.UserDataProvider;
 import com.sfh.pokeRogueBot.model.UserData;
 import com.sfh.pokeRogueBot.model.enums.TemplateActionType;
+import com.sfh.pokeRogueBot.stage.BaseStage;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.stage.login.templates.*;
 import com.sfh.pokeRogueBot.template.HtmlTemplate;
 import com.sfh.pokeRogueBot.template.SimpleCvTemplate;
 import com.sfh.pokeRogueBot.template.Template;
+import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import com.sfh.pokeRogueBot.template.actions.SimpleTemplateAction;
 import com.sfh.pokeRogueBot.template.actions.TextInputActionSimple;
+import org.springframework.stereotype.Component;
 
-public class LoginScreenStage implements HtmlTemplate, Stage {
+@Component
+public class LoginScreenStage extends BaseStage implements HtmlTemplate, Stage {
+
+    public LoginScreenStage(TemplatePathValidator templatePathValidator) {
+        super(templatePathValidator, PATH);
+    }
 
     public static final String PATH = "./data/templates/login/login-screen.png";
     public static final String XPATH = "//*[@id=\"app\"]/div";

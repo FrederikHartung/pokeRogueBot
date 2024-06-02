@@ -5,14 +5,23 @@ import com.sfh.pokeRogueBot.model.cv.Point;
 import com.sfh.pokeRogueBot.model.cv.Size;
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.model.enums.TemplateActionType;
+import com.sfh.pokeRogueBot.stage.BaseStage;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.stage.intro.templates.IntroScreenTextTemplate;
 import com.sfh.pokeRogueBot.template.SimpleCvTemplate;
 import com.sfh.pokeRogueBot.template.Template;
+import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import com.sfh.pokeRogueBot.template.actions.PressKeyActionSimple;
 import com.sfh.pokeRogueBot.template.actions.SimpleTemplateAction;
+import org.springframework.stereotype.Component;
 
-public class IntroStage implements Stage {
+@Component
+public class IntroStage extends BaseStage implements Stage {
+
+    public IntroStage(TemplatePathValidator templatePathValidator) {
+        super(templatePathValidator, PATH);
+    }
+
     public static final String PATH = "./data/templates/intro/intro-screen.png";
     private static final String NAME = IntroStage.class.getSimpleName();
 

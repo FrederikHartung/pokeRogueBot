@@ -14,14 +14,16 @@ import org.springframework.stereotype.Component;
 public class LoginHandler {
 
     private final StageProcessor stageProcessor;
+    private final LoginScreenStage loginScreenStage;
+    private final IntroStage introStage;
 
-    public LoginHandler(StageProcessor stageProcessor) {
+    public LoginHandler(StageProcessor stageProcessor, LoginScreenStage loginScreenStage, IntroStage introStage) {
         this.stageProcessor = stageProcessor;
+        this.loginScreenStage = loginScreenStage;
+        this.introStage = introStage;
     }
 
     public boolean login() throws Exception {
-        LoginScreenStage loginScreenStage = new LoginScreenStage();
-
         boolean isLoginFormVisible = stageProcessor.isStageVisible(loginScreenStage);
         if(isLoginFormVisible){
             log.info("LoginScreenStage found");
@@ -33,7 +35,6 @@ public class LoginHandler {
         }
         boolean loginFormWasVisible = isLoginFormVisible;
 
-        IntroStage introStage = new IntroStage();
         boolean isNewGameStageVisible = stageProcessor.isStageVisible(introStage);
         if(isNewGameStageVisible){
             log.info("IntroStage found");

@@ -2,13 +2,22 @@ package com.sfh.pokeRogueBot.stage.startgame;
 
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.model.enums.TemplateActionType;
+import com.sfh.pokeRogueBot.stage.BaseStage;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.stage.startgame.templates.StartGameCvTemplate;
 import com.sfh.pokeRogueBot.stage.startgame.templates.StartGameOcrTemplate;
 import com.sfh.pokeRogueBot.template.Template;
+import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import com.sfh.pokeRogueBot.template.actions.*;
+import org.springframework.stereotype.Component;
 
-public class StartGameStage implements Stage {
+@Component
+public class StartGameStage extends BaseStage implements Stage {
+
+    public StartGameStage(TemplatePathValidator templatePathValidator) {
+        super(templatePathValidator, PATH);
+    }
+
     public static final String PATH = "./data/templates/startgame/startgame-screen.png";
     private static final String NAME = StartGameStage.class.getSimpleName();
 

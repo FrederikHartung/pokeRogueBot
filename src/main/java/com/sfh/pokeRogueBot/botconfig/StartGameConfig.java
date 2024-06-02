@@ -10,16 +10,17 @@ import org.springframework.stereotype.Component;
 public class StartGameConfig implements Config {
 
     private final StageProcessor stageProcessor;
+    private final StartGameStage startGameStage;
 
-    public StartGameConfig(StageProcessor stageProcessor) {
+    public StartGameConfig(StageProcessor stageProcessor, StartGameStage startGameStage) {
         this.stageProcessor = stageProcessor;
+        this.startGameStage = startGameStage;
     }
 
     @Override
     public void applay() throws Exception {
         log.info("checking if a savegame is present");
 
-        StartGameStage startGameStage = new StartGameStage();
         boolean isStartGameStageVisible = stageProcessor.isStageVisible(startGameStage);
         if(isStartGameStageVisible){
             log.info("StartGameStage found");

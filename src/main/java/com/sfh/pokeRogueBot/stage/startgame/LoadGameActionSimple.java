@@ -6,6 +6,7 @@ import com.sfh.pokeRogueBot.template.Template;
 import com.sfh.pokeRogueBot.template.actions.OcrTemplateAction;
 import com.sfh.pokeRogueBot.template.actions.SimpleTemplateAction;
 
+@Deprecated
 public class LoadGameActionSimple extends SimpleTemplateAction implements OcrTemplateAction {
 
     private final String expectedText;

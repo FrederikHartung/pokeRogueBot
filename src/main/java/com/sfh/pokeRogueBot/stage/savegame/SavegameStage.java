@@ -1,10 +1,23 @@
-package com.sfh.pokeRogueBot.stage;
+package com.sfh.pokeRogueBot.stage.savegame;
 
+import com.sfh.pokeRogueBot.stage.BaseStage;
+import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.template.SimpleCvTemplate;
 import com.sfh.pokeRogueBot.template.Template;
+import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import com.sfh.pokeRogueBot.template.actions.SimpleTemplateAction;
+import org.springframework.stereotype.Component;
 
-public class SavegameStage implements Stage {
+@Component
+public class SavegameStage extends BaseStage implements Stage {
+
+    public SavegameStage(TemplatePathValidator pathValidator) {
+        super(pathValidator, PATH);
+    }
+
+    private static final String PATH = "./data/templates/savegame/savegame-screen.png";
+    private static final String NAME = SavegameStage.class.getSimpleName();
+
     @Override
     public Template[] getTemplatesToValidateStage() {
         return new Template[]{
@@ -26,11 +39,11 @@ public class SavegameStage implements Stage {
 
     @Override
     public String getTemplatePath() {
-        return "";
+        return PATH;
     }
 
     @Override
     public String getFilenamePrefix() {
-        return "";
+        return NAME;
     }
 }
