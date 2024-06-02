@@ -2,10 +2,10 @@ package com.sfh.pokeRogueBot.model.enums;
 
 public enum KeyToPress {
     SPACE,
-    KEY_DOWN,
-    KEY_UP,
-    KEY_LEFT,
-    KEY_RIGHT,
+    ARROW_DOWN,
+    ARROW_UP,
+    ARROW_LEFT,
+    ARROW_RIGHT,
     DELETE,
     ESC
 }

@@ -203,6 +203,17 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
                         .sendKeys(Keys.SPACE)
                         .perform();
                 break;
+            case ARROW_DOWN:
+                log.debug("Pressing ARROW_DOWN");
+                actions.sendKeys(Keys.ARROW_DOWN)
+                        .perform();
+                break;
+            case DELETE:
+                log.debug("Pressing DELETE");
+                actions.sendKeys(Keys.DELETE)
+                        .perform();
+                break;
+
             default:
                 log.error("Unknown key to press: " + keyToPress);
                 throw new NotSupportedException("Unknown key to press in browser: " + keyToPress);

@@ -24,11 +24,10 @@ public class StartGameStage implements Stage {
     @Override
     public TemplateAction[] getTemplateActionsToPerform() {
         return new TemplateAction[]{
-                new PressKeyAction(this, KeyToPress.KEY_DOWN),
-                new PressKeyAction(this, KeyToPress.SPACE), //savegame menue
+                new PressKeyAction(this, KeyToPress.ARROW_DOWN),
+                new PressKeyAction(this, KeyToPress.SPACE),
                 new TemplateAction(TemplateActionType.WAIT_FOR_RENDER, this), //wait to render
-
-
+                new TemplateAction(TemplateActionType.TAKE_SCREENSHOT, this), //savegame menue
         };
     }
 
