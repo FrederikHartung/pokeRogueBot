@@ -206,7 +206,7 @@ public class StageProcessor {
                 handleTextInput((TextInputActionSimple) action);
                 break;
             case PRESS_KEY:
-                browserClient.pressKey(((PressKeyActionSimple) action).getKeyToPress());
+                browserClient.pressKey(((PressKeyAction) action).getKeyToPress());
                 break;
             case OCR_IF:
                 handeOcrIf((OcrTemplateAction) action);

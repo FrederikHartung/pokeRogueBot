@@ -6,6 +6,6 @@ public enum KeyToPress {
     ARROW_UP,
     ARROW_LEFT,
     ARROW_RIGHT,
-    DELETE,
+    BACK_SPACE,
     ESC
 }

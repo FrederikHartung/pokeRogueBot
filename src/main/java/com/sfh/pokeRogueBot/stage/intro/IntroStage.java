@@ -11,7 +11,7 @@ import com.sfh.pokeRogueBot.stage.intro.templates.IntroScreenTextTemplate;
 import com.sfh.pokeRogueBot.template.SimpleCvTemplate;
 import com.sfh.pokeRogueBot.template.Template;
 import com.sfh.pokeRogueBot.template.TemplatePathValidator;
-import com.sfh.pokeRogueBot.template.actions.PressKeyActionSimple;
+import com.sfh.pokeRogueBot.template.actions.PressKeyAction;
 import com.sfh.pokeRogueBot.template.actions.SimpleTemplateAction;
 import org.springframework.stereotype.Component;
 
@@ -54,7 +54,7 @@ public class IntroStage extends BaseStage implements Stage {
 
     @Override
     public SimpleTemplateAction[] getTemplateActionsToPerform() {
-        SimpleTemplateAction pressSpaceAction = new PressKeyActionSimple(this, KeyToPress.SPACE);
+        SimpleTemplateAction pressSpaceAction = new PressKeyAction(this, KeyToPress.SPACE);
         SimpleTemplateAction waitAction = new SimpleTemplateAction(TemplateActionType.WAIT_LONGER, null);
         return new SimpleTemplateAction[] {
                 pressSpaceAction, //welcome screen
