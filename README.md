@@ -31,6 +31,7 @@ Templates have to be added to their corresponding stage where they are visible f
 
 ## todo
 -just make one buffered image while stage Validation
+-pull ocr code from the stageProcessor in a service
 
 
    

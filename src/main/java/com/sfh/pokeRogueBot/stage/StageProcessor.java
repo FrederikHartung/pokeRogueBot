@@ -231,6 +231,17 @@ public class StageProcessor {
                     handleTemplateAction(action.getFalseAction());
                 }
             }
+            else if(action.getOcrResultFilter() == OcrResultFilter.EQUALS){
+                if(ocrText.equals(action.getExpectedText())){
+                    handleTemplateAction(action.getTrueAction());
+                }
+                else{
+                    handleTemplateAction(action.getFalseAction());
+                }
+            }
+            else{
+                throw new NotSupportedException("Error in handeOcrIf, unknown filter type: " + action.getOcrResultFilter());
+            }
         }
         else{
             throw new NotSupportedException("Error in handeOcrIf: " + action.getClass().getSimpleName()
