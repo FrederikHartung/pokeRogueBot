@@ -44,16 +44,61 @@ public class PokemonselectionStage extends BaseStage implements Stage {
     @Override
     public TemplateAction[] getTemplateActionsToPerform() {
         PressKeyAction pressSpace = new PressKeyAction(this, KeyToPress.SPACE);
+        PressKeyAction pressArrowDown = new PressKeyAction(this, KeyToPress.ARROW_DOWN);
+        PressKeyAction pressArrowRight = new PressKeyAction(this, KeyToPress.ARROW_RIGHT);
+        PressKeyAction pressArrowLeft = new PressKeyAction(this, KeyToPress.ARROW_LEFT);
         WaitAction waitAction = new WaitAction();
-        TakeScreenshotAction takeScreenshotAction = new TakeScreenshotAction(this);
+
         return new TemplateAction[]{
-                pressSpace,
+                pressArrowRight,
                 waitAction,
-                pressSpace,
+                pressSpace, //green
                 waitAction,
-                pressSpace,
+                pressSpace, //confirm
                 waitAction,
-                takeScreenshotAction
+                pressArrowRight,
+                waitAction,
+                pressSpace, //red
+                waitAction,
+                pressSpace, //confirm
+                waitAction,
+                pressArrowRight,
+                waitAction,
+                pressSpace, //blue
+                waitAction,
+                pressSpace, //confirm
+                waitAction,
+                pressArrowLeft,
+                waitAction,
+                pressArrowLeft,
+                waitAction,
+                pressArrowDown,
+                waitAction,
+                pressArrowDown,
+                waitAction,
+                pressArrowDown,
+                waitAction,
+                pressArrowDown,
+                waitAction,
+                pressArrowDown,
+                waitAction,
+                pressArrowDown,
+                waitAction,
+                pressArrowDown,
+                waitAction,
+                pressArrowDown,
+                waitAction,
+                pressArrowLeft,
+                waitAction,
+                pressSpace, //start game
+                waitAction,
+                pressSpace, //start confirm
+                waitAction,
+                pressSpace, //chose saveslot
+                waitAction,
+                pressSpace, //confirm
+                new WaitForRenderAction(),
+                new TakeScreenshotAction(this)
         };
     }
 }
