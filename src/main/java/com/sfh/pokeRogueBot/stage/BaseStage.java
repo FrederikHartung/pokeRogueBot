@@ -2,7 +2,6 @@ package com.sfh.pokeRogueBot.stage;
 
 import com.sfh.pokeRogueBot.template.Template;
 import com.sfh.pokeRogueBot.template.TemplatePathValidator;
-import com.sfh.pokeRogueBot.template.actions.TemplateAction;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 public abstract class BaseStage implements Stage {
@@ -16,16 +15,6 @@ public abstract class BaseStage implements Stage {
         for(Template template : getTemplatesToValidateStage()) {
             pathValidator.addPath(template.getTemplatePath());
         }
-    }
-
-    @Override
-    public Template[] getTemplatesToValidateStage() {
-        return new Template[0];
-    }
-
-    @Override
-    public TemplateAction[] getTemplateActionsToPerform() {
-        return new TemplateAction[0];
     }
 
     @Override

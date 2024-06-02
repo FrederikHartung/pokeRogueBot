@@ -23,7 +23,6 @@ public class IntroStage extends BaseStage implements Stage {
     }
 
     public static final String PATH = "./data/templates/intro/intro-screen.png";
-    private static final String NAME = IntroStage.class.getSimpleName();
 
     @Override
     public Template[] getTemplatesToValidateStage() {
@@ -70,15 +69,5 @@ public class IntroStage extends BaseStage implements Stage {
                 waitAction,
                 pressSpaceAction
         };
-    }
-
-    @Override
-    public String getTemplatePath() {
-        return PATH;
-    }
-
-    @Override
-    public String getFilenamePrefix() {
-        return NAME;
     }
 }

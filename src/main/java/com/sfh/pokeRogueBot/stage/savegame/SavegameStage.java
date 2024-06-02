@@ -16,7 +16,6 @@ public class SavegameStage extends BaseStage implements Stage {
     }
 
     private static final String PATH = "./data/templates/savegame/savegame-screen.png";
-    private static final String NAME = SavegameStage.class.getSimpleName();
 
     @Override
     public Template[] getTemplatesToValidateStage() {
@@ -35,15 +34,5 @@ public class SavegameStage extends BaseStage implements Stage {
     @Override
     public SimpleTemplateAction[] getTemplateActionsToPerform() {
         return new SimpleTemplateAction[0];
-    }
-
-    @Override
-    public String getTemplatePath() {
-        return PATH;
-    }
-
-    @Override
-    public String getFilenamePrefix() {
-        return NAME;
     }
 }

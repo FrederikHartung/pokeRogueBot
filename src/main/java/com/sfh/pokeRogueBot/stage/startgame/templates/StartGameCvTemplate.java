@@ -9,7 +9,7 @@ public class StartGameCvTemplate implements CvTemplate {
 
     @Override
     public boolean persistResultWhenFindingTemplate() {
-        return true;
+        return false;
     }
 
     @Override

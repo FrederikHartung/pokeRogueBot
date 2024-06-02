@@ -1,6 +1,8 @@
 package com.sfh.pokeRogueBot.botconfig;
 
+import com.sfh.pokeRogueBot.model.exception.StageNotFoundException;
 import com.sfh.pokeRogueBot.stage.StageProcessor;
+import com.sfh.pokeRogueBot.stage.pokemonselection.PokemonselectionStage;
 import com.sfh.pokeRogueBot.stage.startgame.StartGameStage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -11,10 +13,12 @@ public class StartGameConfig implements Config {
 
     private final StageProcessor stageProcessor;
     private final StartGameStage startGameStage;
+    private final PokemonselectionStage pokemonselectionStage;
 
-    public StartGameConfig(StageProcessor stageProcessor, StartGameStage startGameStage) {
+    public StartGameConfig(StageProcessor stageProcessor, StartGameStage startGameStage, PokemonselectionStage pokemonselectionStage) {
         this.stageProcessor = stageProcessor;
         this.startGameStage = startGameStage;
+        this.pokemonselectionStage = pokemonselectionStage;
     }
 
     @Override
@@ -28,7 +32,17 @@ public class StartGameConfig implements Config {
             log.info("handled StartGameStage");
         }
         else{
-            log.debug("No StartGameStage found");
+            throw new StageNotFoundException("StartGameStage not found");
+        }
+
+        boolean isPokemonselectionStageVisible = stageProcessor.isStageVisible(pokemonselectionStage);
+        if(isPokemonselectionStageVisible){
+            log.info("PokemonselectionStage found");
+            stageProcessor.handleStage(pokemonselectionStage);
+            log.info("handled PokemonselectionStage");
+        }
+        else{
+            throw new StageNotFoundException("PokemonselectionStage not found");
         }
     }
 }

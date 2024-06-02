@@ -30,16 +30,6 @@ public class LoginScreenStage extends BaseStage implements HtmlTemplate, Stage {
     private static final PasswortInputTemplate PASSWORT_INPUT = new PasswortInputTemplate();
 
     @Override
-    public String getTemplatePath() {
-        return PATH;
-    }
-
-    @Override
-    public String getFilenamePrefix() {
-        return LoginScreenStage.class.getSimpleName();
-    }
-
-    @Override
     public String getXpath() {
         return XPATH;
     }

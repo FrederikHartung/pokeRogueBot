@@ -19,7 +19,6 @@ public class StartGameStage extends BaseStage implements Stage {
     }
 
     public static final String PATH = "./data/templates/startgame/startgame-screen.png";
-    private static final String NAME = StartGameStage.class.getSimpleName();
 
     @Override
     public Template[] getTemplatesToValidateStage() {
@@ -38,18 +37,6 @@ public class StartGameStage extends BaseStage implements Stage {
                 new SimpleTemplateAction(TemplateActionType.TAKE_SCREENSHOT, this), //savegame menue*/
                 //todo: check if savegame is available
                 new PressKeyActionSimple(this, KeyToPress.SPACE),
-                new WaitForRenderAction(),
-                new TakeScreenshotAction(this)
         };
-    }
-
-    @Override
-    public String getTemplatePath() {
-        return PATH;
-    }
-
-    @Override
-    public String getFilenamePrefix() {
-        return NAME;
     }
 }
