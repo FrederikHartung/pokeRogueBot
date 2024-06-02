@@ -1,6 +1,7 @@
 package com.sfh.pokeRogueBot.template;
 
 import com.sfh.pokeRogueBot.model.exception.TemplateNotFoundException;
+import com.sfh.pokeRogueBot.stage.SavegameStage;
 import com.sfh.pokeRogueBot.stage.intro.IntroStage;
 import com.sfh.pokeRogueBot.stage.login.LoginScreenStage;
 import com.sfh.pokeRogueBot.stage.startgame.StartGameStage;
@@ -33,6 +34,11 @@ public class TemplatePathValidator {
         StartGameStage startGameStage = new StartGameStage();
         templatePaths.add(startGameStage.getTemplatePath());
         templatePaths.addAll(Arrays.stream(startGameStage.getTemplatesToValidateStage()).map(Template::getTemplatePath).toList());
+
+        //savegame stage
+        SavegameStage savegameStage = new SavegameStage();
+        templatePaths.add(savegameStage.getTemplatePath());
+        templatePaths.addAll(Arrays.stream(savegameStage.getTemplatesToValidateStage()).map(Template::getTemplatePath).toList());
 
         return templatePaths;
     }
