@@ -1,6 +1,7 @@
 package com.sfh.pokeRogueBot.browser;
 
 import com.sfh.pokeRogueBot.model.cv.Point;
+import com.sfh.pokeRogueBot.model.cv.ScaleFactor;
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebElement;

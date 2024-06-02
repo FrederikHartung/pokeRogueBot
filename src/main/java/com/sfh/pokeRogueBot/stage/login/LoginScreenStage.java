@@ -17,7 +17,7 @@ public class LoginScreenStage implements HtmlTemplate, Stage {
     public static final String PATH = "./data/templates/login/login-screen.png";
     public static final String XPATH = "//*[@id=\"app\"]/div";
 
-    public static final AnmeldenButtonTemplate ANMELDEN_BUTTON = new AnmeldenButtonTemplate();
+    public static final AnmeldenButtonTemplate ANMELDEN_BUTTON = new AnmeldenButtonTemplate(true);
     public static final BenutzernameInputTemplate BENUTZERNAME_INPUT = new BenutzernameInputTemplate();
     public static final PasswortInputTemplate PASSWORT_INPUT = new PasswortInputTemplate();
 
@@ -48,14 +48,14 @@ public class LoginScreenStage implements HtmlTemplate, Stage {
                 new SimpleCvTemplate(
                         "login-benutzername",
                         "./data/templates/login/login-benutzername.png",
-                        false),
+                        true),
                 new SimpleCvTemplate(
                         "login-passwort",
                         "./data/templates/login/login-passwort.png",
-                        false),
+                        true),
                 new SimpleCvTemplate("login-registrieren",
                         "./data/templates/login/login-registrieren-button.png",
-                        false),
+                        true),
         };
     }
 

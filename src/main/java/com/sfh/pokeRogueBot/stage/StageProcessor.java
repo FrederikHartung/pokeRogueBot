@@ -8,17 +8,16 @@ import com.sfh.pokeRogueBot.filehandler.HtmlFilehandler;
 import com.sfh.pokeRogueBot.filehandler.ScreenshotFilehandler;
 import com.sfh.pokeRogueBot.model.cv.CvResult;
 import com.sfh.pokeRogueBot.model.cv.Point;
+import com.sfh.pokeRogueBot.model.cv.ScaleFactor;
 import com.sfh.pokeRogueBot.model.cv.Size;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.exception.TemplateNotFoundException;
-import com.sfh.pokeRogueBot.template.CvTemplate;
-import com.sfh.pokeRogueBot.template.HtmlTemplate;
-import com.sfh.pokeRogueBot.template.OcrTemplate;
-import com.sfh.pokeRogueBot.template.Template;
+import com.sfh.pokeRogueBot.template.*;
 import com.sfh.pokeRogueBot.template.actions.PressKeyAction;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
 import com.sfh.pokeRogueBot.template.actions.TextInputAction;
 import com.sfh.pokeRogueBot.service.ImageService;
+import com.sfh.pokeRogueBot.util.ScalingUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.NoSuchElementException;
 import org.springframework.beans.factory.annotation.Value;
@@ -248,6 +247,11 @@ public class StageProcessor {
             BufferedImage canvasImg = imageService.takeScreenshot(cvTemplate.getFilenamePrefix() + "_click");
             BufferedImage templateImg = imageService.loadTemplate(cvTemplate.getTemplatePath());
             CvResult result = cvClient.findTemplateInBufferedImage(canvasImg, templateImg, cvTemplate);
+
+            if(cvTemplate instanceof KnownClickPosition knownClickPosition){
+                Point clickPosi = knownClickPosition.getClickPositionOnParent();
+                log.info("handleClick known posi: " + cvTemplate.getFilenamePrefix() + ", x:" + clickPosi.getX() + ", y: " + clickPosi.getY());
+            }
 
             browserClient.clickOnPoint(new Point(result.getMiddlePointX(), result.getMiddlePointY()));
 

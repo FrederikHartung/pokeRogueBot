@@ -39,7 +39,6 @@ public class OpenCvClient {
         this.algorithm = algorithm;
     }
 
-
     public CvResult findTemplateInBufferedImage(BufferedImage canvas, BufferedImage templateImage, CvTemplate template) throws IOException {
         List<CvResult> results = findMat(canvas, templateImage, template, 1);
         return results.isEmpty() ? null : results.get(0);

@@ -37,7 +37,7 @@ public class BrowserImageService implements ImageService {
 
         ScaleFactor scaleFactor = ScalingUtils.calcScaleFactor(canvas);
 
-        BufferedImage scaledImage = scaleImage(canvas, scaleFactor.getScaleFactorWidth(), scaleFactor.getScaleFactorHeight());
+        BufferedImage scaledImage = scaleImage(canvas);
         scaledImage = removeAlphaChannel(scaledImage);
 
         validateImage(scaledImage);
@@ -49,7 +49,8 @@ public class BrowserImageService implements ImageService {
 
     private void validateImage(BufferedImage image) throws ImageValidationException {
         if (image.getWidth() != Constants.STANDARDISED_CANVAS_WIDTH || image.getHeight() != Constants.STANDARDISED_CANVAS_HEIGHT) {
-            throw new ImageValidationException("Image has wrong dimensions: " + image.getWidth() + "x" + image.getHeight());
+            throw new ImageValidationException("Image has wrong dimensions: " + image.getWidth() + "x" + image.getHeight()
+                    + ", expected: " + Constants.STANDARDISED_CANVAS_WIDTH + "x" + Constants.STANDARDISED_CANVAS_HEIGHT);
         }
 
         if (image.getType() != BufferedImage.TYPE_3BYTE_BGR) {
@@ -84,13 +85,35 @@ public class BrowserImageService implements ImageService {
     }
 
 
-    private BufferedImage scaleImage(BufferedImage originalImage, double scaleFactorX, double scaleFactorY) {
+/*    private BufferedImage scaleImage(BufferedImage originalImage, double scaleFactorX, double scaleFactorY) {
         //round to next full pixel
         int newWidth = (int) Math.round(originalImage.getWidth() / scaleFactorX);
         int newHeight = (int) Math.round(originalImage.getHeight() / scaleFactorY);
 
         BufferedImage scaledImage = new BufferedImage(newWidth, newHeight, originalImage.getType());
         Graphics2D g2d = scaledImage.createGraphics();
+
+        AffineTransform affineTransform = AffineTransform.getScaleInstance(scaleFactorX, scaleFactorY);
+        g2d.drawRenderedImage(originalImage, affineTransform);
+        g2d.dispose();
+
+        return scaledImage;
+    }*/
+
+    private BufferedImage scaleImage(BufferedImage originalImage) {
+        int newWidth = Constants.STANDARDISED_CANVAS_WIDTH;
+        int newHeight = Constants.STANDARDISED_CANVAS_HEIGHT;
+
+        BufferedImage scaledImage = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_3BYTE_BGR);
+        Graphics2D g2d = scaledImage.createGraphics();
+
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+
+        double scaleFactorX = newWidth / (double) originalImage.getWidth();
+        double scaleFactorY = newHeight / (double) originalImage.getHeight();
 
         AffineTransform affineTransform = AffineTransform.getScaleInstance(scaleFactorX, scaleFactorY);
         g2d.drawRenderedImage(originalImage, affineTransform);

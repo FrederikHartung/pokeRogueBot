@@ -1,6 +1,8 @@
 package com.sfh.pokeRogueBot.browser;
 
+import com.sfh.pokeRogueBot.config.Constants;
 import com.sfh.pokeRogueBot.model.cv.ScaleFactor;
+import com.sfh.pokeRogueBot.model.cv.Size;
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.util.ScalingUtils;
@@ -150,8 +152,6 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
     @Override
     public void clickOnPoint(Point clickPoint) throws IOException {
         WebElement canvasElement = getCanvas();
-        BufferedImage screenshot = takeScreenshotFromCanvas();
-        ScaleFactor scaleFactor = ScalingUtils.calcScaleFactor(screenshot);
         Actions actions = new Actions(driver);
 
         // scroll to the canvas element
@@ -168,18 +168,26 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
         int canvasY = canvasRect.getY();
 
         // calc the scaled position to click
-        int clickX = canvasX + (int)Math.round(clickPoint.getX() * scaleFactor.getScaleFactorWidth());
-        int clickY = canvasY + (int)Math.round(clickPoint.getY() * scaleFactor.getScaleFactorHeight());
+        ScaleFactor scaleFactor = ScalingUtils.calcScaleFactor(new Size(canvasWidth, canvasHeight));
+        int scaledClickPositionX = canvasX + (int)Math.round(clickPoint.getX() * scaleFactor.getScaleFactorWidth());
+        int scaledClickPositiony = canvasY + (int)Math.round(clickPoint.getY() * scaleFactor.getScaleFactorHeight());
 
-        log.debug("Attempting to click at absolute position: " + clickX + ", " + clickY);
+        String messageSize = "canvas width: " + canvasWidth + ", hight: " + canvasHeight + ", normed width: " + Constants.STANDARDISED_CANVAS_WIDTH + ", hight: " + Constants.STANDARDISED_CANVAS_HEIGHT;
+        log.debug(messageSize);
+
+        String messageX = "normed click x: " + clickPoint.getX() + ", scalefactor x: " + scaleFactor.getScaleFactorWidth() + " , calculated click x: " + scaledClickPositionX;
+        log.debug(messageX);
+
+        String messageY = "normed click y: " + clickPoint.getY() + ", scalefactor y: " + scaleFactor.getScaleFactorHeight() + " , calculated click y: " + scaledClickPositiony;
+        log.debug(messageY);
 
         try {
-            actions.moveByOffset(clickX, clickY)
+            actions.moveByOffset(scaledClickPositionX, scaledClickPositiony)
                     .click()
                     .perform();
-            log.debug("Clicked on point: " + clickX + ", " + clickY);
+            log.debug("Clicked on point: " + scaledClickPositionX + ", " + scaledClickPositiony);
         } catch (MoveTargetOutOfBoundsException e) {
-            log.error("Target out of bounds. Canvas size: width=" + canvasWidth + ", height=" + canvasHeight + ". Click position: x=" + clickX + ", y=" + clickY, e);
+            log.error("Target out of bounds. Canvas size: width=" + canvasWidth + ", height=" + canvasHeight + ". Click position: x=" + scaledClickPositionX + ", y=" + scaledClickPositiony, e);
             throw e;
         }
     }

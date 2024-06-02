@@ -54,7 +54,7 @@ class OpenCvClientTest {
         //given
         OpenCvClient objToSpy = new OpenCvClient(CvProcessingAlgorithm.TM_SQDIFF);
         cvClient = spy(objToSpy);
-        AnmeldenButtonTemplate correctTemplate = new AnmeldenButtonTemplate();
+        AnmeldenButtonTemplate correctTemplate = new AnmeldenButtonTemplate(false);
         BufferedImage canvas = readImage(PATH_LOGIN_SCREEN);
         BufferedImage template = readImage(PATH_ANMELDEN_BUTTON);
 
