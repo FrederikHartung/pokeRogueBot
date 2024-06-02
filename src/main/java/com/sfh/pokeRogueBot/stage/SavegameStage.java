@@ -2,7 +2,7 @@ package com.sfh.pokeRogueBot.stage;
 
 import com.sfh.pokeRogueBot.template.SimpleCvTemplate;
 import com.sfh.pokeRogueBot.template.Template;
-import com.sfh.pokeRogueBot.template.actions.TemplateAction;
+import com.sfh.pokeRogueBot.template.actions.SimpleTemplateAction;
 
 public class SavegameStage implements Stage {
     @Override
@@ -20,8 +20,8 @@ public class SavegameStage implements Stage {
     }
 
     @Override
-    public TemplateAction[] getTemplateActionsToPerform() {
-        return new TemplateAction[0];
+    public SimpleTemplateAction[] getTemplateActionsToPerform() {
+        return new SimpleTemplateAction[0];
     }
 
     @Override

@@ -9,8 +9,8 @@ import com.sfh.pokeRogueBot.stage.login.templates.*;
 import com.sfh.pokeRogueBot.template.HtmlTemplate;
 import com.sfh.pokeRogueBot.template.SimpleCvTemplate;
 import com.sfh.pokeRogueBot.template.Template;
-import com.sfh.pokeRogueBot.template.actions.TemplateAction;
-import com.sfh.pokeRogueBot.template.actions.TextInputAction;
+import com.sfh.pokeRogueBot.template.actions.SimpleTemplateAction;
+import com.sfh.pokeRogueBot.template.actions.TextInputActionSimple;
 
 public class LoginScreenStage implements HtmlTemplate, Stage {
 
@@ -64,13 +64,13 @@ public class LoginScreenStage implements HtmlTemplate, Stage {
     }
 
     @Override
-    public TemplateAction[] getTemplateActionsToPerform() {
+    public SimpleTemplateAction[] getTemplateActionsToPerform() {
         UserData userData = getUserData();
 
-        TextInputAction benutzernameAction = new TextInputAction(BENUTZERNAME_INPUT, userData.getUsername());
-        TextInputAction passwortAction = new TextInputAction(PASSWORT_INPUT, userData.getPassword());
-        TemplateAction clickAction = new TemplateAction(TemplateActionType.CLICK, ANMELDEN_BUTTON);
-        return new TemplateAction[]{
+        TextInputActionSimple benutzernameAction = new TextInputActionSimple(BENUTZERNAME_INPUT, userData.getUsername());
+        TextInputActionSimple passwortAction = new TextInputActionSimple(PASSWORT_INPUT, userData.getPassword());
+        SimpleTemplateAction clickAction = new SimpleTemplateAction(TemplateActionType.CLICK, ANMELDEN_BUTTON);
+        return new SimpleTemplateAction[]{
                 benutzernameAction,
                 passwortAction,
                 clickAction};

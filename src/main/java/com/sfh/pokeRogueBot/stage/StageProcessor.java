@@ -8,16 +8,15 @@ import com.sfh.pokeRogueBot.filehandler.HtmlFilehandler;
 import com.sfh.pokeRogueBot.filehandler.ScreenshotFilehandler;
 import com.sfh.pokeRogueBot.model.cv.CvResult;
 import com.sfh.pokeRogueBot.model.cv.Point;
-import com.sfh.pokeRogueBot.model.cv.ScaleFactor;
-import com.sfh.pokeRogueBot.model.cv.Size;
+import com.sfh.pokeRogueBot.model.enums.OcrResultFilter;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.exception.TemplateNotFoundException;
 import com.sfh.pokeRogueBot.template.*;
-import com.sfh.pokeRogueBot.template.actions.PressKeyAction;
-import com.sfh.pokeRogueBot.template.actions.TemplateAction;
-import com.sfh.pokeRogueBot.template.actions.TextInputAction;
+import com.sfh.pokeRogueBot.template.actions.OcrTemplateAction;
+import com.sfh.pokeRogueBot.template.actions.PressKeyActionSimple;
+import com.sfh.pokeRogueBot.template.actions.SimpleTemplateAction;
+import com.sfh.pokeRogueBot.template.actions.TextInputActionSimple;
 import com.sfh.pokeRogueBot.service.ImageService;
-import com.sfh.pokeRogueBot.util.ScalingUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.NoSuchElementException;
 import org.springframework.beans.factory.annotation.Value;
@@ -108,17 +107,7 @@ public class StageProcessor {
     }
 
     private boolean checkIfOcrTemplateIsVisible(OcrTemplate ocrTemplate) throws IOException {
-        BufferedImage canvas = imageService.takeScreenshot(ocrTemplate.getFilenamePrefix() + "_ocrSource");
-        BufferedImage ocrImage = imageService.getSubImage(
-                canvas,
-                ocrTemplate.getOcrPosition().getTopLeft(),
-                ocrTemplate.getOcrPosition().getSize());
-
-        if(ocrTemplate.persistSourceImageForDebugging()){
-            ScreenshotFilehandler.persistBufferedImage(ocrImage, ocrTemplate.getFilenamePrefix() + "_ocrSource");
-        }
-
-        String ocrResult = ocrScreenshotAnalyser.doOcr(ocrImage).getText().toLowerCase();
+        String ocrResult = getOcrString(ocrTemplate);
         int foundStrings = 0;
         int totalStrings = ocrTemplate.getExpectedTexts().length;
         for (String expectedText : ocrTemplate.getExpectedTexts()) {
@@ -132,6 +121,20 @@ public class StageProcessor {
         log.debug(ocrTemplate.getFilenamePrefix() + ": OCR confidence: " + confidence);
 
         return confidence > ocrTemplate.getConfidenceThreshhold();
+    }
+
+    private String getOcrString(OcrTemplate ocrTemplate) throws IOException {
+        BufferedImage canvas = imageService.takeScreenshot(ocrTemplate.getFilenamePrefix() + "_ocrSource");
+        BufferedImage ocrImage = imageService.getSubImage(
+                canvas,
+                ocrTemplate.getOcrPosition().getTopLeft(),
+                ocrTemplate.getOcrPosition().getSize());
+
+        if(ocrTemplate.persistSourceImageForDebugging()){
+            ScreenshotFilehandler.persistBufferedImage(ocrImage, ocrTemplate.getFilenamePrefix() + "_ocrSource");
+        }
+
+        return ocrScreenshotAnalyser.doOcr(ocrImage).getText().toLowerCase();
     }
 
     private boolean checkIfCvTemplateIsVisible(CvTemplate cvTemplate){
@@ -173,40 +176,65 @@ public class StageProcessor {
     // -------------------- handle --------------------
 
     public void handleStage(Stage stage) throws NoSuchElementException, IOException {
-        TemplateAction[] actionsToPerform = stage.getTemplateActionsToPerform();
-        for (TemplateAction action : actionsToPerform) {
-            switch (action.getActionType()) {
-                case CLICK:
-                    handleClick(action);
-                    break;
-                case WAIT:
-                    waitAfterAction();
-                    break;
-                case WAIT_LONGER:
-                    waitLongerAfterAction();
-                    break;
-                case WAIT_FOR_RENDER:
-                    waitForRender();
-                    break;
-                case TAKE_SCREENSHOT:
-                    createScreenshot(action.getTarget());
-                    break;
-                case ENTER_TEXT:
-                    handleTextInput((TextInputAction) action);
-                    break;
-                case PRESS_KEY:
-                    browserClient.pressKey(((PressKeyAction) action).getKeyToPress());
-                    break;
-                default:
-                    log.error("Unknown action: " + action);
-                    throw new NotSupportedException("Template action not supported: " + action.getActionType());
-            }
+        SimpleTemplateAction[] actionsToPerform = stage.getTemplateActionsToPerform();
+        for (SimpleTemplateAction action : actionsToPerform) {
+            handleTemplateAction(action);
         }
 
         try {
             Thread.sleep(waitTimeForRendering);
         } catch (InterruptedException e) {
             log.error("Error while waiting", e);
+        }
+    }
+
+    private void handleTemplateAction(SimpleTemplateAction action) throws IOException {
+        switch (action.getActionType()) {
+            case CLICK:
+                handleClick(action);
+                break;
+            case WAIT:
+                waitAfterAction();
+                break;
+            case WAIT_LONGER:
+                waitLongerAfterAction();
+                break;
+            case WAIT_FOR_RENDER:
+                waitForRender();
+                break;
+            case TAKE_SCREENSHOT:
+                createScreenshot(action.getTarget());
+                break;
+            case ENTER_TEXT:
+                handleTextInput((TextInputActionSimple) action);
+                break;
+            case PRESS_KEY:
+                browserClient.pressKey(((PressKeyActionSimple) action).getKeyToPress());
+                break;
+            case OCR_IF:
+                handeOcrIf((OcrTemplateAction) action);
+                break;
+            default:
+                log.error("Unknown action: " + action);
+                throw new NotSupportedException("Template action not supported: " + action.getActionType());
+        }
+    }
+
+    private void handeOcrIf(OcrTemplateAction action) throws IOException, NotSupportedException {
+        if(action.getTarget() instanceof OcrTemplate ocrTemplate){
+            String ocrText = getOcrString(ocrTemplate);
+            if(action.getOcrResultFilter() == OcrResultFilter.CONTAINS) {
+                if(ocrText.contains(action.getExpectedText())){
+                    handleTemplateAction(action.getTrueAction());
+                }
+                else{
+                    handleTemplateAction(action.getFalseAction());
+                }
+            }
+        }
+        else{
+            throw new NotSupportedException("Error in handeOcrIf: " + action.getClass().getSimpleName()
+                    + " has not OcrTemplate as target: " + action.getTarget().getClass().getSimpleName());
         }
     }
 
@@ -238,7 +266,7 @@ public class StageProcessor {
         }
     }
 
-    private void handleTextInput(TextInputAction action) throws NoSuchElementException {
+    private void handleTextInput(TextInputActionSimple action) throws NoSuchElementException {
         Template template = action.getTarget();
         if(template instanceof HtmlTemplate htmlTemplate){
             browserClient.sendKeysToElement(htmlTemplate.getXpath(), action.getText());
@@ -248,7 +276,7 @@ public class StageProcessor {
         log.error(UNKNOWN_IDENTIFICATION_TYPE + " in handleTextInput: " + template);
     }
 
-    private void handleClick(TemplateAction action) throws NoSuchElementException, IOException {
+    private void handleClick(SimpleTemplateAction action) throws NoSuchElementException, IOException {
         Template template = action.getTarget();
         if(template instanceof HtmlTemplate htmlTemplate){
             browserClient.clickOnElement(htmlTemplate.getXpath());
