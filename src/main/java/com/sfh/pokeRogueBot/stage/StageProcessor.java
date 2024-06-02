@@ -38,6 +38,7 @@ public class StageProcessor {
     public static final String UNKNOWN_IDENTIFICATION_TYPE = "Unknown identification type: ";
 
     private final int waitTimeAfterAction; //to let the browser render quick changes
+    private final int waitLongerAfterAction;
     private final int waitTimeForRendering; //to let the browser render changes after stage switching
     private final int maxWaitTimeForElementToBeVisible; //in ms
 
@@ -63,6 +64,7 @@ public class StageProcessor {
         this.cvClient = cvClient;
 
         this.waitTimeAfterAction = waitTimeAfterAction;
+        this.waitLongerAfterAction = waitTimeAfterAction * 2;
         this.maxWaitTimeForElementToBeVisible = maxWaitTimeForElementToBeVisible;
         this.ocrScreenshotAnalyser = ocrScreenshotAnalyser;
         this.imageService = imageService;
@@ -183,6 +185,9 @@ public class StageProcessor {
                 case WAIT_LONGER:
                     waitLongerAfterAction();
                     break;
+                case WAIT_FOR_RENDER:
+                    waitForRender();
+                    break;
                 case TAKE_SCREENSHOT:
                     createScreenshot(action.getTarget());
                     break;
@@ -209,17 +214,25 @@ public class StageProcessor {
         persistScreenshot(imageService.takeScreenshot(template.getFilenamePrefix()), template.getFilenamePrefix());
     }
 
-    private void waitLongerAfterAction() {
+    private void waitAfterAction() {
         try {
-            Thread.sleep(waitTimeAfterAction * 2);
+            Thread.sleep(waitTimeAfterAction);
         } catch (InterruptedException e) {
             log.error("Error while waiting", e);
         }
     }
 
-    private void waitAfterAction() {
+    private void waitLongerAfterAction() {
         try {
-            Thread.sleep(waitTimeAfterAction);
+            Thread.sleep(waitLongerAfterAction);
+        } catch (InterruptedException e) {
+            log.error("Error while waiting", e);
+        }
+    }
+
+    private void waitForRender() {
+        try {
+            Thread.sleep(waitTimeForRendering);
         } catch (InterruptedException e) {
             log.error("Error while waiting", e);
         }

@@ -38,7 +38,7 @@ public class StartGameOcrTemplate implements OcrTemplate {
 
     @Override
     public boolean persistSourceImageForDebugging() {
-        return true;
+        return false;
     }
 
     @Override

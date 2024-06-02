@@ -8,4 +8,5 @@ public enum TemplateActionType {
     WAIT_FOR_RENDER,
     TAKE_SCREENSHOT,
     PRESS_KEY,
+    MULTI_STEP,
 }

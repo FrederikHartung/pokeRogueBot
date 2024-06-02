@@ -1,10 +1,12 @@
 package com.sfh.pokeRogueBot.stage.startgame;
 
+import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.model.enums.TemplateActionType;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.stage.startgame.templates.StartGameCvTemplate;
 import com.sfh.pokeRogueBot.stage.startgame.templates.StartGameOcrTemplate;
 import com.sfh.pokeRogueBot.template.Template;
+import com.sfh.pokeRogueBot.template.actions.PressKeyAction;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
 
 public class StartGameStage implements Stage {
@@ -22,7 +24,11 @@ public class StartGameStage implements Stage {
     @Override
     public TemplateAction[] getTemplateActionsToPerform() {
         return new TemplateAction[]{
-                new TemplateAction(TemplateActionType.TAKE_SCREENSHOT, this),
+                new PressKeyAction(this, KeyToPress.KEY_DOWN),
+                new PressKeyAction(this, KeyToPress.SPACE), //savegame menue
+                new TemplateAction(TemplateActionType.WAIT_FOR_RENDER, this), //wait to render
+
+
         };
     }
 
