@@ -12,10 +12,7 @@ import com.sfh.pokeRogueBot.model.enums.OcrResultFilter;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.exception.TemplateNotFoundException;
 import com.sfh.pokeRogueBot.template.*;
-import com.sfh.pokeRogueBot.template.actions.OcrTemplateAction;
-import com.sfh.pokeRogueBot.template.actions.PressKeyActionSimple;
-import com.sfh.pokeRogueBot.template.actions.SimpleTemplateAction;
-import com.sfh.pokeRogueBot.template.actions.TextInputActionSimple;
+import com.sfh.pokeRogueBot.template.actions.*;
 import com.sfh.pokeRogueBot.service.ImageService;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.NoSuchElementException;
@@ -176,8 +173,8 @@ public class StageProcessor {
     // -------------------- handle --------------------
 
     public void handleStage(Stage stage) throws NoSuchElementException, IOException {
-        SimpleTemplateAction[] actionsToPerform = stage.getTemplateActionsToPerform();
-        for (SimpleTemplateAction action : actionsToPerform) {
+        TemplateAction[] actionsToPerform = stage.getTemplateActionsToPerform();
+        for (TemplateAction action : actionsToPerform) {
             handleTemplateAction(action);
         }
 
@@ -188,7 +185,7 @@ public class StageProcessor {
         }
     }
 
-    private void handleTemplateAction(SimpleTemplateAction action) throws IOException {
+    private void handleTemplateAction(TemplateAction action) throws IOException {
         switch (action.getActionType()) {
             case CLICK:
                 handleClick(action);
@@ -287,7 +284,7 @@ public class StageProcessor {
         log.error(UNKNOWN_IDENTIFICATION_TYPE + " in handleTextInput: " + template);
     }
 
-    private void handleClick(SimpleTemplateAction action) throws NoSuchElementException, IOException {
+    private void handleClick(TemplateAction action) throws NoSuchElementException, IOException {
         Template template = action.getTarget();
         if(template instanceof HtmlTemplate htmlTemplate){
             browserClient.clickOnElement(htmlTemplate.getXpath());
