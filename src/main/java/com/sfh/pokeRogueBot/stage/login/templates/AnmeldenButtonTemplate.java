@@ -1,16 +1,21 @@
 package com.sfh.pokeRogueBot.stage.login.templates;
 
+import com.sfh.pokeRogueBot.model.cv.Point;
 import com.sfh.pokeRogueBot.template.CvTemplate;
 import com.sfh.pokeRogueBot.template.KnownClickPosition;
-import org.opencv.core.Point;
 
 public class AnmeldenButtonTemplate implements CvTemplate, KnownClickPosition {
 
     public static final String PATH = "./data/templates/login/login-anmelden-button.png";
     public static final String NAME = AnmeldenButtonTemplate.class.getSimpleName();
-    private static final Point clickPoint = new Point(618, 447);
-    private static final int WIDTH_PARENT = 1479;
-    private static final int HEIGHT_PARENT = 832;
+    //private static final Point clickPoint = new Point(495, 357);
+    private static final Point clickPoint = new Point(632, 462);
+
+    private final boolean persistResultWhenFindingTeplate;
+
+    public AnmeldenButtonTemplate(boolean persistResultWhenFindingTeplate) {
+        this.persistResultWhenFindingTeplate = persistResultWhenFindingTeplate;
+    }
 
     @Override
     public String getTemplatePath() {
@@ -24,7 +29,7 @@ public class AnmeldenButtonTemplate implements CvTemplate, KnownClickPosition {
 
     @Override
     public boolean persistResultWhenFindingTemplate() {
-        return false;
+        return persistResultWhenFindingTeplate;
     }
 
     @Override
@@ -32,13 +37,4 @@ public class AnmeldenButtonTemplate implements CvTemplate, KnownClickPosition {
         return clickPoint;
     }
 
-    @Override
-    public int getParentWidth() {
-        return WIDTH_PARENT;
-    }
-
-    @Override
-    public int getParentHeight() {
-        return HEIGHT_PARENT;
-    }
 }

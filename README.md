@@ -20,10 +20,17 @@ brew install tesseract
 4. Request the .png Templates for the template classes from me if you want to use my screenshots  
 or make your own screenshots and save them in the data/templates folder. You find the expected paths for each template in the template classes.
 
+## Hows does the bot work
+The bots tries so find the templates on the screen with following methods:
+HtmlTeplate: The bot tries to find the HtmlTemplate with the x_path in the body.
+CvTemplate: The bot tries to find the CvTemplate with the OpenCV TemplateMatching algorithm.
+OcrTemplate: The bot tries to find the OcrTemplate with the tesseract OCR engine.
+
+For each CvTemplate a screenshot with the picture to find in the Canvas screenshot has to be provided in the data/templates folder.
+Templates have to be added to their corresponding stage where they are visible for validation if their are visible
 
 ## todo
--if i make a screenshot for a template from a already existing gamescreenshot, the new screenshot is twice the size
--validate, if the first todo is linked to the display size of my machine
+-just make one buffered image while stage Validation
 
 
    

@@ -2,12 +2,13 @@ package com.sfh.pokeRogueBot.cv;
 
 import com.sfh.pokeRogueBot.config.Constants;
 import com.sfh.pokeRogueBot.filehandler.CvResultFilehandler;
+import com.sfh.pokeRogueBot.filehandler.StringFilehandler;
 import com.sfh.pokeRogueBot.model.cv.CvProcessingAlgorithm;
 import com.sfh.pokeRogueBot.model.cv.CvResult;
 import com.sfh.pokeRogueBot.model.enums.CvFilterType;
 import com.sfh.pokeRogueBot.template.CvTemplate;
-import com.sfh.pokeRogueBot.template.Template;
 import lombok.extern.slf4j.Slf4j;
+import org.opencv.core.Point;
 import org.opencv.core.*;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
@@ -38,46 +39,20 @@ public class OpenCvClient {
         this.algorithm = algorithm;
     }
 
-    public CvResult findTemplateInFile(String pathToBigImage, CvTemplate template) {
-        List<CvResult> results = findTemplatesInFile(pathToBigImage, template, 1);
+    public CvResult findTemplateInBufferedImage(BufferedImage canvas, BufferedImage templateImage, CvTemplate template) throws IOException {
+        List<CvResult> results = findMat(canvas, templateImage, template, 1);
         return results.isEmpty() ? null : results.get(0);
     }
 
-    public CvResult findTemplateInBufferedImage(BufferedImage bufferedImage, CvTemplate template) throws IOException {
-        List<CvResult> results = findTemplatesInBufferedImage(bufferedImage, template, 1);
-        return results.isEmpty() ? null : results.get(0);
-    }
-
-    public List<CvResult> findTemplatesInFile(String pathToBigImage, CvTemplate template, int bestResults) {
-        Mat bigImage = Imgcodecs.imread(pathToBigImage);
-        Mat smallImage = Imgcodecs.imread(template.getTemplatePath());
-        return findMat(bigImage, smallImage, template, bestResults);
-    }
-
-    public List<CvResult> findTemplatesInBufferedImage(BufferedImage screenshot, CvTemplate template, int bestResults) throws IOException {
-        Mat bigImage = bufferedImageToMat(screenshot);
-        Mat smallImage = Imgcodecs.imread(template.getTemplatePath());
-        return findMat(bigImage, smallImage, template, bestResults);
-    }
-
-    private List<CvResult> findMat(Mat bigImage, Mat smallImage, CvTemplate template, int bestResults) {
+    private List<CvResult> findMat(BufferedImage canvasImg, BufferedImage templateImg, CvTemplate template, int bestResults) throws IOException {
+        Mat bigImage = bufferedImageToMat(canvasImg);
+        Mat smallImage = bufferedImageToMat(templateImg);
         try {
-            // Berechne die Skalierungsfaktoren
-            double scaleX = (double) bigImage.cols() / template.getParentWidth();
-            double scaleY = (double) bigImage.rows() / template.getParentHeight();
-            log.debug(template.getFilenamePrefix() + ": scaleX: " + scaleX + ", scaleY: " + scaleY);
-
-            // Skaliere das Template
-            Mat scaledTemplate = new Mat();
-            Imgproc.resize(smallImage, scaledTemplate, new Size(smallImage.cols() * scaleX, smallImage.rows() * scaleY));
-
-            // Ergebnis-Matrix initialisieren
-            int resultCols = bigImage.cols() - scaledTemplate.cols() + 1;
-            int resultRows = bigImage.rows() - scaledTemplate.rows() + 1;
+            int resultCols = bigImage.cols() - smallImage.cols() + 1;
+            int resultRows = bigImage.rows() - smallImage.rows() + 1;
             Mat result = new Mat(resultRows, resultCols, CvType.CV_32FC1);
 
-            return applyImgProc(algorithm, bigImage, scaledTemplate, result, template, bestResults);
-
+            return applyImgProc(algorithm, bigImage, smallImage, result, template, bestResults);
         } catch (Exception e) {
             log.error("Error while searching for object: " + e.getMessage(), e);
         }
@@ -101,7 +76,6 @@ public class OpenCvClient {
             log.debug(template.getFilenamePrefix() + ": min: " + mmr.minVal + ", max: " + mmr.maxVal);
             Point matchLoc = algorithm.getFilterType() == CvFilterType.HIGHEST_Result ? mmr.maxLoc : mmr.minLoc;
 
-            // Bereich um den gefundenen Punkt vergrößern, um Wiederholungen zu vermeiden
             int floodFillWidth = smallImage.cols() / 2;
             int floodFillHeight = smallImage.rows() / 2;
             Rect floodRect = new Rect(
@@ -137,6 +111,9 @@ public class OpenCvClient {
 
         if(template.persistResultWhenFindingTemplate() && !results.isEmpty()){
             CvResultFilehandler.persist(template.getFilenamePrefix(), bigImage);
+            for(CvResult cvResult : results){
+                saveCalculatedClickPoint(cvResult, template.getFilenamePrefix());
+            }
         }
 
         if(results.isEmpty()){
@@ -155,4 +132,9 @@ public class OpenCvClient {
 
         return Imgcodecs.imdecode(new MatOfByte(byteArray), Imgcodecs.IMREAD_UNCHANGED);
     }
+
+    private void saveCalculatedClickPoint(CvResult cvResult, String fileNamePrefix){
+        StringFilehandler.persist("calculated_click_point", fileNamePrefix, cvResult.toString());
+    }
+
 }

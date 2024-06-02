@@ -1,7 +1,12 @@
 package com.sfh.pokeRogueBot.browser;
 
+import com.sfh.pokeRogueBot.config.Constants;
+import com.sfh.pokeRogueBot.model.cv.ScaleFactor;
+import com.sfh.pokeRogueBot.model.cv.Size;
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
+import com.sfh.pokeRogueBot.util.ScalingUtils;
+import com.sfh.pokeRogueBot.model.cv.Point;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -23,7 +28,7 @@ import java.time.temporal.ChronoUnit;
 
 @Slf4j
 @Component
-public class ChromeBrowserClient implements DisposableBean, BrowserClient {
+public class ChromeBrowserClient implements DisposableBean, BrowserClient, ImageClient {
 
     private final boolean closeOnExit;
     private final int waitTimeForRenderAfterNavigation;
@@ -63,7 +68,8 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient {
 
         try {
             if(useInkognito){
-                Thread.sleep(waitTimeForRenderAfterNavigation * 3); // longer wait time for inkognito mode because assets have to be loaded
+                log.info("waiting for asset download in inkognito mode...");
+                Thread.sleep(waitTimeForRenderAfterNavigation * 4); // longer wait time for inkognito mode because assets have to be loaded
             }
             else {
                 Thread.sleep(waitTimeForRenderAfterNavigation);
@@ -73,8 +79,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient {
         }
     }
 
-    @Override
-    public WebElement getCanvas(){
+    private WebElement getCanvas(){
         return driver.findElement(By.tagName("canvas"));
     }
 
@@ -145,39 +150,44 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient {
     }
 
     @Override
-    public void clickOnPoint(int middlePointX, int middlePointY) {
+    public void clickOnPoint(Point clickPoint) throws IOException {
         WebElement canvasElement = getCanvas();
         Actions actions = new Actions(driver);
 
-        // Scrollen Sie zum Canvas-Element, um sicherzustellen, dass es im Viewport sichtbar ist
+        // scroll to the canvas element
         ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", canvasElement);
 
-        // Warten Sie, bis das Canvas-Element sichtbar und klickbar ist
+        // wait till the canvas element is clickable
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         wait.until(ExpectedConditions.elementToBeClickable(canvasElement));
 
-        // Holen Sie sich die Größe und Position des Canvas-Elements
         Rectangle canvasRect = canvasElement.getRect();
         int canvasWidth = canvasRect.getWidth();
         int canvasHeight = canvasRect.getHeight();
         int canvasX = canvasRect.getX();
         int canvasY = canvasRect.getY();
 
-        log.debug("Canvas position and size: x=" + canvasX + ", y=" + canvasY + ", width=" + canvasWidth + ", height=" + canvasHeight);
+        // calc the scaled position to click
+        ScaleFactor scaleFactor = ScalingUtils.calcScaleFactor(new Size(canvasWidth, canvasHeight));
+        int scaledClickPositionX = canvasX + (int)Math.round(clickPoint.getX() * scaleFactor.getScaleFactorWidth());
+        int scaledClickPositiony = canvasY + (int)Math.round(clickPoint.getY() * scaleFactor.getScaleFactorHeight());
 
-        // Berechnen Sie die absolute Position zum Klicken
-        int clickX = canvasX + middlePointX;
-        int clickY = canvasY + middlePointY;
+        String messageSize = "canvas width: " + canvasWidth + ", hight: " + canvasHeight + ", normed width: " + Constants.STANDARDISED_CANVAS_WIDTH + ", hight: " + Constants.STANDARDISED_CANVAS_HEIGHT;
+        log.debug(messageSize);
 
-        log.debug("Attempting to click at absolute position: " + clickX + ", " + clickY);
+        String messageX = "normed click x: " + clickPoint.getX() + ", scalefactor x: " + scaleFactor.getScaleFactorWidth() + " , calculated click x: " + scaledClickPositionX;
+        log.debug(messageX);
+
+        String messageY = "normed click y: " + clickPoint.getY() + ", scalefactor y: " + scaleFactor.getScaleFactorHeight() + " , calculated click y: " + scaledClickPositiony;
+        log.debug(messageY);
 
         try {
-            actions.moveByOffset(clickX, clickY)
+            actions.moveByOffset(scaledClickPositionX, scaledClickPositiony)
                     .click()
                     .perform();
-            log.debug("Clicked on point: " + middlePointX + ", " + middlePointY);
+            log.debug("Clicked on point: " + scaledClickPositionX + ", " + scaledClickPositiony);
         } catch (MoveTargetOutOfBoundsException e) {
-            log.error("Target out of bounds. Canvas size: width=" + canvasWidth + ", height=" + canvasHeight + ". Click position: x=" + clickX + ", y=" + clickY, e);
+            log.error("Target out of bounds. Canvas size: width=" + canvasWidth + ", height=" + canvasHeight + ". Click position: x=" + scaledClickPositionX + ", y=" + scaledClickPositiony, e);
             throw e;
         }
     }

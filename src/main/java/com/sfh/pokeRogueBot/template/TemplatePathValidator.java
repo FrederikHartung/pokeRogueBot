@@ -1,17 +1,14 @@
 package com.sfh.pokeRogueBot.template;
 
 import com.sfh.pokeRogueBot.model.exception.TemplateNotFoundException;
-import com.sfh.pokeRogueBot.stage.login.LoginScreenStage;
-import com.sfh.pokeRogueBot.stage.login.templates.AnmeldenButtonTemplate;
-import com.sfh.pokeRogueBot.stage.login.templates.BenutzernameInputTemplate;
-import com.sfh.pokeRogueBot.stage.login.templates.PasswortInputTemplate;
 import com.sfh.pokeRogueBot.stage.intro.IntroStage;
-import com.sfh.pokeRogueBot.stage.intro.templates.IntroScreenCvTemplate;
-import com.sfh.pokeRogueBot.stage.intro.templates.IntroScreenTextTemplate;
+import com.sfh.pokeRogueBot.stage.login.LoginScreenStage;
+import com.sfh.pokeRogueBot.stage.startgame.StartGameStage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -23,15 +20,19 @@ public class TemplatePathValidator {
         List<String> templatePaths = new LinkedList<>();
 
         //login stage
-        templatePaths.add(LoginScreenStage.PATH);
-        templatePaths.add(AnmeldenButtonTemplate.PATH);
-        templatePaths.add(BenutzernameInputTemplate.PATH);
-        templatePaths.add(PasswortInputTemplate.PATH);
+        LoginScreenStage loginScreenStage = new LoginScreenStage();
+        templatePaths.add(loginScreenStage.getTemplatePath());
+        templatePaths.addAll(Arrays.stream(loginScreenStage.getTemplatesToValidateStage()).map(Template::getTemplatePath).toList());
 
-        //new game stage
-        templatePaths.add(IntroStage.PATH);
-        templatePaths.add(IntroScreenCvTemplate.PATH);
-        templatePaths.add(IntroScreenTextTemplate.PATH);
+        //intro stage
+        IntroStage introStage = new IntroStage();
+        templatePaths.add(introStage.getTemplatePath());
+        templatePaths.addAll(Arrays.stream(introStage.getTemplatesToValidateStage()).map(Template::getTemplatePath).toList());
+
+        //startgame stage
+        StartGameStage startGameStage = new StartGameStage();
+        templatePaths.add(startGameStage.getTemplatePath());
+        templatePaths.addAll(Arrays.stream(startGameStage.getTemplatesToValidateStage()).map(Template::getTemplatePath).toList());
 
         return templatePaths;
     }

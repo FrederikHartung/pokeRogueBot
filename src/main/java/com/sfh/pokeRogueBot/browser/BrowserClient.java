@@ -1,23 +1,20 @@
 package com.sfh.pokeRogueBot.browser;
 
+import com.sfh.pokeRogueBot.model.cv.Point;
+import com.sfh.pokeRogueBot.model.cv.ScaleFactor;
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebElement;
 
-import java.awt.image.BufferedImage;
 import java.io.IOException;
 
 public interface BrowserClient {
 
     void navigateTo(String targetUrl);
 
-    WebElement getCanvas();
-
     WebElement getElementByXpath(String xpath);
 
     String getBodyAsText();
-
-    BufferedImage takeScreenshotFromCanvas() throws IOException;
 
     boolean waitUntilElementIsVisible(String xpath, int maxWaitTimeInSeconds, String fileNamePrefix);
 
@@ -25,7 +22,7 @@ public interface BrowserClient {
 
     void clickOnElement(String xpath);
 
-    void clickOnPoint(int middlePointX, int middlePointY);
+    void clickOnPoint(Point clickPoint) throws IOException;
 
     void pressKey(KeyToPress keyToPress);
 }
