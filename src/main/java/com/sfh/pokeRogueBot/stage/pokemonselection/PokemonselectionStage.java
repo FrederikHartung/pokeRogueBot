@@ -43,6 +43,9 @@ public class PokemonselectionStage extends BaseStage implements Stage {
 
     @Override
     public TemplateAction[] getTemplateActionsToPerform() {
+
+
+
         PressKeyAction pressSpace = new PressKeyAction(this, KeyToPress.SPACE);
         PressKeyAction pressArrowDown = new PressKeyAction(this, KeyToPress.ARROW_DOWN);
         PressKeyAction pressArrowRight = new PressKeyAction(this, KeyToPress.ARROW_RIGHT);

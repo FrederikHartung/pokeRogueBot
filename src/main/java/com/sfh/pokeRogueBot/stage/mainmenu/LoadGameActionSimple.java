@@ -1,4 +1,4 @@
-package com.sfh.pokeRogueBot.stage.startgame;
+package com.sfh.pokeRogueBot.stage.mainmenu;
 
 import com.sfh.pokeRogueBot.model.enums.OcrResultFilter;
 import com.sfh.pokeRogueBot.model.enums.TemplateActionType;

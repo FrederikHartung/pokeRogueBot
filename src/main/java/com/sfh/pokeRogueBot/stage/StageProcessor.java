@@ -2,7 +2,6 @@ package com.sfh.pokeRogueBot.stage;
 
 import com.sfh.pokeRogueBot.browser.BrowserClient;
 import com.sfh.pokeRogueBot.browser.ChromeBrowserClient;
-import com.sfh.pokeRogueBot.cv.OcrScreenshotAnalyser;
 import com.sfh.pokeRogueBot.cv.OpenCvClient;
 import com.sfh.pokeRogueBot.filehandler.HtmlFilehandler;
 import com.sfh.pokeRogueBot.filehandler.ScreenshotFilehandler;
@@ -12,6 +11,7 @@ import com.sfh.pokeRogueBot.model.cv.Point;
 import com.sfh.pokeRogueBot.model.enums.OcrResultFilter;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.exception.TemplateNotFoundException;
+import com.sfh.pokeRogueBot.service.CvService;
 import com.sfh.pokeRogueBot.service.OcrService;
 import com.sfh.pokeRogueBot.template.*;
 import com.sfh.pokeRogueBot.template.actions.*;
@@ -19,8 +19,6 @@ import com.sfh.pokeRogueBot.service.ImageService;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.NoSuchElementException;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.retry.support.RetryTemplate;
-import org.springframework.retry.support.RetryTemplateBuilder;
 import org.springframework.stereotype.Component;
 
 import java.awt.image.BufferedImage;
@@ -41,37 +39,28 @@ public class StageProcessor {
     private final int maxWaitTimeForElementToBeVisible; //in ms
 
     private final BrowserClient browserClient;
-    private final OpenCvClient cvClient;
-    private final RetryTemplate retryTemplateForFindingTemplates;
     private final ImageService imageService;
     private final OcrService ocrService;
+    private final CvService cvService;
 
     public StageProcessor(
             ChromeBrowserClient chromeBrowserClient,
-            OpenCvClient cvClient,
             ImageService imageService,
             OcrService ocrService,
+            CvService cvService,
             @Value("${stage-processor.waitTimeAfterAction}") int waitTimeAfterAction,
             @Value("${stage-processor.waitTimeForRenderingText}") int waitTimeForRenderingText,
-            @Value("${stage-processor.waitTimeForRenderingStages}") int waitTimeForRenderingStages,
-            @Value("${stage-processor.retry.maxAttemptsForSearchingTemplates}") int maxAttemptsForSearchingTemplates,
-            @Value("${stage-processor.retry.backoffPeriodForSearchingTemplates}") long backoffPeriodForSearchingTemplates) {
+            @Value("${stage-processor.waitTimeForRenderingStages}") int waitTimeForRenderingStages){
 
         this.waitTimeForRendering = waitTimeForRenderingStages;
-        this.browserClient = chromeBrowserClient;
-        this.cvClient = cvClient;
-
         this.waitTimeAfterAction = waitTimeAfterAction;
         this.waitTimeForRenderingText = waitTimeForRenderingText;
         this.maxWaitTimeForElementToBeVisible = waitTimeForRenderingStages;
+
+        this.browserClient = chromeBrowserClient;
         this.imageService = imageService;
         this.ocrService = ocrService;
-
-        this.retryTemplateForFindingTemplates = new RetryTemplateBuilder()
-                .maxAttempts(maxAttemptsForSearchingTemplates)
-                .fixedBackoff(backoffPeriodForSearchingTemplates)
-                .retryOn(TemplateNotFoundException.class)
-                .build();
+        this.cvService = cvService;
     }
 
     public boolean isStageVisible(Stage stage) throws Exception {
@@ -114,17 +103,7 @@ public class StageProcessor {
 
     private boolean checkIfCvTemplateIsVisible(CvTemplate cvTemplate){
         try {
-            return retryTemplateForFindingTemplates.execute(context -> {
-                BufferedImage canvasImg = imageService.takeScreenshot(cvTemplate.getFilenamePrefix());
-                BufferedImage templateImg = imageService.loadTemplate(cvTemplate.getTemplatePath());
-
-                if (null != cvClient.findTemplateInBufferedImage(canvasImg, templateImg, cvTemplate)) {
-                    log.debug("visibility check with image: Template visible: " + cvTemplate.getFilenamePrefix());
-                    return true;
-                }
-
-                throw new TemplateNotFoundException("Template not found in image: " + cvTemplate.getFilenamePrefix());
-            });
+            return cvService.isTemplateVisible(cvTemplate);
         } catch (TemplateNotFoundException e){
             log.debug("Template not found in image: " + cvTemplate.getFilenamePrefix());
         }
@@ -262,23 +241,14 @@ public class StageProcessor {
         log.error(UNKNOWN_IDENTIFICATION_TYPE + " in handleTextInput: " + template);
     }
 
-    private void handleClick(TemplateAction action) throws NoSuchElementException, IOException {
+    private void handleClick(TemplateAction action) throws IOException {
         Template template = action.getTarget();
         if(template instanceof HtmlTemplate htmlTemplate){
             browserClient.clickOnElement(htmlTemplate.getXpath());
             return;
         }
         else if(template instanceof CvTemplate cvTemplate){
-            log.debug("handleClick: " + cvTemplate.getFilenamePrefix());
-
-            BufferedImage canvasImg = imageService.takeScreenshot(cvTemplate.getFilenamePrefix() + "_click");
-            BufferedImage templateImg = imageService.loadTemplate(cvTemplate.getTemplatePath());
-            CvResult result = cvClient.findTemplateInBufferedImage(canvasImg, templateImg, cvTemplate);
-
-            if(cvTemplate instanceof KnownClickPosition knownClickPosition){
-                Point clickPosi = knownClickPosition.getClickPositionOnParent();
-                log.info("handleClick known posi: " + cvTemplate.getFilenamePrefix() + ", x:" + clickPosi.getX() + ", y: " + clickPosi.getY());
-            }
+            CvResult result = cvService.findTemplate(cvTemplate);
 
             browserClient.clickOnPoint(new Point(result.getMiddlePointX(), result.getMiddlePointY()));
 

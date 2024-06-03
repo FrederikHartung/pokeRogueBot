@@ -1,14 +1,14 @@
-package com.sfh.pokeRogueBot.stage.startgame.templates;
+package com.sfh.pokeRogueBot.stage.mainmenu.templates;
 
 import com.sfh.pokeRogueBot.model.cv.OcrPosition;
 import com.sfh.pokeRogueBot.model.cv.Point;
 import com.sfh.pokeRogueBot.model.cv.Size;
 import com.sfh.pokeRogueBot.template.OcrTemplate;
 
-public class StartGameOcrTemplate implements OcrTemplate {
+public class MainmenuOcrTemplate implements OcrTemplate {
 
-    public static final String PATH = "./data/templates/startgame/startgame-cvtemplate.png";
-    private static final String NAME = StartGameOcrTemplate.class.getSimpleName();
+    public static final String PATH = "./data/templates/mainmenu/mainmenu-cvtemplate.png";
+    private static final String NAME = MainmenuOcrTemplate.class.getSimpleName();
     private static final OcrPosition OCR_POSITION = new OcrPosition(
             new Point(927, 484),
             new Size(512, 312)

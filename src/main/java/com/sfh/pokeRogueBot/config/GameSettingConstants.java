@@ -26,7 +26,7 @@ public class GameSettingConstants {
     private static final GameSettingProperty tutorials = new GameSettingProperty(new String[]{
             "OFF", "ON"}, 0);
     private static final GameSettingProperty enableRetries = new GameSettingProperty(new String[]{
-            "OFF", "ON"}, 0);
+            "OFF", "ON"}, 1);
     private static final GameSettingProperty skipSeenDialogs = new GameSettingProperty(new String[]{
             "OFF", "ON"}, 1);
     private static final GameSettingProperty candyUpgradeNotification = new GameSettingProperty(new String[]{

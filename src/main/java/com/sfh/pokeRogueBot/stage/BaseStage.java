@@ -15,6 +15,11 @@ public abstract class BaseStage implements Stage {
         for(Template template : getTemplatesToValidateStage()) {
             pathValidator.addPath(template.getTemplatePath());
         }
+        if(this instanceof HasOptionalTemplates optionalTemplates) {
+            for(Template template : optionalTemplates.getOptionalTemplatesToAnalyseStage()) {
+                pathValidator.addPath(template.getTemplatePath());
+            }
+        }
     }
 
     @Override

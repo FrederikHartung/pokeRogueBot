@@ -207,22 +207,18 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
                         .perform();
                 break;
             case ARROW_LEFT:
-                log.debug("Pressing ARROW_LEFT");
                 actions.sendKeys(Keys.ARROW_LEFT)
                         .perform();
                 break;
             case ARROW_UP:
-                log.debug("Pressing ARROW_UP");
                 actions.sendKeys(Keys.ARROW_UP)
                         .perform();
                 break;
             case ARROW_RIGHT:
-                log.debug("Pressing ARROW_RIGHT");
                 actions.sendKeys(Keys.ARROW_RIGHT)
                         .perform();
                 break;
             case BACK_SPACE:
-                log.debug("Pressing DELETE");
                 actions.sendKeys(Keys.BACK_SPACE)
                         .perform();
                 break;

@@ -17,23 +17,26 @@ ocr:
   datapath: /opt/homebrew/Cellar/tesseract/5.3.4_1/share/tessdata
   jnaLibraryPath: /opt/homebrew/opt/tesseract/lib/
 
+cv:
+  retry:
+    maxAttemptsForSearchingTemplates: 5
+    backoffPeriodForSearchingTemplates: 1000
+
+
 browser:
   closeOnExit: false
   waitTimeForRenderAfterNavigation: 5000
   pathChromeUserDir: "./bin/webdriver/profile/"
-  useInkognito: true
+  useInkognito: false
 
 stage-processor:
   waitTimeAfterAction: 100
   waitTimeForRenderingText: 1000
   waitTimeForRenderingStages: 5000
-  retry:
-    maxAttemptsForSearchingTemplates: 5
-    backoffPeriodForSearchingTemplates: 1000
 
 stage:
-  startgame:
-    updateGameSettings: True
+  mainmenu:
+    updateGameSettings: false
 
 
 handler:

@@ -33,7 +33,7 @@ public class TesseractOcrService implements OcrService {
             ScreenshotFilehandler.persistBufferedImage(ocrImage, ocrTemplate.getFilenamePrefix() + "_ocrSource");
         }
 
-        return ocrScreenshotAnalyser.doOcr(ocrImage).getFoundText().toLowerCase();
+        return ocrScreenshotAnalyser.doOcr(ocrImage).toLowerCase();
     }
 
     public OcrResult checkIfOcrTemplateIsVisible(OcrTemplate ocrTemplate) throws IOException {

@@ -3,7 +3,7 @@ package com.sfh.pokeRogueBot.botconfig;
 import com.sfh.pokeRogueBot.model.exception.StageNotFoundException;
 import com.sfh.pokeRogueBot.stage.StageProcessor;
 import com.sfh.pokeRogueBot.stage.pokemonselection.PokemonselectionStage;
-import com.sfh.pokeRogueBot.stage.startgame.StartGameStage;
+import com.sfh.pokeRogueBot.stage.mainmenu.MainMenuStage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -12,27 +12,25 @@ import org.springframework.stereotype.Component;
 public class StartGameConfig implements Config {
 
     private final StageProcessor stageProcessor;
-    private final StartGameStage startGameStage;
+    private final MainMenuStage mainMenuStage;
     private final PokemonselectionStage pokemonselectionStage;
 
-    public StartGameConfig(StageProcessor stageProcessor, StartGameStage startGameStage, PokemonselectionStage pokemonselectionStage) {
+    public StartGameConfig(StageProcessor stageProcessor, MainMenuStage mainMenuStage, PokemonselectionStage pokemonselectionStage) {
         this.stageProcessor = stageProcessor;
-        this.startGameStage = startGameStage;
+        this.mainMenuStage = mainMenuStage;
         this.pokemonselectionStage = pokemonselectionStage;
     }
 
     @Override
     public void applay() throws Exception {
-        log.info("checking if a savegame is present");
-
-        boolean isStartGameStageVisible = stageProcessor.isStageVisible(startGameStage);
+        boolean isStartGameStageVisible = stageProcessor.isStageVisible(mainMenuStage);
         if(isStartGameStageVisible){
-            log.info("StartGameStage found");
-            stageProcessor.handleStage(startGameStage);
-            log.info("handled StartGameStage");
+            log.info("MainMenuStage found");
+            stageProcessor.handleStage(mainMenuStage);
+            log.info("handled MainMenuStage");
         }
         else{
-            throw new StageNotFoundException("StartGameStage not found");
+            throw new StageNotFoundException("MainMenuStage not found");
         }
 
 /*        boolean isPokemonselectionStageVisible = stageProcessor.isStageVisible(pokemonselectionStage);

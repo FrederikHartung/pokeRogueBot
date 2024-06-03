@@ -23,14 +23,10 @@ public class OcrScreenshotAnalyser {
         instance.setLanguage(language);
     }
 
-    public OcrResult doOcr(BufferedImage image) {
+    public String doOcr(BufferedImage image) {
 
         try {
-            String extractedText = instance.doOCR(image);
-
-            return new OcrResult(
-                    extractedText
-            );
+            return instance.doOCR(image);
         } catch (Exception e) {
             log.error("Error while doing OCR: " + e.getMessage(), e);
         }
