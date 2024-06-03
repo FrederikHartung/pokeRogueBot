@@ -4,32 +4,30 @@ import com.sfh.pokeRogueBot.config.Constants;
 import com.sfh.pokeRogueBot.config.UserDataProvider;
 import com.sfh.pokeRogueBot.model.UserData;
 import com.sfh.pokeRogueBot.model.enums.TemplateActionType;
+import com.sfh.pokeRogueBot.stage.BaseStage;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.stage.login.templates.*;
 import com.sfh.pokeRogueBot.template.HtmlTemplate;
 import com.sfh.pokeRogueBot.template.SimpleCvTemplate;
 import com.sfh.pokeRogueBot.template.Template;
-import com.sfh.pokeRogueBot.template.actions.TemplateAction;
-import com.sfh.pokeRogueBot.template.actions.TextInputAction;
+import com.sfh.pokeRogueBot.template.TemplatePathValidator;
+import com.sfh.pokeRogueBot.template.actions.SimpleTemplateAction;
+import com.sfh.pokeRogueBot.template.actions.TextInputActionSimple;
+import org.springframework.stereotype.Component;
 
-public class LoginScreenStage implements HtmlTemplate, Stage {
+@Component
+public class LoginScreenStage extends BaseStage implements HtmlTemplate, Stage {
+
+    public LoginScreenStage(TemplatePathValidator templatePathValidator) {
+        super(templatePathValidator, PATH);
+    }
 
     public static final String PATH = "./data/templates/login/login-screen.png";
     public static final String XPATH = "//*[@id=\"app\"]/div";
 
-    public static final AnmeldenButtonTemplate ANMELDEN_BUTTON = new AnmeldenButtonTemplate(true);
-    public static final BenutzernameInputTemplate BENUTZERNAME_INPUT = new BenutzernameInputTemplate();
-    public static final PasswortInputTemplate PASSWORT_INPUT = new PasswortInputTemplate();
-
-    @Override
-    public String getTemplatePath() {
-        return PATH;
-    }
-
-    @Override
-    public String getFilenamePrefix() {
-        return LoginScreenStage.class.getSimpleName();
-    }
+    private static final AnmeldenButtonTemplate ANMELDEN_BUTTON = new AnmeldenButtonTemplate(false);
+    private static final BenutzernameInputTemplate BENUTZERNAME_INPUT = new BenutzernameInputTemplate();
+    private static final PasswortInputTemplate PASSWORT_INPUT = new PasswortInputTemplate();
 
     @Override
     public String getXpath() {
@@ -48,14 +46,14 @@ public class LoginScreenStage implements HtmlTemplate, Stage {
                 new SimpleCvTemplate(
                         "login-benutzername",
                         "./data/templates/login/login-benutzername.png",
-                        true),
+                        false),
                 new SimpleCvTemplate(
                         "login-passwort",
                         "./data/templates/login/login-passwort.png",
-                        true),
+                        false),
                 new SimpleCvTemplate("login-registrieren",
                         "./data/templates/login/login-registrieren-button.png",
-                        true),
+                        false),
         };
     }
 
@@ -64,13 +62,13 @@ public class LoginScreenStage implements HtmlTemplate, Stage {
     }
 
     @Override
-    public TemplateAction[] getTemplateActionsToPerform() {
+    public SimpleTemplateAction[] getTemplateActionsToPerform() {
         UserData userData = getUserData();
 
-        TextInputAction benutzernameAction = new TextInputAction(BENUTZERNAME_INPUT, userData.getUsername());
-        TextInputAction passwortAction = new TextInputAction(PASSWORT_INPUT, userData.getPassword());
-        TemplateAction clickAction = new TemplateAction(TemplateActionType.CLICK, ANMELDEN_BUTTON);
-        return new TemplateAction[]{
+        TextInputActionSimple benutzernameAction = new TextInputActionSimple(BENUTZERNAME_INPUT, userData.getUsername());
+        TextInputActionSimple passwortAction = new TextInputActionSimple(PASSWORT_INPUT, userData.getPassword());
+        SimpleTemplateAction clickAction = new SimpleTemplateAction(TemplateActionType.CLICK, ANMELDEN_BUTTON);
+        return new SimpleTemplateAction[]{
                 benutzernameAction,
                 passwortAction,
                 clickAction};

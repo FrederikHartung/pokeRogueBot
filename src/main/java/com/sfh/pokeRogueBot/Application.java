@@ -9,10 +9,10 @@ import org.springframework.context.ConfigurableApplicationContext;
 
 @SpringBootApplication
 @Slf4j
-public class PokeRogueBotApplication {
+public class Application {
 
 	public static void main(String[] args) {
-		ConfigurableApplicationContext context = SpringApplication.run(PokeRogueBotApplication.class, args);
+		ConfigurableApplicationContext context = SpringApplication.run(Application.class, args);
 		try{
 			Bot bot = context.getBean(SimpleBot.class);
             bot.start();

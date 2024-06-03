@@ -5,16 +5,26 @@ import com.sfh.pokeRogueBot.model.cv.Point;
 import com.sfh.pokeRogueBot.model.cv.Size;
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.model.enums.TemplateActionType;
+import com.sfh.pokeRogueBot.stage.BaseStage;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.stage.intro.templates.IntroScreenTextTemplate;
 import com.sfh.pokeRogueBot.template.SimpleCvTemplate;
 import com.sfh.pokeRogueBot.template.Template;
+import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import com.sfh.pokeRogueBot.template.actions.PressKeyAction;
+import com.sfh.pokeRogueBot.template.actions.SimpleTemplateAction;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
+import com.sfh.pokeRogueBot.template.actions.WaitForTextRenderAction;
+import org.springframework.stereotype.Component;
 
-public class IntroStage implements Stage {
+@Component
+public class IntroStage extends BaseStage implements Stage {
+
+    public IntroStage(TemplatePathValidator templatePathValidator) {
+        super(templatePathValidator, PATH);
+    }
+
     public static final String PATH = "./data/templates/intro/intro-screen.png";
-    private static final String NAME = IntroStage.class.getSimpleName();
 
     @Override
     public Template[] getTemplatesToValidateStage() {
@@ -39,37 +49,27 @@ public class IntroStage implements Stage {
                                 new Point(11, 615),
                                 new Size(1360, 200)
                         ),
-                        true
+                        false
                 )
         };
     }
 
     @Override
     public TemplateAction[] getTemplateActionsToPerform() {
-        TemplateAction pressSpaceAction = new PressKeyAction(this, KeyToPress.SPACE);
-        TemplateAction waitAction = new TemplateAction(TemplateActionType.WAIT_LONGER, null);
+        SimpleTemplateAction pressSpaceAction = new PressKeyAction(this, KeyToPress.SPACE);
+        WaitForTextRenderAction waitForTextRenderAction = new WaitForTextRenderAction();
         return new TemplateAction[] {
                 pressSpaceAction, //welcome screen
-                waitAction,
+                waitForTextRenderAction,
                 pressSpaceAction, //not monetised screen
-                waitAction,
+                waitForTextRenderAction,
                 pressSpaceAction, //copyright screen
-                waitAction,
+                waitForTextRenderAction,
                 pressSpaceAction, //game is still in development screen
-                waitAction,
+                waitForTextRenderAction,
                 pressSpaceAction, //use discord for error reports screen
-                waitAction,
-                pressSpaceAction
+                waitForTextRenderAction,
+                pressSpaceAction, //
         };
-    }
-
-    @Override
-    public String getTemplatePath() {
-        return PATH;
-    }
-
-    @Override
-    public String getFilenamePrefix() {
-        return NAME;
     }
 }

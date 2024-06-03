@@ -27,10 +27,12 @@ CvTemplate: The bot tries to find the CvTemplate with the OpenCV TemplateMatchin
 OcrTemplate: The bot tries to find the OcrTemplate with the tesseract OCR engine.
 
 For each CvTemplate a screenshot with the picture to find in the Canvas screenshot has to be provided in the data/templates folder.
-Templates have to be added to their corresponding stage where they are visible for validation if their are visible
+Templates have to be added to their corresponding stage where they are visible for validation if their are visible.
+Every Stage needs to be a component for automatic path checking if the templates are present on the disc.  
 
 ## todo
 -just make one buffered image while stage Validation
+-pull ocr code from the stageProcessor in a service
 
 
    

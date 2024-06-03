@@ -6,7 +6,7 @@ import com.sfh.pokeRogueBot.template.Template;
 import lombok.Getter;
 
 @Getter
-public class PressKeyAction extends TemplateAction {
+public class PressKeyAction extends SimpleTemplateAction {
 
     private final KeyToPress keyToPress;
 

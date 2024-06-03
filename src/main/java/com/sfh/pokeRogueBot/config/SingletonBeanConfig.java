@@ -11,4 +11,9 @@ public class SingletonBeanConfig {
     public CvProcessingAlgorithm createCvProcessingAlgorithm(){
         return CvProcessingAlgorithm.TM_SQDIFF;
     }
+
+    @Bean(name = "baseStagePathBean")
+    public String getBaseStagePath(){
+        return "./data/templates/login/login-screen.png"; //no real cheack needed for BaseStage
+    }
 }

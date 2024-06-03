@@ -197,12 +197,32 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
         Actions actions = new Actions(driver);
         switch (keyToPress){
             case SPACE:
-                log.debug("Pressing SPACE");
                 WebElement canvasElement = getCanvas();
                 actions.moveToElement(canvasElement)
                         .sendKeys(Keys.SPACE)
                         .perform();
                 break;
+            case ARROW_DOWN:
+                actions.sendKeys(Keys.ARROW_DOWN)
+                        .perform();
+                break;
+            case ARROW_LEFT:
+                actions.sendKeys(Keys.ARROW_LEFT)
+                        .perform();
+                break;
+            case ARROW_UP:
+                actions.sendKeys(Keys.ARROW_UP)
+                        .perform();
+                break;
+            case ARROW_RIGHT:
+                actions.sendKeys(Keys.ARROW_RIGHT)
+                        .perform();
+                break;
+            case BACK_SPACE:
+                actions.sendKeys(Keys.BACK_SPACE)
+                        .perform();
+                break;
+
             default:
                 log.error("Unknown key to press: " + keyToPress);
                 throw new NotSupportedException("Unknown key to press in browser: " + keyToPress);
