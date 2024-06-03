@@ -3,7 +3,7 @@ package com.sfh.pokeRogueBot.template.actions;
 import com.sfh.pokeRogueBot.model.enums.TemplateActionType;
 import com.sfh.pokeRogueBot.template.Template;
 
-public class WaitLongerAction implements TemplateAction {
+public class WaitForTextRenderAction implements TemplateAction {
 
     @Override
     public Template getTarget() {
@@ -12,6 +12,6 @@ public class WaitLongerAction implements TemplateAction {
 
     @Override
     public TemplateActionType getActionType() {
-        return TemplateActionType.WAIT_LONGER;
+        return TemplateActionType.WAIT_FOR_TEXT_RENDER;
     }
 }

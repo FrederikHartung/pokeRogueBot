@@ -24,8 +24,9 @@ browser:
   useInkognito: true
 
 stage-processor:
-  waitTimeAfterAction: 350
-  waitTimeForRendering: 5000
+  waitTimeAfterAction: 100
+  waitTimeForRenderingText: 1000
+  waitTimeForRenderingStages: 5000
   retry:
     maxAttemptsForSearchingTemplates: 5
     backoffPeriodForSearchingTemplates: 1000

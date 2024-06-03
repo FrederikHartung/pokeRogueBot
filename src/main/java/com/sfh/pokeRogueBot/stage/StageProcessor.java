@@ -7,10 +7,12 @@ import com.sfh.pokeRogueBot.cv.OpenCvClient;
 import com.sfh.pokeRogueBot.filehandler.HtmlFilehandler;
 import com.sfh.pokeRogueBot.filehandler.ScreenshotFilehandler;
 import com.sfh.pokeRogueBot.model.cv.CvResult;
+import com.sfh.pokeRogueBot.model.cv.OcrResult;
 import com.sfh.pokeRogueBot.model.cv.Point;
 import com.sfh.pokeRogueBot.model.enums.OcrResultFilter;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.exception.TemplateNotFoundException;
+import com.sfh.pokeRogueBot.service.OcrService;
 import com.sfh.pokeRogueBot.template.*;
 import com.sfh.pokeRogueBot.template.actions.*;
 import com.sfh.pokeRogueBot.service.ImageService;
@@ -34,35 +36,36 @@ public class StageProcessor {
     public static final String UNKNOWN_IDENTIFICATION_TYPE = "Unknown identification type: ";
 
     private final int waitTimeAfterAction; //to let the browser render quick changes
-    private final int waitLongerAfterAction;
+    private final int waitTimeForRenderingText;
     private final int waitTimeForRendering; //to let the browser render changes after stage switching
     private final int maxWaitTimeForElementToBeVisible; //in ms
 
     private final BrowserClient browserClient;
     private final OpenCvClient cvClient;
-    private final OcrScreenshotAnalyser ocrScreenshotAnalyser;
     private final RetryTemplate retryTemplateForFindingTemplates;
     private final ImageService imageService;
+    private final OcrService ocrService;
 
     public StageProcessor(
             ChromeBrowserClient chromeBrowserClient,
             OpenCvClient cvClient,
-            OcrScreenshotAnalyser ocrScreenshotAnalyser,
             ImageService imageService,
-            @Value("${stage-processor.waitTimeAfterAction:500}") int waitTimeAfterAction,
-            @Value("${stage-processor.waitTimeForRendering:2000}") int waitTimeForRendering,
-            @Value("${stage-processor.retry.maxAttemptsForSearchingTemplates:5}") int maxAttemptsForSearchingTemplates,
-            @Value("${stage-processor.retry.backoffPeriodForSearchingTemplates:1000}") long backoffPeriodForSearchingTemplates) {
+            OcrService ocrService,
+            @Value("${stage-processor.waitTimeAfterAction}") int waitTimeAfterAction,
+            @Value("${stage-processor.waitTimeForRenderingText}") int waitTimeForRenderingText,
+            @Value("${stage-processor.waitTimeForRenderingStages}") int waitTimeForRenderingStages,
+            @Value("${stage-processor.retry.maxAttemptsForSearchingTemplates}") int maxAttemptsForSearchingTemplates,
+            @Value("${stage-processor.retry.backoffPeriodForSearchingTemplates}") long backoffPeriodForSearchingTemplates) {
 
-        this.waitTimeForRendering = waitTimeForRendering;
+        this.waitTimeForRendering = waitTimeForRenderingStages;
         this.browserClient = chromeBrowserClient;
         this.cvClient = cvClient;
 
         this.waitTimeAfterAction = waitTimeAfterAction;
-        this.waitLongerAfterAction = waitTimeAfterAction * 3;
-        this.maxWaitTimeForElementToBeVisible = waitTimeForRendering;
-        this.ocrScreenshotAnalyser = ocrScreenshotAnalyser;
+        this.waitTimeForRenderingText = waitTimeForRenderingText;
+        this.maxWaitTimeForElementToBeVisible = waitTimeForRenderingStages;
         this.imageService = imageService;
+        this.ocrService = ocrService;
 
         this.retryTemplateForFindingTemplates = new RetryTemplateBuilder()
                 .maxAttempts(maxAttemptsForSearchingTemplates)
@@ -103,34 +106,10 @@ public class StageProcessor {
     }
 
     private boolean checkIfOcrTemplateIsVisible(OcrTemplate ocrTemplate) throws IOException {
-        String ocrResult = getOcrString(ocrTemplate);
-        int foundStrings = 0;
-        int totalStrings = ocrTemplate.getExpectedTexts().length;
-        for (String expectedText : ocrTemplate.getExpectedTexts()) {
-            if(ocrResult.contains(expectedText)){
-                foundStrings++;
-            }
-        }
+        OcrResult result = ocrService.checkIfOcrTemplateIsVisible(ocrTemplate);
+        log.debug(ocrTemplate.getFilenamePrefix() + ": OCR confidence: " + result.getMatchingConfidence() + ", found text: " + result.getFoundText());
 
-        double confidence = (double)foundStrings / totalStrings;
-        log.debug("OCR result: " + ocrResult);
-        log.debug(ocrTemplate.getFilenamePrefix() + ": OCR confidence: " + confidence);
-
-        return confidence > ocrTemplate.getConfidenceThreshhold();
-    }
-
-    private String getOcrString(OcrTemplate ocrTemplate) throws IOException {
-        BufferedImage canvas = imageService.takeScreenshot(ocrTemplate.getFilenamePrefix() + "_ocrSource");
-        BufferedImage ocrImage = imageService.getSubImage(
-                canvas,
-                ocrTemplate.getOcrPosition().getTopLeft(),
-                ocrTemplate.getOcrPosition().getSize());
-
-        if(ocrTemplate.persistSourceImageForDebugging()){
-            ScreenshotFilehandler.persistBufferedImage(ocrImage, ocrTemplate.getFilenamePrefix() + "_ocrSource");
-        }
-
-        return ocrScreenshotAnalyser.doOcr(ocrImage).getText().toLowerCase();
+        return result.getMatchingConfidence() >= ocrTemplate.getConfidenceThreshhold();
     }
 
     private boolean checkIfCvTemplateIsVisible(CvTemplate cvTemplate){
@@ -189,13 +168,13 @@ public class StageProcessor {
             case CLICK:
                 handleClick(action);
                 break;
-            case WAIT:
+            case WAIT_AFTER_ACTION:
                 waitAfterAction();
                 break;
-            case WAIT_LONGER:
-                waitLongerAfterAction();
+            case WAIT_FOR_TEXT_RENDER:
+                waitAfterTextRender();
                 break;
-            case WAIT_FOR_RENDER:
+            case WAIT_FOR_STAGE_RENDER:
                 waitForRender();
                 break;
             case TAKE_SCREENSHOT:
@@ -218,7 +197,7 @@ public class StageProcessor {
 
     private void handeOcrIf(OcrTemplateAction action) throws IOException, NotSupportedException {
         if(action.getTarget() instanceof OcrTemplate ocrTemplate){
-            String ocrText = getOcrString(ocrTemplate);
+            String ocrText = ocrService.getOcrString(ocrTemplate);
             if(action.getOcrResultFilter() == OcrResultFilter.CONTAINS) {
                 if(ocrText.contains(action.getExpectedText())){
                     handleTemplateAction(action.getTrueAction());
@@ -257,9 +236,9 @@ public class StageProcessor {
         }
     }
 
-    private void waitLongerAfterAction() {
+    private void waitAfterTextRender() {
         try {
-            Thread.sleep(waitLongerAfterAction);
+            Thread.sleep(waitTimeForRenderingText);
         } catch (InterruptedException e) {
             log.error("Error while waiting", e);
         }

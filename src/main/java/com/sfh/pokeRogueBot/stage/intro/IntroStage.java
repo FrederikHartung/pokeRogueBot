@@ -13,6 +13,8 @@ import com.sfh.pokeRogueBot.template.Template;
 import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import com.sfh.pokeRogueBot.template.actions.PressKeyAction;
 import com.sfh.pokeRogueBot.template.actions.SimpleTemplateAction;
+import com.sfh.pokeRogueBot.template.actions.TemplateAction;
+import com.sfh.pokeRogueBot.template.actions.WaitForTextRenderAction;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -53,19 +55,21 @@ public class IntroStage extends BaseStage implements Stage {
     }
 
     @Override
-    public SimpleTemplateAction[] getTemplateActionsToPerform() {
+    public TemplateAction[] getTemplateActionsToPerform() {
         SimpleTemplateAction pressSpaceAction = new PressKeyAction(this, KeyToPress.SPACE);
-        SimpleTemplateAction waitAction = new SimpleTemplateAction(TemplateActionType.WAIT_LONGER, null);
-        return new SimpleTemplateAction[] {
+        WaitForTextRenderAction waitForTextRenderAction = new WaitForTextRenderAction();
+        return new TemplateAction[] {
                 pressSpaceAction, //welcome screen
-                waitAction,
+                waitForTextRenderAction,
                 pressSpaceAction, //not monetised screen
-                waitAction,
+                waitForTextRenderAction,
                 pressSpaceAction, //copyright screen
-                waitAction,
+                waitForTextRenderAction,
                 pressSpaceAction, //game is still in development screen
-                waitAction,
+                waitForTextRenderAction,
                 pressSpaceAction, //use discord for error reports screen
+                waitForTextRenderAction,
+                pressSpaceAction, //
         };
     }
 }

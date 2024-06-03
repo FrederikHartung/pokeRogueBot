@@ -97,7 +97,7 @@ public class PokemonselectionStage extends BaseStage implements Stage {
                 pressSpace, //chose saveslot
                 waitAction,
                 pressSpace, //confirm
-                new WaitForRenderAction(),
+                new WaitForStageRenderAction(),
                 new TakeScreenshotAction(this)
         };
     }

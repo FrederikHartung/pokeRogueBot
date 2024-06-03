@@ -76,6 +76,8 @@ public class StartGameStage extends BaseStage implements Stage {
         }
 
         return new TemplateAction[]{
+                new WaitForStageRenderAction(),
+                new TakeScreenshotAction(this),
                 //apply config in settings
                 //if Continue is visible, continue
                 //else new game
@@ -89,7 +91,7 @@ public class StartGameStage extends BaseStage implements Stage {
                 pressArrowDown,
                 waitAction,
                 pressSpace, //enter config menue
-                new WaitForRenderAction(), // now on game speed
+                new WaitForStageRenderAction(), // now on game speed
                 pressArrowDown, //master volume
                 waitAction,
                 pressArrowDown, //bgm volume
@@ -127,7 +129,7 @@ public class StartGameStage extends BaseStage implements Stage {
                 pressArrowLeftForDeactivation, //disable moveset animations
                 waitAction,
                 new PressKeyAction(this, KeyToPress.BACK_SPACE), //return to main menue
-                new WaitForRenderAction(),
+                new WaitForStageRenderAction(),
                 pressArrowUp, //
                 waitAction,
                 pressArrowUp, //

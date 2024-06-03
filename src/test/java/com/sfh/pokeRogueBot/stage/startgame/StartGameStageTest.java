@@ -6,13 +6,9 @@ import com.sfh.pokeRogueBot.model.enums.TemplateActionType;
 import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import com.sfh.pokeRogueBot.template.actions.PressKeyAction;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -55,7 +51,7 @@ class StartGameStageTest {
         assertInstanceOf(PressKeyAction.class, result[0]);
         assertEquals(KeyToPress.ARROW_LEFT, ((PressKeyAction) result[0]).getKeyToPress());
 
-        assertEquals(TemplateActionType.WAIT, (result[1].getActionType()));
+        assertEquals(TemplateActionType.WAIT_AFTER_ACTION, (result[1].getActionType()));
 
         //arrow right
         assertInstanceOf(PressKeyAction.class, result[10]);
@@ -66,7 +62,7 @@ class StartGameStageTest {
         assertInstanceOf(PressKeyAction.class, result[result.length - 2]);
         assertEquals(KeyToPress.ARROW_DOWN, ((PressKeyAction) result[result.length - 2]).getKeyToPress());
 
-        assertEquals(TemplateActionType.WAIT, (result[result.length - 1].getActionType()));
+        assertEquals(TemplateActionType.WAIT_AFTER_ACTION, (result[result.length - 1].getActionType()));
 
     }
 }

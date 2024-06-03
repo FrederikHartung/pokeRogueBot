@@ -6,5 +6,6 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class OcrResult {
-    private final String text;
+    private final String foundText;
+    private final double matchingConfidence;
 }

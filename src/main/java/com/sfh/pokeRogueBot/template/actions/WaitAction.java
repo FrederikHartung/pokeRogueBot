@@ -11,6 +11,6 @@ public class WaitAction implements TemplateAction{
 
     @Override
     public TemplateActionType getActionType() {
-        return TemplateActionType.WAIT;
+        return TemplateActionType.WAIT_AFTER_ACTION;
     }
 }

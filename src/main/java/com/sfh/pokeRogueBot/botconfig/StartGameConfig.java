@@ -35,7 +35,7 @@ public class StartGameConfig implements Config {
             throw new StageNotFoundException("StartGameStage not found");
         }
 
-        boolean isPokemonselectionStageVisible = stageProcessor.isStageVisible(pokemonselectionStage);
+/*        boolean isPokemonselectionStageVisible = stageProcessor.isStageVisible(pokemonselectionStage);
         if(isPokemonselectionStageVisible){
             log.info("PokemonselectionStage found");
             stageProcessor.handleStage(pokemonselectionStage);
@@ -43,6 +43,6 @@ public class StartGameConfig implements Config {
         }
         else{
             throw new StageNotFoundException("PokemonselectionStage not found");
-        }
+        }*/
     }
 }
