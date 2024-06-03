@@ -36,10 +36,10 @@ public class StartGameStage extends BaseStage implements Stage {
         WaitAction waitAction = new WaitAction();
 
         return new TemplateAction[]{
-/*                new PressKeyAction(this, KeyToPress.ARROW_DOWN),
-                new PressKeyAction(this, KeyToPress.SPACE),
-                new SimpleTemplateAction(TemplateActionType.WAIT_FOR_RENDER, this), //wait to render
-                new SimpleTemplateAction(TemplateActionType.TAKE_SCREENSHOT, this), //savegame menue*/
+                //apply config in settings
+                //if Continue is visible, continue
+                //else new game
+
                 //todo: check if savegame is available
 
                 pressArrowDown,

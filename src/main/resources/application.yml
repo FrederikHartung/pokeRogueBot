@@ -31,6 +31,12 @@ stage-processor:
     maxAttemptsForSearchingTemplates: 5
     backoffPeriodForSearchingTemplates: 1000
 
+config:
+  startGameProperty:
+    gameSpeed: 2 # 1, 1.25, 1.5, 2, 3, 4, 5
+    masterVolume:
+
+
 handler:
   login:
     retryCount: 11
