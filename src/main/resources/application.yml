@@ -24,17 +24,15 @@ browser:
   useInkognito: true
 
 stage-processor:
-  waitTimeAfterAction: 1000
+  waitTimeAfterAction: 350
   waitTimeForRendering: 5000
-  maxWaitTimeForElementToBeVisible: 2000
   retry:
     maxAttemptsForSearchingTemplates: 5
     backoffPeriodForSearchingTemplates: 1000
 
-config:
-  startGameProperty:
-    gameSpeed: 2 # 1, 1.25, 1.5, 2, 3, 4, 5
-    masterVolume:
+stage:
+  startgame:
+    updateGameSettings: True
 
 
 handler:

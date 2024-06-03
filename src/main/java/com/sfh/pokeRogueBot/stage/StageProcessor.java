@@ -51,7 +51,6 @@ public class StageProcessor {
             ImageService imageService,
             @Value("${stage-processor.waitTimeAfterAction:500}") int waitTimeAfterAction,
             @Value("${stage-processor.waitTimeForRendering:2000}") int waitTimeForRendering,
-            @Value("${stage-processor.maxWaitTimeForElementToBeVisible:500}") int maxWaitTimeForElementToBeVisible,
             @Value("${stage-processor.retry.maxAttemptsForSearchingTemplates:5}") int maxAttemptsForSearchingTemplates,
             @Value("${stage-processor.retry.backoffPeriodForSearchingTemplates:1000}") long backoffPeriodForSearchingTemplates) {
 
@@ -60,8 +59,8 @@ public class StageProcessor {
         this.cvClient = cvClient;
 
         this.waitTimeAfterAction = waitTimeAfterAction;
-        this.waitLongerAfterAction = waitTimeAfterAction * 2;
-        this.maxWaitTimeForElementToBeVisible = maxWaitTimeForElementToBeVisible;
+        this.waitLongerAfterAction = waitTimeAfterAction * 3;
+        this.maxWaitTimeForElementToBeVisible = waitTimeForRendering;
         this.ocrScreenshotAnalyser = ocrScreenshotAnalyser;
         this.imageService = imageService;
 

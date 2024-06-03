@@ -66,8 +66,6 @@ public class IntroStage extends BaseStage implements Stage {
                 pressSpaceAction, //game is still in development screen
                 waitAction,
                 pressSpaceAction, //use discord for error reports screen
-                waitAction,
-                pressSpaceAction
         };
     }
 }
