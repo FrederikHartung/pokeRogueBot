@@ -22,13 +22,15 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+# project stuff
+#dir
 /.idea
-.DS_Store
-/bin/webdriver/chromeDriver.app
-*.png
-/bin/webdriver/Google Chrome for Testing.app
+/bin/webdriver
 /target
-*.db
-/bin/webdriver/profile
-src/main/resources/users.txt
 /data/temp
+
+#files
+.DS_Store
+*.db
+src/main/resources/users.txt
