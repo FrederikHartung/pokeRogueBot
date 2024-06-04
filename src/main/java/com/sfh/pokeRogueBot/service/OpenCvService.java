@@ -5,9 +5,6 @@ import com.sfh.pokeRogueBot.model.cv.CvResult;
 import com.sfh.pokeRogueBot.model.exception.TemplateNotFoundException;
 import com.sfh.pokeRogueBot.template.CvTemplate;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.retry.support.RetryTemplate;
-import org.springframework.retry.support.RetryTemplateBuilder;
 import org.springframework.stereotype.Component;
 
 import java.awt.image.BufferedImage;
@@ -17,25 +14,17 @@ import java.io.IOException;
 @Component
 public class OpenCvService implements CvService {
 
-    private final RetryTemplate retryTemplateForFindingTemplates;
+    private static final String ERROR_WHILE_SEARCHING_FOR_OBJECT = "Error while searching for object: ";
     private final ImageService imageService;
     private final OpenCvClient cvClient;
 
-    public OpenCvService(
-            @Value("${cv.retry.maxAttemptsForSearchingTemplates}") int maxAttemptsForSearchingTemplates,
-            @Value("${cv.retry.backoffPeriodForSearchingTemplates}") long backoffPeriodForSearchingTemplates, ImageService imageService, OpenCvClient cvClient) {
+    public OpenCvService(ImageService imageService, OpenCvClient cvClient) {
         this.imageService = imageService;
         this.cvClient = cvClient;
-
-        this.retryTemplateForFindingTemplates = new RetryTemplateBuilder()
-                .maxAttempts(maxAttemptsForSearchingTemplates)
-                .fixedBackoff(backoffPeriodForSearchingTemplates)
-                .retryOn(TemplateNotFoundException.class)
-                .build();
     }
 
     @Override
-    public boolean isTemplateVisible(CvTemplate cvTemplate) throws IOException {
+    public boolean isTemplateVisible(CvTemplate cvTemplate) throws TemplateNotFoundException {
         if (null != findTemplate(cvTemplate)) {
             log.debug("visibility check with image: Template visible: " + cvTemplate.getFilenamePrefix());
             return true;
@@ -45,12 +34,40 @@ public class OpenCvService implements CvService {
     }
 
     @Override
-    public CvResult findTemplate(CvTemplate cvTemplate) throws IOException {
-        return retryTemplateForFindingTemplates.execute(context -> {
+    public CvResult findTemplate(CvTemplate cvTemplate) {
+        try{
             BufferedImage canvasImg = imageService.takeScreenshot(cvTemplate.getFilenamePrefix());
             BufferedImage templateImg = imageService.loadTemplate(cvTemplate.getTemplatePath());
 
             return cvClient.findTemplateInBufferedImage(canvasImg, templateImg, cvTemplate);
-        });
+        }
+        catch (Exception e) {
+            log.error(ERROR_WHILE_SEARCHING_FOR_OBJECT + e.getMessage(), e);
+            return null;
+        }
+    }
+
+    @Override
+    public CvResult findTemplate(CvTemplate cvTemplate, BufferedImage canvasImg) {
+        try{
+            BufferedImage templateImg = imageService.loadTemplate(cvTemplate.getTemplatePath());
+
+            return cvClient.findTemplateInBufferedImage(canvasImg, templateImg, cvTemplate);
+        }
+        catch (Exception e) {
+            log.error(ERROR_WHILE_SEARCHING_FOR_OBJECT + e.getMessage(), e);
+            return null;
+        }
+    }
+
+    @Override
+    public CvResult findTemplate(CvTemplate cvTemplate, BufferedImage canvasImg, BufferedImage templateImg) {
+        try{
+            return cvClient.findTemplateInBufferedImage(canvasImg, templateImg, cvTemplate);
+        }
+        catch (Exception e) {
+            log.error(ERROR_WHILE_SEARCHING_FOR_OBJECT + e.getMessage(), e);
+            return null;
+        }
     }
 }

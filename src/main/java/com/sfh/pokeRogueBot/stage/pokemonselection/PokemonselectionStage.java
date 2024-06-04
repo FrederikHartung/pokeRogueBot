@@ -14,7 +14,7 @@ public class PokemonselectionStage extends BaseStage implements Stage {
 
     private static final String PATH = "./data/templates/pokemonselection/screen.png";
 
-    protected PokemonselectionStage(TemplatePathValidator pathValidator) {
+    public PokemonselectionStage(TemplatePathValidator pathValidator) {
         super(pathValidator, PATH);
     }
 
@@ -26,20 +26,24 @@ public class PokemonselectionStage extends BaseStage implements Stage {
                         "pokemonselection-generationSelector",
                         "./data/templates/pokemonselection/generationSelector.png",
                         false,
+                        false,
                         new Point(-1, -1)),
                 new SimpleCvTemplate(
                         "pokemonselection-in",
                         "./data/templates/pokemonselection/in.png",
+                        false,
                         false,
                         new Point(-1, -1)),
                 new SimpleCvTemplate(
                         "pokemonselection-number",
                         "./data/templates/pokemonselection/number.png",
                         false,
+                        false,
                         new Point(-1, -1)),
                 new SimpleCvTemplate(
                         "pokemonselection-starter",
                         "./data/templates/pokemonselection/starter.png",
+                        false,
                         false,
                         new Point(-1, -1)),
         };

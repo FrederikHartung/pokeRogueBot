@@ -35,12 +35,12 @@ public class MainMenuStage extends BaseStage implements Stage, HasOptionalTempla
     }
 
     public static final String PATH = "./data/templates/mainmenu/mainmenu-screen.png";
-    private static final ContinueCvTemplate continueCvTeplate = new ContinueCvTemplate(false);
+    private static final ContinueCvTemplate continueCvTeplate = new ContinueCvTemplate(false, false);
 
     @Override
     public Template[] getTemplatesToValidateStage() {
         return new Template[]{
-                new MainmenuCvTemplate(false),
+                new MainmenuCvTemplate(false, false),
                 new MainmenuOcrTemplate(),
         };
     }

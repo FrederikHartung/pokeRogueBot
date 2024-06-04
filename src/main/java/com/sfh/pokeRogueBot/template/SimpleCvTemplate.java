@@ -8,29 +8,39 @@ public class SimpleCvTemplate implements CvTemplate {
 
     private final String fileNamePrefix;
     private final String templatePath;
-    private boolean persistResultWhenFindingTemplate;
+    private boolean persistResultOnSuccess;
+    private boolean persistResultOnError;
     private final Point topLeft;
 
-    public SimpleCvTemplate(String fileNamePrefix, String templatePath,
-                            boolean persistResultWhenFindingTemplate, Point topLeft) {
+    public SimpleCvTemplate(
+            String fileNamePrefix,
+            String templatePath,
+            boolean persistResultOnSuccess,
+            boolean persistResultOnError,
+            Point topLeft) {
         this.fileNamePrefix = fileNamePrefix;
         this.templatePath = templatePath;
-        this.persistResultWhenFindingTemplate = persistResultWhenFindingTemplate;
+        this.persistResultOnSuccess = persistResultOnSuccess;
+        this.persistResultOnError = persistResultOnError;
         this.topLeft = topLeft;
     }
 
     @Override
     public boolean persistResultWhenFindingTemplate() {
-        return persistResultWhenFindingTemplate;
+        return persistResultOnSuccess;
     }
 
     @Override
-    public void setPersistResultWhenFindingTemplate(boolean persistResultWhenFindingTemplate) {
-        this.persistResultWhenFindingTemplate = persistResultWhenFindingTemplate;
+    public boolean persistResultOnError() {
+        return persistResultOnError;
+    }
+
+    public void setPersistResultOnSuccess(boolean persistResultOnSuccess) {
+        this.persistResultOnSuccess = persistResultOnSuccess;
     }
 
     @Override
-    public Point getTopLeft() {
+    public Point getExpectedTopLeft() {
         return topLeft;
     }
 

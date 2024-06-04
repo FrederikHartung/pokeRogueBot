@@ -11,10 +11,12 @@ public class AnmeldenButtonTemplate implements CvTemplate, KnownClickPosition {
     private static final Point clickPoint = new Point(632, 462);
     private static final Point topLeft = new Point(524, 408);
 
-    private boolean persistResultWhenFindingTeplate;
+    private boolean persistResultOnSuccess;
+    private boolean persistResultOnError;
 
-    public AnmeldenButtonTemplate(boolean persistResultWhenFindingTeplate) {
-        this.persistResultWhenFindingTeplate = persistResultWhenFindingTeplate;
+    public AnmeldenButtonTemplate(boolean persistResultOnSuccess, boolean persistResultOnError) {
+        this.persistResultOnSuccess = persistResultOnSuccess;
+        this.persistResultOnError = persistResultOnError;
     }
 
     @Override
@@ -29,16 +31,21 @@ public class AnmeldenButtonTemplate implements CvTemplate, KnownClickPosition {
 
     @Override
     public boolean persistResultWhenFindingTemplate() {
-        return persistResultWhenFindingTeplate;
+        return persistResultOnSuccess;
     }
 
     @Override
-    public void setPersistResultWhenFindingTemplate(boolean persistResultWhenFindingTemplate) {
-        this.persistResultWhenFindingTeplate = persistResultWhenFindingTemplate;
+    public boolean persistResultOnError() {
+        return persistResultOnError;
     }
 
     @Override
-    public Point getTopLeft() {
+    public void setPersistResultOnSuccess(boolean persistResultOnSuccess) {
+        this.persistResultOnSuccess = persistResultOnSuccess;
+    }
+
+    @Override
+    public Point getExpectedTopLeft() {
         return topLeft;
     }
 

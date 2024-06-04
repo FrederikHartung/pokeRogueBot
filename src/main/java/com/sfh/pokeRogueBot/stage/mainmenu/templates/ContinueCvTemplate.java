@@ -5,25 +5,32 @@ import com.sfh.pokeRogueBot.template.CvTemplate;
 
 public class ContinueCvTemplate implements CvTemplate {
 
-    private boolean persistResultWhenFindingTeplate;
+    private boolean persistResultOnSuccess;
+    private boolean persistResultOnError;
     private static final Point topLeft = new Point(-1, -1);
 
-    public ContinueCvTemplate(boolean persistResultWhenFindingTeplate) {
-        this.persistResultWhenFindingTeplate = persistResultWhenFindingTeplate;
+    public ContinueCvTemplate(boolean persistResultOnSuccess, boolean persistResultOnError) {
+        this.persistResultOnSuccess = persistResultOnSuccess;
+        this.persistResultOnError = persistResultOnError;
     }
 
     @Override
     public boolean persistResultWhenFindingTemplate() {
-        return persistResultWhenFindingTeplate;
+        return persistResultOnSuccess;
     }
 
     @Override
-    public void setPersistResultWhenFindingTemplate(boolean persistResultWhenFindingTemplate) {
-        this.persistResultWhenFindingTeplate = persistResultWhenFindingTemplate;
+    public boolean persistResultOnError() {
+        return persistResultOnError;
     }
 
     @Override
-    public Point getTopLeft() {
+    public void setPersistResultOnSuccess(boolean persistResultOnSuccess) {
+        this.persistResultOnSuccess = persistResultOnSuccess;
+    }
+
+    @Override
+    public Point getExpectedTopLeft() {
         return topLeft;
     }
 

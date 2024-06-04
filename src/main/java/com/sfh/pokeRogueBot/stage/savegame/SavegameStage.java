@@ -25,12 +25,14 @@ public class SavegameStage extends BaseStage implements Stage {
                         "savegame-cornerTL",
                         "./data/templates/savegame/savegame-cornerTL.png",
                         true,
+                        false,
                         new Point(-1, -1)
                         ),
                 new SimpleCvTemplate(
                         "savegame-cornerBR",
                         "./data/templates/savegame/savegame-cornerBR.png",
                         true,
+                        false,
                         new Point(-1, -1)
                 )
         };

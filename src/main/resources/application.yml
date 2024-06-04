@@ -21,6 +21,7 @@ cv:
   retry:
     maxAttemptsForSearchingTemplates: 5
     backoffPeriodForSearchingTemplates: 1000
+  allowedToleranceForTopLeftMismatch: 5
 
 
 browser:

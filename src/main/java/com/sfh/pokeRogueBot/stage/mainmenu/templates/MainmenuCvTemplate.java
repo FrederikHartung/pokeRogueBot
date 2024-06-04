@@ -9,23 +9,30 @@ public class MainmenuCvTemplate implements CvTemplate {
     private static final String NAME = MainmenuCvTemplate.class.getSimpleName();
     private static final Point topLeft = new Point(-1, -1);
 
-    private boolean persistResultWhenFindingTeplate;
-    public MainmenuCvTemplate(boolean persistResultWhenFindingTeplate) {
-        this.persistResultWhenFindingTeplate = persistResultWhenFindingTeplate;
+    private boolean persistResultOnSuccess;
+    private boolean persistResultOnError;
+    public MainmenuCvTemplate(boolean persistResultWhenFindingTeplate, boolean persistResultOnError) {
+        this.persistResultOnSuccess = persistResultWhenFindingTeplate;
+        this.persistResultOnError = persistResultOnError;
     }
 
     @Override
     public boolean persistResultWhenFindingTemplate() {
-        return persistResultWhenFindingTeplate;
+        return persistResultOnSuccess;
     }
 
     @Override
-    public void setPersistResultWhenFindingTemplate(boolean persistResultWhenFindingTemplate) {
-        this.persistResultWhenFindingTeplate = persistResultWhenFindingTemplate;
+    public boolean persistResultOnError() {
+        return persistResultOnError;
     }
 
     @Override
-    public Point getTopLeft() {
+    public void setPersistResultOnSuccess(boolean persistResultOnSuccess) {
+        this.persistResultOnSuccess = persistResultOnSuccess;
+    }
+
+    @Override
+    public Point getExpectedTopLeft() {
         return topLeft;
     }
 

@@ -53,14 +53,17 @@ public class LoginScreenStage extends BaseStage implements HtmlTemplate, Stage {
                         "login-benutzername",
                         "./data/templates/login/login-benutzername.png",
                         false,
+                        false,
                         new Point(411, 225)),
                 new SimpleCvTemplate(
                         "login-passwort",
                         "./data/templates/login/login-passwort.png",
                         false,
+                        false,
                         new Point(419, 332)),
                 new SimpleCvTemplate("login-registrieren",
                         "./data/templates/login/login-registrieren-button.png",
+                        false,
                         false,
                         new Point(758, 413)),
         };

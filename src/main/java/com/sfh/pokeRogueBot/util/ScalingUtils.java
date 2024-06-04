@@ -10,6 +10,7 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 
+@Deprecated
 public class ScalingUtils {
     private ScalingUtils() {
     }
