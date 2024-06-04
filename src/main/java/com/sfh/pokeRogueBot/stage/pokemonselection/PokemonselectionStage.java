@@ -51,6 +51,7 @@ public class PokemonselectionStage extends BaseStage implements Stage {
         PressKeyAction pressArrowRight = new PressKeyAction(this, KeyToPress.ARROW_RIGHT);
         PressKeyAction pressArrowLeft = new PressKeyAction(this, KeyToPress.ARROW_LEFT);
         WaitAction waitAction = new WaitAction();
+        WaitForTextRenderAction waitForTextRenderAction = new WaitForTextRenderAction();
 
         return new TemplateAction[]{
                 pressArrowRight,
@@ -94,11 +95,11 @@ public class PokemonselectionStage extends BaseStage implements Stage {
                 pressArrowLeft,
                 waitAction,
                 pressSpace, //start game
-                waitAction,
+                waitForTextRenderAction,
                 pressSpace, //start confirm
-                waitAction,
+                waitForTextRenderAction,
                 pressSpace, //chose saveslot
-                waitAction,
+                waitForTextRenderAction,
                 pressSpace, //confirm
                 new WaitForStageRenderAction(),
                 new TakeScreenshotAction(this)

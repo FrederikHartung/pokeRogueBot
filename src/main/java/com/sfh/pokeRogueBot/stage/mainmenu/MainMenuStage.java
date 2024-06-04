@@ -47,6 +47,7 @@ public class MainMenuStage extends BaseStage implements Stage, HasOptionalTempla
     private final PressKeyAction pressRightForActivation = new PressKeyAction(this, KeyToPress.ARROW_RIGHT);
     private final PressKeyAction pressArrowUp = new PressKeyAction(this, KeyToPress.ARROW_UP);
     private final WaitAction waitAction = new WaitAction();
+    private final WaitForTextRenderAction waitForTextRenderAction = new WaitForTextRenderAction();
 
     @Override
     public Template[] getTemplatesToValidateStage() {
@@ -116,11 +117,14 @@ public class MainMenuStage extends BaseStage implements Stage, HasOptionalTempla
         actions.add(waitAction);
 
         actions.add(pressSpace); //to enter settings
+        actions.add(waitForTextRenderAction);
+
 
         List<TemplateAction> gameSettingsToActions = buildGameSettingsToActions(GameSettingConstants.GAME_SETTINGS); //all actions to set settings
         actions.addAll(gameSettingsToActions);
 
         actions.add(pressBackspace); //to leave settings
+        actions.add(waitForTextRenderAction);
 
         actions.add(pressArrowUp); //go up again
         actions.add(waitAction);

@@ -25,20 +25,20 @@ public class GameSettingConstants {
             "1", "2", "3", "4", "5"}, 0);
     private static final GameSettingProperty tutorials = new GameSettingProperty(new String[]{
             "OFF", "ON"}, 0);
-    private static final GameSettingProperty enableRetries = new GameSettingProperty(new String[]{
-            "OFF", "ON"}, 1);
+//    private static final GameSettingProperty enableRetries = new GameSettingProperty(new String[]{
+//            "OFF", "ON"}, 1);
     private static final GameSettingProperty skipSeenDialogs = new GameSettingProperty(new String[]{
             "OFF", "ON"}, 1);
-    private static final GameSettingProperty candyUpgradeNotification = new GameSettingProperty(new String[]{
-            "OFF", "Passives Only", "ON"}, 0);
-    private static final GameSettingProperty candyUpgradeDisplay = new GameSettingProperty(new String[0], 0); //not used because it restarts the game
-    private static final GameSettingProperty moneyFormat = new GameSettingProperty(new String[]{
-            "normal", "Abbreviated"}, 0);
+//    private static final GameSettingProperty candyUpgradeNotification = new GameSettingProperty(new String[]{
+//            "OFF", "Passives Only", "ON"}, 0);
+//    private static final GameSettingProperty candyUpgradeDisplay = new GameSettingProperty(new String[0], 0); //not used because it restarts the game
+//    private static final GameSettingProperty moneyFormat = new GameSettingProperty(new String[]{
+//            "normal", "Abbreviated"}, 0);
     private static final GameSettingProperty spriteSet = new GameSettingProperty(new String[0], 0); //not used because it restarts the game
     private static final GameSettingProperty moveAnimations = new GameSettingProperty(new String[]{
             "OFF", "ON"}, 0);
-    private static final GameSettingProperty showMovesetFlyout = new GameSettingProperty(new String[]{
-            "OFF", "ON"}, 0);
+//    private static final GameSettingProperty showMovesetFlyout = new GameSettingProperty(new String[]{
+//            "OFF", "ON"}, 0);
     private static final GameSettingProperty showStatsOnLevelUp = new GameSettingProperty(new String[]{
             "OFF", "ON"}, 0);
     private static final GameSettingProperty expGainsSpeed = new GameSettingProperty(new String[]{
@@ -67,14 +67,14 @@ public class GameSettingConstants {
             uiTheme,
             windowType,
             tutorials,
-            enableRetries,
+            //enableRetries,
             skipSeenDialogs,
-            candyUpgradeNotification,
-            candyUpgradeDisplay,
-            moneyFormat,
+            //candyUpgradeNotification,
+            //candyUpgradeDisplay,
+            //moneyFormat,
             spriteSet,
             moveAnimations,
-            showMovesetFlyout,
+            //showMovesetFlyout,
             showStatsOnLevelUp,
             expGainsSpeed,
             expPartyDisplay,
