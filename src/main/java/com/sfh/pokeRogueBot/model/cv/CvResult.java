@@ -5,37 +5,29 @@ import lombok.Getter;
 @Getter
 public class CvResult {
 
-    private final int x;
-    private final int y;
-    private final int middlePointX;
-    private final int middlePointY;
-    private final int widthScreenshot;
-    private final int heightScreenshot;
-    private final int widthTemplate;
-    private final int heightTemplate;
+    private final Point topLeft;
+    private final Point middle;
+    private final Size canvasSize;
+    private final Size templateSize;
+    private final double similarity;
 
-    public CvResult(int x, int y, int middlePointX, int middlePointY, int widthScreenshot, int heightScreenshot, int widthTemplate, int heightTemplate) {
-        this.x = x;
-        this.y = y;
-        this.middlePointX = middlePointX;
-        this.middlePointY = middlePointY;
-        this.widthScreenshot = widthScreenshot;
-        this.heightScreenshot = heightScreenshot;
-        this.widthTemplate = widthTemplate;
-        this.heightTemplate = heightTemplate;
+    public CvResult(Point topLeft, Point middle, Size canvasSize, Size templateSize, double similarity) {
+        this.topLeft = topLeft;
+        this.middle = middle;
+        this.canvasSize = canvasSize;
+        this.templateSize = templateSize;
+        this.similarity = similarity;
     }
+
 
     @Override
     public String toString() {
         return "CvResult{" +
-                "x=" + x +
-                ", y=" + y +
-                ", middlePointX=" + middlePointX +
-                ", middlePointY=" + middlePointY +
-                ", widthScreenshot=" + widthScreenshot +
-                ", heightScreenshot=" + heightScreenshot +
-                ", widthTemplate=" + widthTemplate +
-                ", heightTemplate=" + heightTemplate
-                + '}';
+                "topLeft = x: " + topLeft.getX() + " y: " + topLeft.getY() +
+                ", middle = x: " + middle.getX() + " y: " + middle.getY() +
+                ", canvasSize = width: " + canvasSize.getWidth() + " height: " + canvasSize.getHeight() +
+                ", templateSize = width: " + templateSize + " height: " + templateSize +
+                ", similarity = " + similarity +
+                '}';
     }
 }

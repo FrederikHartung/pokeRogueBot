@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Configuration;
 public class SingletonBeanConfig {
 
     @Bean
-    public CvProcessingAlgorithm createCvProcessingAlgorithm(){
+    public CvProcessingAlgorithm getCvProcessingAlgorithm(){
         return CvProcessingAlgorithm.TM_SQDIFF;
     }
 

@@ -252,7 +252,7 @@ public class StageProcessor {
         else if(template instanceof CvTemplate cvTemplate){
             CvResult result = cvService.findTemplate(cvTemplate);
 
-            browserClient.clickOnPoint(new Point(result.getMiddlePointX(), result.getMiddlePointY()));
+            browserClient.clickOnPoint(new Point(result.getMiddle().getX(), result.getMiddle().getY()));
 
             return;
         }

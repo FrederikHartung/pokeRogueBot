@@ -1,5 +1,6 @@
 package com.sfh.pokeRogueBot.stage.pokemonselection;
 
+import com.sfh.pokeRogueBot.model.cv.Point;
 import com.sfh.pokeRogueBot.stage.BaseStage;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.template.SimpleCvTemplate;
@@ -24,19 +25,23 @@ public class PokemonselectionStage extends BaseStage implements Stage {
                 new SimpleCvTemplate(
                         "pokemonselection-generationSelector",
                         "./data/templates/pokemonselection/generationSelector.png",
-                        false),
+                        false,
+                        new Point(-1, -1)),
                 new SimpleCvTemplate(
                         "pokemonselection-in",
                         "./data/templates/pokemonselection/in.png",
-                        false),
+                        false,
+                        new Point(-1, -1)),
                 new SimpleCvTemplate(
                         "pokemonselection-number",
                         "./data/templates/pokemonselection/number.png",
-                        false),
+                        false,
+                        new Point(-1, -1)),
                 new SimpleCvTemplate(
                         "pokemonselection-starter",
                         "./data/templates/pokemonselection/starter.png",
-                        false),
+                        false,
+                        new Point(-1, -1)),
         };
     }
 

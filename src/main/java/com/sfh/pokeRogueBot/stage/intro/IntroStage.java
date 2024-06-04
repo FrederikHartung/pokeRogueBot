@@ -3,17 +3,13 @@ package com.sfh.pokeRogueBot.stage.intro;
 import com.sfh.pokeRogueBot.model.cv.OcrPosition;
 import com.sfh.pokeRogueBot.model.cv.Point;
 import com.sfh.pokeRogueBot.model.cv.Size;
-import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.stage.BaseStage;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.stage.intro.templates.IntroScreenTextTemplate;
 import com.sfh.pokeRogueBot.template.SimpleCvTemplate;
 import com.sfh.pokeRogueBot.template.Template;
 import com.sfh.pokeRogueBot.template.TemplatePathValidator;
-import com.sfh.pokeRogueBot.template.actions.PressKeyAction;
-import com.sfh.pokeRogueBot.template.actions.SimpleTemplateAction;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
-import com.sfh.pokeRogueBot.template.actions.WaitForTextRenderAction;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -31,17 +27,20 @@ public class IntroStage extends BaseStage implements Stage {
                 new SimpleCvTemplate(
                         "intro-element",
                         "./data/templates/intro/intro-elementen.png",
-                        false
+                        false,
+                        new Point(-1, -1)
                 ),
                 new SimpleCvTemplate(
                         "intro-kampforientiert",
                         "./data/templates/intro/intro-kampforientiertes.png",
-                        false
+                        false,
+                        new Point(-1, -1)
                 ),
                 new SimpleCvTemplate(
                         "intro-willkommen",
                         "./data/templates/intro/intro-willkommen.png",
-                        false
+                        false,
+                        new Point(-1, -1)
                 ),
                 new IntroScreenTextTemplate(
                         new OcrPosition(

@@ -3,6 +3,7 @@ package com.sfh.pokeRogueBot.stage.login;
 import com.sfh.pokeRogueBot.config.Constants;
 import com.sfh.pokeRogueBot.config.UserDataProvider;
 import com.sfh.pokeRogueBot.model.UserData;
+import com.sfh.pokeRogueBot.model.cv.Point;
 import com.sfh.pokeRogueBot.model.enums.TemplateActionType;
 import com.sfh.pokeRogueBot.stage.BaseStage;
 import com.sfh.pokeRogueBot.stage.Stage;
@@ -51,14 +52,17 @@ public class LoginScreenStage extends BaseStage implements HtmlTemplate, Stage {
                 new SimpleCvTemplate(
                         "login-benutzername",
                         "./data/templates/login/login-benutzername.png",
-                        false),
+                        false,
+                        new Point(411, 225)),
                 new SimpleCvTemplate(
                         "login-passwort",
                         "./data/templates/login/login-passwort.png",
-                        false),
+                        false,
+                        new Point(419, 332)),
                 new SimpleCvTemplate("login-registrieren",
                         "./data/templates/login/login-registrieren-button.png",
-                        false),
+                        false,
+                        new Point(758, 413)),
         };
     }
 

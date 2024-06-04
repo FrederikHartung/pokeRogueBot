@@ -37,6 +37,11 @@ public abstract class BaseStage implements Stage {
     }
 
     @Override
+    public String getStagePath() {
+        return path;
+    }
+
+    @Override
     public String getTemplatePath() {
         return path;
     }

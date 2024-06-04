@@ -95,14 +95,11 @@ public class OpenCvClient {
             int xMiddle = (int)(matchLoc.x + (smallImage.cols() / 2d));
             int yMiddle = (int)(matchLoc.y + (smallImage.rows() / 2d));
             CvResult cvResult = new CvResult(
-                    (int) matchLoc.x,
-                    (int) matchLoc.y,
-                    xMiddle,
-                    yMiddle,
-                    bigImage.cols(),
-                    bigImage.rows(),
-                    smallImage.cols(),
-                    smallImage.rows()
+                    new com.sfh.pokeRogueBot.model.cv.Point((int) matchLoc.x, (int) matchLoc.y),
+                    new com.sfh.pokeRogueBot.model.cv.Point(xMiddle, yMiddle),
+                    new com.sfh.pokeRogueBot.model.cv.Size(bigImage.cols(), bigImage.rows()),
+                    new com.sfh.pokeRogueBot.model.cv.Size(smallImage.cols(), smallImage.rows()),
+                    getSimilarity(mmr.minVal, mmr.maxVal, algorithm.getFilterType() == CvFilterType.HIGHEST_Result)
             );
             log.debug(template.getFilenamePrefix() + ": Found object at: " + cvResult);
 
@@ -121,6 +118,15 @@ public class OpenCvClient {
         }
 
         return results;
+    }
+
+    public double getSimilarity(double min, double max, boolean isHighest){
+        if(isHighest){
+            return max * 100;
+        }
+        else{
+            return 100 - (min * 100);
+        }
     }
 
     private Mat bufferedImageToMat(BufferedImage bufferedImage) throws IOException {
