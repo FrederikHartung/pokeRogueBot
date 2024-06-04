@@ -38,19 +38,19 @@ public class BrowserImageService implements ImageService {
         BufferedImage scaledImage = scaleImage(canvas);
         scaledImage = removeAlphaChannel(scaledImage);
 
-        validateImage(scaledImage);
+        validateImage(scaledImage, filenamePrefix);
 
         return scaledImage;
     }
 
-    public static void validateImage(BufferedImage image) throws ImageValidationException {
+    public static void validateImage(BufferedImage image, String filenamePrefix) throws ImageValidationException {
         if (image.getWidth() != Constants.STANDARDISED_CANVAS_WIDTH || image.getHeight() != Constants.STANDARDISED_CANVAS_HEIGHT) {
             throw new ImageValidationException("Image has wrong dimensions: " + image.getWidth() + "x" + image.getHeight()
                     + ", expected: " + Constants.STANDARDISED_CANVAS_WIDTH + "x" + Constants.STANDARDISED_CANVAS_HEIGHT);
         }
 
         if (image.getType() != BufferedImage.TYPE_3BYTE_BGR) {
-            throw new ImageValidationException("Image has wrong color type: " + checkColorType(image));
+            throw new ImageValidationException("Image has wrong color type: " + checkColorType(image) + ", filenamePrefix: " + filenamePrefix);
         }
     }
 
@@ -64,7 +64,7 @@ public class BrowserImageService implements ImageService {
         BufferedImage template = ImageIO.read(file);
         template = removeAlphaChannel(template);
 
-        validateTemplate(template);
+        validateTemplate(template, path);
 
         return template;
     }
@@ -74,9 +74,9 @@ public class BrowserImageService implements ImageService {
         return image.getSubimage(topLeft.getX(), topLeft.getY(), size.getWidth(), size.getHeight());
     }
 
-    public static void validateTemplate(BufferedImage image) throws ImageValidationException {
+    public static void validateTemplate(BufferedImage image, String path) throws ImageValidationException {
         if (image.getType() != BufferedImage.TYPE_3BYTE_BGR) {
-            throw new ImageValidationException("Template has wrong color type: " + checkColorType(image));
+            throw new ImageValidationException("Template has wrong color type: " + checkColorType(image) + ", path: " + path);
         }
     }
 
@@ -121,7 +121,7 @@ public class BrowserImageService implements ImageService {
         }
     }
 
-    private BufferedImage removeAlphaChannel(BufferedImage image) {
+    public static BufferedImage removeAlphaChannel(BufferedImage image) {
         if (image.getType() == BufferedImage.TYPE_4BYTE_ABGR) {
             BufferedImage newImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_3BYTE_BGR);
             Graphics2D g = newImage.createGraphics();

@@ -19,9 +19,9 @@ public class CvResult {
     @Override
     public String toString() {
         return "CvResult{" +
-                "topLeft = x: " + topLeft.getX() + " y: " + topLeft.getY() +
-                ", middle = x: " + middle.getX() + " y: " + middle.getY() +
-                ", templateSize = width: " + templateSize + " height: " + templateSize +
+                " topLeft=x:" + topLeft.getX() + ",y:" + topLeft.getY() +
+                ", middle=x:" + middle.getX() + ",y:" + middle.getY() +
+                ", templateSize= " + templateSize +
                 '}';
     }
 }

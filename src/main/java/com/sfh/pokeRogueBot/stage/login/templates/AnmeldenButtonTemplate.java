@@ -45,6 +45,11 @@ public class AnmeldenButtonTemplate implements CvTemplate, KnownClickPosition {
     }
 
     @Override
+    public void setPersistResultOnError(boolean persistResultOnError) {
+        this.persistResultOnError = persistResultOnError;
+    }
+
+    @Override
     public Point getExpectedTopLeft() {
         return topLeft;
     }

@@ -15,7 +15,8 @@ public class TestImageService {
     public static BufferedImage getCanvas(String path) throws IOException, ImageValidationException {
         File fileStage = new File(path);
         BufferedImage image = ImageIO.read(fileStage);
-        BrowserImageService.validateImage(image);
+        image = BrowserImageService.removeAlphaChannel(image);
+        BrowserImageService.validateImage(image, path);
 
         return image;
     }
@@ -23,7 +24,8 @@ public class TestImageService {
     public static BufferedImage getTemplate(String path) throws IOException, ImageValidationException {
         File fileTemplate = new File(path);
         BufferedImage image = ImageIO.read(fileTemplate);
-        BrowserImageService.validateTemplate(image);
+        image = BrowserImageService.removeAlphaChannel(image);
+        BrowserImageService.validateTemplate(image, path);
 
         return image;
     }

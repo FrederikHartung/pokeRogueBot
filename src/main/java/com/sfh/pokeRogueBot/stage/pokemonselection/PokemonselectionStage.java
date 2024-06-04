@@ -27,25 +27,25 @@ public class PokemonselectionStage extends BaseStage implements Stage {
                         "./data/templates/pokemonselection/generationSelector.png",
                         false,
                         false,
-                        new Point(-1, -1)),
+                        new Point(505, 17)),
                 new SimpleCvTemplate(
                         "pokemonselection-in",
                         "./data/templates/pokemonselection/in.png",
                         false,
                         false,
-                        new Point(-1, -1)),
+                        new Point(16, 640)),
                 new SimpleCvTemplate(
                         "pokemonselection-number",
                         "./data/templates/pokemonselection/number.png",
                         false,
                         false,
-                        new Point(-1, -1)),
+                        new Point(19, 10)),
                 new SimpleCvTemplate(
                         "pokemonselection-starter",
                         "./data/templates/pokemonselection/starter.png",
                         false,
                         false,
-                        new Point(-1, -1)),
+                        new Point(706, 72)),
         };
     }
 

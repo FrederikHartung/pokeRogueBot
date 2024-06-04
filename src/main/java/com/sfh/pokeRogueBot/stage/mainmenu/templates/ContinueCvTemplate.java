@@ -30,6 +30,11 @@ public class ContinueCvTemplate implements CvTemplate {
     }
 
     @Override
+    public void setPersistResultOnError(boolean persistResultOnError) {
+        this.persistResultOnError = persistResultOnError;
+    }
+
+    @Override
     public Point getExpectedTopLeft() {
         return topLeft;
     }

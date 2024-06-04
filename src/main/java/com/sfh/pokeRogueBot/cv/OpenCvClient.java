@@ -62,7 +62,7 @@ public class OpenCvClient {
             Point matchLoc = algorithm.getFilterType() == CvFilterType.HIGHEST_Result ? mmr.maxLoc : mmr.minLoc;
 
             //draw rectangle around found object
-            if(template.persistResultWhenFindingTemplate()){
+            if(template.persistResultWhenFindingTemplate() || template.persistResultOnError()){
                 Imgproc.rectangle(bigImage, matchLoc, new Point(matchLoc.x + smallImage.cols(), matchLoc.y + smallImage.rows()), new Scalar(0, 255, 0), 2);
             }
 
@@ -85,7 +85,9 @@ public class OpenCvClient {
                 return cvResult;
             }
             else{
-                log.warn(template.getFilenamePrefix() + ": Found object at: " + cvResult + " is not in expected area");
+                String message = template.getFilenamePrefix() + ": expected x: " + template.getExpectedTopLeft().getX() +
+                        " y: " + template.getExpectedTopLeft().getY() + ", but found x: " + xTopLeft + " y: " + yTopLeft;
+                log.warn(message);
                 if(template.persistResultOnError()){
                     persist(template.getFilenamePrefix() + "_wrong-position_", bigImage, cvResult);
                 }
@@ -103,7 +105,7 @@ public class OpenCvClient {
 
     private void persist(String fileNamePrefix, Mat canvas, CvResult cvResult) {
         cvResultFilehandler.persist(fileNamePrefix, canvas);
-        saveCalculatedClickPoint(cvResult, fileNamePrefix);
+        StringFilehandler.persist("calculated_click_point", fileNamePrefix, cvResult.toString());
     }
 
     private void persist(String fileNamePrefix, BufferedImage canvas) {
@@ -132,10 +134,6 @@ public class OpenCvClient {
         byteArrayOutputStream.close();
 
         return Imgcodecs.imdecode(new MatOfByte(byteArray), Imgcodecs.IMREAD_UNCHANGED);
-    }
-
-    private void saveCalculatedClickPoint(CvResult cvResult, String fileNamePrefix){
-        StringFilehandler.persist("calculated_click_point", fileNamePrefix, cvResult.toString());
     }
 
 }

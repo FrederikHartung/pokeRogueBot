@@ -7,7 +7,7 @@ public class MainmenuCvTemplate implements CvTemplate {
 
     public static final String PATH = "./data/templates/mainmenu/mainmenu-cvtemplate.png";
     private static final String NAME = MainmenuCvTemplate.class.getSimpleName();
-    private static final Point topLeft = new Point(-1, -1);
+    private static final Point topLeft = new Point(932, 485);
 
     private boolean persistResultOnSuccess;
     private boolean persistResultOnError;
@@ -29,6 +29,11 @@ public class MainmenuCvTemplate implements CvTemplate {
     @Override
     public void setPersistResultOnSuccess(boolean persistResultOnSuccess) {
         this.persistResultOnSuccess = persistResultOnSuccess;
+    }
+
+    @Override
+    public void setPersistResultOnError(boolean persistResultOnError) {
+        this.persistResultOnError = persistResultOnError;
     }
 
     @Override

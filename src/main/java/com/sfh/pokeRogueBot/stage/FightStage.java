@@ -27,21 +27,21 @@ public class FightStage extends BaseStage implements Stage, HasOptionalTemplates
                         "data/templates/fight/fight-switch-pokemon.png",
                         true,
                         true,
-                        new Point(-1, -1)
+                        new Point(1282, 424)
                 ),
                 new SimpleCvTemplate(
                         "fight-auswechseln-text",
                         "data/templates/fight/fight-auswechseln-text.png",
                         true,
                         true,
-                        new Point(-1, -1)
+                        new Point(258, 728)
                 ),
                 new SimpleCvTemplate(
                         "fight-first-word-text",
                         "data/templates/fight/fight-first-word-text.png",
                         true,
                         true,
-                        new Point(-1, -1)
+                        new Point(43, 649)
                 ),
         };
     }

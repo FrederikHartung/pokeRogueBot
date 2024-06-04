@@ -34,7 +34,7 @@ public class MainMenuStage extends BaseStage implements Stage, HasOptionalTempla
         this.cvService = cvService;
     }
 
-    public static final String PATH = "./data/templates/mainmenu/mainmenu-screen.png";
+    public static final String PATH = "./data/templates/mainmenu/mainmenu-screen-with-savegame.png";
     private static final ContinueCvTemplate continueCvTeplate = new ContinueCvTemplate(false, false);
 
     @Override

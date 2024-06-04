@@ -29,21 +29,21 @@ public class IntroStage extends BaseStage implements Stage {
                         "./data/templates/intro/intro-elementen.png",
                         false,
                         false,
-                        new Point(-1, -1)
+                        new Point(816, 743)
                 ),
                 new SimpleCvTemplate(
                         "intro-kampforientiert",
                         "./data/templates/intro/intro-kampforientiertes.png",
                         false,
                         false,
-                        new Point(-1, -1)
+                        new Point(923, 608)
                 ),
                 new SimpleCvTemplate(
                         "intro-willkommen",
                         "./data/templates/intro/intro-willkommen.png",
                         false,
                         false,
-                        new Point(-1, -1)
+                        new Point(11, 615)
                 ),
                 new IntroScreenTextTemplate(
                         new OcrPosition(
