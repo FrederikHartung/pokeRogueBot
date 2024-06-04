@@ -25,7 +25,7 @@ public class LoginScreenStage extends BaseStage implements HtmlTemplate, Stage {
     public static final String PATH = "./data/templates/login/login-screen.png";
     public static final String XPATH = "//*[@id=\"app\"]/div";
 
-    private static final AnmeldenButtonTemplate ANMELDEN_BUTTON = new AnmeldenButtonTemplate(false);
+    private static final AnmeldenButtonTemplate ANMELDEN_BUTTON = new AnmeldenButtonTemplate(true);
     private static final BenutzernameInputTemplate BENUTZERNAME_INPUT = new BenutzernameInputTemplate();
     private static final PasswortInputTemplate PASSWORT_INPUT = new PasswortInputTemplate();
 

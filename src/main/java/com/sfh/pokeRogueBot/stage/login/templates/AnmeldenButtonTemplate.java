@@ -8,7 +8,6 @@ public class AnmeldenButtonTemplate implements CvTemplate, KnownClickPosition {
 
     public static final String PATH = "./data/templates/login/login-anmelden-button.png";
     public static final String NAME = AnmeldenButtonTemplate.class.getSimpleName();
-    //private static final Point clickPoint = new Point(495, 357);
     private static final Point clickPoint = new Point(632, 462);
 
     private final boolean persistResultWhenFindingTeplate;

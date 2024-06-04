@@ -1,5 +1,6 @@
 package com.sfh.pokeRogueBot.stage;
 
+import com.sfh.pokeRogueBot.template.SimpleCvTemplate;
 import com.sfh.pokeRogueBot.template.Template;
 import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
@@ -20,6 +21,21 @@ public class FightStage extends BaseStage implements Stage, HasOptionalTemplates
     @Override
     public Template[] getTemplatesToValidateStage() {
         return new Template[]{
+                new SimpleCvTemplate(
+                        "fight-switch-pokemon",
+                        "data/templates/fight/fight-switch-pokemon.png",
+                        true
+                ),
+                new SimpleCvTemplate(
+                        "fight-auswechseln-text",
+                        "data/templates/fight/fight-auswechseln-text.png",
+                        true
+                ),
+                new SimpleCvTemplate(
+                        "fight-first-word-text",
+                        "data/templates/fight/fight-first-word-text.png",
+                        true
+                ),
         };
     }
 
