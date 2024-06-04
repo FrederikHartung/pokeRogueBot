@@ -34,6 +34,11 @@ public class LoginScreenStage extends BaseStage implements HtmlTemplate, Stage {
         return XPATH;
     }
 
+    @Override
+    public boolean persistOnHtmlElementNotFound() {
+        return false;
+    }
+
     /**
      * return the templates that are used to validate that the stage
      */

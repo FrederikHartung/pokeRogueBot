@@ -1,6 +1,5 @@
 package com.sfh.pokeRogueBot.stage.pokemonselection;
 
-import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.stage.BaseStage;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.template.SimpleCvTemplate;
@@ -43,15 +42,6 @@ public class PokemonselectionStage extends BaseStage implements Stage {
 
     @Override
     public TemplateAction[] getTemplateActionsToPerform() {
-
-
-
-        PressKeyAction pressSpace = new PressKeyAction(this, KeyToPress.SPACE);
-        PressKeyAction pressArrowDown = new PressKeyAction(this, KeyToPress.ARROW_DOWN);
-        PressKeyAction pressArrowRight = new PressKeyAction(this, KeyToPress.ARROW_RIGHT);
-        PressKeyAction pressArrowLeft = new PressKeyAction(this, KeyToPress.ARROW_LEFT);
-        WaitAction waitAction = new WaitAction();
-        WaitForTextRenderAction waitForTextRenderAction = new WaitForTextRenderAction();
 
         return new TemplateAction[]{
                 pressArrowRight,
@@ -101,8 +91,6 @@ public class PokemonselectionStage extends BaseStage implements Stage {
                 pressSpace, //chose saveslot
                 waitForTextRenderAction,
                 pressSpace, //confirm
-                new WaitForStageRenderAction(),
-                new TakeScreenshotAction(this)
         };
     }
 }

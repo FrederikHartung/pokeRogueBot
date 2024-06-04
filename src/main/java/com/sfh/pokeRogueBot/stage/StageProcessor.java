@@ -122,7 +122,9 @@ public class StageProcessor {
         }
         else{
             log.debug("visibility check with x_path: Template not visible: " + htmlTemplate.getFilenamePrefix());
-            persistPageBody(htmlTemplate.getFilenamePrefix());
+            if(htmlTemplate.persistOnHtmlElementNotFound()){
+                persistPageBody(htmlTemplate.getFilenamePrefix());
+            }
             return false;
         }
     }

@@ -4,7 +4,6 @@ import com.sfh.pokeRogueBot.model.cv.OcrPosition;
 import com.sfh.pokeRogueBot.model.cv.Point;
 import com.sfh.pokeRogueBot.model.cv.Size;
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
-import com.sfh.pokeRogueBot.model.enums.TemplateActionType;
 import com.sfh.pokeRogueBot.stage.BaseStage;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.stage.intro.templates.IntroScreenTextTemplate;
@@ -56,20 +55,18 @@ public class IntroStage extends BaseStage implements Stage {
 
     @Override
     public TemplateAction[] getTemplateActionsToPerform() {
-        SimpleTemplateAction pressSpaceAction = new PressKeyAction(this, KeyToPress.SPACE);
-        WaitForTextRenderAction waitForTextRenderAction = new WaitForTextRenderAction();
         return new TemplateAction[] {
-                pressSpaceAction, //welcome screen
+                pressSpace, //welcome screen
                 waitForTextRenderAction,
-                pressSpaceAction, //not monetised screen
+                pressSpace, //not monetised screen
                 waitForTextRenderAction,
-                pressSpaceAction, //copyright screen
+                pressSpace, //copyright screen
                 waitForTextRenderAction,
-                pressSpaceAction, //game is still in development screen
+                pressSpace, //game is still in development screen
                 waitForTextRenderAction,
-                pressSpaceAction, //use discord for error reports screen
+                pressSpace, //use discord for error reports screen
                 waitForTextRenderAction,
-                pressSpaceAction, //
+                pressSpace, //
         };
     }
 }
