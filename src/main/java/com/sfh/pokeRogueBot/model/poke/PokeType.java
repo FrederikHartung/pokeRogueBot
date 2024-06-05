@@ -1,5 +1,7 @@
 package com.sfh.pokeRogueBot.model.poke;
 
+import javax.annotation.Nonnull;
+
 public class PokeType {
 
     private static final float[][] damageMultiplier = new float[][]{
@@ -29,7 +31,7 @@ public class PokeType {
         this.index = index;
     }
 
-    public static float getDamageMultiplier(PokeType attackType, PokeType defenseType){
+    public static float getDamageMultiplier(@Nonnull PokeType attackType, @Nonnull PokeType defenseType){
         return damageMultiplier[attackType.index][defenseType.index];
     }
 
@@ -51,4 +53,12 @@ public class PokeType {
     public static final PokeType DARK = new PokeType(15);
     public static final PokeType STEEL = new PokeType(16);
     public static final PokeType FAIRY = new PokeType(17);
+
+    private static final PokeType[] types = new PokeType[]{
+            NORMAL, FIRE, WATER, ELECTRIC, GRASS, ICE, FIGHTING, POISON, GROUND, FLYING, PSYCHIC, BUG, ROCK, GHOST, DRAGON, DARK, STEEL, FAIRY
+    };
+
+    public static PokeType getType(int index){
+        return types[index];
+    }
 }
