@@ -42,4 +42,14 @@ public class SavegameStage extends BaseStage implements Stage {
     public SimpleTemplateAction[] getTemplateActionsToPerform() {
         return new SimpleTemplateAction[0];
     }
+
+    @Override
+    public boolean getPersistIfFound() {
+        return false;
+    }
+
+    @Override
+    public boolean getPersistIfNotFound() {
+        return false;
+    }
 }

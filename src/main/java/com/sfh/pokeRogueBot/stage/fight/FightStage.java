@@ -1,6 +1,9 @@
-package com.sfh.pokeRogueBot.stage;
+package com.sfh.pokeRogueBot.stage.fight;
 
 import com.sfh.pokeRogueBot.model.cv.Point;
+import com.sfh.pokeRogueBot.stage.BaseStage;
+import com.sfh.pokeRogueBot.stage.HasOptionalTemplates;
+import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.template.SimpleCvTemplate;
 import com.sfh.pokeRogueBot.template.Template;
 import com.sfh.pokeRogueBot.template.TemplatePathValidator;
@@ -44,6 +47,16 @@ public class FightStage extends BaseStage implements Stage, HasOptionalTemplates
                         new Point(43, 649)
                 ),
         };
+    }
+
+    @Override
+    public boolean getPersistIfFound() {
+        return false;
+    }
+
+    @Override
+    public boolean getPersistIfNotFound() {
+        return false;
     }
 
     @Override

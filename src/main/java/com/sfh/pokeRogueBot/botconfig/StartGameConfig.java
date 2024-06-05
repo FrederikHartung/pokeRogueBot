@@ -4,6 +4,8 @@ import com.sfh.pokeRogueBot.browser.BrowserClient;
 import com.sfh.pokeRogueBot.config.Constants;
 import com.sfh.pokeRogueBot.filehandler.TempFileManager;
 import com.sfh.pokeRogueBot.model.exception.StageNotFoundException;
+import com.sfh.pokeRogueBot.stage.Stage;
+import com.sfh.pokeRogueBot.stage.StageIdentifier;
 import com.sfh.pokeRogueBot.stage.StageProcessor;
 import com.sfh.pokeRogueBot.stage.intro.IntroStage;
 import com.sfh.pokeRogueBot.stage.login.LoginScreenStage;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Component;
 public class StartGameConfig implements Config {
 
     private final StageProcessor stageProcessor;
+    private final StageIdentifier stageIdentifier;
     private final LoginScreenStage loginScreenStage;
     private final IntroStage introStage;
     private final MainMenuStage mainMenuStage;
@@ -27,6 +30,7 @@ public class StartGameConfig implements Config {
 
 
     public StartGameConfig(StageProcessor stageProcessor,
+                           StageIdentifier stageIdentifier,
                            LoginScreenStage loginScreenStage,
                            IntroStage introStage,
                            MainMenuStage mainMenuStage,
@@ -34,6 +38,7 @@ public class StartGameConfig implements Config {
                            TemplatePathValidator templatePathValidator,
                            BrowserClient browserClient) {
         this.stageProcessor = stageProcessor;
+        this.stageIdentifier = stageIdentifier;
         this.mainMenuStage = mainMenuStage;
         this.loginScreenStage = loginScreenStage;
         this.introStage = introStage;
@@ -49,38 +54,30 @@ public class StartGameConfig implements Config {
         tempFileManager.deleteTempData();
         browserClient.navigateTo(Constants.TARGET_URL);
 
-        boolean isLoginFormVisible = stageProcessor.isStageVisible(loginScreenStage);
-        if(isLoginFormVisible){
-            log.info("LoginScreenStage found");
-            stageProcessor.handleStage(loginScreenStage);
-            log.info("handled LoginScreenStage");
-        }
-        else{
-            log.debug("No LoginScreenStage found");
-        }
+        boolean ifFirstStageIsVisible = stageIdentifier.checkIfFirstStageIsVisible(loginScreenStage, introStage, mainMenuStage);
 
-        boolean isNewGameStageVisible = stageProcessor.isStageVisible(introStage);
-        if(isNewGameStageVisible){
-            log.info("IntroStage found");
-            stageProcessor.handleStage(introStage);
-            log.info("handled IntroStage");
-        }
-        else if(isLoginFormVisible){
-            //maybe this case is wrong to throw an exception, if a user already played a game and then just logoff
-            throw new StageNotFoundException("no intro stage found after login form");
-        }
-        else{
-            log.debug("No IntroStage found");
-        }
+        if(ifFirstStageIsVisible) {
+            boolean isLoginVisible = stageIdentifier.isStageVisible(loginScreenStage);
+            if(isLoginVisible){
+                log.debug("stage identified: loginScreenStage");
+                stageProcessor.handleStage(loginScreenStage);
+            }
 
-        boolean isMainMenuStageVisible = stageProcessor.isStageVisible(mainMenuStage);
-        if(isMainMenuStageVisible){
-            log.info("MainMenuStage found");
-            stageProcessor.handleStage(mainMenuStage);
-            log.info("handled MainMenuStage");
-        }
-        else{
-            throw new StageNotFoundException("MainMenuStage not found"); //main menu stage is mandatory
+            boolean isIntroVisible = stageIdentifier.isStageVisible(introStage);
+            if(isIntroVisible){
+                log.debug("stage identified: introStage");
+                stageProcessor.handleStage(introStage);
+            }
+
+            boolean isMainMenuVisible = stageIdentifier.isStageVisible(mainMenuStage);
+            if(isMainMenuVisible){
+                log.debug("stage identified: mainMenuStage");
+                stageProcessor.handleStage(mainMenuStage);
+            }
+            else{
+                stageProcessor.takeScreensot("no_main_menu_stage_visible");
+                throw new StageNotFoundException("No main menu stage is visible");
+            }
         }
     }
 }

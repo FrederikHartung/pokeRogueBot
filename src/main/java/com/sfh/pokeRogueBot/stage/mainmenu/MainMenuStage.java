@@ -50,6 +50,16 @@ public class MainMenuStage extends BaseStage implements Stage, HasOptionalTempla
         return new Template[]{ continueCvTeplate };
     }
 
+    @Override
+    public boolean getPersistIfFound() {
+        return true;
+    }
+
+    @Override
+    public boolean getPersistIfNotFound() {
+        return false;
+    }
+
     public List<TemplateAction> buildGameSettingsToActions(GameSettingProperty[] gameSettingProperties){
         List<TemplateAction> actions = new LinkedList<>();
 
@@ -71,7 +81,9 @@ public class MainMenuStage extends BaseStage implements Stage, HasOptionalTempla
 
     private boolean checkIfASavegameIsPresent(){
         try{
-            return null != cvService.findTemplate(continueCvTeplate);
+            boolean savegamePresent = null != cvService.findTemplate(continueCvTeplate);
+            log.debug("savegame present: {}", savegamePresent);
+            return savegamePresent;
         }
         catch (Exception e){
             log.debug("no savegame present", e);

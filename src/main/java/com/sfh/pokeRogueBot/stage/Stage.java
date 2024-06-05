@@ -7,4 +7,6 @@ public interface Stage extends Template {
     Template[] getTemplatesToValidateStage();
     TemplateAction[] getTemplateActionsToPerform();
     String getStagePath();
+    boolean getPersistIfFound();
+    boolean getPersistIfNotFound();
 }

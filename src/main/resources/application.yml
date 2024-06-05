@@ -21,23 +21,28 @@ cv:
   retry:
     maxAttemptsForSearchingTemplates: 5
     backoffPeriodForSearchingTemplates: 1000
-  allowedToleranceForTopLeftMismatch: 5
+  allowedToleranceForTopLeftMismatch: 30
 
 
 browser:
   closeOnExit: false
   waitTimeForRenderAfterNavigation: 5000
   pathChromeUserDir: "./bin/webdriver/profile/"
-  useInkognito: false
+  useInkognito: true
 
 stage-processor:
   waitTimeAfterAction: 100
   waitTimeForRenderingText: 1000
   waitTimeForRenderingStages: 5000
 
+stage-identifier:
+  numberOfRetries: 30
+  waitTimeForRetryMS: 2000
+  waitTimeForHtmlElements: 5000
+
 stage:
   mainmenu:
-    updateGameSettings: false
+    updateGameSettings: true
 
 
 handler:

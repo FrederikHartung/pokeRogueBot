@@ -50,6 +50,16 @@ public class PokemonselectionStage extends BaseStage implements Stage {
     }
 
     @Override
+    public boolean getPersistIfFound() {
+        return false;
+    }
+
+    @Override
+    public boolean getPersistIfNotFound() {
+        return false;
+    }
+
+    @Override
     public TemplateAction[] getTemplateActionsToPerform() {
 
         return new TemplateAction[]{

@@ -9,14 +9,15 @@ public class AnmeldenButtonTemplate implements CvTemplate, KnownClickPosition {
     public static final String PATH = "./data/templates/login/login-anmelden-button.png";
     public static final String NAME = AnmeldenButtonTemplate.class.getSimpleName();
     private static final Point clickPoint = new Point(632, 462);
-    private static final Point topLeft = new Point(524, 408);
+    private final Point topLeft;
 
     private boolean persistResultOnSuccess;
     private boolean persistResultOnError;
 
-    public AnmeldenButtonTemplate(boolean persistResultOnSuccess, boolean persistResultOnError) {
+    public AnmeldenButtonTemplate(boolean persistResultOnSuccess, boolean persistResultOnError, Point topLeft) {
         this.persistResultOnSuccess = persistResultOnSuccess;
         this.persistResultOnError = persistResultOnError;
+        this.topLeft = topLeft;
     }
 
     @Override
