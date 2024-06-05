@@ -45,8 +45,7 @@ class MainMenuStageCvTest {
     @Test
     void find_all_templates(){
         boolean persistResults = false;
-        Template[] templates = mainMenuStage.getTemplatesToValidateStage();
-        List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplates(templates);
+        List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(mainMenuStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {
             cvTemplate.setPersistResultOnSuccess(persistResults);
@@ -67,8 +66,7 @@ class MainMenuStageCvTest {
     void dont_find_any_login_stage_templates(){
         boolean persistResults = false;
         LoginScreenStage loginScreenStage = new LoginScreenStage(validator);
-        Template[] templates = loginScreenStage.getTemplatesToValidateStage();
-        List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplates(templates);
+        List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(loginScreenStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {
             cvTemplate.setPersistResultOnSuccess(persistResults);
@@ -90,8 +88,7 @@ class MainMenuStageCvTest {
     void dont_find_any_intro_stage_templates(){
         boolean persistResults = false;
         IntroStage introStage = new IntroStage(validator);
-        Template[] templates = introStage.getTemplatesToValidateStage();
-        List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplates(templates);
+        List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(introStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {
             //persist results for debugging
@@ -113,8 +110,7 @@ class MainMenuStageCvTest {
     void dont_find_any_monsterselection_stage_templates(){
         boolean persistResults = false;
         PokemonselectionStage pokemonselectionStage = new PokemonselectionStage(validator);
-        Template[] templates = pokemonselectionStage.getTemplatesToValidateStage();
-        List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplates(templates);
+        List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(pokemonselectionStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {
             //persist results for debugging
@@ -136,8 +132,7 @@ class MainMenuStageCvTest {
     void dont_find_any_fight_stage_templates(){
         boolean persistResults = false;
         FightStage fightStage = new FightStage(validator);
-        Template[] templates = fightStage.getTemplatesToValidateStage();
-        List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplates(templates);
+        List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(fightStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {
             //persist results for debugging

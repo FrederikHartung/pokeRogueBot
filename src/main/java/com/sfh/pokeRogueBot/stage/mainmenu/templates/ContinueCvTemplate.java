@@ -7,11 +7,12 @@ public class ContinueCvTemplate implements CvTemplate {
 
     private boolean persistResultOnSuccess;
     private boolean persistResultOnError;
-    private static final Point topLeft = new Point(-1, -1);
+    private final Point topLeft;
 
-    public ContinueCvTemplate(boolean persistResultOnSuccess, boolean persistResultOnError) {
+    public ContinueCvTemplate(boolean persistResultOnSuccess, boolean persistResultOnError, Point topLeft) {
         this.persistResultOnSuccess = persistResultOnSuccess;
         this.persistResultOnError = persistResultOnError;
+        this.topLeft = topLeft;
     }
 
     @Override

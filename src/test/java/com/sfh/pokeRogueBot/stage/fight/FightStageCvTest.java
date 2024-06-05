@@ -8,6 +8,7 @@ import com.sfh.pokeRogueBot.filehandler.TempFileManager;
 import com.sfh.pokeRogueBot.service.CvService;
 import com.sfh.pokeRogueBot.service.ImageService;
 import com.sfh.pokeRogueBot.service.OpenCvService;
+import com.sfh.pokeRogueBot.stage.HasOptionalTemplates;
 import com.sfh.pokeRogueBot.stage.intro.IntroStage;
 import com.sfh.pokeRogueBot.stage.login.LoginScreenStage;
 import com.sfh.pokeRogueBot.stage.mainmenu.MainMenuStage;
@@ -45,9 +46,8 @@ class FightStageCvTest {
 
     @Test
     void find_all_templates(){
-        boolean persistResults = true;
-        Template[] templates = fightStage.getTemplatesToValidateStage();
-        List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplates(templates);
+        boolean persistResults = false;
+        List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(fightStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {
             cvTemplate.setPersistResultOnSuccess(persistResults);
@@ -68,8 +68,7 @@ class FightStageCvTest {
     void dont_find_any_login_stage_templates(){
         boolean persistResults = false;
         LoginScreenStage loginScreenStage = new LoginScreenStage(validator);
-        Template[] templates = loginScreenStage.getTemplatesToValidateStage();
-        List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplates(templates);
+        List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(loginScreenStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {
             cvTemplate.setPersistResultOnSuccess(persistResults);
@@ -91,8 +90,7 @@ class FightStageCvTest {
     void dont_find_any_intro_stage_templates(){
         boolean persistResults = false;
         IntroStage introStage = new IntroStage(validator);
-        Template[] templates = introStage.getTemplatesToValidateStage();
-        List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplates(templates);
+        List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(introStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {
             //persist results for debugging
@@ -114,8 +112,7 @@ class FightStageCvTest {
     void dont_find_any_mainmenu_stage_templates(){
         boolean persistResults = false;
         MainMenuStage mainMenuStage = new MainMenuStage(validator, mock(CvService.class), false);
-        Template[] templates = mainMenuStage.getTemplatesToValidateStage();
-        List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplates(templates);
+        List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(mainMenuStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {
             //persist results for debugging
@@ -137,8 +134,7 @@ class FightStageCvTest {
     void dont_find_any_monsterselection_stage_templates(){
         boolean persistResults = false;
         PokemonselectionStage pokemonselectionStage = new PokemonselectionStage(validator);
-        Template[] templates = pokemonselectionStage.getTemplatesToValidateStage();
-        List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplates(templates);
+        List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(pokemonselectionStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {
             //persist results for debugging

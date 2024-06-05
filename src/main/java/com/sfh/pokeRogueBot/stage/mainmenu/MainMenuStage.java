@@ -2,6 +2,7 @@ package com.sfh.pokeRogueBot.stage.mainmenu;
 
 import com.sfh.pokeRogueBot.config.GameSettingConstants;
 import com.sfh.pokeRogueBot.model.GameSettingProperty;
+import com.sfh.pokeRogueBot.model.cv.Point;
 import com.sfh.pokeRogueBot.service.CvService;
 import com.sfh.pokeRogueBot.stage.BaseStage;
 import com.sfh.pokeRogueBot.stage.HasOptionalTemplates;
@@ -35,7 +36,7 @@ public class MainMenuStage extends BaseStage implements Stage, HasOptionalTempla
     }
 
     public static final String PATH = "./data/templates/mainmenu/mainmenu-screen-with-savegame.png";
-    private static final ContinueCvTemplate continueCvTeplate = new ContinueCvTemplate(false, false);
+    private static final ContinueCvTemplate continueCvTeplate = new ContinueCvTemplate(false, false, new Point(973, 430));
 
     @Override
     public Template[] getTemplatesToValidateStage() {
