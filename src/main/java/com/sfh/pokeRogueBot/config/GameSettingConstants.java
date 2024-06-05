@@ -1,7 +1,6 @@
 package com.sfh.pokeRogueBot.config;
 
 import com.sfh.pokeRogueBot.model.GameSettingProperty;
-import lombok.Getter;
 
 public class GameSettingConstants {
 
@@ -17,7 +16,7 @@ public class GameSettingConstants {
             "MUTE", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"}, 10);
     private static final GameSettingProperty seVolume = new GameSettingProperty(new String[]{
             "MUTE", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"}, 10);
-    private static final GameSettingProperty langruage = new GameSettingProperty(new String[]{
+    private static final GameSettingProperty language = new GameSettingProperty(new String[]{
             "english", "not supported"} , 0); //this may reload the game
     private static final GameSettingProperty damageNumbers = new GameSettingProperty(new String[]{
             "OFF", "Simple", "Fancy"}, 0);
@@ -63,7 +62,7 @@ public class GameSettingConstants {
             masterVolume,
             bgmVolume,
             seVolume,
-            langruage,
+            language,
             damageNumbers,
             uiTheme,
             windowType,
