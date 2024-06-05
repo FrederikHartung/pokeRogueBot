@@ -53,7 +53,7 @@ public class MainMenuStage extends BaseStage implements Stage, HasOptionalTempla
 
     @Override
     public boolean getPersistIfFound() {
-        return true;
+        return false;
     }
 
     @Override
