@@ -22,4 +22,9 @@ public class BenutzernameInputTemplate implements HtmlTemplate {
     public String getXpath() {
         return XPATH;
     }
+
+    @Override
+    public boolean persistOnHtmlElementNotFound() {
+        return false;
+    }
 }

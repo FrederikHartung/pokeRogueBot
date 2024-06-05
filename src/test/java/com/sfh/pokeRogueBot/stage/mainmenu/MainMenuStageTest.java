@@ -23,6 +23,7 @@ class MainMenuStageTest {
     CvService cvService;
     MainMenuStage mainMenuStage;
 
+
     @BeforeEach
     void setUp() {
         validator = mock(TemplatePathValidator.class);

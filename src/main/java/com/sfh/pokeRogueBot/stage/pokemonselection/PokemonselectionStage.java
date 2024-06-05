@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.stage.pokemonselection;
 
-import com.sfh.pokeRogueBot.model.enums.KeyToPress;
+import com.sfh.pokeRogueBot.model.cv.Point;
 import com.sfh.pokeRogueBot.stage.BaseStage;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.template.SimpleCvTemplate;
@@ -14,7 +14,7 @@ public class PokemonselectionStage extends BaseStage implements Stage {
 
     private static final String PATH = "./data/templates/pokemonselection/screen.png";
 
-    protected PokemonselectionStage(TemplatePathValidator pathValidator) {
+    public PokemonselectionStage(TemplatePathValidator pathValidator) {
         super(pathValidator, PATH);
     }
 
@@ -25,32 +25,42 @@ public class PokemonselectionStage extends BaseStage implements Stage {
                 new SimpleCvTemplate(
                         "pokemonselection-generationSelector",
                         "./data/templates/pokemonselection/generationSelector.png",
-                        false),
+                        false,
+                        false,
+                        new Point(505, 17)),
                 new SimpleCvTemplate(
                         "pokemonselection-in",
                         "./data/templates/pokemonselection/in.png",
-                        false),
+                        false,
+                        false,
+                        new Point(16, 640)),
                 new SimpleCvTemplate(
                         "pokemonselection-number",
                         "./data/templates/pokemonselection/number.png",
-                        false),
+                        false,
+                        false,
+                        new Point(19, 10)),
                 new SimpleCvTemplate(
                         "pokemonselection-starter",
                         "./data/templates/pokemonselection/starter.png",
-                        false),
+                        false,
+                        false,
+                        new Point(706, 72)),
         };
     }
 
     @Override
+    public boolean getPersistIfFound() {
+        return false;
+    }
+
+    @Override
+    public boolean getPersistIfNotFound() {
+        return false;
+    }
+
+    @Override
     public TemplateAction[] getTemplateActionsToPerform() {
-
-
-
-        PressKeyAction pressSpace = new PressKeyAction(this, KeyToPress.SPACE);
-        PressKeyAction pressArrowDown = new PressKeyAction(this, KeyToPress.ARROW_DOWN);
-        PressKeyAction pressArrowRight = new PressKeyAction(this, KeyToPress.ARROW_RIGHT);
-        PressKeyAction pressArrowLeft = new PressKeyAction(this, KeyToPress.ARROW_LEFT);
-        WaitAction waitAction = new WaitAction();
 
         return new TemplateAction[]{
                 pressArrowRight,
@@ -94,14 +104,12 @@ public class PokemonselectionStage extends BaseStage implements Stage {
                 pressArrowLeft,
                 waitAction,
                 pressSpace, //start game
-                waitAction,
+                waitForTextRenderAction,
                 pressSpace, //start confirm
-                waitAction,
+                waitForTextRenderAction,
                 pressSpace, //chose saveslot
-                waitAction,
+                waitForTextRenderAction,
                 pressSpace, //confirm
-                new WaitForStageRenderAction(),
-                new TakeScreenshotAction(this)
         };
     }
 }

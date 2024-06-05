@@ -54,6 +54,23 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
     @Override
     public void navigateTo(String targetUrl) {
         if(null == this.driver){
+            try {
+                String osName = System.getProperty("os.name").toLowerCase();
+                Runtime runtime = Runtime.getRuntime();
+                if (osName.contains("windows")) {
+                    log.debug("Closing existing Chrome instances for windows");
+                    runtime.exec("taskkill /F /IM chrome.exe");
+                } else if (osName.contains("mac")) {
+                    log.debug("Closing existing Chrome instances for mac");
+                    runtime.exec("killall Google Chrome");
+                } else if (osName.contains("linux")) {
+                    log.debug("Closing existing Chrome instances for linux");
+                    runtime.exec("pkill chrome");
+                }
+            } catch (IOException e) {
+                log.error("Failed to close existing Chrome instances", e);
+            }
+
             ChromeOptions options = new ChromeOptions();
 
             options.addArguments("user-data-dir=" + pathChromeUserDir);
@@ -67,13 +84,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
         driver.get(targetUrl);
 
         try {
-            if(useInkognito){
-                log.info("waiting for asset download in inkognito mode...");
-                Thread.sleep(waitTimeForRenderAfterNavigation * 4); // longer wait time for inkognito mode because assets have to be loaded
-            }
-            else {
-                Thread.sleep(waitTimeForRenderAfterNavigation);
-            }
+            Thread.sleep(waitTimeForRenderAfterNavigation);
         } catch (InterruptedException e) {
             log.error("Error while waiting", e);
         }

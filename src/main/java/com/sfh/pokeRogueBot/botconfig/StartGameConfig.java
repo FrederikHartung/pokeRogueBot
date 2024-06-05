@@ -1,9 +1,16 @@
 package com.sfh.pokeRogueBot.botconfig;
 
+import com.sfh.pokeRogueBot.browser.BrowserClient;
+import com.sfh.pokeRogueBot.config.Constants;
+import com.sfh.pokeRogueBot.filehandler.TempFileManager;
 import com.sfh.pokeRogueBot.model.exception.StageNotFoundException;
+import com.sfh.pokeRogueBot.stage.Stage;
+import com.sfh.pokeRogueBot.stage.StageIdentifier;
 import com.sfh.pokeRogueBot.stage.StageProcessor;
-import com.sfh.pokeRogueBot.stage.pokemonselection.PokemonselectionStage;
+import com.sfh.pokeRogueBot.stage.intro.IntroStage;
+import com.sfh.pokeRogueBot.stage.login.LoginScreenStage;
 import com.sfh.pokeRogueBot.stage.mainmenu.MainMenuStage;
+import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -12,35 +19,65 @@ import org.springframework.stereotype.Component;
 public class StartGameConfig implements Config {
 
     private final StageProcessor stageProcessor;
+    private final StageIdentifier stageIdentifier;
+    private final LoginScreenStage loginScreenStage;
+    private final IntroStage introStage;
     private final MainMenuStage mainMenuStage;
-    private final PokemonselectionStage pokemonselectionStage;
 
-    public StartGameConfig(StageProcessor stageProcessor, MainMenuStage mainMenuStage, PokemonselectionStage pokemonselectionStage) {
+    private final TempFileManager tempFileManager;
+    private final TemplatePathValidator templatePathValidator;
+    private final BrowserClient browserClient;
+
+
+    public StartGameConfig(StageProcessor stageProcessor,
+                           StageIdentifier stageIdentifier,
+                           LoginScreenStage loginScreenStage,
+                           IntroStage introStage,
+                           MainMenuStage mainMenuStage,
+                           TempFileManager tempFileManager,
+                           TemplatePathValidator templatePathValidator,
+                           BrowserClient browserClient) {
         this.stageProcessor = stageProcessor;
+        this.stageIdentifier = stageIdentifier;
         this.mainMenuStage = mainMenuStage;
-        this.pokemonselectionStage = pokemonselectionStage;
+        this.loginScreenStage = loginScreenStage;
+        this.introStage = introStage;
+        this.tempFileManager = tempFileManager;
+        this.templatePathValidator = templatePathValidator;
+        this.browserClient = browserClient;
     }
 
     @Override
     public void applay() throws Exception {
-        boolean isStartGameStageVisible = stageProcessor.isStageVisible(mainMenuStage);
-        if(isStartGameStageVisible){
-            log.info("MainMenuStage found");
-            stageProcessor.handleStage(mainMenuStage);
-            log.info("handled MainMenuStage");
-        }
-        else{
-            throw new StageNotFoundException("MainMenuStage not found");
-        }
 
-/*        boolean isPokemonselectionStageVisible = stageProcessor.isStageVisible(pokemonselectionStage);
-        if(isPokemonselectionStageVisible){
-            log.info("PokemonselectionStage found");
-            stageProcessor.handleStage(pokemonselectionStage);
-            log.info("handled PokemonselectionStage");
+        templatePathValidator.checkIfAllTemplatesArePresent();
+        tempFileManager.deleteTempData();
+        browserClient.navigateTo(Constants.TARGET_URL);
+
+        boolean ifFirstStageIsVisible = stageIdentifier.checkIfFirstStageIsVisible(loginScreenStage, introStage, mainMenuStage);
+
+        if(ifFirstStageIsVisible) {
+            boolean isLoginVisible = stageIdentifier.isStageVisible(loginScreenStage);
+            if(isLoginVisible){
+                log.debug("stage identified: loginScreenStage");
+                stageProcessor.handleStage(loginScreenStage);
+            }
+
+            boolean isIntroVisible = stageIdentifier.isStageVisible(introStage);
+            if(isIntroVisible){
+                log.debug("stage identified: introStage");
+                stageProcessor.handleStage(introStage);
+            }
+
+            boolean isMainMenuVisible = stageIdentifier.isStageVisible(mainMenuStage);
+            if(isMainMenuVisible){
+                log.debug("stage identified: mainMenuStage");
+                stageProcessor.handleStage(mainMenuStage);
+            }
+            else{
+                stageProcessor.takeScreensot("no_main_menu_stage_visible");
+                throw new StageNotFoundException("No main menu stage is visible");
+            }
         }
-        else{
-            throw new StageNotFoundException("PokemonselectionStage not found");
-        }*/
     }
 }

@@ -8,13 +8,16 @@ public class AnmeldenButtonTemplate implements CvTemplate, KnownClickPosition {
 
     public static final String PATH = "./data/templates/login/login-anmelden-button.png";
     public static final String NAME = AnmeldenButtonTemplate.class.getSimpleName();
-    //private static final Point clickPoint = new Point(495, 357);
     private static final Point clickPoint = new Point(632, 462);
+    private final Point topLeft;
 
-    private final boolean persistResultWhenFindingTeplate;
+    private boolean persistResultOnSuccess;
+    private boolean persistResultOnError;
 
-    public AnmeldenButtonTemplate(boolean persistResultWhenFindingTeplate) {
-        this.persistResultWhenFindingTeplate = persistResultWhenFindingTeplate;
+    public AnmeldenButtonTemplate(boolean persistResultOnSuccess, boolean persistResultOnError, Point topLeft) {
+        this.persistResultOnSuccess = persistResultOnSuccess;
+        this.persistResultOnError = persistResultOnError;
+        this.topLeft = topLeft;
     }
 
     @Override
@@ -29,7 +32,27 @@ public class AnmeldenButtonTemplate implements CvTemplate, KnownClickPosition {
 
     @Override
     public boolean persistResultWhenFindingTemplate() {
-        return persistResultWhenFindingTeplate;
+        return persistResultOnSuccess;
+    }
+
+    @Override
+    public boolean persistResultOnError() {
+        return persistResultOnError;
+    }
+
+    @Override
+    public void setPersistResultOnSuccess(boolean persistResultOnSuccess) {
+        this.persistResultOnSuccess = persistResultOnSuccess;
+    }
+
+    @Override
+    public void setPersistResultOnError(boolean persistResultOnError) {
+        this.persistResultOnError = persistResultOnError;
+    }
+
+    @Override
+    public Point getExpectedTopLeft() {
+        return topLeft;
     }
 
     @Override

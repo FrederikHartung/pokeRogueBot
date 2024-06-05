@@ -6,4 +6,7 @@ import com.sfh.pokeRogueBot.template.actions.TemplateAction;
 public interface Stage extends Template {
     Template[] getTemplatesToValidateStage();
     TemplateAction[] getTemplateActionsToPerform();
+    String getStagePath();
+    boolean getPersistIfFound();
+    boolean getPersistIfNotFound();
 }

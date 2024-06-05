@@ -7,13 +7,13 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class SingletonBeanConfig {
 
-    @Bean
-    public CvProcessingAlgorithm createCvProcessingAlgorithm(){
-        return CvProcessingAlgorithm.TM_SQDIFF;
-    }
-
     @Bean(name = "baseStagePathBean")
     public String getBaseStagePath(){
         return "./data/templates/login/login-screen.png"; //no real cheack needed for BaseStage
+    }
+
+    @Bean
+    public CvProcessingAlgorithm getCvProcessingAlgorithm(){
+        return CvProcessingAlgorithm.TM_SQDIFF;
     }
 }

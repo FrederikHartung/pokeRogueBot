@@ -1,5 +1,6 @@
 package com.sfh.pokeRogueBot.stage.savegame;
 
+import com.sfh.pokeRogueBot.model.cv.Point;
 import com.sfh.pokeRogueBot.stage.BaseStage;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.template.SimpleCvTemplate;
@@ -23,16 +24,32 @@ public class SavegameStage extends BaseStage implements Stage {
                 new SimpleCvTemplate(
                         "savegame-cornerTL",
                         "./data/templates/savegame/savegame-cornerTL.png",
-                        true),
+                        true,
+                        false,
+                        new Point(-1, -1)
+                        ),
                 new SimpleCvTemplate(
                         "savegame-cornerBR",
                         "./data/templates/savegame/savegame-cornerBR.png",
-                        true)
+                        true,
+                        false,
+                        new Point(-1, -1)
+                )
         };
     }
 
     @Override
     public SimpleTemplateAction[] getTemplateActionsToPerform() {
         return new SimpleTemplateAction[0];
+    }
+
+    @Override
+    public boolean getPersistIfFound() {
+        return false;
+    }
+
+    @Override
+    public boolean getPersistIfNotFound() {
+        return false;
     }
 }

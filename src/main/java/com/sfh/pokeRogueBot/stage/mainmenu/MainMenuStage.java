@@ -2,8 +2,7 @@ package com.sfh.pokeRogueBot.stage.mainmenu;
 
 import com.sfh.pokeRogueBot.config.GameSettingConstants;
 import com.sfh.pokeRogueBot.model.GameSettingProperty;
-import com.sfh.pokeRogueBot.model.cv.CvResult;
-import com.sfh.pokeRogueBot.model.enums.KeyToPress;
+import com.sfh.pokeRogueBot.model.cv.Point;
 import com.sfh.pokeRogueBot.service.CvService;
 import com.sfh.pokeRogueBot.stage.BaseStage;
 import com.sfh.pokeRogueBot.stage.HasOptionalTemplates;
@@ -18,7 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -37,21 +35,13 @@ public class MainMenuStage extends BaseStage implements Stage, HasOptionalTempla
         this.cvService = cvService;
     }
 
-    public static final String PATH = "./data/templates/mainmenu/mainmenu-screen.png";
-    private static final ContinueCvTemplate continueCvTeplate = new ContinueCvTemplate();
-
-    private final PressKeyAction pressSpace = new PressKeyAction(this, KeyToPress.SPACE);
-    private final PressKeyAction pressBackspace = new PressKeyAction(this, KeyToPress.BACK_SPACE);
-    private final PressKeyAction pressArrowDown = new PressKeyAction(this, KeyToPress.ARROW_DOWN);
-    private final PressKeyAction pressArrowLeftForDeactivation = new PressKeyAction(this, KeyToPress.ARROW_LEFT);
-    private final PressKeyAction pressRightForActivation = new PressKeyAction(this, KeyToPress.ARROW_RIGHT);
-    private final PressKeyAction pressArrowUp = new PressKeyAction(this, KeyToPress.ARROW_UP);
-    private final WaitAction waitAction = new WaitAction();
+    public static final String PATH = "./data/templates/mainmenu/mainmenu-screen-with-savegame.png";
+    private static final ContinueCvTemplate continueCvTeplate = new ContinueCvTemplate(false, false, new Point(973, 430));
 
     @Override
     public Template[] getTemplatesToValidateStage() {
         return new Template[]{
-                new MainmenuCvTemplate(),
+                new MainmenuCvTemplate(false, false),
                 new MainmenuOcrTemplate(),
         };
     }
@@ -61,16 +51,26 @@ public class MainMenuStage extends BaseStage implements Stage, HasOptionalTempla
         return new Template[]{ continueCvTeplate };
     }
 
+    @Override
+    public boolean getPersistIfFound() {
+        return true;
+    }
+
+    @Override
+    public boolean getPersistIfNotFound() {
+        return false;
+    }
+
     public List<TemplateAction> buildGameSettingsToActions(GameSettingProperty[] gameSettingProperties){
         List<TemplateAction> actions = new LinkedList<>();
 
         for(GameSettingProperty property:gameSettingProperties){
-            for(String ignored:property.getValues()){
-                actions.add(pressArrowLeftForDeactivation); //to move completely to the left
+            for(int i = 0; i < property.getValues().length; i++){
+                actions.add(pressArrowLeft); //to move completely to the left
                 actions.add(waitAction);
             }
             for(int i=0; i<property.getChoosedIndex(); i++){
-                actions.add(pressRightForActivation); //to move to the chosen index
+                actions.add(pressArrowRight); //to move to the chosen index
                 actions.add(waitAction);
             }
             actions.add(pressArrowDown); //to move to the next property
@@ -82,7 +82,9 @@ public class MainMenuStage extends BaseStage implements Stage, HasOptionalTempla
 
     private boolean checkIfASavegameIsPresent(){
         try{
-            return null != cvService.findTemplate(continueCvTeplate);
+            boolean savegamePresent = null != cvService.findTemplate(continueCvTeplate);
+            log.debug("savegame present: {}", savegamePresent);
+            return savegamePresent;
         }
         catch (Exception e){
             log.debug("no savegame present", e);
@@ -116,11 +118,14 @@ public class MainMenuStage extends BaseStage implements Stage, HasOptionalTempla
         actions.add(waitAction);
 
         actions.add(pressSpace); //to enter settings
+        actions.add(waitForTextRenderAction);
+
 
         List<TemplateAction> gameSettingsToActions = buildGameSettingsToActions(GameSettingConstants.GAME_SETTINGS); //all actions to set settings
         actions.addAll(gameSettingsToActions);
 
         actions.add(pressBackspace); //to leave settings
+        actions.add(waitForTextRenderAction);
 
         actions.add(pressArrowUp); //go up again
         actions.add(waitAction);

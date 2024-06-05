@@ -1,5 +1,6 @@
 package com.sfh.pokeRogueBot.template;
 
+import com.sfh.pokeRogueBot.model.cv.Point;
 import lombok.Getter;
 
 @Getter
@@ -7,17 +8,45 @@ public class SimpleCvTemplate implements CvTemplate {
 
     private final String fileNamePrefix;
     private final String templatePath;
-    private final boolean persistResultWhenFindingTemplate;
+    private boolean persistResultOnSuccess;
+    private boolean persistResultOnError;
+    private final Point topLeft;
 
-    public SimpleCvTemplate(String fileNamePrefix, String templatePath, boolean persistResultWhenFindingTemplate) {
+    public SimpleCvTemplate(
+            String fileNamePrefix,
+            String templatePath,
+            boolean persistResultOnSuccess,
+            boolean persistResultOnError,
+            Point topLeft) {
         this.fileNamePrefix = fileNamePrefix;
         this.templatePath = templatePath;
-        this.persistResultWhenFindingTemplate = persistResultWhenFindingTemplate;
+        this.persistResultOnSuccess = persistResultOnSuccess;
+        this.persistResultOnError = persistResultOnError;
+        this.topLeft = topLeft;
     }
 
     @Override
     public boolean persistResultWhenFindingTemplate() {
-        return persistResultWhenFindingTemplate;
+        return persistResultOnSuccess;
+    }
+
+    @Override
+    public boolean persistResultOnError() {
+        return persistResultOnError;
+    }
+
+    public void setPersistResultOnSuccess(boolean persistResultOnSuccess) {
+        this.persistResultOnSuccess = persistResultOnSuccess;
+    }
+
+    @Override
+    public void setPersistResultOnError(boolean persistResultOnError) {
+        this.persistResultOnError = persistResultOnError;
+    }
+
+    @Override
+    public Point getExpectedTopLeft() {
+        return topLeft;
     }
 
     @Override

@@ -35,26 +35,22 @@ public class BrowserImageService implements ImageService {
     public BufferedImage takeScreenshot(String filenamePrefix) throws ImageValidationException, IOException {
         BufferedImage canvas = imageClient.takeScreenshotFromCanvas();
 
-        ScaleFactor scaleFactor = ScalingUtils.calcScaleFactor(canvas);
-
         BufferedImage scaledImage = scaleImage(canvas);
         scaledImage = removeAlphaChannel(scaledImage);
 
-        validateImage(scaledImage);
+        validateImage(scaledImage, filenamePrefix);
 
-        //todo: remove logging methode
-        log.debug(filenamePrefix + ", scaleFactorX: " + scaleFactor.getScaleFactorWidth() + " scaleFactorY: " + scaleFactor.getScaleFactorHeight());
         return scaledImage;
     }
 
-    private void validateImage(BufferedImage image) throws ImageValidationException {
+    public static void validateImage(BufferedImage image, String filenamePrefix) throws ImageValidationException {
         if (image.getWidth() != Constants.STANDARDISED_CANVAS_WIDTH || image.getHeight() != Constants.STANDARDISED_CANVAS_HEIGHT) {
             throw new ImageValidationException("Image has wrong dimensions: " + image.getWidth() + "x" + image.getHeight()
                     + ", expected: " + Constants.STANDARDISED_CANVAS_WIDTH + "x" + Constants.STANDARDISED_CANVAS_HEIGHT);
         }
 
         if (image.getType() != BufferedImage.TYPE_3BYTE_BGR) {
-            throw new ImageValidationException("Image has wrong color type: " + checkColorType(image));
+            throw new ImageValidationException("Image has wrong color type: " + checkColorType(image) + ", filenamePrefix: " + filenamePrefix);
         }
     }
 
@@ -68,7 +64,7 @@ public class BrowserImageService implements ImageService {
         BufferedImage template = ImageIO.read(file);
         template = removeAlphaChannel(template);
 
-        validateTemplate(template);
+        validateTemplate(template, path);
 
         return template;
     }
@@ -78,27 +74,11 @@ public class BrowserImageService implements ImageService {
         return image.getSubimage(topLeft.getX(), topLeft.getY(), size.getWidth(), size.getHeight());
     }
 
-    private void validateTemplate(BufferedImage image) throws ImageValidationException {
+    public static void validateTemplate(BufferedImage image, String path) throws ImageValidationException {
         if (image.getType() != BufferedImage.TYPE_3BYTE_BGR) {
-            throw new ImageValidationException("Template has wrong color type: " + checkColorType(image));
+            throw new ImageValidationException("Template has wrong color type: " + checkColorType(image) + ", path: " + path);
         }
     }
-
-
-/*    private BufferedImage scaleImage(BufferedImage originalImage, double scaleFactorX, double scaleFactorY) {
-        //round to next full pixel
-        int newWidth = (int) Math.round(originalImage.getWidth() / scaleFactorX);
-        int newHeight = (int) Math.round(originalImage.getHeight() / scaleFactorY);
-
-        BufferedImage scaledImage = new BufferedImage(newWidth, newHeight, originalImage.getType());
-        Graphics2D g2d = scaledImage.createGraphics();
-
-        AffineTransform affineTransform = AffineTransform.getScaleInstance(scaleFactorX, scaleFactorY);
-        g2d.drawRenderedImage(originalImage, affineTransform);
-        g2d.dispose();
-
-        return scaledImage;
-    }*/
 
     private BufferedImage scaleImage(BufferedImage originalImage) {
         int newWidth = Constants.STANDARDISED_CANVAS_WIDTH;
@@ -122,7 +102,7 @@ public class BrowserImageService implements ImageService {
         return scaledImage;
     }
 
-    private String checkColorType(BufferedImage image) {
+    private static String checkColorType(BufferedImage image) {
         switch (image.getType()) {
             case BufferedImage.TYPE_3BYTE_BGR:
                 return "TYPE_3BYTE_BGR";
@@ -141,7 +121,7 @@ public class BrowserImageService implements ImageService {
         }
     }
 
-    private BufferedImage removeAlphaChannel(BufferedImage image) {
+    public static BufferedImage removeAlphaChannel(BufferedImage image) {
         if (image.getType() == BufferedImage.TYPE_4BYTE_ABGR) {
             BufferedImage newImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_3BYTE_BGR);
             Graphics2D g = newImage.createGraphics();

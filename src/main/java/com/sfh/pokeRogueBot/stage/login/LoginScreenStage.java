@@ -3,6 +3,7 @@ package com.sfh.pokeRogueBot.stage.login;
 import com.sfh.pokeRogueBot.config.Constants;
 import com.sfh.pokeRogueBot.config.UserDataProvider;
 import com.sfh.pokeRogueBot.model.UserData;
+import com.sfh.pokeRogueBot.model.cv.Point;
 import com.sfh.pokeRogueBot.model.enums.TemplateActionType;
 import com.sfh.pokeRogueBot.stage.BaseStage;
 import com.sfh.pokeRogueBot.stage.Stage;
@@ -25,13 +26,18 @@ public class LoginScreenStage extends BaseStage implements HtmlTemplate, Stage {
     public static final String PATH = "./data/templates/login/login-screen.png";
     public static final String XPATH = "//*[@id=\"app\"]/div";
 
-    private static final AnmeldenButtonTemplate ANMELDEN_BUTTON = new AnmeldenButtonTemplate(false);
+    private static final AnmeldenButtonTemplate ANMELDEN_BUTTON = new AnmeldenButtonTemplate(false, false, new Point(524, 408));
     private static final BenutzernameInputTemplate BENUTZERNAME_INPUT = new BenutzernameInputTemplate();
     private static final PasswortInputTemplate PASSWORT_INPUT = new PasswortInputTemplate();
 
     @Override
     public String getXpath() {
         return XPATH;
+    }
+
+    @Override
+    public boolean persistOnHtmlElementNotFound() {
+        return false;
     }
 
     /**
@@ -46,15 +52,31 @@ public class LoginScreenStage extends BaseStage implements HtmlTemplate, Stage {
                 new SimpleCvTemplate(
                         "login-benutzername",
                         "./data/templates/login/login-benutzername.png",
-                        false),
+                        false,
+                        false,
+                        new Point(411, 225)),
                 new SimpleCvTemplate(
                         "login-passwort",
                         "./data/templates/login/login-passwort.png",
-                        false),
+                        false,
+                        false,
+                        new Point(419, 332)),
                 new SimpleCvTemplate("login-registrieren",
                         "./data/templates/login/login-registrieren-button.png",
-                        false),
+                        false,
+                        false,
+                        new Point(758, 413)),
         };
+    }
+
+    @Override
+    public boolean getPersistIfFound() {
+        return false;
+    }
+
+    @Override
+    public boolean getPersistIfNotFound() {
+        return false;
     }
 
     public UserData getUserData() {
