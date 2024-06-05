@@ -10,11 +10,11 @@ import java.io.IOException;
 
 public interface CvService {
 
-    boolean isTemplateVisible(CvTemplate cvTemplate) throws IOException;
+    boolean isTemplateVisible(CvTemplate cvTemplate);
 
-    boolean isTemplateVisible(CvTemplate cvTemplate, BufferedImage canvasImg) throws TemplateNotFoundException;
+    boolean isTemplateVisible(CvTemplate cvTemplate, BufferedImage canvasImg);
 
-    boolean isTemplateVisible(CvTemplate cvTemplate, BufferedImage canvasImg, BufferedImage templateImg) throws TemplateNotFoundException;
+    boolean isTemplateVisible(CvTemplate cvTemplate, BufferedImage canvasImg, BufferedImage templateImg);
 
     @Nullable
     CvResult findTemplate(CvTemplate cvTemplate);

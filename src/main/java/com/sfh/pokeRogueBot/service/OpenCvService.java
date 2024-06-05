@@ -15,7 +15,6 @@ public class OpenCvService implements CvService {
 
     private static final String ERROR_WHILE_SEARCHING_FOR_OBJECT = "Error while searching for object: ";
     private static final String CHECKING_VISIBILITY = "visibility check with image: Template visible: ";
-    private static final String NOT_FOUND = "Template not found in image: ";
     private final ImageService imageService;
     private final OpenCvClient cvClient;
 
@@ -25,33 +24,45 @@ public class OpenCvService implements CvService {
     }
 
     @Override
-    public boolean isTemplateVisible(CvTemplate cvTemplate) throws TemplateNotFoundException {
-        if (null != findTemplate(cvTemplate)) {
-            log.debug(CHECKING_VISIBILITY + cvTemplate.getFilenamePrefix());
-            return true;
+    public boolean isTemplateVisible(CvTemplate cvTemplate){
+        try{
+            if (null != findTemplate(cvTemplate)) {
+                log.debug(CHECKING_VISIBILITY + cvTemplate.getFilenamePrefix());
+                return true;
+            }
         }
-
-        throw new TemplateNotFoundException(NOT_FOUND + cvTemplate.getFilenamePrefix());
+        catch (Exception e) {
+            log.error(ERROR_WHILE_SEARCHING_FOR_OBJECT + e.getMessage(), e);
+        }
+        return false;
     }
 
     @Override
-    public boolean isTemplateVisible(CvTemplate cvTemplate, BufferedImage canvasImg) throws TemplateNotFoundException {
-        if (null != findTemplate(cvTemplate, canvasImg)) {
-            log.debug(CHECKING_VISIBILITY + cvTemplate.getFilenamePrefix());
-            return true;
+    public boolean isTemplateVisible(CvTemplate cvTemplate, BufferedImage canvasImg) {
+        try{
+            if (null != findTemplate(cvTemplate, canvasImg)) {
+                log.debug(CHECKING_VISIBILITY + cvTemplate.getFilenamePrefix());
+                return true;
+            }
         }
-
-        throw new TemplateNotFoundException(NOT_FOUND + cvTemplate.getFilenamePrefix());
+        catch (Exception e) {
+            log.error(ERROR_WHILE_SEARCHING_FOR_OBJECT + e.getMessage(), e);
+        }
+        return false;
     }
 
     @Override
     public boolean isTemplateVisible(CvTemplate cvTemplate, BufferedImage canvasImg, BufferedImage templateImg) throws TemplateNotFoundException {
-        if (null != findTemplate(cvTemplate, canvasImg, templateImg)) {
-            log.debug(CHECKING_VISIBILITY + cvTemplate.getFilenamePrefix());
-            return true;
+        try {
+            if (null != findTemplate(cvTemplate, canvasImg, templateImg)) {
+                log.debug(CHECKING_VISIBILITY + cvTemplate.getFilenamePrefix());
+                return true;
+            }
         }
-
-        throw new TemplateNotFoundException(NOT_FOUND + cvTemplate.getFilenamePrefix());
+        catch (Exception e) {
+            log.error(ERROR_WHILE_SEARCHING_FOR_OBJECT + e.getMessage(), e);
+        }
+        return false;
     }
 
     @Override

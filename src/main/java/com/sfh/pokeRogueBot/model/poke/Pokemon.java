@@ -7,15 +7,15 @@ import lombok.Setter;
 @Setter
 public class Pokemon {
 
-    private final int pokeDexNr;
     private final String name;
     private final PokeType pokeType1;
     private final PokeType pokeType2;
 
     private int hp;
+    private int pokeDexNr;
+    private int level;
 
-    public Pokemon(int pokeDexNr, String name, PokeType pokeType1, PokeType pokeType2) {
-        this.pokeDexNr = pokeDexNr;
+    protected Pokemon(String name, PokeType pokeType1, PokeType pokeType2) {
         this.name = name;
         this.pokeType1 = pokeType1;
         this.pokeType2 = pokeType2;

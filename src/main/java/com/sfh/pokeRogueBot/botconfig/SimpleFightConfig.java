@@ -1,5 +1,7 @@
 package com.sfh.pokeRogueBot.botconfig;
 
+import com.sfh.pokeRogueBot.model.RunProperty;
+import com.sfh.pokeRogueBot.service.RunPropertyService;
 import com.sfh.pokeRogueBot.stage.fight.FightStage;
 import com.sfh.pokeRogueBot.stage.StageIdentifier;
 import com.sfh.pokeRogueBot.stage.StageProcessor;
@@ -13,11 +15,13 @@ public class SimpleFightConfig implements Config {
     private final FightStage fightStage;
     private final StageProcessor stageProcessor;
     private final StageIdentifier stageIdentifier;
+    private final RunPropertyService runPropertyService;
 
-    public SimpleFightConfig(FightStage fightStage, StageProcessor stageProcessor, StageIdentifier stageIdentifier) {
+    public SimpleFightConfig(FightStage fightStage, StageProcessor stageProcessor, StageIdentifier stageIdentifier, RunPropertyService runPropertyService) {
         this.fightStage = fightStage;
         this.stageProcessor = stageProcessor;
         this.stageIdentifier = stageIdentifier;
+        this.runPropertyService = runPropertyService;
     }
 
     @Override
@@ -29,5 +33,7 @@ public class SimpleFightConfig implements Config {
         } else {
             log.debug("Fight stage is not visible");
         }
+
+        RunProperty
     }
 }
