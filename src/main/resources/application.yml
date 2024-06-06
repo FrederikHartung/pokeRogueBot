@@ -13,7 +13,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.MySQL8Dialect
+        dialect: org.hibernate.dialect.MySQLDialect
 
 ocr:
   language: deu
@@ -31,7 +31,7 @@ browser:
   closeOnExit: true
   waitTimeForRenderAfterNavigation: 5000
   pathChromeUserDir: "./bin/webdriver/profile/"
-  useInkognito: false
+  useInkognito: true
 
 stage-processor:
   waitTimeAfterAction: 100

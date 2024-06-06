@@ -17,9 +17,7 @@ public class TestApplication {
         ConfigurableApplicationContext context = SpringApplication.run(Application.class, args);
 
         try{
-            RunPropertyService runPropertyService = context.getBean(RunPropertyService.class);
-            RunProperty property = runPropertyService.getRunProperty();
-            log.debug("Run number: " + property.getRunNumber());
+
         } catch (Exception e) {
             log.error("Error starting the bot: " + e.getMessage(), e);
         }
