@@ -26,12 +26,11 @@ cv:
     backoffPeriodForSearchingTemplates: 1000
   allowedToleranceForTopLeftMismatch: 50
 
-
 browser:
-  closeOnExit: true
+  closeOnExit: false
   waitTimeForRenderAfterNavigation: 5000
   pathChromeUserDir: "./bin/webdriver/profile/"
-  useInkognito: true
+  useInkognito: false
 
 stage-processor:
   waitTimeAfterAction: 100
@@ -45,8 +44,8 @@ stage-identifier:
 
 stage:
   mainmenu:
-    updateGameSettings: true
-
+    updateGameSettings: false
+    startRun: true
 
 handler:
   login:

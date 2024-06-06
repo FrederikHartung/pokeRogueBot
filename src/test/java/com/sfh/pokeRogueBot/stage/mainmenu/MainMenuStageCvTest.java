@@ -30,13 +30,13 @@ class MainMenuStageCvTest {
 
     SingletonBeanConfig singletonBeanConfig = new SingletonBeanConfig();
     TemplatePathValidator validator = new TemplatePathValidator();
-    MainMenuStage mainMenuStage = new MainMenuStage(validator, mock(CvService.class), false);
+    MainMenuStage mainMenuStage = new MainMenuStage(validator, mock(CvService.class), false, false);
     OpenCvClient openCvClient = new OpenCvClient(
             singletonBeanConfig.getCvProcessingAlgorithm(),
             new CvResultFilehandler(),
             5);
     CvService cvService = new OpenCvService(mock(ImageService.class), openCvClient);
-    DecisionService decisionService = new DecisionService();
+    DecisionService decisionService = mock(DecisionService.class);
 
 
     @BeforeAll

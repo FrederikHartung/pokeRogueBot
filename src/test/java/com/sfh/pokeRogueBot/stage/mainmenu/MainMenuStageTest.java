@@ -7,6 +7,7 @@ import com.sfh.pokeRogueBot.service.CvService;
 import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import com.sfh.pokeRogueBot.template.actions.PressKeyAction;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
+import com.sfh.pokeRogueBot.template.actions.WaitAction;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,7 +29,7 @@ class MainMenuStageTest {
     void setUp() {
         validator = mock(TemplatePathValidator.class);
         cvService = mock(CvService.class);
-        mainMenuStage = new MainMenuStage(validator, cvService, false);
+        mainMenuStage = new MainMenuStage(validator, cvService, false, false);
     }
 
     @Test
@@ -71,5 +72,35 @@ class MainMenuStageTest {
 
         assertEquals(TemplateActionType.WAIT_AFTER_ACTION, (result.get(length - 1).getActionType()));
 
+    }
+
+    @Test
+    void if_the_stage_should_not_start_the_run_the_last_press_space_action_is_not_returned(){
+        MainMenuStage stage = new MainMenuStage(validator, cvService, true, false);
+        TemplateAction[] actions = stage.getTemplateActionsToPerform();
+        assertEquals(WaitAction.class, actions[actions.length - 1].getClass());
+    }
+
+    @Test
+    void if_the_settings_dont_have_to_be_updated_just_one_press_space_Action_is_returned(){
+        MainMenuStage stage = new MainMenuStage(validator, cvService, false, true);
+        TemplateAction[] actions = stage.getTemplateActionsToPerform();
+        assertEquals(1, actions.length);
+        assertEquals(PressKeyAction.class, actions[0].getClass());
+    }
+
+    @Test
+    void start_the_run_and_update_settings(){
+        MainMenuStage stage = new MainMenuStage(validator, cvService, true, true);
+        TemplateAction[] actions = stage.getTemplateActionsToPerform();
+        assertTrue(actions.length > 1);
+        assertEquals(PressKeyAction.class, actions[actions.length - 1].getClass());
+    }
+
+    @Test
+    void dont_start_the_run_and_dont_update_settings(){
+        MainMenuStage stage = new MainMenuStage(validator, cvService, false, false);
+        TemplateAction[] actions = stage.getTemplateActionsToPerform();
+        assertEquals(0, actions.length);
     }
 }

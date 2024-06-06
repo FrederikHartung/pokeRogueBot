@@ -36,7 +36,7 @@ class PokemonselectionStageCvTest {
             new CvResultFilehandler(),
             5);
     CvService cvService = new OpenCvService(mock(ImageService.class), openCvClient);
-    DecisionService decisionService = new DecisionService();
+    DecisionService decisionService = mock(DecisionService.class);
 
     @BeforeAll
     static void setup(){
@@ -111,7 +111,7 @@ class PokemonselectionStageCvTest {
     @Test
     void dont_find_any_mainmenu_stage_templates(){
         boolean persistResults = false;
-        MainMenuStage mainMenuStage = new MainMenuStage(validator, mock(CvService.class), false);
+        MainMenuStage mainMenuStage = new MainMenuStage(validator, mock(CvService.class), false, false);
         List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(mainMenuStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {

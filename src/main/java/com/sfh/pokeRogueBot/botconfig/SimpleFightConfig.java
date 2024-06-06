@@ -35,8 +35,13 @@ public class SimpleFightConfig implements Config {
         }
 
         RunProperty runProperty = runPropertyService.getRunProperty();
-        log.info("Run number: {}, status: {}", runProperty.getRunNumber(), runProperty.getStatus());
-        runProperty.setStatus(2);
+        runProperty.setStatus(0);
+        runPropertyService.save(runProperty);
+        while (runProperty.getStatus() == 0) {
+            stageProcessor.handleStage(fightStage);
+        }
+
+        log.info("Fight stage is done, status: " + runProperty.getStatus());
         runPropertyService.save(runProperty);
     }
 }

@@ -24,15 +24,19 @@ import java.util.List;
 @Component
 public class MainMenuStage extends BaseStage implements Stage, HasOptionalTemplates {
 
-    private final boolean updateGameSettings;
     private final CvService cvService;
+
+    private final boolean updateGameSettings;
+    private final boolean startRun;
 
     public MainMenuStage(TemplatePathValidator templatePathValidator,
                          CvService cvService,
-                         @Value("${stage.mainmenu.updateGameSettings}") boolean updateGameSettings) {
+                         @Value("${stage.mainmenu.updateGameSettings}") boolean updateGameSettings,
+                         @Value("${stage.mainmenu.startRun}") boolean startRun) {
         super(templatePathValidator, PATH);
         this.updateGameSettings = updateGameSettings;
         this.cvService = cvService;
+        this.startRun = startRun;
     }
 
     public static final String PATH = "./data/templates/mainmenu/mainmenu-screen-with-savegame.png";
@@ -96,13 +100,17 @@ public class MainMenuStage extends BaseStage implements Stage, HasOptionalTempla
     @Override
     public TemplateAction[] getTemplateActionsToPerform() {
 
-        if(!updateGameSettings){
+        if(!updateGameSettings && startRun){ //just continue
             return new TemplateAction[]{
                     pressSpace
             };
         }
 
-        List<TemplateAction> actions = new LinkedList<>();
+        if(!updateGameSettings){ //just update settings and dont start the run
+            return new TemplateAction[0]; //dont do anything
+        }
+
+        List<TemplateAction> actions = new LinkedList<>(); //update settings and start the run
         boolean isSaveGamePresent = checkIfASavegameIsPresent();
         if(isSaveGamePresent){
             log.debug("savegame is present");
@@ -119,7 +127,6 @@ public class MainMenuStage extends BaseStage implements Stage, HasOptionalTempla
 
         actions.add(pressSpace); //to enter settings
         actions.add(waitForTextRenderAction);
-
 
         List<TemplateAction> gameSettingsToActions = buildGameSettingsToActions(GameSettingConstants.GAME_SETTINGS); //all actions to set settings
         actions.addAll(gameSettingsToActions);
@@ -139,7 +146,9 @@ public class MainMenuStage extends BaseStage implements Stage, HasOptionalTempla
             actions.add(waitAction);
         }
 
-        actions.add(pressSpace);
+        if(startRun){
+            actions.add(pressSpace);
+        }
 
         return actions.toArray(new TemplateAction[0]);
     }

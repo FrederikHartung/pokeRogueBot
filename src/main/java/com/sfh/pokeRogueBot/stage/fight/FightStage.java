@@ -1,6 +1,8 @@
 package com.sfh.pokeRogueBot.stage.fight;
 
+import com.sfh.pokeRogueBot.model.FightInfo;
 import com.sfh.pokeRogueBot.model.cv.Point;
+import com.sfh.pokeRogueBot.model.enums.FightDecision;
 import com.sfh.pokeRogueBot.service.CvService;
 import com.sfh.pokeRogueBot.service.DecisionService;
 import com.sfh.pokeRogueBot.stage.BaseStage;
@@ -27,11 +29,11 @@ public class FightStage extends BaseStage implements Stage, HasOptionalTemplates
     private static final boolean PERSIST_IF_FOUND = false;
     private static final boolean PERSIST_IF_NOT_FOUND = true;
 
-    private static final SimpleCvTemplate switchDecisionCvTemplate = new SimpleCvTemplate(
-            "fight-switch-pokemon-decision",
-            "./data/templates/fight/fight-switch-pokemon-decision.png",
+    private static final SimpleCvTemplate switchPokemonQuestionCvTemplate = new SimpleCvTemplate(
+            "fight-switch-pokemon-question",
+            "./data/templates/fight/fight-switch-pokemon-question.png",
             false,
-            true,
+            false,
             new Point(1282, 424)
     );
 
@@ -77,7 +79,7 @@ public class FightStage extends BaseStage implements Stage, HasOptionalTemplates
     @Override
     public Template[] getOptionalTemplatesToAnalyseStage() {
         return new Template[]{
-                switchDecisionCvTemplate
+                switchPokemonQuestionCvTemplate
         };
     }
 
@@ -85,12 +87,15 @@ public class FightStage extends BaseStage implements Stage, HasOptionalTemplates
     public TemplateAction[] getTemplateActionsToPerform() {
         List<TemplateAction> actions = new LinkedList<>();
 
-        boolean isSwitchPokemonDecision = cvService.isTemplateVisible(switchDecisionCvTemplate);
-        if(isSwitchPokemonDecision && !decisionService.shouldSwitchPokemon()){
+        boolean isSwitchPokemonQuestion = cvService.isTemplateVisible(switchPokemonQuestionCvTemplate);
+        if(isSwitchPokemonQuestion && !decisionService.shouldSwitchPokemon()){
+            log.debug("Switch Pokemon Question is visible, but we should not switch pokemon");
             actions.add(pressArrowDown);
             actions.add(waitAction);
-            actions.add(this.waitForTextRenderAction);
+            actions.add(pressSpace);
         }
+
+        FightDecision fightDecision = decisionService.getFightDecision();
 
         return actions.toArray(new TemplateAction[0]);
     }

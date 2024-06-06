@@ -79,13 +79,9 @@ public class LoginScreenStage extends BaseStage implements HtmlTemplate, Stage {
         return false;
     }
 
-    public UserData getUserData() {
-        return UserDataProvider.getUserdata(Constants.PATH_TO_USER_DATA);
-    }
-
     @Override
     public SimpleTemplateAction[] getTemplateActionsToPerform() {
-        UserData userData = getUserData();
+        UserData userData = UserDataProvider.getUserdata(Constants.PATH_TO_USER_DATA);
 
         TextInputActionSimple benutzernameAction = new TextInputActionSimple(BENUTZERNAME_INPUT, userData.getUsername());
         TextInputActionSimple passwortAction = new TextInputActionSimple(PASSWORT_INPUT, userData.getPassword());
