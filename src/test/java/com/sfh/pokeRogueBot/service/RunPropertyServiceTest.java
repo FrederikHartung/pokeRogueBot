@@ -2,9 +2,9 @@ package com.sfh.pokeRogueBot.service;
 
 import com.sfh.pokeRogueBot.model.RunProperty;
 import com.sfh.pokeRogueBot.model.entities.RunPropertyEntity;
+import com.sfh.pokeRogueBot.repository.RunPropertyEntityRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import repository.RunPropertyEntityRepository;
 
 import java.util.Optional;
 

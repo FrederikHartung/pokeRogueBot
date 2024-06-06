@@ -35,5 +35,8 @@ public class SimpleFightConfig implements Config {
         }
 
         RunProperty runProperty = runPropertyService.getRunProperty();
+        log.info("Run number: {}, status: {}", runProperty.getRunNumber(), runProperty.getStatus());
+        runProperty.setStatus(2);
+        runPropertyService.save(runProperty);
     }
 }

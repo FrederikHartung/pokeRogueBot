@@ -1,4 +1,4 @@
-package repository;
+package com.sfh.pokeRogueBot.repository;
 
 import com.sfh.pokeRogueBot.model.entities.RunPropertyEntity;
 import org.springframework.data.jpa.repository.JpaRepository;

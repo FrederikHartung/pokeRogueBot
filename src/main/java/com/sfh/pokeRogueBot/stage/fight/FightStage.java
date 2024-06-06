@@ -27,9 +27,9 @@ public class FightStage extends BaseStage implements Stage, HasOptionalTemplates
     private static final boolean PERSIST_IF_FOUND = false;
     private static final boolean PERSIST_IF_NOT_FOUND = true;
 
-    private final SimpleCvTemplate switchDecisionCvTemplate = new SimpleCvTemplate(
+    private static final SimpleCvTemplate switchDecisionCvTemplate = new SimpleCvTemplate(
             "fight-switch-pokemon-decision",
-            "data/templates/fight/fight-switch-pokemon-decision.png",
+            "./data/templates/fight/fight-switch-pokemon-decision.png",
             false,
             true,
             new Point(1282, 424)

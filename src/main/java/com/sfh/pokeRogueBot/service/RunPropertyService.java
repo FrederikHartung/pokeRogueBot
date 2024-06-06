@@ -3,9 +3,9 @@ package com.sfh.pokeRogueBot.service;
 import com.sfh.pokeRogueBot.mapper.RunPropertyMapper;
 import com.sfh.pokeRogueBot.model.RunProperty;
 import com.sfh.pokeRogueBot.model.entities.RunPropertyEntity;
+import com.sfh.pokeRogueBot.repository.RunPropertyEntityRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import repository.RunPropertyEntityRepository;
 
 @Slf4j
 @Component
