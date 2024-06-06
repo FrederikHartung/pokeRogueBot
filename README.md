@@ -30,9 +30,16 @@ For each CvTemplate a screenshot with the picture to find in the Canvas screensh
 Templates have to be added to their corresponding stage where they are visible for validation if their are visible.
 Every Stage needs to be a component for automatic path checking if the templates are present on the disc.  
 
+## Development Strategie
+Focus on progress and not on perfection. It's better to stick to a bad implementation and improve it later than to try to make it perfect from the beginning.  
+If a good idea comes up, write it down and implement it later. Focus on the current task. Order the tasks by their level of improvement and how easy they are to implement.  
+Only refactor, when it's really necessary.
+
 ## todo
--just make one buffered image while stage Validation
--pull ocr code from the stageProcessor in a service
+- [ ] make first attack
+- [ ] handle the reaction of the opponent
+- [ ] attack till the first opponent is beaten
+- [ ] handle the start of the second fight
 
 
    
