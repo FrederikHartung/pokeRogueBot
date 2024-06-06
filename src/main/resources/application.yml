@@ -2,15 +2,18 @@ spring:
   application:
     name: pokeRogueBot
   datasource:
-    url: jdbc:h2:file:./db;DB_CLOSE_ON_EXIT=FALSE
-    driverClassName: org.h2.Driver
-    username: sa
-    password: password
-    jpa:
-      database-platform: org.hibernate.dialect.H2Dialect
+    url: #configure in application-default.yml
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: #configure in application-default.yml
+    password: #configure in application-default.yml
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: update
+    properties:
       hibernate:
-        ddl-auto: update
-        show-sql: true
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQL8Dialect
 
 ocr:
   language: deu
@@ -21,14 +24,14 @@ cv:
   retry:
     maxAttemptsForSearchingTemplates: 5
     backoffPeriodForSearchingTemplates: 1000
-  allowedToleranceForTopLeftMismatch: 30
+  allowedToleranceForTopLeftMismatch: 50
 
 
 browser:
-  closeOnExit: false
+  closeOnExit: true
   waitTimeForRenderAfterNavigation: 5000
   pathChromeUserDir: "./bin/webdriver/profile/"
-  useInkognito: true
+  useInkognito: false
 
 stage-processor:
   waitTimeAfterAction: 100

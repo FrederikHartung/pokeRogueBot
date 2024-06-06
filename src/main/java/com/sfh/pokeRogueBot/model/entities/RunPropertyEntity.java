@@ -5,6 +5,7 @@ import lombok.Data;
 
 @Data
 @Entity
+@Table(name = "run_property")
 public class RunPropertyEntity {
 
     @Id

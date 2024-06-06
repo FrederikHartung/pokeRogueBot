@@ -54,23 +54,6 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
     @Override
     public void navigateTo(String targetUrl) {
         if(null == this.driver){
-            try {
-                String osName = System.getProperty("os.name").toLowerCase();
-                Runtime runtime = Runtime.getRuntime();
-                if (osName.contains("windows")) {
-                    log.debug("Closing existing Chrome instances for windows");
-                    runtime.exec("taskkill /F /IM chrome.exe");
-                } else if (osName.contains("mac")) {
-                    log.debug("Closing existing Chrome instances for mac");
-                    runtime.exec("killall Google Chrome");
-                } else if (osName.contains("linux")) {
-                    log.debug("Closing existing Chrome instances for linux");
-                    runtime.exec("pkill chrome");
-                }
-            } catch (IOException e) {
-                log.error("Failed to close existing Chrome instances", e);
-            }
-
             ChromeOptions options = new ChromeOptions();
 
             options.addArguments("user-data-dir=" + pathChromeUserDir);
@@ -107,7 +90,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
     @Override
     public void destroy() throws Exception {
         try{
-            if(closeOnExit){
+            if(closeOnExit && null != driver){
                 driver.quit();
                 log.debug("Browser closed");
             }

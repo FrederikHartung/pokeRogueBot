@@ -4,6 +4,7 @@ import com.sfh.pokeRogueBot.browser.BrowserClient;
 import com.sfh.pokeRogueBot.config.Constants;
 import com.sfh.pokeRogueBot.filehandler.TempFileManager;
 import com.sfh.pokeRogueBot.model.exception.StageNotFoundException;
+import com.sfh.pokeRogueBot.model.exception.TemplateNotFoundException;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.stage.StageIdentifier;
 import com.sfh.pokeRogueBot.stage.StageProcessor;
@@ -12,6 +13,8 @@ import com.sfh.pokeRogueBot.stage.login.LoginScreenStage;
 import com.sfh.pokeRogueBot.stage.mainmenu.MainMenuStage;
 import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.retry.support.RetryTemplate;
+import org.springframework.retry.support.RetryTemplateBuilder;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -56,28 +59,40 @@ public class StartGameConfig implements Config {
 
         boolean ifFirstStageIsVisible = stageIdentifier.checkIfFirstStageIsVisible(loginScreenStage, introStage, mainMenuStage);
 
-        if(ifFirstStageIsVisible) {
-            boolean isLoginVisible = stageIdentifier.isStageVisible(loginScreenStage);
-            if(isLoginVisible){
-                log.debug("stage identified: loginScreenStage");
-                stageProcessor.handleStage(loginScreenStage);
+        RetryTemplate retryTemplate = new RetryTemplateBuilder()
+                .retryOn(StageNotFoundException.class)
+                .retryOn(TemplateNotFoundException.class)
+                .fixedBackoff(5000)
+                .maxAttempts(2)
+                .build();
+
+        retryTemplate.execute(context -> {
+            if(ifFirstStageIsVisible) {
+                boolean isLoginVisible = stageIdentifier.isStageVisible(loginScreenStage);
+                if(isLoginVisible){
+                    log.debug("stage identified: loginScreenStage");
+                    stageProcessor.handleStage(loginScreenStage);
+                }
+
+                boolean isIntroVisible = stageIdentifier.isStageVisible(introStage);
+                if(isIntroVisible){
+                    log.debug("stage identified: introStage");
+                    stageProcessor.handleStage(introStage);
+                }
+
+                boolean isMainMenuVisible = stageIdentifier.isStageVisible(mainMenuStage);
+                if(isMainMenuVisible){
+                    log.debug("stage identified: mainMenuStage");
+                    stageProcessor.handleStage(mainMenuStage);
+                }
+                else{
+                    stageProcessor.takeScreensot("no_main_menu_stage_visible");
+                    throw new StageNotFoundException("No main menu stage is visible");
+                }
             }
 
-            boolean isIntroVisible = stageIdentifier.isStageVisible(introStage);
-            if(isIntroVisible){
-                log.debug("stage identified: introStage");
-                stageProcessor.handleStage(introStage);
-            }
+            return null;
+        });
 
-            boolean isMainMenuVisible = stageIdentifier.isStageVisible(mainMenuStage);
-            if(isMainMenuVisible){
-                log.debug("stage identified: mainMenuStage");
-                stageProcessor.handleStage(mainMenuStage);
-            }
-            else{
-                stageProcessor.takeScreensot("no_main_menu_stage_visible");
-                throw new StageNotFoundException("No main menu stage is visible");
-            }
-        }
     }
 }
