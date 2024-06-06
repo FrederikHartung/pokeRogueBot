@@ -44,4 +44,11 @@ class RunPropertyServiceTest {
         verify(repository, times(1)).findFirstOrderByRunNumberDesc();
         assertSame(result, result2);
     }
+
+    @Test
+    void save_calls_repository_save() {
+        RunProperty runProperty = new RunProperty(64);
+        service.save(runProperty);
+        verify(repository).save(argThat(entity -> entity.getRunNumber() == 64));
+    }
 }
