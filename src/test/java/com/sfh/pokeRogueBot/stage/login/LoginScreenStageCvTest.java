@@ -6,6 +6,7 @@ import com.sfh.pokeRogueBot.cv.OpenCvClient;
 import com.sfh.pokeRogueBot.filehandler.CvResultFilehandler;
 import com.sfh.pokeRogueBot.filehandler.TempFileManager;
 import com.sfh.pokeRogueBot.service.CvService;
+import com.sfh.pokeRogueBot.service.DecisionService;
 import com.sfh.pokeRogueBot.service.ImageService;
 import com.sfh.pokeRogueBot.service.OpenCvService;
 import com.sfh.pokeRogueBot.stage.fight.FightStage;
@@ -35,6 +36,7 @@ class LoginScreenStageCvTest {
             new CvResultFilehandler(),
             5);
     CvService cvService = new OpenCvService(mock(ImageService.class), openCvClient);
+    DecisionService decisionService = new DecisionService();
 
     @BeforeAll
     static void setup(){
@@ -128,7 +130,7 @@ class LoginScreenStageCvTest {
     @Test
     void dont_find_any_fight_stage_templates(){
         boolean persistResults = false;
-        FightStage fightStage = new FightStage(validator);
+        FightStage fightStage = new FightStage(validator, decisionService, cvService);
         List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(fightStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {

@@ -34,6 +34,6 @@ public class SimpleFightConfig implements Config {
             log.debug("Fight stage is not visible");
         }
 
-        RunProperty
+        RunProperty runProperty = runPropertyService.getRunProperty();
     }
 }

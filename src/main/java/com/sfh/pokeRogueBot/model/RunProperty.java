@@ -8,11 +8,16 @@ import lombok.Setter;
 @Setter
 public class RunProperty {
 
+    // RunPropertyEntity properties
     private final int runNumber;
-    private final Pokemon[] team = new Pokemon[6];
+    private int status;
+    private int roundNumber;
+    private int defeatedWildPokemon;
+    private int caughtPokemon;
+    private int defeatedTrainer;
 
-    private int currentRoundNr = 1;
-    private boolean isRunLost = false;
+    //own properties
+    private final Pokemon[] team = new Pokemon[6];
 
     public RunProperty(int runNumber) {
         this.runNumber = runNumber;
