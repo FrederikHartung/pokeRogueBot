@@ -1,6 +1,7 @@
 package com.sfh.pokeRogueBot.botconfig;
 
 import com.sfh.pokeRogueBot.model.RunProperty;
+import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.service.RunPropertyService;
 import com.sfh.pokeRogueBot.stage.StageIdentifier;
 import com.sfh.pokeRogueBot.stage.StageProcessor;
@@ -28,17 +29,15 @@ public class SimpleFightConfig implements Config {
     public void applay() throws Exception {
 
         RunProperty runProperty = runPropertyService.getRunProperty();
-        runProperty.setStatus(0);
+        runProperty.setStatus(RunStatus.ONGOING);
         runPropertyService.save(runProperty);
         startWaveFightingMode(runProperty);
 
-
         log.info("finished run, status: " + runProperty.getStatus());
-        runPropertyService.save(runProperty);
     }
 
     private void startWaveFightingMode(RunProperty runProperty) throws Exception {
-        while (runProperty.getStatus() == 0) {
+        while (runProperty.getStatus() == RunStatus.ONGOING) {
 
             boolean isTrainingStageVisible = stageIdentifier.isStageVisible(stageProvider.getTrainerFightStage());
             if (isTrainingStageVisible) {
@@ -61,6 +60,7 @@ public class SimpleFightConfig implements Config {
                 log.debug("Fight stage handled");
             } else {
                 log.debug("Fight stage is not visible");
+                runProperty.setStatus(RunStatus.ERROR);
             }
 
         }

@@ -35,25 +35,5 @@ public class StageProvider {
         this.switchDecisionStage = switchDecisionStage;
         this.trainerFightStage = trainerFightStage;
         this.fightStage = fightStage;
-
-        List<Stage> stages = new LinkedList<>();
-        stages.add(loginScreenStage);
-        stages.add(introStage);
-        stages.add(mainMenuStage);
-        stages.add(pokemonselectionStage);
-        stages.add(switchDecisionStage);
-        stages.add(trainerFightStage);
-        stages.add(fightStage);
-
-        for(Stage stage: stages) {
-            for(Template template : stage.getTemplatesToValidateStage()) {
-                templatePathValidator.addPath(template.getTemplatePath());
-            }
-            if(this instanceof HasOptionalTemplates optionalTemplates) {
-                for(Template template : optionalTemplates.getOptionalTemplatesToAnalyseStage()) {
-                    templatePathValidator.addPath(template.getTemplatePath());
-                }
-            }
-        }
     }
 }

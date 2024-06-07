@@ -1,5 +1,6 @@
 package com.sfh.pokeRogueBot.model;
 
+import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import lombok.Getter;
 import lombok.Setter;
@@ -10,7 +11,7 @@ public class RunProperty {
 
     // RunPropertyEntity properties
     private final int runNumber;
-    private int status;
+    private RunStatus status;
     private int roundNumber;
     private int defeatedWildPokemon;
     private int caughtPokemon;

@@ -2,6 +2,7 @@ package com.sfh.pokeRogueBot.mapper;
 
 import com.sfh.pokeRogueBot.model.RunProperty;
 import com.sfh.pokeRogueBot.model.entities.RunPropertyEntity;
+import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -21,7 +22,7 @@ class RunPropertyMapperTest {
 
         RunProperty result = RunPropertyMapper.toRunProperty(entity);
         assertEquals(1, result.getRunNumber());
-        assertEquals(2, result.getStatus());
+        assertEquals(RunStatus.LOST, result.getStatus());
         assertEquals(3, result.getRoundNumber());
         assertEquals(4, result.getDefeatedWildPokemon());
         assertEquals(5, result.getCaughtPokemon());
@@ -31,7 +32,7 @@ class RunPropertyMapperTest {
     @Test
     void toRunPropertyEntity() {
         RunProperty runProperty = new RunProperty(1);
-        runProperty.setStatus(2);
+        runProperty.setStatus(RunStatus.LOST);
         runProperty.setRoundNumber(3);
         runProperty.setDefeatedWildPokemon(4);
         runProperty.setCaughtPokemon(5);

@@ -2,6 +2,7 @@ package com.sfh.pokeRogueBot.mapper;
 
 import com.sfh.pokeRogueBot.model.RunProperty;
 import com.sfh.pokeRogueBot.model.entities.RunPropertyEntity;
+import com.sfh.pokeRogueBot.model.enums.RunStatus;
 
 public class RunPropertyMapper {
 
@@ -10,7 +11,7 @@ public class RunPropertyMapper {
 
     public static RunProperty toRunProperty(RunPropertyEntity entity){
         RunProperty runProperty = new RunProperty(entity.getRunNumber());
-        runProperty.setStatus(entity.getStatus());
+        runProperty.setStatus(RunStatus.values()[entity.getStatus()]);
         runProperty.setRoundNumber(entity.getRoundNumber());
         runProperty.setDefeatedWildPokemon(entity.getDefeatedWildPokemon());
         runProperty.setCaughtPokemon(entity.getCaughtPokemon());
@@ -22,7 +23,7 @@ public class RunPropertyMapper {
     public static RunPropertyEntity toRunPropertyEntity(RunProperty runProperty){
         RunPropertyEntity entity = new RunPropertyEntity();
         entity.setRunNumber(runProperty.getRunNumber());
-        entity.setStatus(runProperty.getStatus());
+        entity.setStatus(runProperty.getStatus().ordinal());
         entity.setRoundNumber(runProperty.getRoundNumber());
         entity.setDefeatedWildPokemon(runProperty.getDefeatedWildPokemon());
         entity.setCaughtPokemon(runProperty.getCaughtPokemon());
