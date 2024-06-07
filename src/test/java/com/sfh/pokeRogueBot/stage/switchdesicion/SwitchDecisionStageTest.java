@@ -32,7 +32,7 @@ class SwitchDecisionStageTest {
             5);
     CvService cvService = new OpenCvService(mock(ImageService.class), openCvClient);
     DecisionService decisionService = mock(DecisionService.class);
-    SwitchDecisionStage switchDecisionStage = new SwitchDecisionStage(validator);
+    SwitchDecisionStage switchDecisionStage = new SwitchDecisionStage(validator, decisionService);
 
     @BeforeAll
     static void setup(){

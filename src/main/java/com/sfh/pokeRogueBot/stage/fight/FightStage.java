@@ -25,13 +25,13 @@ public class FightStage extends BaseStage implements Stage, HasOptionalTemplates
     private final DecisionService decisionService;
     private final CvService cvService;
 
-    public static final String PATH = "./data/templates/fight/fight-screen.png";
+    public static final String PATH = "./data/templates/fight/screen.png";
     private static final boolean PERSIST_IF_FOUND = false;
     private static final boolean PERSIST_IF_NOT_FOUND = true;
 
     private static final SimpleCvTemplate switchPokemonQuestionCvTemplate = new SimpleCvTemplate(
             "fight-switch-pokemon-question",
-            "./data/templates/fight/fight-switch-pokemon-question.png",
+            "./data/templates/fight/screen.png",
             false,
             false,
             new Point(1282, 424)
@@ -59,7 +59,7 @@ public class FightStage extends BaseStage implements Stage, HasOptionalTemplates
     @Override
     public Template[] getTemplatesToValidateStage() {
         return new Template[]{
-                new SimpleCvTemplate(
+/*                new SimpleCvTemplate(
                         "fight-auswechseln-text",
                         "data/templates/fight/fight-auswechseln-text.png",
                         false,
@@ -72,7 +72,7 @@ public class FightStage extends BaseStage implements Stage, HasOptionalTemplates
                         false,
                         true,
                         new Point(43, 649)
-                ),
+                ),*/
         };
     }
 
@@ -86,14 +86,6 @@ public class FightStage extends BaseStage implements Stage, HasOptionalTemplates
     @Override
     public TemplateAction[] getTemplateActionsToPerform() {
         List<TemplateAction> actions = new LinkedList<>();
-
-        boolean isSwitchPokemonQuestion = cvService.isTemplateVisible(switchPokemonQuestionCvTemplate);
-        if(isSwitchPokemonQuestion && !decisionService.shouldSwitchPokemon()){
-            log.debug("Switch Pokemon Question is visible, but we should not switch pokemon");
-            actions.add(pressArrowDown);
-            actions.add(waitAction);
-            actions.add(pressSpace);
-        }
 
         FightDecision fightDecision = decisionService.getFightDecision();
         if(fightDecision == FightDecision.ATTACK){

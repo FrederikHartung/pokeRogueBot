@@ -3,6 +3,7 @@ package com.sfh.pokeRogueBot.stage.switchdesicion;
 import com.sfh.pokeRogueBot.model.cv.OcrPosition;
 import com.sfh.pokeRogueBot.model.cv.Point;
 import com.sfh.pokeRogueBot.model.cv.Size;
+import com.sfh.pokeRogueBot.service.DecisionService;
 import com.sfh.pokeRogueBot.stage.BaseStage;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.template.SimpleCvTemplate;
@@ -12,6 +13,9 @@ import com.sfh.pokeRogueBot.template.actions.TemplateAction;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.LinkedList;
+import java.util.List;
+
 @Slf4j
 @Component
 public class SwitchDecisionStage extends BaseStage implements Stage {
@@ -20,8 +24,11 @@ public class SwitchDecisionStage extends BaseStage implements Stage {
     private static final boolean PERSIST_IF_FOUND = false;
     private static final boolean PERSIST_IF_NOT_FOUND = false;
 
-    protected SwitchDecisionStage(TemplatePathValidator pathValidator) {
+    private final DecisionService decisionService;
+
+    protected SwitchDecisionStage(TemplatePathValidator pathValidator, DecisionService decisionService) {
         super(pathValidator, PATH);
+        this.decisionService = decisionService;
     }
 
     @Override
@@ -56,7 +63,18 @@ public class SwitchDecisionStage extends BaseStage implements Stage {
 
     @Override
     public TemplateAction[] getTemplateActionsToPerform() {
-        return new TemplateAction[0];
+        List<TemplateAction> actions = new LinkedList<>();
+
+        if(decisionService.shouldSwitchPokemon()){
+            actions.add(pressSpace); //switch pokemon
+        }
+        else{
+            actions.add(pressArrowDown); //dont switch pokemon
+            actions.add(waitAction);
+            actions.add(pressSpace);
+        }
+
+        return actions.toArray(new TemplateAction[0]);
     }
 
     @Override
