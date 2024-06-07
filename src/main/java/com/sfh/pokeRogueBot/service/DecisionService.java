@@ -27,7 +27,6 @@ public class DecisionService {
     }
 
     public FightDecision getFightDecision() {
-        FightInfo info = fightInfoService.getFightInfo();
         return FightDecision.ATTACK;
     }
 }

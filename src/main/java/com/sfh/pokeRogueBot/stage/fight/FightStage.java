@@ -96,6 +96,13 @@ public class FightStage extends BaseStage implements Stage, HasOptionalTemplates
         }
 
         FightDecision fightDecision = decisionService.getFightDecision();
+        if(fightDecision == FightDecision.ATTACK){
+            actions.add(pressSpace);
+            actions.add(waitAction);
+            actions.add(pressSpace);
+            actions.add(this.waitForStageRenderAction);
+            actions.add(this.takeScreenshotAction);
+        }
 
         return actions.toArray(new TemplateAction[0]);
     }
