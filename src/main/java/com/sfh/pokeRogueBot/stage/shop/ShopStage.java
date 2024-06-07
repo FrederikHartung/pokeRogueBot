@@ -11,7 +11,7 @@ public class ShopStage extends BaseStage implements Stage {
     private static final String PATH = "./data/templates/shop/shop-screen.png";
 
     protected ShopStage(TemplatePathValidator pathValidator, String path) {
-        super(pathValidator, path);
+        super(path);
     }
 
     @Override

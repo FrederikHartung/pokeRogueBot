@@ -1,8 +1,6 @@
 package com.sfh.pokeRogueBot.stage.mainmenu.templates;
 
 import com.sfh.pokeRogueBot.model.cv.OcrPosition;
-import com.sfh.pokeRogueBot.model.cv.Point;
-import com.sfh.pokeRogueBot.model.cv.Size;
 import com.sfh.pokeRogueBot.template.BaseOcrTemplate;
 import com.sfh.pokeRogueBot.template.OcrTemplate;
 

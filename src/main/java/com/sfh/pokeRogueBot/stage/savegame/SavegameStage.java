@@ -5,15 +5,14 @@ import com.sfh.pokeRogueBot.stage.BaseStage;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.template.SimpleCvTemplate;
 import com.sfh.pokeRogueBot.template.Template;
-import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import com.sfh.pokeRogueBot.template.actions.SimpleTemplateAction;
 import org.springframework.stereotype.Component;
 
 @Component
 public class SavegameStage extends BaseStage implements Stage {
 
-    public SavegameStage(TemplatePathValidator pathValidator) {
-        super(pathValidator, PATH);
+    public SavegameStage() {
+        super(PATH);
     }
 
     private static final String PATH = "./data/templates/savegame/savegame-screen.png";

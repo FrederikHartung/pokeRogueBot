@@ -29,8 +29,7 @@ import static org.mockito.Mockito.mock;
 
 class PokemonselectionStageCvTest {
     SingletonBeanConfig singletonBeanConfig = new SingletonBeanConfig();
-    TemplatePathValidator validator = new TemplatePathValidator();
-    PokemonselectionStage pokemonselectionStage = new PokemonselectionStage(validator);
+    PokemonselectionStage pokemonselectionStage = new PokemonselectionStage();
     OpenCvClient openCvClient = new OpenCvClient(
             singletonBeanConfig.getCvProcessingAlgorithm(),
             new CvResultFilehandler(),
@@ -67,7 +66,7 @@ class PokemonselectionStageCvTest {
     @Test
     void dont_find_any_login_stage_templates(){
         boolean persistResults = false;
-        LoginScreenStage loginScreenStage = new LoginScreenStage(validator);
+        LoginScreenStage loginScreenStage = new LoginScreenStage();
         List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(loginScreenStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {
@@ -89,7 +88,7 @@ class PokemonselectionStageCvTest {
     @Test
     void dont_find_any_intro_stage_templates(){
         boolean persistResults = false;
-        IntroStage introStage = new IntroStage(validator);
+        IntroStage introStage = new IntroStage();
         List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(introStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {
@@ -111,7 +110,7 @@ class PokemonselectionStageCvTest {
     @Test
     void dont_find_any_mainmenu_stage_templates(){
         boolean persistResults = false;
-        MainMenuStage mainMenuStage = new MainMenuStage(validator, mock(CvService.class), false, false);
+        MainMenuStage mainMenuStage = new MainMenuStage(mock(CvService.class), false, false);
         List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(mainMenuStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {
@@ -133,7 +132,7 @@ class PokemonselectionStageCvTest {
     @Test
     void dont_find_any_fight_stage_templates(){
         boolean persistResults = false;
-        FightStage fightStage = new FightStage(validator, decisionService);
+        FightStage fightStage = new FightStage(decisionService);
         List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(fightStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {

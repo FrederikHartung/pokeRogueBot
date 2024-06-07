@@ -5,8 +5,7 @@ import com.sfh.pokeRogueBot.stage.BaseStage;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.template.SimpleCvTemplate;
 import com.sfh.pokeRogueBot.template.Template;
-import com.sfh.pokeRogueBot.template.TemplatePathValidator;
-import com.sfh.pokeRogueBot.template.actions.*;
+import com.sfh.pokeRogueBot.template.actions.TemplateAction;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -14,8 +13,8 @@ public class PokemonselectionStage extends BaseStage implements Stage {
 
     private static final String PATH = "./data/templates/pokemonselection/screen.png";
 
-    public PokemonselectionStage(TemplatePathValidator pathValidator) {
-        super(pathValidator, PATH);
+    public PokemonselectionStage() {
+        super(PATH);
     }
 
 

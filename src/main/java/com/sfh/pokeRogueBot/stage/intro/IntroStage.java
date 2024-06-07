@@ -8,15 +8,14 @@ import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.stage.intro.templates.IntroScreenTextTemplate;
 import com.sfh.pokeRogueBot.template.SimpleCvTemplate;
 import com.sfh.pokeRogueBot.template.Template;
-import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
 import org.springframework.stereotype.Component;
 
 @Component
 public class IntroStage extends BaseStage implements Stage {
 
-    public IntroStage(TemplatePathValidator templatePathValidator) {
-        super(templatePathValidator, PATH);
+    public IntroStage() {
+        super(PATH);
     }
 
     public static final String PATH = "./data/templates/intro/intro-screen.png";

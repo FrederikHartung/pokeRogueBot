@@ -25,15 +25,13 @@ import static org.mockito.Mockito.mock;
 class TrainerFightStageCvTest {
 
     SingletonBeanConfig singletonBeanConfig = new SingletonBeanConfig();
-    TemplatePathValidator validator = new TemplatePathValidator();
 
     OpenCvClient openCvClient = new OpenCvClient(
             singletonBeanConfig.getCvProcessingAlgorithm(),
             new CvResultFilehandler(),
             5);
     CvService cvService = new OpenCvService(mock(ImageService.class), openCvClient);
-    DecisionService decisionService = mock(DecisionService.class);
-    TrainerFightStage trainerFightStage = new TrainerFightStage(validator);
+    TrainerFightStage trainerFightStage = new TrainerFightStage();
 
     @BeforeAll
     static void setup(){

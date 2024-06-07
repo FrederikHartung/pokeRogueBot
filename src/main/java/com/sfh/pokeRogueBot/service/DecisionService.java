@@ -1,6 +1,5 @@
 package com.sfh.pokeRogueBot.service;
 
-import com.sfh.pokeRogueBot.model.FightInfo;
 import com.sfh.pokeRogueBot.model.RunProperty;
 import com.sfh.pokeRogueBot.model.enums.FightDecision;
 import org.springframework.stereotype.Component;

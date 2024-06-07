@@ -32,7 +32,6 @@ import static org.mockito.Mockito.mock;
 class FightStageCvTest {
 
     SingletonBeanConfig singletonBeanConfig = new SingletonBeanConfig();
-    TemplatePathValidator validator = new TemplatePathValidator();
 
     OpenCvClient openCvClient = new OpenCvClient(
             singletonBeanConfig.getCvProcessingAlgorithm(),
@@ -40,7 +39,7 @@ class FightStageCvTest {
             5);
     CvService cvService = new OpenCvService(mock(ImageService.class), openCvClient);
     DecisionService decisionService = mock(DecisionService.class);
-    FightStage fightStage = new FightStage(validator, decisionService);
+    FightStage fightStage = new FightStage(decisionService);
 
     @BeforeAll
     static void setup(){
@@ -71,7 +70,7 @@ class FightStageCvTest {
     @Test
     void dont_find_any_login_stage_templates(){
         boolean persistResults = false;
-        LoginScreenStage loginScreenStage = new LoginScreenStage(validator);
+        LoginScreenStage loginScreenStage = new LoginScreenStage();
         List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(loginScreenStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {
@@ -93,7 +92,7 @@ class FightStageCvTest {
     @Test
     void dont_find_any_intro_stage_templates(){
         boolean persistResults = false;
-        IntroStage introStage = new IntroStage(validator);
+        IntroStage introStage = new IntroStage();
         List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(introStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {
@@ -115,7 +114,7 @@ class FightStageCvTest {
     @Test
     void dont_find_any_mainmenu_stage_templates(){
         boolean persistResults = false;
-        MainMenuStage mainMenuStage = new MainMenuStage(validator, mock(CvService.class), false, false);
+        MainMenuStage mainMenuStage = new MainMenuStage(mock(CvService.class), false, false);
         List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(mainMenuStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {
@@ -137,7 +136,7 @@ class FightStageCvTest {
     @Test
     void dont_find_any_monsterselection_stage_templates(){
         boolean persistResults = false;
-        PokemonselectionStage pokemonselectionStage = new PokemonselectionStage(validator);
+        PokemonselectionStage pokemonselectionStage = new PokemonselectionStage();
         List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(pokemonselectionStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {
@@ -159,7 +158,7 @@ class FightStageCvTest {
     @Test
     void dont_find_any_switchdecision_stage_templates(){
         boolean persistResults = false;
-        SwitchDecisionStage switchDecisionStage = new SwitchDecisionStage(validator, decisionService);
+        SwitchDecisionStage switchDecisionStage = new SwitchDecisionStage(decisionService);
         List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(switchDecisionStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {

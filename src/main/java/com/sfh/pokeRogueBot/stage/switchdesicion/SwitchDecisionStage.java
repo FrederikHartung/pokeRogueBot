@@ -8,7 +8,6 @@ import com.sfh.pokeRogueBot.stage.BaseStage;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.template.SimpleCvTemplate;
 import com.sfh.pokeRogueBot.template.Template;
-import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -26,8 +25,8 @@ public class SwitchDecisionStage extends BaseStage implements Stage {
 
     private final DecisionService decisionService;
 
-    public SwitchDecisionStage(TemplatePathValidator pathValidator, DecisionService decisionService) {
-        super(pathValidator, PATH);
+    public SwitchDecisionStage(DecisionService decisionService) {
+        super(PATH);
         this.decisionService = decisionService;
     }
 

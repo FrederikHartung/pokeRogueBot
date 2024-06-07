@@ -3,10 +3,8 @@ package com.sfh.pokeRogueBot.service;
 import com.sfh.pokeRogueBot.browser.ImageClient;
 import com.sfh.pokeRogueBot.config.Constants;
 import com.sfh.pokeRogueBot.model.cv.Point;
-import com.sfh.pokeRogueBot.model.cv.ScaleFactor;
 import com.sfh.pokeRogueBot.model.cv.Size;
 import com.sfh.pokeRogueBot.model.exception.ImageValidationException;
-import com.sfh.pokeRogueBot.util.ScalingUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 

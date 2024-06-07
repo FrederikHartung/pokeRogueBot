@@ -1,16 +1,12 @@
 package com.sfh.pokeRogueBot.stage.fight;
 
-import com.sfh.pokeRogueBot.model.FightInfo;
 import com.sfh.pokeRogueBot.model.cv.Point;
 import com.sfh.pokeRogueBot.model.enums.FightDecision;
-import com.sfh.pokeRogueBot.service.CvService;
 import com.sfh.pokeRogueBot.service.DecisionService;
 import com.sfh.pokeRogueBot.stage.BaseStage;
-import com.sfh.pokeRogueBot.stage.HasOptionalTemplates;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.template.SimpleCvTemplate;
 import com.sfh.pokeRogueBot.template.Template;
-import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -28,9 +24,8 @@ public class FightStage extends BaseStage implements Stage {
     private static final boolean PERSIST_IF_FOUND = false;
     private static final boolean PERSIST_IF_NOT_FOUND = true;
 
-    public FightStage(TemplatePathValidator templatePathValidator,
-                      DecisionService decisionService) {
-        super(templatePathValidator, PATH);
+    public FightStage(DecisionService decisionService) {
+        super(PATH);
         this.decisionService = decisionService;
     }
 

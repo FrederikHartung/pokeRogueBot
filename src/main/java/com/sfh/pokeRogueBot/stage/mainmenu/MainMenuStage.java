@@ -13,8 +13,7 @@ import com.sfh.pokeRogueBot.stage.mainmenu.templates.ContinueCvTemplate;
 import com.sfh.pokeRogueBot.stage.mainmenu.templates.MainmenuCvTemplate;
 import com.sfh.pokeRogueBot.stage.mainmenu.templates.MainmenuOcrTemplate;
 import com.sfh.pokeRogueBot.template.Template;
-import com.sfh.pokeRogueBot.template.TemplatePathValidator;
-import com.sfh.pokeRogueBot.template.actions.*;
+import com.sfh.pokeRogueBot.template.actions.TemplateAction;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -34,11 +33,11 @@ public class MainMenuStage extends BaseStage implements Stage, HasOptionalTempla
     private final boolean persistIfFound = false;
     private final boolean persistIfNotFound = false;
 
-    public MainMenuStage(TemplatePathValidator templatePathValidator,
+    public MainMenuStage(
                          CvService cvService,
                          @Value("${stage.mainmenu.updateGameSettings}") boolean updateGameSettings,
                          @Value("${stage.mainmenu.startRun}") boolean startRun) {
-        super(templatePathValidator, PATH);
+        super(PATH);
         this.updateGameSettings = updateGameSettings;
         this.cvService = cvService;
         this.startRun = startRun;

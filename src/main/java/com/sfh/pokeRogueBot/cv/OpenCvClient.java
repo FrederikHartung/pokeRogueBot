@@ -8,7 +8,6 @@ import com.sfh.pokeRogueBot.model.cv.CvResult;
 import com.sfh.pokeRogueBot.model.enums.CvFilterType;
 import com.sfh.pokeRogueBot.template.CvTemplate;
 import lombok.extern.slf4j.Slf4j;
-import org.opencv.core.Point;
 import org.opencv.core.*;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;

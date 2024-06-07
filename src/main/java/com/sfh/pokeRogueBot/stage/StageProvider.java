@@ -7,16 +7,18 @@ import com.sfh.pokeRogueBot.stage.mainmenu.MainMenuStage;
 import com.sfh.pokeRogueBot.stage.pokemonselection.PokemonselectionStage;
 import com.sfh.pokeRogueBot.stage.switchdesicion.SwitchDecisionStage;
 import com.sfh.pokeRogueBot.stage.trainerfight.TrainerFightStage;
+import com.sfh.pokeRogueBot.template.Template;
 import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import lombok.Getter;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.LinkedList;
+import java.util.List;
 
 @Getter
 @Component
 public class StageProvider {
 
-    private final TemplatePathValidator templatePathValidator;
     private final LoginScreenStage loginScreenStage;
     private final IntroStage introStage;
     private final MainMenuStage mainMenuStage;
@@ -26,7 +28,6 @@ public class StageProvider {
     private final FightStage fightStage;
 
     public StageProvider(TemplatePathValidator templatePathValidator, LoginScreenStage loginScreenStage, IntroStage introStage, MainMenuStage mainMenuStage, PokemonselectionStage pokemonselectionStage, SwitchDecisionStage switchDecisionStage, TrainerFightStage trainerFightStage, FightStage fightStage) {
-        this.templatePathValidator = templatePathValidator;
         this.loginScreenStage = loginScreenStage;
         this.introStage = introStage;
         this.mainMenuStage = mainMenuStage;
@@ -34,5 +35,25 @@ public class StageProvider {
         this.switchDecisionStage = switchDecisionStage;
         this.trainerFightStage = trainerFightStage;
         this.fightStage = fightStage;
+
+        List<Stage> stages = new LinkedList<>();
+        stages.add(loginScreenStage);
+        stages.add(introStage);
+        stages.add(mainMenuStage);
+        stages.add(pokemonselectionStage);
+        stages.add(switchDecisionStage);
+        stages.add(trainerFightStage);
+        stages.add(fightStage);
+
+        for(Stage stage: stages) {
+            for(Template template : stage.getTemplatesToValidateStage()) {
+                templatePathValidator.addPath(template.getTemplatePath());
+            }
+            if(this instanceof HasOptionalTemplates optionalTemplates) {
+                for(Template template : optionalTemplates.getOptionalTemplatesToAnalyseStage()) {
+                    templatePathValidator.addPath(template.getTemplatePath());
+                }
+            }
+        }
     }
 }

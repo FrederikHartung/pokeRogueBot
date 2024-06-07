@@ -25,7 +25,6 @@ import static org.mockito.Mockito.mock;
 class SwitchDecisionStageCvTest {
 
     SingletonBeanConfig singletonBeanConfig = new SingletonBeanConfig();
-    TemplatePathValidator validator = new TemplatePathValidator();
 
     OpenCvClient openCvClient = new OpenCvClient(
             singletonBeanConfig.getCvProcessingAlgorithm(),
@@ -33,7 +32,7 @@ class SwitchDecisionStageCvTest {
             5);
     CvService cvService = new OpenCvService(mock(ImageService.class), openCvClient);
     DecisionService decisionService = mock(DecisionService.class);
-    SwitchDecisionStage switchDecisionStage = new SwitchDecisionStage(validator, decisionService);
+    SwitchDecisionStage switchDecisionStage = new SwitchDecisionStage(decisionService);
 
     @BeforeAll
     static void setup(){
@@ -64,7 +63,7 @@ class SwitchDecisionStageCvTest {
     @Test
     void dont_find_any_fight_stage_templates(){
         boolean persistResults = false;
-        FightStage fightStage = new FightStage(validator, decisionService);
+        FightStage fightStage = new FightStage(decisionService);
         List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(fightStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {

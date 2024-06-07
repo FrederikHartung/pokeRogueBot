@@ -5,7 +5,6 @@ import com.sfh.pokeRogueBot.stage.BaseStage;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.template.SimpleCvTemplate;
 import com.sfh.pokeRogueBot.template.Template;
-import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -22,8 +21,8 @@ public class TrainerFightStage extends BaseStage implements Stage {
     private final boolean persistIfFound = false;
     private final boolean persistIfNotFound = false;
 
-    protected TrainerFightStage(TemplatePathValidator pathValidator) {
-        super(pathValidator, PATH);
+    protected TrainerFightStage() {
+        super(PATH);
     }
 
     @Override
