@@ -2,7 +2,9 @@ package com.sfh.pokeRogueBot.stage.mainmenu;
 
 import com.sfh.pokeRogueBot.config.GameSettingConstants;
 import com.sfh.pokeRogueBot.model.GameSettingProperty;
+import com.sfh.pokeRogueBot.model.cv.OcrPosition;
 import com.sfh.pokeRogueBot.model.cv.Point;
+import com.sfh.pokeRogueBot.model.cv.Size;
 import com.sfh.pokeRogueBot.service.CvService;
 import com.sfh.pokeRogueBot.stage.BaseStage;
 import com.sfh.pokeRogueBot.stage.HasOptionalTemplates;
@@ -46,7 +48,14 @@ public class MainMenuStage extends BaseStage implements Stage, HasOptionalTempla
     public Template[] getTemplatesToValidateStage() {
         return new Template[]{
                 new MainmenuCvTemplate(false, false),
-                new MainmenuOcrTemplate(),
+                new MainmenuOcrTemplate(
+                        "./data/templates/mainmenu/mainmenu-cvtemplate.png",
+                        new OcrPosition(
+                                new Point(927, 484),
+                                new Size(512, 312)),
+                        0.7,
+                        false
+                ),
         };
     }
 

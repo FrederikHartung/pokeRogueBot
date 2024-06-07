@@ -46,10 +46,12 @@ public class IntroStage extends BaseStage implements Stage {
                         new Point(11, 615)
                 ),
                 new IntroScreenTextTemplate(
+                        "./data/templates/intro/intro-text.png",
                         new OcrPosition(
                                 new Point(11, 615),
                                 new Size(1360, 200)
                         ),
+                        0.7,
                         false
                 )
         };

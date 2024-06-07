@@ -40,8 +40,8 @@ Only refactor, when it's really necessary.
 - [x] handle the reaction of the opponent
 - [x] attack till the first opponent is beaten
 - [x] handle the start of the second fight
-- [ ] handle switching of the pokemon if one is down
 - [ ] handle shop
+- [ ] handle switching of the pokemon if one is down
 - [ ] notice if the enemy is a wild pokemon or a trainer
 - [ ] catch one pokemon
 - [ ] press c for starts

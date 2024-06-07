@@ -35,13 +35,20 @@ public class SimpleFightConfig implements Config {
         RunProperty runProperty = runPropertyService.getRunProperty();
         runProperty.setStatus(0);
         runPropertyService.save(runProperty);
-        while (runProperty.getStatus() == 0) {
-            if(isFightStageVisible())
-            stageProcessor.handleStage(fightStage);
-        }
+        startWaveFightingMode(runProperty);
+
 
         log.info("Fight stage is done, status: " + runProperty.getStatus());
         runPropertyService.save(runProperty);
+    }
+
+    private void startWaveFightingMode(RunProperty runProperty) throws Exception {
+        while (runProperty.getStatus() == 0) {
+            if(isFightStageVisible()){
+                stageProcessor.handleStage(fightStage);
+            }
+
+        }
     }
 
     private boolean isFightStageVisible() throws Exception {
