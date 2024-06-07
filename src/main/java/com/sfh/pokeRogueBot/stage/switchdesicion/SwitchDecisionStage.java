@@ -26,7 +26,7 @@ public class SwitchDecisionStage extends BaseStage implements Stage {
 
     private final DecisionService decisionService;
 
-    protected SwitchDecisionStage(TemplatePathValidator pathValidator, DecisionService decisionService) {
+    public SwitchDecisionStage(TemplatePathValidator pathValidator, DecisionService decisionService) {
         super(pathValidator, PATH);
         this.decisionService = decisionService;
     }
@@ -69,7 +69,7 @@ public class SwitchDecisionStage extends BaseStage implements Stage {
             actions.add(pressSpace); //switch pokemon
         }
         else{
-            actions.add(pressArrowDown); //dont switch pokemon
+            actions.add(pressArrowDown); //don't switch pokemon
             actions.add(waitAction);
             actions.add(pressSpace);
         }

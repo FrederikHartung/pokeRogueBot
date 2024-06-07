@@ -45,7 +45,7 @@ class IntroStageCvTest {
 
     @Test
     void find_all_templates(){
-        boolean persistResults = true;
+        boolean persistResults = false;
         List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(introStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {
@@ -133,7 +133,7 @@ class IntroStageCvTest {
     @Test
     void dont_find_any_fight_stage_templates(){
         boolean persistResults = false;
-        FightStage fightStage = new FightStage(validator, decisionService, cvService);
+        FightStage fightStage = new FightStage(validator, decisionService);
         List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(fightStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {

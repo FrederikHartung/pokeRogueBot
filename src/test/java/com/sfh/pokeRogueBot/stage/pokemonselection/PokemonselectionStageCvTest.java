@@ -133,7 +133,7 @@ class PokemonselectionStageCvTest {
     @Test
     void dont_find_any_fight_stage_templates(){
         boolean persistResults = false;
-        FightStage fightStage = new FightStage(validator, decisionService, cvService);
+        FightStage fightStage = new FightStage(validator, decisionService);
         List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(fightStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {

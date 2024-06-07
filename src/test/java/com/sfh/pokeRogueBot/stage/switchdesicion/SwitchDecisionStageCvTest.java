@@ -9,6 +9,7 @@ import com.sfh.pokeRogueBot.service.CvService;
 import com.sfh.pokeRogueBot.service.DecisionService;
 import com.sfh.pokeRogueBot.service.ImageService;
 import com.sfh.pokeRogueBot.service.OpenCvService;
+import com.sfh.pokeRogueBot.stage.fight.FightStage;
 import com.sfh.pokeRogueBot.template.CvTemplate;
 import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import com.sfh.pokeRogueBot.template.TemplateUtils;
@@ -21,7 +22,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
-class SwitchDecisionStageTest {
+class SwitchDecisionStageCvTest {
 
     SingletonBeanConfig singletonBeanConfig = new SingletonBeanConfig();
     TemplatePathValidator validator = new TemplatePathValidator();
@@ -42,7 +43,7 @@ class SwitchDecisionStageTest {
 
     @Test
     void find_all_templates(){
-        boolean persistResults = true;
+        boolean persistResults = false;
         List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(switchDecisionStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {
@@ -52,6 +53,28 @@ class SwitchDecisionStageTest {
                 BufferedImage canvas = TestImageService.getCanvas(switchDecisionStage.getTemplatePath());
                 BufferedImage template = TestImageService.getTemplate(cvTemplate.getTemplatePath());
                 assertNotNull(cvService.findTemplate(cvTemplate, canvas, template));
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                fail("Error checking template: " + cvTemplate.getFilenamePrefix());
+            }
+        }
+    }
+
+    @Test
+    void dont_find_any_fight_stage_templates(){
+        boolean persistResults = false;
+        FightStage fightStage = new FightStage(validator, decisionService);
+        List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(fightStage);
+
+        for (CvTemplate cvTemplate : cvTemplates) {
+            //persist results for debugging
+            cvTemplate.setPersistResultOnSuccess(persistResults);
+            cvTemplate.setPersistResultOnError(persistResults);
+            try{
+                BufferedImage canvas = TestImageService.getCanvas(switchDecisionStage.getTemplatePath());
+                BufferedImage template = TestImageService.getTemplate(cvTemplate.getTemplatePath());
+                assertNull(cvService.findTemplate(cvTemplate, canvas, template));
             }
             catch (Exception e) {
                 e.printStackTrace();

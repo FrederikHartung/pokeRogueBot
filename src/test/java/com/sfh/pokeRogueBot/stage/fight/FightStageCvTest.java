@@ -14,6 +14,7 @@ import com.sfh.pokeRogueBot.stage.intro.IntroStage;
 import com.sfh.pokeRogueBot.stage.login.LoginScreenStage;
 import com.sfh.pokeRogueBot.stage.mainmenu.MainMenuStage;
 import com.sfh.pokeRogueBot.stage.pokemonselection.PokemonselectionStage;
+import com.sfh.pokeRogueBot.stage.switchdesicion.SwitchDecisionStage;
 import com.sfh.pokeRogueBot.template.CvTemplate;
 import com.sfh.pokeRogueBot.template.Template;
 import com.sfh.pokeRogueBot.template.TemplatePathValidator;
@@ -39,7 +40,7 @@ class FightStageCvTest {
             5);
     CvService cvService = new OpenCvService(mock(ImageService.class), openCvClient);
     DecisionService decisionService = mock(DecisionService.class);
-    FightStage fightStage = new FightStage(validator, decisionService, cvService);
+    FightStage fightStage = new FightStage(validator, decisionService);
 
     @BeforeAll
     static void setup(){
@@ -138,6 +139,28 @@ class FightStageCvTest {
         boolean persistResults = false;
         PokemonselectionStage pokemonselectionStage = new PokemonselectionStage(validator);
         List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(pokemonselectionStage);
+
+        for (CvTemplate cvTemplate : cvTemplates) {
+            //persist results for debugging
+            cvTemplate.setPersistResultOnSuccess(persistResults);
+            cvTemplate.setPersistResultOnError(persistResults);
+            try{
+                BufferedImage canvas = TestImageService.getCanvas(fightStage.getTemplatePath());
+                BufferedImage template = TestImageService.getTemplate(cvTemplate.getTemplatePath());
+                assertNull(cvService.findTemplate(cvTemplate, canvas, template));
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                fail("Error checking template: " + cvTemplate.getFilenamePrefix());
+            }
+        }
+    }
+
+    @Test
+    void dont_find_any_switchdecision_stage_templates(){
+        boolean persistResults = false;
+        SwitchDecisionStage switchDecisionStage = new SwitchDecisionStage(validator, decisionService);
+        List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(switchDecisionStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {
             //persist results for debugging

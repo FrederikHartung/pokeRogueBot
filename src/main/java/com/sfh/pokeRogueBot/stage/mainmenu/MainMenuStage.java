@@ -31,6 +31,9 @@ public class MainMenuStage extends BaseStage implements Stage, HasOptionalTempla
     private final boolean updateGameSettings;
     private final boolean startRun;
 
+    private final boolean persistIfFound = false;
+    private final boolean persistIfNotFound = false;
+
     public MainMenuStage(TemplatePathValidator templatePathValidator,
                          CvService cvService,
                          @Value("${stage.mainmenu.updateGameSettings}") boolean updateGameSettings,
@@ -66,12 +69,12 @@ public class MainMenuStage extends BaseStage implements Stage, HasOptionalTempla
 
     @Override
     public boolean getPersistIfFound() {
-        return false;
+        return persistIfFound;
     }
 
     @Override
     public boolean getPersistIfNotFound() {
-        return false;
+        return persistIfNotFound;
     }
 
     public List<TemplateAction> buildGameSettingsToActions(GameSettingProperty[] gameSettingProperties){

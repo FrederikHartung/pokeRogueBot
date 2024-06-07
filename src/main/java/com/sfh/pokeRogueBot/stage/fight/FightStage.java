@@ -20,29 +20,18 @@ import java.util.List;
 
 @Slf4j
 @Component
-public class FightStage extends BaseStage implements Stage, HasOptionalTemplates {
+public class FightStage extends BaseStage implements Stage {
 
     private final DecisionService decisionService;
-    private final CvService cvService;
 
     public static final String PATH = "./data/templates/fight/screen.png";
     private static final boolean PERSIST_IF_FOUND = false;
     private static final boolean PERSIST_IF_NOT_FOUND = true;
 
-    private static final SimpleCvTemplate switchPokemonQuestionCvTemplate = new SimpleCvTemplate(
-            "fight-switch-pokemon-question",
-            "./data/templates/fight/screen.png",
-            false,
-            false,
-            new Point(1282, 424)
-    );
-
     public FightStage(TemplatePathValidator templatePathValidator,
-                      DecisionService decisionService,
-                      CvService cvService) {
+                      DecisionService decisionService) {
         super(templatePathValidator, PATH);
         this.decisionService = decisionService;
-        this.cvService = cvService;
     }
 
 
@@ -59,27 +48,24 @@ public class FightStage extends BaseStage implements Stage, HasOptionalTemplates
     @Override
     public Template[] getTemplatesToValidateStage() {
         return new Template[]{
-/*                new SimpleCvTemplate(
-                        "fight-auswechseln-text",
-                        "data/templates/fight/fight-auswechseln-text.png",
-                        false,
-                        true,
-                        new Point(258, 728)
-                ),
                 new SimpleCvTemplate(
                         "fight-first-word-text",
-                        "data/templates/fight/fight-first-word-text.png",
+                        "./data/templates/fight/fight-first-word-text.png",
                         false,
-                        true,
-                        new Point(43, 649)
-                ),*/
-        };
-    }
-
-    @Override
-    public Template[] getOptionalTemplatesToAnalyseStage() {
-        return new Template[]{
-                switchPokemonQuestionCvTemplate
+                        false,
+                        new Point(31, 646)),
+                new SimpleCvTemplate(
+                        "fight-second-word-text",
+                        "./data/templates/fight/fight-second-word-text.png",
+                        false,
+                        false,
+                        new Point(237, 717)),
+                new SimpleCvTemplate(
+                        "fight-options",
+                        "./data/templates/fight/fight-options.png",
+                        false,
+                        false,
+                        new Point(991, 653)),
         };
     }
 

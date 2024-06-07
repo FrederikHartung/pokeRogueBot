@@ -27,37 +27,28 @@ public class SimpleFightConfig implements Config {
     @Override
     public void applay() throws Exception {
 
-        if(!isFightStageVisible()) {
-            log.info("Fight stage is not visible, skipping");
-            return;
-        }
-
         RunProperty runProperty = runPropertyService.getRunProperty();
         runProperty.setStatus(0);
         runPropertyService.save(runProperty);
         startWaveFightingMode(runProperty);
 
 
-        log.info("Fight stage is done, status: " + runProperty.getStatus());
+        log.info("finished run, status: " + runProperty.getStatus());
         runPropertyService.save(runProperty);
     }
 
     private void startWaveFightingMode(RunProperty runProperty) throws Exception {
         while (runProperty.getStatus() == 0) {
-            if(isFightStageVisible()){
-                stageProcessor.handleStage(fightStage);
+
+            boolean isSwi
+
+            boolean isFightStageVisible = stageIdentifier.isStageVisible(fightStage);
+            if (isFightStageVisible) {
+                log.debug("Fight stage is visible");
+            } else {
+                log.debug("Fight stage is not visible");
             }
 
         }
-    }
-
-    private boolean isFightStageVisible() throws Exception {
-        boolean isFightStageVisible = stageIdentifier.isStageVisible(fightStage);
-        if (isFightStageVisible) {
-            log.debug("Fight stage is visible");
-        } else {
-            log.debug("Fight stage is not visible");
-        }
-        return isFightStageVisible;
     }
 }
