@@ -1,12 +1,12 @@
 package com.sfh.pokeRogueBot.browser;
 
 import com.sfh.pokeRogueBot.config.Constants;
+import com.sfh.pokeRogueBot.model.cv.Point;
 import com.sfh.pokeRogueBot.model.cv.ScaleFactor;
 import com.sfh.pokeRogueBot.model.cv.Size;
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.util.ScalingUtils;
-import com.sfh.pokeRogueBot.model.cv.Point;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;

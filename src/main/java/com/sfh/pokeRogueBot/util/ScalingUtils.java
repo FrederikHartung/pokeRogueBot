@@ -3,12 +3,8 @@ package com.sfh.pokeRogueBot.util;
 import com.sfh.pokeRogueBot.config.Constants;
 import com.sfh.pokeRogueBot.model.cv.ScaleFactor;
 import com.sfh.pokeRogueBot.model.cv.Size;
-import org.openqa.selenium.OutputType;
-import org.openqa.selenium.WebElement;
 
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
 
 @Deprecated
 public class ScalingUtils {
