@@ -2,6 +2,7 @@ package com.sfh.pokeRogueBot.stage;
 
 import com.sfh.pokeRogueBot.browser.BrowserClient;
 import com.sfh.pokeRogueBot.browser.ChromeBrowserClient;
+import com.sfh.pokeRogueBot.config.WaitConfig;
 import com.sfh.pokeRogueBot.filehandler.ScreenshotFilehandler;
 import com.sfh.pokeRogueBot.model.cv.CvResult;
 import com.sfh.pokeRogueBot.model.cv.Point;
@@ -10,6 +11,13 @@ import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.service.CvService;
 import com.sfh.pokeRogueBot.service.ImageService;
 import com.sfh.pokeRogueBot.service.OcrService;
+import com.sfh.pokeRogueBot.stage.fight.FightStage;
+import com.sfh.pokeRogueBot.stage.intro.IntroStage;
+import com.sfh.pokeRogueBot.stage.login.LoginScreenStage;
+import com.sfh.pokeRogueBot.stage.mainmenu.MainMenuStage;
+import com.sfh.pokeRogueBot.stage.pokemonselection.PokemonselectionStage;
+import com.sfh.pokeRogueBot.stage.switchdesicion.SwitchDecisionStage;
+import com.sfh.pokeRogueBot.stage.trainerfight.TrainerFightStage;
 import com.sfh.pokeRogueBot.template.CvTemplate;
 import com.sfh.pokeRogueBot.template.HtmlTemplate;
 import com.sfh.pokeRogueBot.template.OcrTemplate;
@@ -40,12 +48,14 @@ public class StageProcessor {
     private final ImageService imageService;
     private final OcrService ocrService;
     private final CvService cvService;
+    private final WaitConfig waitConfig;
 
     public StageProcessor(
             ChromeBrowserClient chromeBrowserClient,
             ImageService imageService,
             OcrService ocrService,
             CvService cvService,
+            WaitConfig waitConfig,
             @Value("${stage-processor.waitTimeAfterAction}") int waitTimeAfterAction,
             @Value("${stage-processor.waitTimeForRenderingText}") int waitTimeForRenderingText,
             @Value("${stage-processor.waitTimeForRenderingStages}") int waitTimeForRenderingStages){
@@ -53,6 +63,7 @@ public class StageProcessor {
         this.waitTimeForRendering = waitTimeForRenderingStages;
         this.waitTimeAfterAction = waitTimeAfterAction;
         this.waitTimeForRenderingText = waitTimeForRenderingText;
+        this.waitConfig = waitConfig;
 
         this.browserClient = chromeBrowserClient;
         this.imageService = imageService;
@@ -204,6 +215,38 @@ public class StageProcessor {
             persistScreenshot(imageService.takeScreenshot(fileNamePrefix), fileNamePrefix);
         } catch (Exception e) {
             log.error("Error while taking screenshot of canvas", e);
+        }
+    }
+
+    private int calcWaitTime(int waitTime){
+        return Math.round((float)waitTime / waitConfig.getGameSpeedModificator());
+    }
+
+    public int getWaitTimeForStage(Stage stage){
+        if(stage instanceof LoginScreenStage){
+            return calcWaitTime(waitConfig.getLoginStageWaitTime());
+        }
+        else if(stage instanceof IntroStage){
+            return calcWaitTime(waitConfig.getIntroStageWaitTime());
+        }
+        else if(stage instanceof MainMenuStage){
+            return calcWaitTime(waitConfig.getMainmenuStageWaitTime());
+        }
+        else if(stage instanceof PokemonselectionStage){
+            return calcWaitTime(waitConfig.getPokemonSelectionStageWaitTime());
+        }
+        else if(stage instanceof FightStage){
+            return calcWaitTime(waitConfig.getFightStageWaitTime());
+        }
+        else if(stage instanceof TrainerFightStage){
+            return calcWaitTime(waitConfig.getTrainerFightStageWaitTime());
+        }
+        else if(stage instanceof SwitchDecisionStage){
+            return calcWaitTime(waitConfig.getSwitchDecisionStageWaitTime());
+        }
+        else{
+            log.warn("Unknown stage: " + stage);
+            return calcWaitTime(waitConfig.getDefaultWaitTime());
         }
     }
 }

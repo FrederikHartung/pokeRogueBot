@@ -9,7 +9,7 @@ public class SwitchPokemonStage extends BaseStage implements Stage {
 
     private static final String PATH = "";
 
-    protected SwitchPokemonStage(String path) {
+    protected SwitchPokemonStage() {
         super(PATH);
     }
 

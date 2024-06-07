@@ -4,7 +4,6 @@ import com.sfh.pokeRogueBot.model.GameSettingProperty;
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.model.enums.TemplateActionType;
 import com.sfh.pokeRogueBot.service.CvService;
-import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import com.sfh.pokeRogueBot.template.actions.PressKeyAction;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
 import com.sfh.pokeRogueBot.template.actions.WaitAction;
@@ -15,14 +14,12 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 
 class MainMenuStageTest {
 
     CvService cvService;
     MainMenuStage mainMenuStage;
-
 
     @BeforeEach
     void setUp() {

@@ -2,7 +2,6 @@ package com.sfh.pokeRogueBot.stage;
 
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.template.actions.*;
-import org.springframework.beans.factory.annotation.Qualifier;
 
 public abstract class BaseStage implements Stage {
 
@@ -19,7 +18,7 @@ public abstract class BaseStage implements Stage {
     protected final WaitForStageRenderAction waitForStageRenderAction = new WaitForStageRenderAction();
     protected final TakeScreenshotAction takeScreenshotAction = new TakeScreenshotAction(this);
 
-    protected BaseStage( @Qualifier(value = "baseStagePathBean") String path) {
+    protected BaseStage(String path) {
         this.path = path;
     }
 

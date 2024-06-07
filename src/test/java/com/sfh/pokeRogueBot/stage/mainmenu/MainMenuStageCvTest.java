@@ -14,8 +14,6 @@ import com.sfh.pokeRogueBot.stage.intro.IntroStage;
 import com.sfh.pokeRogueBot.stage.login.LoginScreenStage;
 import com.sfh.pokeRogueBot.stage.pokemonselection.PokemonselectionStage;
 import com.sfh.pokeRogueBot.template.CvTemplate;
-import com.sfh.pokeRogueBot.template.Template;
-import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import com.sfh.pokeRogueBot.template.TemplateUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -58,8 +56,7 @@ class MainMenuStageCvTest {
                 assertNotNull(cvService.findTemplate(cvTemplate, canvas, template));
             }
             catch (Exception e) {
-                e.printStackTrace();
-                fail("Error checking template: " + cvTemplate.getFilenamePrefix());
+                fail("Error checking template: " + cvTemplate.getFilenamePrefix(), e);
             }
         }
     }
@@ -80,8 +77,7 @@ class MainMenuStageCvTest {
                 assertNull(cvService.findTemplate(cvTemplate, canvas, template));
             }
             catch (Exception e) {
-                e.printStackTrace();
-                fail("Error checking template: " + cvTemplate.getFilenamePrefix());
+                fail("Error checking template: " + cvTemplate.getFilenamePrefix(), e);
             }
         }
     }
@@ -102,8 +98,7 @@ class MainMenuStageCvTest {
                 assertNull(cvService.findTemplate(cvTemplate, canvas, template));
             }
             catch (Exception e) {
-                e.printStackTrace();
-                fail("Error checking template: " + cvTemplate.getFilenamePrefix());
+                fail("Error checking template: " + cvTemplate.getFilenamePrefix(), e);
             }
         }
     }
@@ -124,8 +119,7 @@ class MainMenuStageCvTest {
                 assertNull(cvService.findTemplate(cvTemplate, canvas, template));
             }
             catch (Exception e) {
-                e.printStackTrace();
-                fail("Error checking template: " + cvTemplate.getFilenamePrefix());
+                fail("Error checking template: " + cvTemplate.getFilenamePrefix(), e);
             }
         }
     }
@@ -146,8 +140,7 @@ class MainMenuStageCvTest {
                 assertNull(cvService.findTemplate(cvTemplate, canvas, template));
             }
             catch (Exception e) {
-                e.printStackTrace();
-                fail("Error checking template: " + cvTemplate.getFilenamePrefix());
+                fail("Error checking template: " + cvTemplate.getFilenamePrefix(), e);
             }
         }
     }

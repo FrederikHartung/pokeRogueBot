@@ -6,12 +6,9 @@ import com.sfh.pokeRogueBot.cv.OpenCvClient;
 import com.sfh.pokeRogueBot.filehandler.CvResultFilehandler;
 import com.sfh.pokeRogueBot.filehandler.TempFileManager;
 import com.sfh.pokeRogueBot.service.CvService;
-import com.sfh.pokeRogueBot.service.DecisionService;
 import com.sfh.pokeRogueBot.service.ImageService;
 import com.sfh.pokeRogueBot.service.OpenCvService;
-import com.sfh.pokeRogueBot.stage.fight.FightStage;
 import com.sfh.pokeRogueBot.template.CvTemplate;
-import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import com.sfh.pokeRogueBot.template.TemplateUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -19,7 +16,8 @@ import org.junit.jupiter.api.Test;
 import java.awt.image.BufferedImage;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 
 class TrainerFightStageCvTest {
@@ -53,8 +51,7 @@ class TrainerFightStageCvTest {
                 assertNotNull(cvService.findTemplate(cvTemplate, canvas, template));
             }
             catch (Exception e) {
-                e.printStackTrace();
-                fail("Error checking template: " + cvTemplate.getFilenamePrefix());
+                fail("Error checking template: " + cvTemplate.getFilenamePrefix(), e);
             }
         }
     }

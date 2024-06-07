@@ -3,10 +3,9 @@ package com.sfh.pokeRogueBot.mapper;
 import com.sfh.pokeRogueBot.model.RunProperty;
 import com.sfh.pokeRogueBot.model.entities.RunPropertyEntity;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class RunPropertyMapperTest {
 

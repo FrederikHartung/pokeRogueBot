@@ -3,15 +3,14 @@ package com.sfh.pokeRogueBot.stage.shop;
 import com.sfh.pokeRogueBot.stage.BaseStage;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.template.Template;
-import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
 
 public class ShopStage extends BaseStage implements Stage {
 
     private static final String PATH = "./data/templates/shop/shop-screen.png";
 
-    protected ShopStage(TemplatePathValidator pathValidator, String path) {
-        super(path);
+    protected ShopStage() {
+        super(PATH);
     }
 
     @Override

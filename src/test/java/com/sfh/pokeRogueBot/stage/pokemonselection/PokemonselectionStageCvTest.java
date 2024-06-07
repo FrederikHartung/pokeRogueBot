@@ -14,8 +14,6 @@ import com.sfh.pokeRogueBot.stage.intro.IntroStage;
 import com.sfh.pokeRogueBot.stage.login.LoginScreenStage;
 import com.sfh.pokeRogueBot.stage.mainmenu.MainMenuStage;
 import com.sfh.pokeRogueBot.template.CvTemplate;
-import com.sfh.pokeRogueBot.template.Template;
-import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import com.sfh.pokeRogueBot.template.TemplateUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -24,7 +22,6 @@ import java.awt.image.BufferedImage;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 
 class PokemonselectionStageCvTest {
@@ -57,8 +54,7 @@ class PokemonselectionStageCvTest {
                 assertNotNull(cvService.findTemplate(cvTemplate, canvas, template));
             }
             catch (Exception e) {
-                e.printStackTrace();
-                fail("Error checking template: " + cvTemplate.getFilenamePrefix());
+                fail("Error checking template: " + cvTemplate.getFilenamePrefix(), e);
             }
         }
     }
@@ -79,8 +75,7 @@ class PokemonselectionStageCvTest {
                 assertNull(cvService.findTemplate(cvTemplate, canvas, template));
             }
             catch (Exception e) {
-                e.printStackTrace();
-                fail("Error checking template: " + cvTemplate.getFilenamePrefix());
+                fail("Error checking template: " + cvTemplate.getFilenamePrefix(), e);
             }
         }
     }
@@ -101,8 +96,7 @@ class PokemonselectionStageCvTest {
                 assertNull(cvService.findTemplate(cvTemplate, canvas, template));
             }
             catch (Exception e) {
-                e.printStackTrace();
-                fail("Error checking template: " + cvTemplate.getFilenamePrefix());
+                fail("Error checking template: " + cvTemplate.getFilenamePrefix(), e);
             }
         }
     }
@@ -123,8 +117,7 @@ class PokemonselectionStageCvTest {
                 assertNull(cvService.findTemplate(cvTemplate, canvas, template));
             }
             catch (Exception e) {
-                e.printStackTrace();
-                fail("Error checking template: " + cvTemplate.getFilenamePrefix());
+                fail("Error checking template: " + cvTemplate.getFilenamePrefix(), e);
             }
         }
     }
@@ -145,8 +138,7 @@ class PokemonselectionStageCvTest {
                 assertNull(cvService.findTemplate(cvTemplate, canvas, template));
             }
             catch (Exception e) {
-                e.printStackTrace();
-                fail("Error checking template: " + cvTemplate.getFilenamePrefix());
+                fail("Error checking template: " + cvTemplate.getFilenamePrefix(), e);
             }
         }
     }

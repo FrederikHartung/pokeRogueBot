@@ -42,10 +42,24 @@ stage-identifier:
   waitTimeForRetryMS: 2000
   waitTimeForHtmlElements: 5000
 
+wait-time-after-handling-stage:
+  defaultWaitTime: 2000
+  gameSpeedModificator: 1
+  loginStageWaitTime: 2000
+  introStageWaitTime: 2000
+  mainmenuStageWaitTime: 2000
+  pokemonSelectionStageWaitTime: 2000
+  enemyFaintedStageWaitTime: 2000
+  fightStageWaitTime: 2000
+  savegameStageWaitTime: 2000
+  shopStageWaitTime: 2000
+  switchDecisionStageWaitTime: 2000
+  trainerFightStageWaitTime: 2000
+
 stage:
   mainmenu:
     updateGameSettings: false
-    startRun: true
+    startRun: false
 
 handler:
   login:

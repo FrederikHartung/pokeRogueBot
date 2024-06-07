@@ -9,15 +9,12 @@ import com.sfh.pokeRogueBot.service.CvService;
 import com.sfh.pokeRogueBot.service.DecisionService;
 import com.sfh.pokeRogueBot.service.ImageService;
 import com.sfh.pokeRogueBot.service.OpenCvService;
-import com.sfh.pokeRogueBot.stage.HasOptionalTemplates;
 import com.sfh.pokeRogueBot.stage.intro.IntroStage;
 import com.sfh.pokeRogueBot.stage.login.LoginScreenStage;
 import com.sfh.pokeRogueBot.stage.mainmenu.MainMenuStage;
 import com.sfh.pokeRogueBot.stage.pokemonselection.PokemonselectionStage;
 import com.sfh.pokeRogueBot.stage.switchdesicion.SwitchDecisionStage;
 import com.sfh.pokeRogueBot.template.CvTemplate;
-import com.sfh.pokeRogueBot.template.Template;
-import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import com.sfh.pokeRogueBot.template.TemplateUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -26,7 +23,6 @@ import java.awt.image.BufferedImage;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 
 class FightStageCvTest {
@@ -61,8 +57,7 @@ class FightStageCvTest {
                 assertNotNull(cvService.findTemplate(cvTemplate, canvas, template));
             }
             catch (Exception e) {
-                e.printStackTrace();
-                fail("Error checking template: " + cvTemplate.getFilenamePrefix());
+                fail("Error checking template: " + cvTemplate.getFilenamePrefix(), e);
             }
         }
     }
@@ -83,8 +78,7 @@ class FightStageCvTest {
                 assertNull(cvService.findTemplate(cvTemplate, canvas, template));
             }
             catch (Exception e) {
-                e.printStackTrace();
-                fail("Error checking template: " + cvTemplate.getFilenamePrefix());
+                fail("Error checking template: " + cvTemplate.getFilenamePrefix(), e);
             }
         }
     }
@@ -105,8 +99,7 @@ class FightStageCvTest {
                 assertNull(cvService.findTemplate(cvTemplate, canvas, template));
             }
             catch (Exception e) {
-                e.printStackTrace();
-                fail("Error checking template: " + cvTemplate.getFilenamePrefix());
+                fail("Error checking template: " + cvTemplate.getFilenamePrefix(), e);
             }
         }
     }
@@ -127,8 +120,7 @@ class FightStageCvTest {
                 assertNull(cvService.findTemplate(cvTemplate, canvas, template));
             }
             catch (Exception e) {
-                e.printStackTrace();
-                fail("Error checking template: " + cvTemplate.getFilenamePrefix());
+                fail("Error checking template: " + cvTemplate.getFilenamePrefix(), e);
             }
         }
     }
@@ -149,8 +141,7 @@ class FightStageCvTest {
                 assertNull(cvService.findTemplate(cvTemplate, canvas, template));
             }
             catch (Exception e) {
-                e.printStackTrace();
-                fail("Error checking template: " + cvTemplate.getFilenamePrefix());
+                fail("Error checking template: " + cvTemplate.getFilenamePrefix(), e);
             }
         }
     }
@@ -171,8 +162,7 @@ class FightStageCvTest {
                 assertNull(cvService.findTemplate(cvTemplate, canvas, template));
             }
             catch (Exception e) {
-                e.printStackTrace();
-                fail("Error checking template: " + cvTemplate.getFilenamePrefix());
+                fail("Error checking template: " + cvTemplate.getFilenamePrefix(), e);
             }
         }
     }

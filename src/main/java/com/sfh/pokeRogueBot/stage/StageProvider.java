@@ -7,13 +7,9 @@ import com.sfh.pokeRogueBot.stage.mainmenu.MainMenuStage;
 import com.sfh.pokeRogueBot.stage.pokemonselection.PokemonselectionStage;
 import com.sfh.pokeRogueBot.stage.switchdesicion.SwitchDecisionStage;
 import com.sfh.pokeRogueBot.stage.trainerfight.TrainerFightStage;
-import com.sfh.pokeRogueBot.template.Template;
 import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import lombok.Getter;
 import org.springframework.stereotype.Component;
-
-import java.util.LinkedList;
-import java.util.List;
 
 @Getter
 @Component
