@@ -11,6 +11,7 @@ import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.service.CvService;
 import com.sfh.pokeRogueBot.service.ImageService;
 import com.sfh.pokeRogueBot.service.OcrService;
+import com.sfh.pokeRogueBot.service.WaitingService;
 import com.sfh.pokeRogueBot.stage.fight.FightStage;
 import com.sfh.pokeRogueBot.stage.intro.IntroStage;
 import com.sfh.pokeRogueBot.stage.login.LoginScreenStage;
@@ -40,35 +41,23 @@ public class StageProcessor {
 
     public static final String UNKNOWN_IDENTIFICATION_TYPE = "Unknown identification type: ";
 
-    private final int waitTimeAfterAction; //to let the browser render quick changes
-    private final int waitTimeForRenderingText;
-    private final int waitTimeForRendering; //to let the browser render changes after stage switching
-
     private final BrowserClient browserClient;
     private final ImageService imageService;
     private final OcrService ocrService;
     private final CvService cvService;
-    private final WaitConfig waitConfig;
+    private final WaitingService waitingService;
 
     public StageProcessor(
             ChromeBrowserClient chromeBrowserClient,
             ImageService imageService,
             OcrService ocrService,
-            CvService cvService,
-            WaitConfig waitConfig,
-            @Value("${stage-processor.waitTimeAfterAction}") int waitTimeAfterAction,
-            @Value("${stage-processor.waitTimeForRenderingText}") int waitTimeForRenderingText,
-            @Value("${stage-processor.waitTimeForRenderingStages}") int waitTimeForRenderingStages){
-
-        this.waitTimeForRendering = waitTimeForRenderingStages;
-        this.waitTimeAfterAction = waitTimeAfterAction;
-        this.waitTimeForRenderingText = waitTimeForRenderingText;
-        this.waitConfig = waitConfig;
+            CvService cvService, WaitingService waitingService){
 
         this.browserClient = chromeBrowserClient;
         this.imageService = imageService;
         this.ocrService = ocrService;
         this.cvService = cvService;
+        this.waitingService = waitingService;
     }
 
     public void handleStage(Stage stage) throws NoSuchElementException, IOException {
@@ -77,11 +66,7 @@ public class StageProcessor {
             handleTemplateAction(action);
         }
 
-        try {
-            Thread.sleep(waitTimeForRendering);
-        } catch (InterruptedException e) {
-            log.error("Error while waiting", e);
-        }
+        waitingService.waitAfterStage(stage);
     }
 
     private void handleTemplateAction(TemplateAction action) throws IOException {
@@ -90,13 +75,13 @@ public class StageProcessor {
                 handleClick(action);
                 break;
             case WAIT_AFTER_ACTION:
-                waitAfterAction();
+                waitingService.waitAfterAction();
                 break;
             case WAIT_FOR_TEXT_RENDER:
-                waitAfterTextRender();
+                waitingService.waitLongerAfterAction();
                 break;
             case WAIT_FOR_STAGE_RENDER:
-                waitForRender();
+                waitingService.waitEvenLongerForStageRender();
                 break;
             case TAKE_SCREENSHOT:
                 createScreenshot(action.getTarget());
@@ -149,30 +134,6 @@ public class StageProcessor {
         persistScreenshot(imageService.takeScreenshot(template.getFilenamePrefix()), template.getFilenamePrefix());
     }
 
-    private void waitAfterAction() {
-        try {
-            Thread.sleep(waitTimeAfterAction);
-        } catch (InterruptedException e) {
-            log.error("Error while waiting", e);
-        }
-    }
-
-    private void waitAfterTextRender() {
-        try {
-            Thread.sleep(waitTimeForRenderingText);
-        } catch (InterruptedException e) {
-            log.error("Error while waiting", e);
-        }
-    }
-
-    private void waitForRender() {
-        try {
-            Thread.sleep(waitTimeForRendering);
-        } catch (InterruptedException e) {
-            log.error("Error while waiting", e);
-        }
-    }
-
     private void handleTextInput(TextInputActionSimple action) throws NoSuchElementException {
         Template template = action.getTarget();
         if(template instanceof HtmlTemplate htmlTemplate){
@@ -215,38 +176,6 @@ public class StageProcessor {
             persistScreenshot(imageService.takeScreenshot(fileNamePrefix), fileNamePrefix);
         } catch (Exception e) {
             log.error("Error while taking screenshot of canvas", e);
-        }
-    }
-
-    private int calcWaitTime(int waitTime){
-        return Math.round((float)waitTime / waitConfig.getGameSpeedModificator());
-    }
-
-    public int getWaitTimeForStage(Stage stage){
-        if(stage instanceof LoginScreenStage){
-            return calcWaitTime(waitConfig.getLoginStageWaitTime());
-        }
-        else if(stage instanceof IntroStage){
-            return calcWaitTime(waitConfig.getIntroStageWaitTime());
-        }
-        else if(stage instanceof MainMenuStage){
-            return calcWaitTime(waitConfig.getMainmenuStageWaitTime());
-        }
-        else if(stage instanceof PokemonselectionStage){
-            return calcWaitTime(waitConfig.getPokemonSelectionStageWaitTime());
-        }
-        else if(stage instanceof FightStage){
-            return calcWaitTime(waitConfig.getFightStageWaitTime());
-        }
-        else if(stage instanceof TrainerFightStage){
-            return calcWaitTime(waitConfig.getTrainerFightStageWaitTime());
-        }
-        else if(stage instanceof SwitchDecisionStage){
-            return calcWaitTime(waitConfig.getSwitchDecisionStageWaitTime());
-        }
-        else{
-            log.warn("Unknown stage: " + stage);
-            return calcWaitTime(waitConfig.getDefaultWaitTime());
         }
     }
 }

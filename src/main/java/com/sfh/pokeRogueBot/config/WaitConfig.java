@@ -8,11 +8,11 @@ import org.springframework.stereotype.Component;
 @Getter
 @Setter
 @Component
-@ConfigurationProperties(prefix = "wait-time-after-handling-stage")
+@ConfigurationProperties(prefix = "wait-time")
 public class WaitConfig {
 
     private int defaultWaitTime;
-    private int gameSpeedModificator;
+    private float gameSpeedModificator;
     private int loginStageWaitTime;
     private int introStageWaitTime;
     private int mainmenuStageWaitTime;
@@ -23,4 +23,7 @@ public class WaitConfig {
     private int shopStageWaitTime;
     private int switchDecisionStageWaitTime;
     private int trainerFightStageWaitTime;
+    private int waitTimeAfterAction;
+    private int waitTimeForRenderingText;
+    private int waitTimeForRenderingStages;
 }

@@ -37,7 +37,7 @@ public class SwitchDecisionStage extends BaseStage implements Stage {
                         "switchdesicion-question",
                         "./data/templates/switchdecision/question.png",
                         true,
-                        true,
+                        false,
                         new Point(1282, 424)),
                 new SimpleCvTemplate(
                         "switchdesicion-first-word-text",

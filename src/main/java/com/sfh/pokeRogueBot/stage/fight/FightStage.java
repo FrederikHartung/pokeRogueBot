@@ -46,20 +46,20 @@ public class FightStage extends BaseStage implements Stage {
                 new SimpleCvTemplate(
                         "fight-first-word-text",
                         "./data/templates/fight/fight-first-word-text.png",
-                        false,
-                        false,
+                        true,
+                        true,
                         new Point(31, 646)),
                 new SimpleCvTemplate(
                         "fight-second-word-text",
                         "./data/templates/fight/fight-second-word-text.png",
-                        false,
-                        false,
+                        true,
+                        true,
                         new Point(237, 717)),
                 new SimpleCvTemplate(
                         "fight-options",
                         "./data/templates/fight/fight-options.png",
-                        false,
-                        false,
+                        true,
+                        true,
                         new Point(991, 653)),
         };
     }
@@ -73,8 +73,6 @@ public class FightStage extends BaseStage implements Stage {
             actions.add(pressSpace);
             actions.add(waitAction);
             actions.add(pressSpace);
-            actions.add(this.waitForStageRenderAction);
-            actions.add(this.takeScreenshotAction);
         }
 
         return actions.toArray(new TemplateAction[0]);

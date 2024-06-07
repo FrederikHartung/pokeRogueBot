@@ -31,8 +31,8 @@ public class TrainerFightStage extends BaseStage implements Stage {
                 new SimpleCvTemplate(
                         "trainer-fight-text-cv",
                         "./data/templates/trainerfight/text-cv.png",
-                        true,
-                        true,
+                        false,
+                        false,
                         new Point(35, 721)
                 ),
         };
