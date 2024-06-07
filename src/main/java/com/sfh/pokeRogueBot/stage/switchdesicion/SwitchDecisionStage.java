@@ -1,6 +1,8 @@
 package com.sfh.pokeRogueBot.stage.switchdesicion;
 
+import com.sfh.pokeRogueBot.model.cv.OcrPosition;
 import com.sfh.pokeRogueBot.model.cv.Point;
+import com.sfh.pokeRogueBot.model.cv.Size;
 import com.sfh.pokeRogueBot.stage.BaseStage;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.template.SimpleCvTemplate;
@@ -43,7 +45,12 @@ public class SwitchDecisionStage extends BaseStage implements Stage {
                         true,
                         true,
                         new Point(258, 728)),
-                new SimpleOcrTemplate
+                new SwitchDesicionOcrTemplate(
+                    "./data/templates/switchdecision/ocr-text.png",
+                    new OcrPosition( new Point(43, 649),
+                    new Size(258, 728)),
+                    0.7,
+                    false),
         };
     }
 
