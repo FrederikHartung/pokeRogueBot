@@ -6,15 +6,17 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
-import java.util.Map;
 
 @Data
-public class PlayerPokemonEntry {
+public class EnemyPokemonEntry {
 
     private String name;
     private boolean active;
     private int level;
     private int hp;
+    private boolean boss;
+    private int bossSegments;
+
     /**
      * Represents the Individual Values (IVs) of a Pokémon.
      * IVs are hidden values that determine a Pokémon's potential in various stats.
@@ -78,18 +80,19 @@ public class PlayerPokemonEntry {
         }
         return mergedStats;
     }
-
     private List<MoveSetEntry> moveset;
-    private List<Integer> compatibleTms;
     private int exp;
+    private Status status;
     private boolean passive;
     private boolean pokerus;
     private boolean shiny;
     private int gender;
     private int nature;
+    private int trainerSlot;
     private BattleData battleData;
     private BattleSummonData battleSummonData;
     private SummonData summonData;
     private TurnData turnData;
     private int abilityIndex;
+    private int aiType;
 }

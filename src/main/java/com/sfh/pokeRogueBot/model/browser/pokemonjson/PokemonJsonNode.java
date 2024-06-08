@@ -10,4 +10,7 @@ public class PokemonJsonNode {
 
     @SerializedName("player")
     private List<PlayerPokemonEntry> playerPokemon;
+
+    @SerializedName("enemy")
+    private List<EnemyPokemonEntry> enemyPokemon;
 }
