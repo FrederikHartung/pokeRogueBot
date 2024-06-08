@@ -12,7 +12,7 @@ public class PlayerPokemonEntry {
     private boolean active;
     private int level;
     private int hp;
-    private Map<String, Integer> ivs;
+    private List<Iv> ivs; //stopped work here
     private Map<String, Integer> stats;
     private List<MoveSetEntry> moveset;
     private List<Integer> compatibleTms;
@@ -24,4 +24,5 @@ public class PlayerPokemonEntry {
     private int nature;
     private BattleData battleData;
     private BattleSummonData battleSummonData;
+    private SummonData summonData;
 }
