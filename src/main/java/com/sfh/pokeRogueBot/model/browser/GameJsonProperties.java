@@ -1,6 +1,8 @@
 package com.sfh.pokeRogueBot.model.browser;
 
 import com.google.gson.annotations.SerializedName;
+import com.sfh.pokeRogueBot.model.browser.gamejson.GameJsonNode;
+import com.sfh.pokeRogueBot.model.browser.pokemonjson.PokemonJsonNode;
 import lombok.Getter;
 import lombok.Setter;
 

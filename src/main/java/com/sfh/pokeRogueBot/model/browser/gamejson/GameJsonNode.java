@@ -1,4 +1,4 @@
-package com.sfh.pokeRogueBot.model.browser;
+package com.sfh.pokeRogueBot.model.browser.gamejson;
 
 import com.google.gson.annotations.SerializedName;
 import lombok.Data;
@@ -18,4 +18,9 @@ public class GameJsonNode {
     private GameMode gameMode;
     @SerializedName("gameData")
     private GameData gameData;
+    private Float gameSpeed;
+    private Map<String, Integer> pokeballCounts;
+    @SerializedName("currentBattle")
+    private CurrentBattle currentBattle;
+
 }
