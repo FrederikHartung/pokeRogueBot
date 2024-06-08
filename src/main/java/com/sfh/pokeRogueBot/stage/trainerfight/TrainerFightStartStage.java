@@ -14,14 +14,14 @@ import java.util.List;
 
 @Slf4j
 @Component
-public class TrainerFightStage extends BaseStage implements Stage {
+public class TrainerFightStartStage extends BaseStage implements Stage {
 
-    private static final String PATH = "./data/templates/trainerfight/stage.png";
+    private static final String PATH = "./data/templates/trainerfight_start/stage.png";
 
     private final boolean persistIfFound = false;
     private final boolean persistIfNotFound = false;
 
-    protected TrainerFightStage() {
+    protected TrainerFightStartStage() {
         super(PATH);
     }
 
@@ -30,7 +30,7 @@ public class TrainerFightStage extends BaseStage implements Stage {
         return new Template[]{
                 new SimpleCvTemplate(
                         "trainer-fight-text-cv",
-                        "./data/templates/trainerfight/text-cv.png",
+                        "./data/templates/trainerfight_start/text-cv.png",
                         false,
                         false,
                         new Point(35, 721)

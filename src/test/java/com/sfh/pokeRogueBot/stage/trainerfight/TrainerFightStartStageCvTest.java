@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 
-class TrainerFightStageCvTest {
+class TrainerFightStartStageCvTest {
 
     SingletonBeanConfig singletonBeanConfig = new SingletonBeanConfig();
 
@@ -29,7 +29,7 @@ class TrainerFightStageCvTest {
             new CvResultFilehandler(),
             5);
     CvService cvService = new OpenCvService(mock(ImageService.class), openCvClient);
-    TrainerFightStage trainerFightStage = new TrainerFightStage();
+    TrainerFightStartStage trainerFightStartStage = new TrainerFightStartStage();
 
     @BeforeAll
     static void setup(){
@@ -40,13 +40,13 @@ class TrainerFightStageCvTest {
     @Test
     void find_all_templates(){
         boolean persistResults = false;
-        List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(trainerFightStage);
+        List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(trainerFightStartStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {
             cvTemplate.setPersistResultOnSuccess(persistResults);
             cvTemplate.setPersistResultOnError(persistResults);
             try{
-                BufferedImage canvas = TestImageService.getCanvas(trainerFightStage.getTemplatePath());
+                BufferedImage canvas = TestImageService.getCanvas(trainerFightStartStage.getTemplatePath());
                 BufferedImage template = TestImageService.getTemplate(cvTemplate.getTemplatePath());
                 assertNotNull(cvService.findTemplate(cvTemplate, canvas, template));
             }
