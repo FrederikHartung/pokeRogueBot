@@ -11,26 +11,27 @@ import org.springframework.stereotype.Component;
 @Component
 public class RunPropertyService {
 
-    private final RunPropertyEntityRepository repository;
+    //private final RunPropertyEntityRepository repository;
 
     private RunProperty runProperty;
 
-    public RunPropertyService(RunPropertyEntityRepository repository) {
+/*    public RunPropertyService(RunPropertyEntityRepository repository) {
         this.repository = repository;
-    }
+    }*/
 
     public RunProperty getRunProperty() {
         if(null != runProperty) {
             return runProperty;
         }
 
-        RunPropertyEntity runPropertyEntity = repository.findFirstOrderByRunNumberDesc().orElse(new RunPropertyEntity());
+        //RunPropertyEntity runPropertyEntity = repository.findFirstOrderByRunNumberDesc().orElse(new RunPropertyEntity());
+        RunPropertyEntity runPropertyEntity = new RunPropertyEntity();
         runProperty = RunPropertyMapper.toRunProperty(runPropertyEntity);
         return runProperty;
     }
 
     public void save(RunProperty runProperty) {
-        RunPropertyEntity runPropertyEntity = RunPropertyMapper.toRunPropertyEntity(runProperty);
-        repository.save(runPropertyEntity);
+//        RunPropertyEntity runPropertyEntity = RunPropertyMapper.toRunPropertyEntity(runProperty);
+//        repository.save(runPropertyEntity);
     }
 }

@@ -6,7 +6,7 @@ import java.nio.file.Paths;
 
 public class JsonStringProvider {
 
-    public static String loadJavaScriptFile(String filePath) throws IOException {
+    public static String readJsonString(String filePath) throws IOException {
         return new String(Files.readAllBytes(Paths.get(filePath)));
     }
 }

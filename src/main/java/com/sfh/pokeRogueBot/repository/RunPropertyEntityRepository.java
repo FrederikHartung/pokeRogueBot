@@ -7,8 +7,9 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
-@Repository
-public interface RunPropertyEntityRepository extends JpaRepository<RunPropertyEntity, Integer>{
+//@Repository
+//public interface RunPropertyEntityRepository extends JpaRepository<RunPropertyEntity, Integer>{
+public interface RunPropertyEntityRepository{
 
     @Query("SELECT r FROM RunPropertyEntity r ORDER BY r.runNumber DESC")
     Optional<RunPropertyEntity> findFirstOrderByRunNumberDesc();
