@@ -8,7 +8,7 @@ import com.sfh.pokeRogueBot.stage.login.LoginScreenStage;
 import com.sfh.pokeRogueBot.stage.mainmenu.MainMenuStage;
 import com.sfh.pokeRogueBot.stage.pokemonselection.PokemonselectionStage;
 import com.sfh.pokeRogueBot.stage.switchdesicion.SwitchDecisionStage;
-import com.sfh.pokeRogueBot.stage.trainerfight.TrainerFightStage;
+import com.sfh.pokeRogueBot.stage.trainerfight.TrainerFightStartStage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -66,7 +66,7 @@ public class WaitingService {
         else if(stage instanceof FightStage){
             return calcWaitTime(waitConfig.getFightStageWaitTime());
         }
-        else if(stage instanceof TrainerFightStage){
+        else if(stage instanceof TrainerFightStartStage){
             return calcWaitTime(waitConfig.getTrainerFightStageWaitTime());
         }
         else if(stage instanceof SwitchDecisionStage){

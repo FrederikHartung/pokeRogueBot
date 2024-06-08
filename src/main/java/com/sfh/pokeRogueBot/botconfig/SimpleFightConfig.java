@@ -39,10 +39,10 @@ public class SimpleFightConfig implements Config {
     private void startWaveFightingMode(RunProperty runProperty) throws Exception {
         while (runProperty.getStatus() == RunStatus.ONGOING) {
 
-            boolean isTrainingStageVisible = stageIdentifier.isStageVisible(stageProvider.getTrainerFightStage());
+            boolean isTrainingStageVisible = stageIdentifier.isStageVisible(stageProvider.getTrainerFightStartStage());
             if (isTrainingStageVisible) {
                 log.debug("Trainer fight intro stage is visible");
-                stageProcessor.handleStage(stageProvider.getTrainerFightStage());
+                stageProcessor.handleStage(stageProvider.getTrainerFightStartStage());
                 log.debug("Trainer fight intro handled");
             }
 
