@@ -14,9 +14,8 @@ public class TestApplication {
         ConfigurableApplicationContext context = SpringApplication.run(Application.class, args);
 
         try{
-            var stages = context.getBeansOfType(Stage.class);
-            int count = stages.size();
-            log.info("Found " + count + " stages");
+            String jsonStringPath = "./data/getEnemyTeam.js";
+
         } catch (Exception e) {
             log.error("Error starting the bot: " + e.getMessage(), e);
         }
