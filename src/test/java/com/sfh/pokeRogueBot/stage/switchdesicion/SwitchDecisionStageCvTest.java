@@ -10,6 +10,7 @@ import com.sfh.pokeRogueBot.service.DecisionService;
 import com.sfh.pokeRogueBot.service.ImageService;
 import com.sfh.pokeRogueBot.service.OpenCvService;
 import com.sfh.pokeRogueBot.stage.fight.FightStage;
+import com.sfh.pokeRogueBot.stage.fight.SwitchDecisionStage;
 import com.sfh.pokeRogueBot.template.CvTemplate;
 import com.sfh.pokeRogueBot.template.TemplateUtils;
 import org.junit.jupiter.api.BeforeAll;

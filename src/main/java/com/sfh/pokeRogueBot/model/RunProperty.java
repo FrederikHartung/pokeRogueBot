@@ -19,6 +19,8 @@ public class RunProperty {
 
     //own properties
     private final Pokemon[] team = new Pokemon[6];
+    private boolean isTrainerFight = false;
+    private boolean isFightOngoing = false;
 
     public RunProperty(int runNumber) {
         this.runNumber = runNumber;

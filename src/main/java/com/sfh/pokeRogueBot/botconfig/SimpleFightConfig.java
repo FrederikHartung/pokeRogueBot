@@ -39,11 +39,24 @@ public class SimpleFightConfig implements Config {
     private void startWaveFightingMode(RunProperty runProperty) throws Exception {
         while (runProperty.getStatus() == RunStatus.ONGOING) {
 
-            boolean isTrainingStageVisible = stageIdentifier.isStageVisible(stageProvider.getTrainerFightStartStage());
-            if (isTrainingStageVisible) {
-                log.debug("Trainer fight intro stage is visible");
-                stageProcessor.handleStage(stageProvider.getTrainerFightStartStage());
-                log.debug("Trainer fight intro handled");
+            if(!runProperty.isFightOngoing()){
+                boolean isTrainerDialogueStageVisible = stageIdentifier.isStageVisible(stageProvider.getTrainerFightDialogeStage());
+                if (isTrainerDialogueStageVisible) {
+
+                    runProperty.setFightOngoing(true);
+                    runProperty.setTrainerFight(true);
+
+                    log.debug("Trainer dialogue stage is visible");
+                    stageProcessor.handleStage(stageProvider.getTrainerFightDialogeStage());
+                    log.debug("Trainer dialogue handled");
+                }
+
+                boolean isTrainerFightStartStageVisible = stageIdentifier.isStageVisible(stageProvider.getTrainerFightStartStage());
+                if (isTrainerFightStartStageVisible) {
+                    log.debug("Trainer fight start stage is visible");
+                    stageProcessor.handleStage(stageProvider.getTrainerFightStartStage());
+                    log.debug("Trainer fight start handled");
+                }
             }
 
             boolean isSwitchStageVisible = stageIdentifier.isStageVisible(stageProvider.getSwitchDecisionStage());
@@ -58,11 +71,32 @@ public class SimpleFightConfig implements Config {
                 log.debug("Fight stage is visible");
                 stageProcessor.handleStage(stageProvider.getFightStage());
                 log.debug("Fight stage handled");
+                continue;
             } else {
                 log.debug("Fight stage is not visible");
-                runProperty.setStatus(RunStatus.ERROR);
             }
 
+            boolean isShopStageVisible = stageIdentifier.isStageVisible(stageProvider.getShopStage());
+            if(isShopStageVisible) {
+                log.debug("Shop stage is visible");
+                stageProcessor.handleStage(stageProvider.getShopStage());
+                log.debug("Shop stage handled");
+            }
+            else {
+                log.debug("Shop stage is not visible");
+            }
+
+            boolean isDefaultFightStageVisible = stageIdentifier.isStageVisible(stageProvider.getDefaultFightStage());
+            if(isDefaultFightStageVisible) {
+                log.debug("Default fight stage is visible");
+                stageProcessor.handleStage(stageProvider.getDefaultFightStage());
+                log.debug("Default fight stage handled");
+            }
+            else{
+                log.debug("Default fight stage is not visible");
+                stageProcessor.takeScreensot("default-fight-stage-not-visible");
+                runProperty.setStatus(RunStatus.ERROR);
+            }
         }
     }
 }

@@ -22,7 +22,7 @@ public class FightStage extends BaseStage implements Stage {
 
     public static final String PATH = "./data/templates/fight/screen.png";
     private static final boolean PERSIST_IF_FOUND = false;
-    private static final boolean PERSIST_IF_NOT_FOUND = true;
+    private static final boolean PERSIST_IF_NOT_FOUND = false;
 
     public FightStage(DecisionService decisionService) {
         super(PATH);
@@ -46,20 +46,20 @@ public class FightStage extends BaseStage implements Stage {
                 new SimpleCvTemplate(
                         "fight-first-word-text",
                         "./data/templates/fight/fight-first-word-text.png",
-                        true,
-                        true,
+                        false,
+                        false,
                         new Point(31, 646)),
                 new SimpleCvTemplate(
                         "fight-second-word-text",
                         "./data/templates/fight/fight-second-word-text.png",
-                        true,
-                        true,
+                        false,
+                        false,
                         new Point(237, 717)),
                 new SimpleCvTemplate(
                         "fight-options",
                         "./data/templates/fight/fight-options.png",
-                        true,
-                        true,
+                        false,
+                        false,
                         new Point(991, 653)),
         };
     }

@@ -1,4 +1,4 @@
-package com.sfh.pokeRogueBot.stage.enemyfainted;
+package com.sfh.pokeRogueBot.stage.fight;
 
 import com.sfh.pokeRogueBot.TestImageService;
 import com.sfh.pokeRogueBot.config.SingletonBeanConfig;
@@ -6,9 +6,9 @@ import com.sfh.pokeRogueBot.cv.OpenCvClient;
 import com.sfh.pokeRogueBot.filehandler.CvResultFilehandler;
 import com.sfh.pokeRogueBot.filehandler.TempFileManager;
 import com.sfh.pokeRogueBot.service.CvService;
+import com.sfh.pokeRogueBot.service.DecisionService;
 import com.sfh.pokeRogueBot.service.ImageService;
 import com.sfh.pokeRogueBot.service.OpenCvService;
-import com.sfh.pokeRogueBot.stage.fight.smallstages.EnemyFaintedStage;
 import com.sfh.pokeRogueBot.template.CvTemplate;
 import com.sfh.pokeRogueBot.template.TemplateUtils;
 import org.junit.jupiter.api.BeforeAll;
@@ -21,15 +21,17 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 
-class EnemyFaintedStageCvTest {
+class ShopStageCvTest {
 
     SingletonBeanConfig singletonBeanConfig = new SingletonBeanConfig();
-    EnemyFaintedStage enemyFaintedStage = new EnemyFaintedStage();
+
     OpenCvClient openCvClient = new OpenCvClient(
             singletonBeanConfig.getCvProcessingAlgorithm(),
             new CvResultFilehandler(),
             5);
     CvService cvService = new OpenCvService(mock(ImageService.class), openCvClient);
+    DecisionService decisionService = mock(DecisionService.class);
+    ShopStage shopStage = new ShopStage(decisionService);
 
     @BeforeAll
     static void setup(){
@@ -39,14 +41,14 @@ class EnemyFaintedStageCvTest {
 
     @Test
     void find_all_templates(){
-        boolean persistResults = true;
-        List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(enemyFaintedStage);
+        boolean persistResults = false;
+        List<CvTemplate> cvTemplates = TemplateUtils.getCvTemplatesFromStage(shopStage);
 
         for (CvTemplate cvTemplate : cvTemplates) {
             cvTemplate.setPersistResultOnSuccess(persistResults);
             cvTemplate.setPersistResultOnError(persistResults);
             try{
-                BufferedImage canvas = TestImageService.getCanvas(enemyFaintedStage.getTemplatePath());
+                BufferedImage canvas = TestImageService.getCanvas(shopStage.getTemplatePath());
                 BufferedImage template = TestImageService.getTemplate(cvTemplate.getTemplatePath());
                 assertNotNull(cvService.findTemplate(cvTemplate, canvas, template));
             }
@@ -55,5 +57,4 @@ class EnemyFaintedStageCvTest {
             }
         }
     }
-
 }

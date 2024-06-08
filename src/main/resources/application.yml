@@ -27,7 +27,7 @@ cv:
   allowedToleranceForTopLeftMismatch: 50
 
 browser:
-  closeOnExit: false
+  closeOnExit: true
   waitTimeForRenderAfterNavigation: 5000
   pathChromeUserDir: "./bin/webdriver/profile/"
   useInkognito: false
@@ -57,7 +57,7 @@ wait-time:
 stage:
   mainmenu:
     updateGameSettings: false
-    startRun: false
+    startRun: true
 
 handler:
   login:

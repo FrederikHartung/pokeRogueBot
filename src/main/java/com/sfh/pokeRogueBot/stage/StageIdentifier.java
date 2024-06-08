@@ -10,13 +10,10 @@ import com.sfh.pokeRogueBot.model.exception.TemplateNotFoundException;
 import com.sfh.pokeRogueBot.service.CvService;
 import com.sfh.pokeRogueBot.service.ImageService;
 import com.sfh.pokeRogueBot.service.OcrService;
-import com.sfh.pokeRogueBot.stage.intro.IntroStage;
-import com.sfh.pokeRogueBot.stage.login.LoginScreenStage;
-import com.sfh.pokeRogueBot.stage.mainmenu.MainMenuStage;
-import com.sfh.pokeRogueBot.template.CvTemplate;
-import com.sfh.pokeRogueBot.template.HtmlTemplate;
-import com.sfh.pokeRogueBot.template.OcrTemplate;
-import com.sfh.pokeRogueBot.template.Template;
+import com.sfh.pokeRogueBot.stage.start.IntroStage;
+import com.sfh.pokeRogueBot.stage.start.LoginScreenStage;
+import com.sfh.pokeRogueBot.stage.start.MainMenuStage;
+import com.sfh.pokeRogueBot.template.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.retry.support.RetryTemplate;
@@ -126,6 +123,10 @@ public class StageIdentifier {
 
     private boolean checkIfCvTemplateIsVisible(CvTemplate cvTemplate, BufferedImage canvas){
         try {
+            if(cvTemplate instanceof FixedPosiCvTemplate fixedPosiCvTemplate){
+                return cvService.isTemplateVisible(fixedPosiCvTemplate, canvas);
+            }
+
             return cvService.isTemplateVisible(cvTemplate, canvas);
         } catch (TemplateNotFoundException e){
             log.debug("Template not found in image: " + cvTemplate.getFilenamePrefix());

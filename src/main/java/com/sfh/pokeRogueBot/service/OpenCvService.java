@@ -4,6 +4,7 @@ import com.sfh.pokeRogueBot.cv.OpenCvClient;
 import com.sfh.pokeRogueBot.model.cv.CvResult;
 import com.sfh.pokeRogueBot.model.exception.TemplateNotFoundException;
 import com.sfh.pokeRogueBot.template.CvTemplate;
+import com.sfh.pokeRogueBot.template.FixedPosiCvTemplate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -42,6 +43,21 @@ public class OpenCvService implements CvService {
         try{
             if (null != findTemplate(cvTemplate, canvasImg)) {
                 log.debug(CHECKING_VISIBILITY + cvTemplate.getFilenamePrefix());
+                return true;
+            }
+        }
+        catch (Exception e) {
+            log.error(ERROR_WHILE_SEARCHING_FOR_OBJECT + e.getMessage(), e);
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isTemplateVisible(FixedPosiCvTemplate fixedPosiCvTemplate, BufferedImage canvasImg) {
+        try{
+            BufferedImage subCanvasImg = imageService.getSubImage(canvasImg, fixedPosiCvTemplate.getSubImageTopLeft(), fixedPosiCvTemplate.getSubImageSize());
+            if (null != findTemplate(fixedPosiCvTemplate, subCanvasImg)) {
+                log.debug(CHECKING_VISIBILITY + fixedPosiCvTemplate.getFilenamePrefix());
                 return true;
             }
         }
@@ -95,6 +111,10 @@ public class OpenCvService implements CvService {
     @Override
     public CvResult findTemplate(CvTemplate cvTemplate, BufferedImage canvasImg, BufferedImage templateImg) {
         try{
+            if(cvTemplate instanceof FixedPosiCvTemplate fixedPosiCvTemplate){
+                BufferedImage subCanvasImg = imageService.getSubImage(canvasImg, fixedPosiCvTemplate.getSubImageTopLeft(), fixedPosiCvTemplate.getSubImageSize());
+                return cvClient.findTemplateInBufferedImage(subCanvasImg, templateImg, fixedPosiCvTemplate);
+            }
             return cvClient.findTemplateInBufferedImage(canvasImg, templateImg, cvTemplate);
         }
         catch (Exception e) {

@@ -2,7 +2,7 @@ package com.sfh.pokeRogueBot.botconfig;
 
 import com.sfh.pokeRogueBot.stage.StageIdentifier;
 import com.sfh.pokeRogueBot.stage.StageProcessor;
-import com.sfh.pokeRogueBot.stage.pokemonselection.PokemonselectionStage;
+import com.sfh.pokeRogueBot.stage.start.PokemonselectionStage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 

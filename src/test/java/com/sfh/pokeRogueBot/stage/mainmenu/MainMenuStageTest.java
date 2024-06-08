@@ -4,6 +4,7 @@ import com.sfh.pokeRogueBot.model.GameSettingProperty;
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.model.enums.TemplateActionType;
 import com.sfh.pokeRogueBot.service.CvService;
+import com.sfh.pokeRogueBot.stage.start.MainMenuStage;
 import com.sfh.pokeRogueBot.template.actions.PressKeyAction;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
 import com.sfh.pokeRogueBot.template.actions.WaitAction;

@@ -41,11 +41,11 @@ Only refactor, when it's really necessary.
 - [x] attack till the first opponent is beaten
 - [x] handle the start of the second fight
 - [x] handle trainer fights
-- [ ] enemy fainted stage
-- [ ] dynamic wait times after stages
-- [ ] find good waittimes for each stage
-- [ ] add ocr unit tests
+- [x] enemy fainted stage
+- [x] dynamic wait times after stages
+- [x] find good waittimes for each stage
 - [ ] handle shop
+- [ ] add ocr unit tests
 - [ ] handle switching of the pokemon if one is down
 - [ ] notice if the enemy is a wild pokemon or a trainer
 - [ ] catch one pokemon

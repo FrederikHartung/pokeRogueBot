@@ -1,18 +1,24 @@
 package com.sfh.pokeRogueBot.stage;
 
+import com.sfh.pokeRogueBot.stage.fight.DefaultFightStage;
 import com.sfh.pokeRogueBot.stage.fight.FightStage;
-import com.sfh.pokeRogueBot.stage.intro.IntroStage;
-import com.sfh.pokeRogueBot.stage.login.LoginScreenStage;
-import com.sfh.pokeRogueBot.stage.mainmenu.MainMenuStage;
-import com.sfh.pokeRogueBot.stage.pokemonselection.PokemonselectionStage;
-import com.sfh.pokeRogueBot.stage.switchdesicion.SwitchDecisionStage;
-import com.sfh.pokeRogueBot.stage.trainerfight.TrainerFightStartStage;
+import com.sfh.pokeRogueBot.stage.fight.ShopStage;
+import com.sfh.pokeRogueBot.stage.fight.smallstages.EnemyFaintedStage;
+import com.sfh.pokeRogueBot.stage.fight.trainer.TrainerFightDialogeStage;
+import com.sfh.pokeRogueBot.stage.start.IntroStage;
+import com.sfh.pokeRogueBot.stage.start.LoginScreenStage;
+import com.sfh.pokeRogueBot.stage.start.MainMenuStage;
+import com.sfh.pokeRogueBot.stage.start.PokemonselectionStage;
+import com.sfh.pokeRogueBot.stage.fight.SwitchDecisionStage;
+import com.sfh.pokeRogueBot.stage.fight.trainer.TrainerFightStartStage;
 import com.sfh.pokeRogueBot.template.TemplatePathValidator;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.stereotype.Component;
 
 @Getter
 @Component
+@AllArgsConstructor
 public class StageProvider {
 
     private final LoginScreenStage loginScreenStage;
@@ -20,16 +26,9 @@ public class StageProvider {
     private final MainMenuStage mainMenuStage;
     private final PokemonselectionStage pokemonselectionStage;
     private final SwitchDecisionStage switchDecisionStage;
+    private final TrainerFightDialogeStage trainerFightDialogeStage;
     private final TrainerFightStartStage trainerFightStartStage;
     private final FightStage fightStage;
-
-    public StageProvider(TemplatePathValidator templatePathValidator, LoginScreenStage loginScreenStage, IntroStage introStage, MainMenuStage mainMenuStage, PokemonselectionStage pokemonselectionStage, SwitchDecisionStage switchDecisionStage, TrainerFightStartStage trainerFightStartStage, FightStage fightStage) {
-        this.loginScreenStage = loginScreenStage;
-        this.introStage = introStage;
-        this.mainMenuStage = mainMenuStage;
-        this.pokemonselectionStage = pokemonselectionStage;
-        this.switchDecisionStage = switchDecisionStage;
-        this.trainerFightStartStage = trainerFightStartStage;
-        this.fightStage = fightStage;
-    }
+    private final ShopStage shopStage;
+    private final DefaultFightStage defaultFightStage;
 }
