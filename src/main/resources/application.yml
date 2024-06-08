@@ -13,7 +13,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.MySQLDialect
+        #dialect: org.hibernate.dialect.MySQLDialect
 
 ocr:
   language: deu
@@ -57,7 +57,7 @@ wait-time:
 stage:
   mainmenu:
     updateGameSettings: false
-    startRun: true
+    startRun: false
 
 handler:
   login:
