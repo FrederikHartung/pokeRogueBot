@@ -7,6 +7,7 @@ import com.sfh.pokeRogueBot.model.cv.Size;
 import com.sfh.pokeRogueBot.model.exception.ImageValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -16,7 +17,7 @@ import java.io.File;
 import java.io.IOException;
 
 @Slf4j
-@Component
+@Service
 public class BrowserImageService implements ImageService {
 
     private final ImageClient imageClient;

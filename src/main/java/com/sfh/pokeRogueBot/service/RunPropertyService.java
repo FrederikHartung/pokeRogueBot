@@ -6,9 +6,10 @@ import com.sfh.pokeRogueBot.model.entities.RunPropertyEntity;
 import com.sfh.pokeRogueBot.repository.RunPropertyEntityRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 @Slf4j
-@Component
+@Service
 public class RunPropertyService {
 
     //private final RunPropertyEntityRepository repository;

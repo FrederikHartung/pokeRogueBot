@@ -7,11 +7,12 @@ import com.sfh.pokeRogueBot.template.CvTemplate;
 import com.sfh.pokeRogueBot.template.FixedPosiCvTemplate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.awt.image.BufferedImage;
 
 @Slf4j
-@Component
+@Service
 public class OpenCvService implements CvService {
 
     private static final String ERROR_WHILE_SEARCHING_FOR_OBJECT = "Error while searching for object: ";
