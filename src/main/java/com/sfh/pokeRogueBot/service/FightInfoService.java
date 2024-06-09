@@ -3,11 +3,12 @@ package com.sfh.pokeRogueBot.service;
 import com.sfh.pokeRogueBot.model.FightInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.awt.image.BufferedImage;
 
 @Slf4j
-@Component
+@Service
 public class FightInfoService {
 
     private final ImageService imageService;

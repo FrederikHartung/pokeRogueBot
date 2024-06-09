@@ -11,9 +11,10 @@ import com.sfh.pokeRogueBot.stage.fight.SwitchDecisionStage;
 import com.sfh.pokeRogueBot.stage.fight.trainer.TrainerFightStartStage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 @Slf4j
-@Component
+@Service
 public class WaitingService {
 
     private final WaitConfig waitConfig;

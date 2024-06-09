@@ -3,8 +3,9 @@ package com.sfh.pokeRogueBot.service;
 import com.sfh.pokeRogueBot.model.RunProperty;
 import com.sfh.pokeRogueBot.model.enums.FightDecision;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
-@Component
+@Service
 public class DecisionService {
 
     private final RunPropertyService runPropertyService;
