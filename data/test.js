@@ -38,7 +38,7 @@ function getAllActiveAndVisible() {
     return activeAndVisibleElements;
 }
 
-function getAllActiveAndVisible() {
+function getGetShopItems() {
     let test = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.getAll();
     let activeAndVisibleElements = test.filter(element => element._visible && element.active);
     let modifierOption = [];
