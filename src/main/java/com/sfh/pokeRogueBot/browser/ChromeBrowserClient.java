@@ -23,12 +23,14 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 
 @Slf4j
 @Component
-public class ChromeBrowserClient implements DisposableBean, BrowserClient, ImageClient {
+public class ChromeBrowserClient implements DisposableBean, BrowserClient, ImageClient, JsClient {
 
     private final boolean closeOnExit;
     private final int waitTimeForRenderAfterNavigation;
@@ -183,6 +185,20 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
         } catch (MoveTargetOutOfBoundsException e) {
             log.error("Target out of bounds. Canvas size: width=" + canvasWidth + ", height=" + canvasHeight + ". Click position: x=" + scaledClickPositionX + ", y=" + scaledClickPositiony, e);
             throw e;
+        }
+    }
+
+    @Override
+    public String executeJsAndGetResult(String jsFilePath) {
+        try{
+            String jsCode = new String(Files.readAllBytes(Paths.get(jsFilePath)));
+
+            JavascriptExecutor js = (JavascriptExecutor) driver;
+            return (String) js.executeScript(jsCode);
+        }
+        catch (Exception e){
+            log.error("Error while executing JS: " + jsFilePath, e);
+            return null;
         }
     }
 
