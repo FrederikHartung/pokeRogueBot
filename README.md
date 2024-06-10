@@ -1,7 +1,9 @@
 # pokeRogueBot
-This is a Repository for different bots which plays the pokeRogue Browser game with the help of AI.  
+This is a Repository for different bots which plays the pokeRogue Browser game with the help of AI. All bots don't use cheats and are worse than normal players.
 
 Currently the bot uses the tesseract OCR engine to read text, OpenCV for TemplateMatching and the selenium web driver to interact with the game.
+
+This is just a fun side project of mine. The bot tries to immitade a below average lonely gamer trying to get the seratonin spike that he god when playing pokemon as a child.
 
 ## Documentation
 
