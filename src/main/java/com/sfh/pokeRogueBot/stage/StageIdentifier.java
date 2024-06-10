@@ -9,6 +9,7 @@ import com.sfh.pokeRogueBot.model.exception.StageNotFoundException;
 import com.sfh.pokeRogueBot.model.exception.TemplateNotFoundException;
 import com.sfh.pokeRogueBot.service.CvService;
 import com.sfh.pokeRogueBot.service.ImageService;
+import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.service.OcrService;
 import com.sfh.pokeRogueBot.stage.start.IntroStage;
 import com.sfh.pokeRogueBot.stage.start.LoginScreenStage;
@@ -37,6 +38,7 @@ public class StageIdentifier {
     private final OcrService ocrService;
     private final CvService cvService;
     private final RetryTemplate retryTemplate;
+    private final JsService jsService;
 
     private final int waitTimeForHtmlElements;
 
@@ -45,12 +47,13 @@ public class StageIdentifier {
                            OcrService ocrService,
                            CvService cvService,
                            @Value("${stage-identifier.numberOfRetries}") int numberOfRetries,
-                           @Value("${stage-identifier.waitTimeForRetryMS}") int waitTimeForRetryMS,
+                           @Value("${stage-identifier.waitTimeForRetryMS}") int waitTimeForRetryMS, JsService jsService,
                            @Value("${stage-identifier.waitTimeForHtmlElements}") int waitTimeForHtmlElements){
         this.browserClient = browserClient;
         this.imageService = imageService;
         this.ocrService = ocrService;
         this.cvService = cvService;
+        this.jsService = jsService;
 
         this.waitTimeForHtmlElements = waitTimeForHtmlElements;
 
@@ -82,6 +85,7 @@ public class StageIdentifier {
         List<Template> templatesToCheck = new LinkedList<>(Arrays.stream(stage.getTemplatesToValidateStage()).toList());
 
         log.debug("Checking if stage is visible: " + stage.getFilenamePrefix());
+        jsService.logStageData();
         BufferedImage canvas = imageService.takeScreenshot(stage.getFilenamePrefix());
 
         for (Template template : templatesToCheck) {

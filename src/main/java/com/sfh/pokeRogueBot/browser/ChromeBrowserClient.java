@@ -27,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -194,7 +195,13 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
             String jsCode = new String(Files.readAllBytes(Paths.get(jsFilePath)));
 
             JavascriptExecutor js = (JavascriptExecutor) driver;
-            return (String) js.executeScript(jsCode);
+            Object result = js.executeScript(jsCode);
+            if(result instanceof Map map){
+                return map.toString();
+            }
+            else{
+                return result.toString();
+            }
         }
         catch (Exception e){
             log.error("Error while executing JS: " + jsFilePath, e);

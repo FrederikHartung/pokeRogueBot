@@ -1,7 +1,6 @@
 package com.sfh.pokeRogueBot.service;
 
 import com.sfh.pokeRogueBot.browser.JsClient;
-import com.sfh.pokeRogueBot.model.browser.ShopData;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -15,7 +14,8 @@ public class JsService {
         this.jsClient = jsClient;
     }
 
-    public ShopData getShopData(){
-        return jsClient.getShopData();
+    public void logStageData(){
+        String json = jsClient.executeJsAndGetResult("./bin/js/getStage.js");
+        log.info("Stage data: " + json);
     }
 }
