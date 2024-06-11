@@ -30,10 +30,15 @@ public class CommandPhase extends AbstractPhase implements Phase {
             if(fightDecision == FightDecision.ATTACK){
                 return new PhaseAction[]{
                         this.pressSpace,
-                        this.waitAction,
+                        this.waitForTextRenderAction,
                         this.pressSpace
                 };
             }
+        }
+        else if(gameMode == GameMode.FIGHT){
+            return new PhaseAction[]{
+                    this.pressBackspace,
+            };
         }
 
         throw new NotSupportedException("GameMode not supported in CommandPhase: " + gameMode);

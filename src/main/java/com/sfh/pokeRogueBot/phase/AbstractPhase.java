@@ -15,6 +15,7 @@ public abstract class AbstractPhase implements Phase {
     protected final WaitForTextRenderPhaseAction waitForTextRenderAction = new WaitForTextRenderPhaseAction();
     protected final WaitForStageRenderPhaseAction waaitForStageRenderPhaseAction = new WaitForStageRenderPhaseAction();
     protected final TakeScreenshotPhaseAction takeScreenshotAction = new TakeScreenshotPhaseAction();
+    protected final QuitRunAction quitRunAction = new QuitRunAction();
 
     @Override
     public String toString() {

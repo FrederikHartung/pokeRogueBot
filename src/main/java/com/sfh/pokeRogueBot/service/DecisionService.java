@@ -1,9 +1,12 @@
 package com.sfh.pokeRogueBot.service;
 
 import com.sfh.pokeRogueBot.model.RunProperty;
+import com.sfh.pokeRogueBot.model.browser.modifier.ModifierOption;
 import com.sfh.pokeRogueBot.model.enums.FightDecision;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class DecisionService {
@@ -29,7 +32,8 @@ public class DecisionService {
     }
 
     public void getModifierToPick(){
-
+        List<ModifierOption> options = jsService.getModifierOptions();
+        return; //todo
     }
 
     public FightDecision getFightDecision() {

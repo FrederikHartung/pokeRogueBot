@@ -27,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Map;
 
 @Slf4j
@@ -190,21 +191,29 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
     }
 
     @Override
-    public String executeJsAndGetResult(String jsFilePath) {
-        try{
+    public <T> T executeJsAndGetResult(String jsFilePath, Class<T> returnType) {
+        try {
             String jsCode = new String(Files.readAllBytes(Paths.get(jsFilePath)));
 
             JavascriptExecutor js = (JavascriptExecutor) driver;
             Object result = js.executeScript(jsCode);
-            if(result instanceof Map map){
-                return map.toString();
+            if (jsFilePath.contains("Modifier")) {
+                log.info("type/class: " + result.getClass().getName());
             }
-            else{
-                return null != result ? result.toString() : null;
+
+            if (returnType.isInstance(result)) {
+                return returnType.cast(result);
+            } else if (returnType == String.class) {
+                return returnType.cast(result != null ? result.toString() : null);
+            } else if (returnType == ArrayList.class && result instanceof ArrayList) {
+                return returnType.cast(result);
+            } else if (returnType == Map.class && result instanceof Map) {
+                return returnType.cast(result);
+            } else {
+                throw new IllegalArgumentException("Unexpected return type: " + returnType.getName());
             }
-        }
-        catch (Exception e){
-            log.error("Error while executing JS: " + jsFilePath, e);
+        } catch (Exception e) {
+            log.error("Error while executing JS: " + jsFilePath + ", " + e.getMessage());
             return null;
         }
     }

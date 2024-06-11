@@ -46,7 +46,8 @@ public class SimpleFightConfig implements Config {
         log.debug("starting wave fighting mode");
         while (runProperty.getStatus() == RunStatus.ONGOING) {
 
-            Phase phase = jsService.getCurrentPhase();
+            String phaseAsString = jsService.getCurrentPhaseAsString();
+            Phase phase = phaseProvider.fromString(phaseAsString);
             GameMode gameMode = jsService.getGameMode();
 
             if(handePhaseIfPresent(phase, gameMode)){
@@ -60,7 +61,7 @@ public class SimpleFightConfig implements Config {
 
     private boolean handePhaseIfPresent(Phase phase, GameMode gameMode) throws Exception {
         if(null != phase && gameMode != GameMode.UNKNOWN){
-            log.debug("phase detected: " + phase.getPhaseName());
+            log.debug("phase detected: " + phase.getPhaseName() + ", gameMode: " + gameMode);
             phaseProcessor.handlePhase(phase, gameMode);
             return true;
         }
