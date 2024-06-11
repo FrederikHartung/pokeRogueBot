@@ -1,8 +1,3 @@
-# Important
-
-This repository is marked as archived. The code is not maintained anymore and the project is not continued.  
-I will continue the bot in a new repository "https://github.com/FrederikHartung/porujs" written in native JavaScript and stop using Cv and Ocr.  
-
 # pokeRogueBot
 This is a Repository for different bots which plays the pokeRogue Browser game with the help of AI. All bots don't use cheats and are worse than normal players.
 
