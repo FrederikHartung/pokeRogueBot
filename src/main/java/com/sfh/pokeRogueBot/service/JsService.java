@@ -1,6 +1,7 @@
 package com.sfh.pokeRogueBot.service;
 
 import com.sfh.pokeRogueBot.browser.JsClient;
+import com.sfh.pokeRogueBot.model.browser.enums.GameMode;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.stereotype.Service;
@@ -19,12 +20,12 @@ public class JsService {
         return jsClient.executeJsAndGetResult("./bin/js/getCurrentPhase.js");
     }
 
-    public int getUiMode(){
+    public GameMode getGaneMode(){
         String response = jsClient.executeJsAndGetResult("./bin/js/getUiMode.js");
         if(NumberUtils.isParsable(response)){
-            return Integer.parseInt(response);
+            return GameMode.fromValue(Integer.parseInt(response));
         }
-        return -1;
+        return GameMode.UNKNOWN;
     }
 
     public void logStageData(){

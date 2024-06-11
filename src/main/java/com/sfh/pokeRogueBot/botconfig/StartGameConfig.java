@@ -5,7 +5,7 @@ import com.sfh.pokeRogueBot.config.Constants;
 import com.sfh.pokeRogueBot.filehandler.TempFileManager;
 import com.sfh.pokeRogueBot.model.browser.enums.GameMode;
 import com.sfh.pokeRogueBot.model.exception.StageNotFoundException;
-import com.sfh.pokeRogueBot.model.exception.TemplateNotFoundException;
+import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.stage.StageIdentifier;
 import com.sfh.pokeRogueBot.stage.StageProcessor;
@@ -17,12 +17,13 @@ import org.springframework.retry.support.RetryTemplateBuilder;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+import static com.sfh.pokeRogueBot.phase.Phase.LOGIN_PHASE;
+import static com.sfh.pokeRogueBot.phase.Phase.TITLE_PHASE;
+
 @Slf4j
 @Component
 public class StartGameConfig implements Config {
 
-    public static final String LOGIN_PHASE = "LoginPhase";
-    public static final String TITLE_PHASE = "TitlePhase";
     private final StageProcessor stageProcessor;
     private final StageIdentifier stageIdentifier;
     private final StageProvider stageProvider;
@@ -65,7 +66,7 @@ public class StartGameConfig implements Config {
             String currentPhase = jsService.getCurrentPhase();
 
                 if(StringUtils.hasText(currentPhase)){
-                    GameMode mode = GameMode.fromValue(jsService.getUiMode());
+                    GameMode mode = jsService.getGaneMode();
                     log.debug("checking if loginScreenStage is visible, current phase: {}, mode: {}", currentPhase, mode);
                     if(currentPhase.equals(LOGIN_PHASE) && mode == GameMode.LOGIN_FORM){
                         log.debug("stage identified: loginScreenStage");
@@ -73,7 +74,7 @@ public class StartGameConfig implements Config {
                     }
 
                     currentPhase = jsService.getCurrentPhase();
-                    mode = GameMode.fromValue(jsService.getUiMode());
+                    mode = jsService.getGaneMode();
                     log.debug("checking if introStage is visible, current phase: {}, mode: {}", currentPhase, mode);
                     if(currentPhase.equals(LOGIN_PHASE) && mode == GameMode.MESSAGE){
                         log.debug("stage identified: introStage");
@@ -81,7 +82,7 @@ public class StartGameConfig implements Config {
                     }
 
                     currentPhase = jsService.getCurrentPhase();
-                    mode = GameMode.fromValue(jsService.getUiMode());
+                    mode = jsService.getGaneMode();
                     log.debug("checking if titleStage is visible, current phase: {}, mode: {}", currentPhase, mode);
                     if(currentPhase.equals(TITLE_PHASE)){
                         log.debug("stage identified: mainMenuStage");

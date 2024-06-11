@@ -8,6 +8,7 @@ import com.sfh.pokeRogueBot.template.Template;
 import com.sfh.pokeRogueBot.template.actions.TemplateAction;
 import org.springframework.stereotype.Component;
 
+@Deprecated
 @Component
 public class TrainerFightDialogeStage extends BaseStage implements Stage {
 

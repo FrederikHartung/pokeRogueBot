@@ -1,7 +1,9 @@
 package com.sfh.pokeRogueBot.botconfig;
 
 import com.sfh.pokeRogueBot.model.RunProperty;
+import com.sfh.pokeRogueBot.model.browser.enums.GameMode;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
+import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.service.RunPropertyService;
 import com.sfh.pokeRogueBot.stage.StageIdentifier;
@@ -42,64 +44,18 @@ public class SimpleFightConfig implements Config {
     private void startWaveFightingMode(RunProperty runProperty) throws Exception {
         while (runProperty.getStatus() == RunStatus.ONGOING) {
 
-            if(!runProperty.isFightOngoing()){
-                boolean isTrainerDialogueStageVisible = stageIdentifier.isStageVisible(stageProvider.getTrainerFightDialogeStage());
-                if (isTrainerDialogueStageVisible) {
-
-                    runProperty.setFightOngoing(true);
-                    runProperty.setTrainerFight(true);
-
-                    log.debug("Trainer dialogue stage is visible");
-                    stageProcessor.handleStage(stageProvider.getTrainerFightDialogeStage());
-                    log.debug("Trainer dialogue handled");
-                }
-
-                boolean isTrainerFightStartStageVisible = stageIdentifier.isStageVisible(stageProvider.getTrainerFightStartStage());
-                if (isTrainerFightStartStageVisible) {
-                    log.debug("Trainer fight start stage is visible");
-                    stageProcessor.handleStage(stageProvider.getTrainerFightStartStage());
-                    log.debug("Trainer fight start handled");
-                }
-            }
-
-            boolean isSwitchStageVisible = stageIdentifier.isStageVisible(stageProvider.getSwitchDecisionStage());
-            if(isSwitchStageVisible) {
-                log.debug("Switch stage is visible");
-                stageProcessor.handleStage(stageProvider.getSwitchDecisionStage());
-                log.debug("Switch stage handled");
-            }
-
-            boolean isFightStageVisible = stageIdentifier.isStageVisible(stageProvider.getFightStage());
-            if (isFightStageVisible) {
-                log.debug("Fight stage is visible");
-                stageProcessor.handleStage(stageProvider.getFightStage());
-                log.debug("Fight stage handled");
-                continue;
-            } else {
-                log.debug("Fight stage is not visible");
-            }
-
-            boolean isShopStageVisible = stageIdentifier.isStageVisible(stageProvider.getShopStage());
-            if(isShopStageVisible) {
-                log.debug("Shop stage is visible");
-                stageProcessor.handleStage(stageProvider.getShopStage());
-                log.debug("Shop stage handled");
-            }
-            else {
-                log.debug("Shop stage is not visible");
-            }
-
-            boolean isDefaultFightStageVisible = stageIdentifier.isStageVisible(stageProvider.getDefaultFightStage());
-            if(isDefaultFightStageVisible) {
-                log.debug("Default fight stage is visible");
-                stageProcessor.handleStage(stageProvider.getDefaultFightStage());
-                log.debug("Default fight stage handled");
-            }
-            else{
-                log.debug("Default fight stage is not visible");
-                stageProcessor.takeScreensot("default-fight-stage-not-visible");
-                runProperty.setStatus(RunStatus.ERROR);
-            }
+            boolean isEncounterPhase = isEncounterPhase();
         }
+    }
+
+    private boolean isEncounterPhase(){
+        String currentPhase = jsService.getCurrentPhase();
+        GameMode gameMode = jsService.getGaneMode();
+        if(null != currentPhase && gameMode == GameMode.MESSAGE && currentPhase.equals(Phase.ENCOUNTER_PHASE)){
+            log.debug("Encounter phase detected");
+            return true;
+        }
+
+        return false;
     }
 }
