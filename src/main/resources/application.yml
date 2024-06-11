@@ -30,7 +30,7 @@ browser:
   closeOnExit: true
   waitTimeForRenderAfterNavigation: 5000
   pathChromeUserDir: "./bin/webdriver/profile/"
-  useInkognito: true
+  useInkognito: false
 
 stage-identifier:
   numberOfRetries: 30
@@ -53,6 +53,8 @@ wait-time:
   waitTimeAfterAction: 100
   waitTimeForRenderingText: 1000
   waitTimeForRenderingStages: 5000
+  phaseDefault: 500
+  encounterPhase: 500
 
 stage:
   mainmenu:

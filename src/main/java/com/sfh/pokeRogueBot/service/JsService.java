@@ -20,7 +20,7 @@ public class JsService {
         return jsClient.executeJsAndGetResult("./bin/js/getCurrentPhase.js");
     }
 
-    public GameMode getGaneMode(){
+    public GameMode getGameMode(){
         String response = jsClient.executeJsAndGetResult("./bin/js/getUiMode.js");
         if(NumberUtils.isParsable(response)){
             return GameMode.fromValue(Integer.parseInt(response));

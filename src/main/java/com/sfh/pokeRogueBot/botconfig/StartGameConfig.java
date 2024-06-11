@@ -5,7 +5,6 @@ import com.sfh.pokeRogueBot.config.Constants;
 import com.sfh.pokeRogueBot.filehandler.TempFileManager;
 import com.sfh.pokeRogueBot.model.browser.enums.GameMode;
 import com.sfh.pokeRogueBot.model.exception.StageNotFoundException;
-import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.stage.StageIdentifier;
 import com.sfh.pokeRogueBot.stage.StageProcessor;
@@ -66,7 +65,7 @@ public class StartGameConfig implements Config {
             String currentPhase = jsService.getCurrentPhase();
 
                 if(StringUtils.hasText(currentPhase)){
-                    GameMode mode = jsService.getGaneMode();
+                    GameMode mode = jsService.getGameMode();
                     log.debug("checking if loginScreenStage is visible, current phase: {}, mode: {}", currentPhase, mode);
                     if(currentPhase.equals(LOGIN_PHASE) && mode == GameMode.LOGIN_FORM){
                         log.debug("stage identified: loginScreenStage");
@@ -74,7 +73,7 @@ public class StartGameConfig implements Config {
                     }
 
                     currentPhase = jsService.getCurrentPhase();
-                    mode = jsService.getGaneMode();
+                    mode = jsService.getGameMode();
                     log.debug("checking if introStage is visible, current phase: {}, mode: {}", currentPhase, mode);
                     if(currentPhase.equals(LOGIN_PHASE) && mode == GameMode.MESSAGE){
                         log.debug("stage identified: introStage");
@@ -82,7 +81,7 @@ public class StartGameConfig implements Config {
                     }
 
                     currentPhase = jsService.getCurrentPhase();
-                    mode = jsService.getGaneMode();
+                    mode = jsService.getGameMode();
                     log.debug("checking if titleStage is visible, current phase: {}, mode: {}", currentPhase, mode);
                     if(currentPhase.equals(TITLE_PHASE)){
                         log.debug("stage identified: mainMenuStage");

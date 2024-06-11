@@ -1,6 +1,8 @@
 package com.sfh.pokeRogueBot.service;
 
 import com.sfh.pokeRogueBot.config.WaitConfig;
+import com.sfh.pokeRogueBot.phase.impl.EncounterPhase;
+import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.stage.fight.FightStage;
 import com.sfh.pokeRogueBot.stage.start.IntroStage;
@@ -10,7 +12,6 @@ import com.sfh.pokeRogueBot.stage.start.PokemonselectionStage;
 import com.sfh.pokeRogueBot.stage.fight.SwitchDecisionStage;
 import com.sfh.pokeRogueBot.stage.fight.trainer.TrainerFightStartStage;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -41,7 +42,7 @@ public class WaitingService {
         sleep(waitTime);
     }
 
-    public void waitEvenLongerForStageRender(){
+    public void waitEvenLongerForRender(){
         int waitTime = calcWaitTime(waitConfig.getWaitTimeForRenderingStages());
         log.debug("Waiting for " + waitTime + "ms for stage render");
         sleep(waitTime);
@@ -84,6 +85,18 @@ public class WaitingService {
             Thread.sleep(waitTime);
         } catch (InterruptedException e) {
             log.error("Error while waiting", e);
+        }
+    }
+
+    public void waitAfterPhase(Phase phase) {
+        if(phase instanceof EncounterPhase){
+            int waitTime = waitConfig.getEncounterPhase();
+            log.debug("Waiting for " + waitTime + "ms after encounter phase");
+            sleep(waitTime);
+        }
+        else{
+            log.warn("Unknown phase: " + phase);
+            sleep(waitConfig.getPhaseDefault());
         }
     }
 }
