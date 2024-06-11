@@ -30,7 +30,7 @@ browser:
   closeOnExit: true
   waitTimeForRenderAfterNavigation: 5000
   pathChromeUserDir: "./bin/webdriver/profile/"
-  useInkognito: false
+  useInkognito: true
 
 stage-identifier:
   numberOfRetries: 30
@@ -40,8 +40,8 @@ stage-identifier:
 wait-time:
   defaultWaitTime: 2000
   gameSpeedModificator: 2
-  loginStageWaitTime: 250
-  introStageWaitTime: 250
+  loginStageWaitTime: 1000
+  introStageWaitTime: 1000
   mainmenuStageWaitTime: 1000
   pokemonSelectionStageWaitTime: 2000
   enemyFaintedStageWaitTime: 2000

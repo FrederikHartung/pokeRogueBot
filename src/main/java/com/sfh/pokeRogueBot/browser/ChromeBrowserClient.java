@@ -200,7 +200,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
                 return map.toString();
             }
             else{
-                return result.toString();
+                return null != result ? result.toString() : null;
             }
         }
         catch (Exception e){

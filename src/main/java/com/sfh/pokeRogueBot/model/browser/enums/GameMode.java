@@ -1,6 +1,7 @@
 package com.sfh.pokeRogueBot.model.browser.enums;
 
 public enum GameMode {
+    UNKNOWN(-1),
     MESSAGE(0),
     TITLE(1),
     COMMAND(2),

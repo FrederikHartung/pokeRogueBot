@@ -2,6 +2,7 @@ package com.sfh.pokeRogueBot.botconfig;
 
 import com.sfh.pokeRogueBot.model.RunProperty;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
+import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.service.RunPropertyService;
 import com.sfh.pokeRogueBot.stage.StageIdentifier;
 import com.sfh.pokeRogueBot.stage.StageProcessor;
@@ -17,12 +18,14 @@ public class SimpleFightConfig implements Config {
     private final StageProcessor stageProcessor;
     private final StageIdentifier stageIdentifier;
     private final RunPropertyService runPropertyService;
+    private final JsService jsService;
 
-    public SimpleFightConfig(StageProvider stageProvider, StageProcessor stageProcessor, StageIdentifier stageIdentifier, RunPropertyService runPropertyService) {
+    public SimpleFightConfig(StageProvider stageProvider, StageProcessor stageProcessor, StageIdentifier stageIdentifier, RunPropertyService runPropertyService, JsService jsService) {
         this.stageProvider = stageProvider;
         this.stageProcessor = stageProcessor;
         this.stageIdentifier = stageIdentifier;
         this.runPropertyService = runPropertyService;
+        this.jsService = jsService;
     }
 
     @Override
