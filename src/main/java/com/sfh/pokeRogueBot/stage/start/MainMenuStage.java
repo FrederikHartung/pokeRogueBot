@@ -78,6 +78,7 @@ public class MainMenuStage extends BaseStage implements Stage, HasOptionalTempla
 
     public List<TemplateAction> buildGameSettingsToActions(GameSettingProperty[] gameSettingProperties){
         List<TemplateAction> actions = new LinkedList<>();
+        actions.add(waitForTextRenderAction);
 
         for(GameSettingProperty property:gameSettingProperties){
             for(int i = 0; i < property.getValues().length; i++){

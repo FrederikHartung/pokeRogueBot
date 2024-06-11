@@ -27,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Map;
 
 @Slf4j
@@ -191,19 +192,22 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
 
     @Override
     public String executeJsAndGetResult(String jsFilePath) {
-        try{
+        try {
             String jsCode = new String(Files.readAllBytes(Paths.get(jsFilePath)));
 
             JavascriptExecutor js = (JavascriptExecutor) driver;
             Object result = js.executeScript(jsCode);
-            if(result instanceof Map map){
-                return map.toString();
+
+            if(result instanceof String){
+                return (String) result;
+            }
+            else if(result instanceof Long){
+                return String.valueOf(result);
             }
             else{
-                return result.toString();
+                throw new NotSupportedException("Result of JS execution is not a string, got type: " + result.getClass().getSimpleName());
             }
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             log.error("Error while executing JS: " + jsFilePath, e);
             return null;
         }
