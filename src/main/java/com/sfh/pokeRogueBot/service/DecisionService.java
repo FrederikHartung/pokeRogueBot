@@ -3,6 +3,7 @@ package com.sfh.pokeRogueBot.service;
 import com.sfh.pokeRogueBot.model.RunProperty;
 import com.sfh.pokeRogueBot.model.browser.modifier.ModifierOption;
 import com.sfh.pokeRogueBot.model.enums.FightDecision;
+import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
@@ -34,7 +35,7 @@ public class DecisionService {
     }
 
     public void getModifierToPick(){
-        List<ModifierOption> options = jsService.getModifierOptions();
+        List<ChooseModifierItem> options = jsService.getModifierOptions();
         log.info("count options: " + options.size());
     }
 
