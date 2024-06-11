@@ -16,6 +16,7 @@ function buildResult(container) {
         text: container.itemText._text,
         modifierTypeOption: {
         cost: container.modifierTypeOption.cost,
+        upgradeCount: container.modifierTypeOption.upgradeCount,
         typeName: container.modifierTypeOption.type.constructor.name,
         }
     }
@@ -23,8 +24,6 @@ function buildResult(container) {
     if (option.modifierTypeOption.typeName === "PokemonHpRestoreModifierType"){
         option.modifierTypeOption.type = {
             group: container.modifierTypeOption.type.group,
-            id: container.modifierTypeOption.type.id,
-            tier: container.modifierTypeOption.type.tier,
             name: container.modifierTypeOption.type.name,
 
             healStatus: container.modifierTypeOption.type.healStatus,
@@ -35,32 +34,48 @@ function buildResult(container) {
     else if (option.modifierTypeOption.typeName === "TmModifierType"){
         option.modifierTypeOption.type = {
             group: container.modifierTypeOption.type.group,
-            id: container.modifierTypeOption.type.id,
-            tier: container.modifierTypeOption.type.tier,
             name: container.modifierTypeOption.type.name,
 
+            id: container.modifierTypeOption.type.id,
+            tier: container.modifierTypeOption.type.tier,
             moveId: container.modifierTypeOption.type.moveId,
         } 
     }
     else if (option.modifierTypeOption.typeName === "AddPokeballModifierType"){
         option.modifierTypeOption.type = {
             group: container.modifierTypeOption.type.group,
-            id: container.modifierTypeOption.type.id,
-            tier: container.modifierTypeOption.type.tier,
             name: container.modifierTypeOption.type.name,
 
+            id: container.modifierTypeOption.type.id,        
+            tier: container.modifierTypeOption.type.tier,
             count: container.modifierTypeOption.type.count,
+            pokeballType: container.modifierTypeOption.type.pokeballType,
         } 
     }
-    else if (option.modifierTypeOption.typeName === "AddPokeballModifierType"){
+    else if (option.modifierTypeOption.typeName === "PokemonPpRestoreModifierType"){
         option.modifierTypeOption.type = {
             group: container.modifierTypeOption.type.group,
-            id: container.modifierTypeOption.type.id,
-            tier: container.modifierTypeOption.type.tier,
             name: container.modifierTypeOption.type.name,
 
-            count: container.modifierTypeOption.type.count,
+            restorePoints: container.modifierTypeOption.type.restorePoints,
         } 
+    }
+    else if (option.modifierTypeOption.typeName === "PokemonReviveModifierType"){
+        option.modifierTypeOption.type = {
+            group: container.modifierTypeOption.type.group,
+            name: container.modifierTypeOption.type.name,
+
+            restorePoints: container.modifierTypeOption.type.restorePoints,
+            restorePercent: container.modifierTypeOption.type.restorePercent,
+        } 
+    }
+    else{
+        console.log("--------------------")
+        console.log("New modifier type found: ", option.modifierTypeOption.typeName);
+        console.log("Please add the new modifier type to the function buildResult in getShopItems.js");
+        console.log("--------------------")
+
+        console.log(container.modifierTypeOption.type);
     }
 
     result.push(option);
@@ -74,4 +89,4 @@ modifierOption.forEach(element => {
     buildResult(element);
 });
 
-return modifierOption;
+return result;
