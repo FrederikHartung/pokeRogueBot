@@ -1,7 +1,7 @@
 let uiElements = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.getAll();
 let activeAndVisibleElements = uiElements.filter(element => element._visible && element.active);
 let modifierOption =  new Set();
-let result = [];
+let resultArray = [];
 
 function filterShopItems(container){
     if (container.type === "Text" && container.parentContainer.constructor.name === "ModifierOption") {
@@ -15,14 +15,14 @@ function buildResult(container) {
     let option = {
         text: container.itemText._text,
         modifierTypeOption: {
-        cost: container.modifierTypeOption.cost,
-        upgradeCount: container.modifierTypeOption.upgradeCount,
-        typeName: container.modifierTypeOption.type.constructor.name,
+            cost: container.modifierTypeOption.cost,
+            upgradeCount: container.modifierTypeOption.upgradeCount,
         }
     }
 
-    if (option.modifierTypeOption.typeName === "PokemonHpRestoreModifierType"){
+    if (container.modifierTypeOption.type.constructor.name === "PokemonHpRestoreModifierType"){
         option.modifierTypeOption.type = {
+            typeName: container.modifierTypeOption.type.constructor.name,
             group: container.modifierTypeOption.type.group,
             name: container.modifierTypeOption.type.name,
 
@@ -31,8 +31,9 @@ function buildResult(container) {
             restorePoints: container.modifierTypeOption.type.restorePoints,
         }
     }
-    else if (option.modifierTypeOption.typeName === "TmModifierType"){
+    else if (container.modifierTypeOption.type.constructor.name === "TmModifierType"){
         option.modifierTypeOption.type = {
+            typeName: container.modifierTypeOption.type.constructor.name,
             group: container.modifierTypeOption.type.group,
             name: container.modifierTypeOption.type.name,
 
@@ -41,8 +42,9 @@ function buildResult(container) {
             moveId: container.modifierTypeOption.type.moveId,
         } 
     }
-    else if (option.modifierTypeOption.typeName === "AddPokeballModifierType"){
+    else if (container.modifierTypeOption.type.constructor.name === "AddPokeballModifierType"){
         option.modifierTypeOption.type = {
+            typeName: container.modifierTypeOption.type.constructor.name,
             group: container.modifierTypeOption.type.group,
             name: container.modifierTypeOption.type.name,
 
@@ -52,16 +54,18 @@ function buildResult(container) {
             pokeballType: container.modifierTypeOption.type.pokeballType,
         } 
     }
-    else if (option.modifierTypeOption.typeName === "PokemonPpRestoreModifierType"){
+    else if (container.modifierTypeOption.type.constructor.name === "PokemonPpRestoreModifierType"){
         option.modifierTypeOption.type = {
+            typeName: container.modifierTypeOption.type.constructor.name,
             group: container.modifierTypeOption.type.group,
             name: container.modifierTypeOption.type.name,
 
             restorePoints: container.modifierTypeOption.type.restorePoints,
         } 
     }
-    else if (option.modifierTypeOption.typeName === "PokemonReviveModifierType"){
+    else if (container.modifierTypeOption.type.constructor.name === "PokemonReviveModifierType"){
         option.modifierTypeOption.type = {
+            typeName: container.modifierTypeOption.type.constructor.name,
             group: container.modifierTypeOption.type.group,
             name: container.modifierTypeOption.type.name,
 
@@ -78,7 +82,7 @@ function buildResult(container) {
         console.log(container.modifierTypeOption.type);
     }
 
-    result.push(option);
+    resultArray.push(option);
 }
 
 activeAndVisibleElements.forEach(element => {
@@ -89,4 +93,4 @@ modifierOption.forEach(element => {
     buildResult(element);
 });
 
-return result;
+return JSON.stringify(resultArray);

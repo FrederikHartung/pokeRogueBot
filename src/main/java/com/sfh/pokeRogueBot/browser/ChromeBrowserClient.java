@@ -191,29 +191,24 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
     }
 
     @Override
-    public <T> T executeJsAndGetResult(String jsFilePath, Class<T> returnType) {
+    public String executeJsAndGetResult(String jsFilePath) {
         try {
             String jsCode = new String(Files.readAllBytes(Paths.get(jsFilePath)));
 
             JavascriptExecutor js = (JavascriptExecutor) driver;
             Object result = js.executeScript(jsCode);
-            if (jsFilePath.contains("Modifier")) {
-                log.info("type/class: " + result.getClass().getName());
-            }
 
-            if (returnType.isInstance(result)) {
-                return returnType.cast(result);
-            } else if (returnType == String.class) {
-                return returnType.cast(result != null ? result.toString() : null);
-            } else if (returnType == ArrayList.class && result instanceof ArrayList) {
-                return returnType.cast(result);
-            } else if (returnType == Map.class && result instanceof Map) {
-                return returnType.cast(result);
-            } else {
-                throw new IllegalArgumentException("Unexpected return type: " + returnType.getName());
+            if(result instanceof String){
+                return (String) result;
+            }
+            else if(result instanceof Long){
+                return String.valueOf(result);
+            }
+            else{
+                throw new NotSupportedException("Result of JS execution is not a string, got type: " + result.getClass().getSimpleName());
             }
         } catch (Exception e) {
-            log.error("Error while executing JS: " + jsFilePath + ", " + e.getMessage());
+            log.error("Error while executing JS: " + jsFilePath, e);
             return null;
         }
     }

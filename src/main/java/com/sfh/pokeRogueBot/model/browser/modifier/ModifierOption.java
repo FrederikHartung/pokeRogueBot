@@ -7,7 +7,4 @@ public class ModifierOption {
 
     private String text;
     private ModifierTypeOption modifierTypeOption;
-    private int cost;
-    private int upgradeCount;
-    private String typeName;
 }
