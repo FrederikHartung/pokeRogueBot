@@ -39,9 +39,9 @@ stage-identifier:
 
 wait-time:
   defaultWaitTime: 2000
-  gameSpeedModificator: 2
-  loginStageWaitTime: 250
-  introStageWaitTime: 250
+  gameSpeedModificator: 1
+  loginStageWaitTime: 1000
+  introStageWaitTime: 1000
   mainmenuStageWaitTime: 1000
   pokemonSelectionStageWaitTime: 2000
   enemyFaintedStageWaitTime: 2000
@@ -53,6 +53,9 @@ wait-time:
   waitTimeAfterAction: 100
   waitTimeForRenderingText: 1000
   waitTimeForRenderingStages: 5000
+  phaseDefault: 500
+  encounterPhase: 500
+  messagePhase: 100
 
 stage:
   mainmenu:

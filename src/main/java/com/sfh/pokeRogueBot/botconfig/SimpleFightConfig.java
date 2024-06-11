@@ -1,11 +1,15 @@
 package com.sfh.pokeRogueBot.botconfig;
 
 import com.sfh.pokeRogueBot.model.RunProperty;
+import com.sfh.pokeRogueBot.model.browser.enums.GameMode;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
+import com.sfh.pokeRogueBot.model.exception.UnsupportedPhaseException;
+import com.sfh.pokeRogueBot.phase.Phase;
+import com.sfh.pokeRogueBot.phase.PhaseProcessor;
+import com.sfh.pokeRogueBot.phase.PhaseProvider;
+import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.service.RunPropertyService;
-import com.sfh.pokeRogueBot.stage.StageIdentifier;
-import com.sfh.pokeRogueBot.stage.StageProcessor;
-import com.sfh.pokeRogueBot.stage.StageProvider;
+import com.sfh.pokeRogueBot.service.WaitingService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -13,16 +17,18 @@ import org.springframework.stereotype.Component;
 @Component
 public class SimpleFightConfig implements Config {
 
-    private final StageProvider stageProvider;
-    private final StageProcessor stageProcessor;
-    private final StageIdentifier stageIdentifier;
     private final RunPropertyService runPropertyService;
+    private final JsService jsService;
+    private final PhaseProcessor phaseProcessor;
+    private final PhaseProvider phaseProvider;
+    private final WaitingService waitingService;
 
-    public SimpleFightConfig(StageProvider stageProvider, StageProcessor stageProcessor, StageIdentifier stageIdentifier, RunPropertyService runPropertyService) {
-        this.stageProvider = stageProvider;
-        this.stageProcessor = stageProcessor;
-        this.stageIdentifier = stageIdentifier;
+    public SimpleFightConfig(RunPropertyService runPropertyService, JsService jsService, PhaseProcessor phaseProcessor, PhaseProvider phaseProvider, WaitingService waitingService) {
         this.runPropertyService = runPropertyService;
+        this.jsService = jsService;
+        this.phaseProcessor = phaseProcessor;
+        this.phaseProvider = phaseProvider;
+        this.waitingService = waitingService;
     }
 
     @Override
@@ -37,66 +43,50 @@ public class SimpleFightConfig implements Config {
     }
 
     private void startWaveFightingMode(RunProperty runProperty) throws Exception {
+        log.debug("starting wave fighting mode");
         while (runProperty.getStatus() == RunStatus.ONGOING) {
 
-            if(!runProperty.isFightOngoing()){
-                boolean isTrainerDialogueStageVisible = stageIdentifier.isStageVisible(stageProvider.getTrainerFightDialogeStage());
-                if (isTrainerDialogueStageVisible) {
+            String phaseAsString = jsService.getCurrentPhaseAsString();
+            Phase phase = phaseProvider.fromString(phaseAsString);
+            GameMode gameMode = jsService.getGameMode();
 
-                    runProperty.setFightOngoing(true);
-                    runProperty.setTrainerFight(true);
-
-                    log.debug("Trainer dialogue stage is visible");
-                    stageProcessor.handleStage(stageProvider.getTrainerFightDialogeStage());
-                    log.debug("Trainer dialogue handled");
-                }
-
-                boolean isTrainerFightStartStageVisible = stageIdentifier.isStageVisible(stageProvider.getTrainerFightStartStage());
-                if (isTrainerFightStartStageVisible) {
-                    log.debug("Trainer fight start stage is visible");
-                    stageProcessor.handleStage(stageProvider.getTrainerFightStartStage());
-                    log.debug("Trainer fight start handled");
-                }
-            }
-
-            boolean isSwitchStageVisible = stageIdentifier.isStageVisible(stageProvider.getSwitchDecisionStage());
-            if(isSwitchStageVisible) {
-                log.debug("Switch stage is visible");
-                stageProcessor.handleStage(stageProvider.getSwitchDecisionStage());
-                log.debug("Switch stage handled");
-            }
-
-            boolean isFightStageVisible = stageIdentifier.isStageVisible(stageProvider.getFightStage());
-            if (isFightStageVisible) {
-                log.debug("Fight stage is visible");
-                stageProcessor.handleStage(stageProvider.getFightStage());
-                log.debug("Fight stage handled");
+            if(handePhaseIfPresent(phase, gameMode)){
+                runProperty.setLastPhaseNotDetected(false);
                 continue;
-            } else {
-                log.debug("Fight stage is not visible");
             }
 
-            boolean isShopStageVisible = stageIdentifier.isStageVisible(stageProvider.getShopStage());
-            if(isShopStageVisible) {
-                log.debug("Shop stage is visible");
-                stageProcessor.handleStage(stageProvider.getShopStage());
-                log.debug("Shop stage handled");
-            }
-            else {
-                log.debug("Shop stage is not visible");
-            }
+            retryOrThrow(runProperty, gameMode);
+        }
+    }
 
-            boolean isDefaultFightStageVisible = stageIdentifier.isStageVisible(stageProvider.getDefaultFightStage());
-            if(isDefaultFightStageVisible) {
-                log.debug("Default fight stage is visible");
-                stageProcessor.handleStage(stageProvider.getDefaultFightStage());
-                log.debug("Default fight stage handled");
-            }
-            else{
-                log.debug("Default fight stage is not visible");
-                stageProcessor.takeScreensot("default-fight-stage-not-visible");
-                runProperty.setStatus(RunStatus.ERROR);
-            }
+    private boolean handePhaseIfPresent(Phase phase, GameMode gameMode) throws Exception {
+        if(null != phase && gameMode != GameMode.UNKNOWN){
+            log.debug("phase detected: " + phase.getPhaseName() + ", gameMode: " + gameMode);
+            phaseProcessor.handlePhase(phase, gameMode);
+            return true;
+        }
+        else if(null == phase && gameMode == GameMode.MESSAGE) {
+            log.debug("no phase detected, but gameMode is message: " + gameMode);
+            phaseProcessor.handlePhase(phaseProvider.getMessagePhase(), gameMode);
+            return true;
+        }
+        else{
+            log.debug("no phase detected, phase: " + phase + ", gameMode: " + gameMode);
+        }
+
+        return false;
+    }
+
+    private void retryOrThrow(RunProperty runProperty, GameMode gameMode) throws UnsupportedPhaseException {
+        //current phase not detected or not implemented yet => wait & try again
+        if(!runProperty.isLastPhaseNotDetected()){
+            runProperty.setLastPhaseNotDetected(true);
+            log.debug("last phase not detected, retrying...");
+            waitingService.waitEvenLongerForRender();
+        }
+        else {
+            String phaseAsString = jsService.getCurrentPhaseAsString();
+            throw new UnsupportedPhaseException(phaseAsString, gameMode);
         }
     }
 }

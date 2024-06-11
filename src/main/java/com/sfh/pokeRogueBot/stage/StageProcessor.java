@@ -72,7 +72,7 @@ public class StageProcessor {
                 waitingService.waitLongerAfterAction();
                 break;
             case WAIT_FOR_STAGE_RENDER:
-                waitingService.waitEvenLongerForStageRender();
+                waitingService.waitEvenLongerForRender();
                 break;
             case TAKE_SCREENSHOT:
                 createScreenshot(action.getTarget());

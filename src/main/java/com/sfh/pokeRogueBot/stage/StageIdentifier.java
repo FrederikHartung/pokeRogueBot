@@ -85,7 +85,6 @@ public class StageIdentifier {
         List<Template> templatesToCheck = new LinkedList<>(Arrays.stream(stage.getTemplatesToValidateStage()).toList());
 
         log.debug("Checking if stage is visible: " + stage.getFilenamePrefix());
-        jsService.logStageData();
         BufferedImage canvas = imageService.takeScreenshot(stage.getFilenamePrefix());
 
         for (Template template : templatesToCheck) {

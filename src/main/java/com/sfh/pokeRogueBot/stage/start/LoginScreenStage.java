@@ -14,6 +14,7 @@ import com.sfh.pokeRogueBot.template.HtmlTemplate;
 import com.sfh.pokeRogueBot.template.SimpleCvTemplate;
 import com.sfh.pokeRogueBot.template.Template;
 import com.sfh.pokeRogueBot.template.actions.SimpleTemplateAction;
+import com.sfh.pokeRogueBot.template.actions.TemplateAction;
 import com.sfh.pokeRogueBot.template.actions.TextInputActionSimple;
 import org.springframework.stereotype.Component;
 
@@ -81,13 +82,14 @@ public class LoginScreenStage extends BaseStage implements HtmlTemplate, Stage {
     }
 
     @Override
-    public SimpleTemplateAction[] getTemplateActionsToPerform() {
+    public TemplateAction[] getTemplateActionsToPerform() {
         UserData userData = UserDataProvider.getUserdata(Constants.PATH_TO_USER_DATA);
 
         TextInputActionSimple benutzernameAction = new TextInputActionSimple(BENUTZERNAME_INPUT, userData.getUsername());
         TextInputActionSimple passwortAction = new TextInputActionSimple(PASSWORT_INPUT, userData.getPassword());
         SimpleTemplateAction clickAction = new SimpleTemplateAction(TemplateActionType.CLICK, ANMELDEN_BUTTON);
-        return new SimpleTemplateAction[]{
+        return new TemplateAction[]{
+                this.waitForTextRenderAction,
                 benutzernameAction,
                 passwortAction,
                 clickAction};

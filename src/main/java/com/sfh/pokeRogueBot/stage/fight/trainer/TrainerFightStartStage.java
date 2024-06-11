@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import java.util.LinkedList;
 import java.util.List;
 
+@Deprecated
 @Slf4j
 @Component
 public class TrainerFightStartStage extends BaseStage implements Stage {
