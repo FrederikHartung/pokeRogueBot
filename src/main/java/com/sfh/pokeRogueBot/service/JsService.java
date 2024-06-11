@@ -27,14 +27,15 @@ public class JsService {
 
     public Phase getCurrentPhase(){
         String phaseAsString = jsClient.executeJsAndGetResult("./bin/js/getCurrentPhase.js");
-        if(!StringUtils.hasText(phaseAsString)){
+        if(StringUtils.hasText(phaseAsString)){
             return phaseProvider.fromString(phaseAsString);
         }
+        log.warn("phaseAsString has no text: " + phaseAsString);
         return null;
     }
 
     public GameMode getGameMode(){
-        String response = jsClient.executeJsAndGetResult("./bin/js/getUiMode.js");
+        String response = jsClient.executeJsAndGetResult("./bin/js/getGameMode.js");
         if(NumberUtils.isParsable(response)){
             return GameMode.fromValue(Integer.parseInt(response));
         }

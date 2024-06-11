@@ -28,4 +28,5 @@ public class WaitConfig {
     private int waitTimeForRenderingStages;
     private int phaseDefault;
     private int encounterPhase;
+    private int messagePhase;
 }

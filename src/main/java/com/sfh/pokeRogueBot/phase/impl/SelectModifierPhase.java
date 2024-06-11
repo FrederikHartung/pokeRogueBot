@@ -5,24 +5,29 @@ import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
+import com.sfh.pokeRogueBot.service.DecisionService;
 import org.springframework.stereotype.Component;
 
 @Component
-public class MessagePhase extends AbstractPhase implements Phase {
+public class SelectModifierPhase  extends AbstractPhase implements Phase {
+
+    private final DecisionService decisionService;
+
+    public SelectModifierPhase(DecisionService decisionService) {
+        this.decisionService = decisionService;
+    }
 
     @Override
     public String getPhaseName() {
-        return Phase.MESSAGE_PHASE;
+        return Phase.SELECT_MODIFIER_PHASE;
     }
 
     @Override
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
-        if(gameMode == GameMode.MESSAGE){
-            return new PhaseAction[]{
-                    this.pressSpace
-            };
+        if (gameMode == GameMode.MODIFIER_SELECT) {
+
         }
 
-        throw new NotSupportedException("GameMode not supported for MessagePhase: " + gameMode);
+        throw new NotSupportedException("GameMode not supported for SelectModifierPhase: " + gameMode);
     }
 }

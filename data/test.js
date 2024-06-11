@@ -58,4 +58,4 @@ function getGetShopItems() {
     return modifierOption;
 }
 
-console.log(getAllActiveAndVisible());
+console.log(getGetShopItems());

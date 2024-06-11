@@ -57,7 +57,7 @@ public class StartGameConfig implements Config {
 
         RetryTemplate retryTemplate = new RetryTemplateBuilder()
                 .retryOn(StageNotFoundException.class)
-                .fixedBackoff(500)
+                .fixedBackoff(2000)
                 .maxAttempts(120)
                 .build();
 

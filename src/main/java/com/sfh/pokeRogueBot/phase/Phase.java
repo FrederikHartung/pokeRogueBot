@@ -11,6 +11,7 @@ public interface Phase {
     String ENCOUNTER_PHASE = "EncounterPhase";
     String COMMAND_PHASE = "CommandPhase";
     String MESSAGE_PHASE = "MessagePhase";
+    String SELECT_MODIFIER_PHASE = "SelectModifierPhase";
 
     String getPhaseName();
 

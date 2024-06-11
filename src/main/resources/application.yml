@@ -39,7 +39,7 @@ stage-identifier:
 
 wait-time:
   defaultWaitTime: 2000
-  gameSpeedModificator: 2
+  gameSpeedModificator: 1
   loginStageWaitTime: 1000
   introStageWaitTime: 1000
   mainmenuStageWaitTime: 1000
@@ -55,6 +55,7 @@ wait-time:
   waitTimeForRenderingStages: 5000
   phaseDefault: 500
   encounterPhase: 500
+  messagePhase: 100
 
 stage:
   mainmenu:

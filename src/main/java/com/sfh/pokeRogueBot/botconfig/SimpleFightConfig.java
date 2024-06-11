@@ -43,28 +43,18 @@ public class SimpleFightConfig implements Config {
     }
 
     private void startWaveFightingMode(RunProperty runProperty) throws Exception {
+        log.debug("starting wave fighting mode");
         while (runProperty.getStatus() == RunStatus.ONGOING) {
 
             Phase phase = jsService.getCurrentPhase();
             GameMode gameMode = jsService.getGameMode();
 
             if(handePhaseIfPresent(phase, gameMode)){
+                runProperty.setLastPhaseNotDetected(false);
                 continue;
             }
 
-            retryOrThrow(runProperty);
-        }
-    }
-
-    private void retryOrThrow(RunProperty runProperty){
-        //current phase not detected or not implemented yet => wait & try again
-        if(!runProperty.isPhaseDetected()){
-            waitingService.waitEvenLongerForRender();
-        }
-        else {
-            String currentPhase = jsService.getCurrentPhaseAsString();
-            GameMode gameMode = jsService.getGameMode();
-            throw new UnsupportedPhaseException(currentPhase, gameMode);
+            retryOrThrow(runProperty, gameMode);
         }
     }
 
@@ -74,7 +64,28 @@ public class SimpleFightConfig implements Config {
             phaseProcessor.handlePhase(phase, gameMode);
             return true;
         }
+        else if(null == phase && gameMode == GameMode.MESSAGE) {
+            log.debug("no phase detected, but gameMode is message: " + gameMode);
+            phaseProcessor.handlePhase(phaseProvider.getMessagePhase(), gameMode);
+            return true;
+        }
+        else{
+            log.debug("no phase detected, phase: " + phase + ", gameMode: " + gameMode);
+        }
 
         return false;
+    }
+
+    private void retryOrThrow(RunProperty runProperty, GameMode gameMode) throws UnsupportedPhaseException {
+        //current phase not detected or not implemented yet => wait & try again
+        if(!runProperty.isLastPhaseNotDetected()){
+            runProperty.setLastPhaseNotDetected(true);
+            log.debug("last phase not detected, retrying...");
+            waitingService.waitEvenLongerForRender();
+        }
+        else {
+            String phaseAsString = jsService.getCurrentPhaseAsString();
+            throw new UnsupportedPhaseException(phaseAsString, gameMode);
+        }
     }
 }

@@ -10,12 +10,14 @@ public class DecisionService {
 
     private final RunPropertyService runPropertyService;
     private final FightInfoService fightInfoService;
+    private final JsService jsService;
 
     private RunProperty runProperty = null;
 
-    public DecisionService(RunPropertyService runPropertyService, FightInfoService fightInfoService) {
+    public DecisionService(RunPropertyService runPropertyService, FightInfoService fightInfoService, JsService jsService) {
         this.runPropertyService = runPropertyService;
         this.fightInfoService = fightInfoService;
+        this.jsService = jsService;
     }
 
     public boolean shouldSwitchPokemon() {
@@ -24,6 +26,10 @@ public class DecisionService {
         }
 
         return false;
+    }
+
+    public void getModifierToPick(){
+
     }
 
     public FightDecision getFightDecision() {

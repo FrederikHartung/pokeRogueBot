@@ -3,6 +3,7 @@ package com.sfh.pokeRogueBot.service;
 import com.sfh.pokeRogueBot.config.WaitConfig;
 import com.sfh.pokeRogueBot.phase.impl.EncounterPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
+import com.sfh.pokeRogueBot.phase.impl.MessagePhase;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.stage.fight.FightStage;
 import com.sfh.pokeRogueBot.stage.start.IntroStage;
@@ -32,19 +33,19 @@ public class WaitingService {
 
     public void waitAfterAction(){
         int waitTime = calcWaitTime(waitConfig.getWaitTimeAfterAction());
-        log.debug("Waiting for " + waitTime + "ms after action");
+        log.debug("Waiting for " + waitTime);
         sleep(waitTime);
     }
 
     public void waitLongerAfterAction(){
         int waitTime = calcWaitTime(waitConfig.getWaitTimeForRenderingText());
-        log.debug("Waiting for " + waitTime + "ms after action");
+        log.debug("Waiting longer for " + waitTime);
         sleep(waitTime);
     }
 
     public void waitEvenLongerForRender(){
         int waitTime = calcWaitTime(waitConfig.getWaitTimeForRenderingStages());
-        log.debug("Waiting for " + waitTime + "ms for stage render");
+        log.debug("Waiting even longer for " + waitTime);
         sleep(waitTime);
     }
 
@@ -94,8 +95,13 @@ public class WaitingService {
             log.debug("Waiting for " + waitTime + "ms after encounter phase");
             sleep(waitTime);
         }
+        else if(phase instanceof MessagePhase){
+            int waitTime = waitConfig.getMessagePhase();
+            log.debug("Waiting for " + waitTime + "ms after message phase");
+            sleep(waitTime);
+        }
         else{
-            log.warn("Unknown phase: " + phase);
+            log.warn("default wait for phase: " + phase);
             sleep(waitConfig.getPhaseDefault());
         }
     }
