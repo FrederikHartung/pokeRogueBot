@@ -62,7 +62,7 @@ public class StartGameConfig implements Config {
                 .build();
 
         retryTemplate.execute(context -> {
-            String currentPhase = jsService.getCurrentPhase();
+            String currentPhase = jsService.getCurrentPhaseAsString();
 
                 if(StringUtils.hasText(currentPhase)){
                     GameMode mode = jsService.getGameMode();
@@ -72,7 +72,7 @@ public class StartGameConfig implements Config {
                         stageProcessor.handleStage(stageProvider.getLoginScreenStage());
                     }
 
-                    currentPhase = jsService.getCurrentPhase();
+                    currentPhase = jsService.getCurrentPhaseAsString();
                     mode = jsService.getGameMode();
                     log.debug("checking if introStage is visible, current phase: {}, mode: {}", currentPhase, mode);
                     if(currentPhase.equals(LOGIN_PHASE) && mode == GameMode.MESSAGE){
@@ -80,7 +80,7 @@ public class StartGameConfig implements Config {
                         stageProcessor.handleStage(stageProvider.getIntroStage());
                     }
 
-                    currentPhase = jsService.getCurrentPhase();
+                    currentPhase = jsService.getCurrentPhaseAsString();
                     mode = jsService.getGameMode();
                     log.debug("checking if titleStage is visible, current phase: {}, mode: {}", currentPhase, mode);
                     if(currentPhase.equals(TITLE_PHASE)){

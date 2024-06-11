@@ -13,4 +13,13 @@ public class PhaseProvider {
 
     private final EncounterPhase encounterPhase;
     private final CommandPhase commandPhase;
+
+    public Phase fromString(String phaseAsString){
+        return switch (phaseAsString) {
+            case Phase.ENCOUNTER_PHASE -> encounterPhase;
+            case Phase.COMMAND_PHASE -> commandPhase;
+            default -> null;
+        };
+
+    }
 }

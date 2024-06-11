@@ -45,36 +45,33 @@ public class SimpleFightConfig implements Config {
     private void startWaveFightingMode(RunProperty runProperty) throws Exception {
         while (runProperty.getStatus() == RunStatus.ONGOING) {
 
-            boolean handledEncounterPhase = handePhaseIfPresent(phaseProvider.getEncounterPhase());
-            if(handledEncounterPhase){
-                runProperty.setFightOngoing(true);
+            Phase phase = jsService.getCurrentPhase();
+            GameMode gameMode = jsService.getGameMode();
+
+            if(handePhaseIfPresent(phase, gameMode)){
                 continue;
             }
 
-            boolean handledCommandPhase = handePhaseIfPresent(phaseProvider.getCommandPhase());
-            if(handledCommandPhase){
-                continue;
-            }
-
-            //current phase not detected or not implemented yet => wait & try again
-            if(!runProperty.isPhaseNotDetected()){
-                runProperty.setPhaseNotDetected(true);
-                waitingService.waitEvenLongerForRender();
-            }
-            else {
-                String currentPhase = jsService.getCurrentPhase();
-                GameMode gameMode = jsService.getGameMode();
-                throw new UnsupportedPhaseException(currentPhase, gameMode);
-            }
+            retryOrThrow(runProperty);
         }
     }
 
-    private boolean handePhaseIfPresent(Phase phase) throws Exception {
-        String currentPhase = jsService.getCurrentPhase();
-        GameMode gameMode = jsService.getGameMode();
-        if(null != currentPhase && gameMode == phase.getExpectedGameMode() && currentPhase.equals(phase.getPhaseName())){
+    private void retryOrThrow(RunProperty runProperty){
+        //current phase not detected or not implemented yet => wait & try again
+        if(!runProperty.isPhaseDetected()){
+            waitingService.waitEvenLongerForRender();
+        }
+        else {
+            String currentPhase = jsService.getCurrentPhaseAsString();
+            GameMode gameMode = jsService.getGameMode();
+            throw new UnsupportedPhaseException(currentPhase, gameMode);
+        }
+    }
+
+    private boolean handePhaseIfPresent(Phase phase, GameMode gameMode) throws Exception {
+        if(null != phase && gameMode != GameMode.UNKNOWN){
             log.debug("phase detected: " + phase.getPhaseName());
-            phaseProcessor.handlePhase(phase);
+            phaseProcessor.handlePhase(phase, gameMode);
             return true;
         }
 
