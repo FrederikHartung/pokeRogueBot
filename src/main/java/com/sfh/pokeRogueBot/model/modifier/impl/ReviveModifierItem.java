@@ -5,8 +5,8 @@ import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-@EqualsAndHashCode(callSuper = true)
 @Data
+@EqualsAndHashCode(callSuper = true)
 public class ReviveModifierItem extends AbstractModifierItem implements ChooseModifierItem {
 
     public static final String TARGET = "PokemonReviveModifierType";

@@ -27,6 +27,8 @@ public class ChooseModifierItemDeserializer implements JsonDeserializer<ChooseMo
                 return context.deserialize(json, TmModifierItem.class);
             case TempStatBoostItem.TARGET:
                 return context.deserialize(json, TempStatBoostItem.class);
+            case LureModifierItem.TARGET:
+                return context.deserialize(json, LureModifierItem.class);
             default:
                 throw new JsonParseException("Unknown Modifier Type: " + typeName + ", value: " + jsonObject.get("type").toString());
         }

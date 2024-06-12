@@ -7,12 +7,11 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class TmModifierItem extends AbstractModifierItem implements ChooseModifierItem {
+public class LureModifierItem extends AbstractModifierItem implements ChooseModifierItem {
 
-    public static final String TARGET = "TmModifierType";
+    public static final String TARGET = "DoubleBattleChanceBoosterModifierType";
 
+    private int battleCount;
     private String id;
     private int tier;
-    private int moveId;
-
 }

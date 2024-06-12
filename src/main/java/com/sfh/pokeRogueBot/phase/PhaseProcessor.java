@@ -60,8 +60,8 @@ public class PhaseProcessor implements ScreenshotClient {
     @Override
     public void takeScreenshot(String prefix) {
         try{
+            waitingService.waitEvenLongerForRender();
             ScreenshotFilehandler.persistBufferedImage(imageService.takeScreenshot(prefix), prefix);
-
         }
         catch (Exception e){
             log.error("error while taking screenshot", e);
