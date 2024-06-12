@@ -12,7 +12,6 @@ public class TmModifierItem extends AbstractModifierItem implements ChooseModifi
     public static final String TARGET = "TmModifierType";
 
     private String id;
-    private int tier;
     private int moveId;
 
 }

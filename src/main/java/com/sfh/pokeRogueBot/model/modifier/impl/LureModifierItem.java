@@ -13,5 +13,4 @@ public class LureModifierItem extends AbstractModifierItem implements ChooseModi
 
     private int battleCount;
     private String id;
-    private int tier;
 }

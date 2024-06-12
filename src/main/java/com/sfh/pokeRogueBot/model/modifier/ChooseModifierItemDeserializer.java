@@ -19,8 +19,8 @@ public class ChooseModifierItemDeserializer implements JsonDeserializer<ChooseMo
                 return context.deserialize(json, PokemonHpRestoreModifierItem.class);
             case AddPokeballModifierItem.TARGET:
                 return context.deserialize(json, AddPokeballModifierItem.class);
-            case PpModifierItem.TARGET:
-                return context.deserialize(json, PpModifierItem.class);
+            case PokemonPpRestoreModifierItem.TARGET:
+                return context.deserialize(json, PokemonPpRestoreModifierItem.class);
             case PokemonReviveModifierItem.TARGET:
                 return context.deserialize(json, PokemonReviveModifierItem.class);
             case TmModifierItem.TARGET:

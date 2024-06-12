@@ -1,5 +1,6 @@
 package com.sfh.pokeRogueBot.model.modifier.impl;
 
+import com.sfh.pokeRogueBot.model.enums.VoucherType;
 import com.sfh.pokeRogueBot.model.modifier.AbstractModifierItem;
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem;
 import lombok.Data;
@@ -11,7 +12,7 @@ public class AddVoucherModifierItem  extends AbstractModifierItem implements Cho
 
     public static final String TARGET = "AddVoucherModifierType";
 
-    private int vouchertype;
+    private VoucherType vouchertype;
     private int count;
 
 }
