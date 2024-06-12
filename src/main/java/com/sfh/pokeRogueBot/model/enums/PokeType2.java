@@ -521,4 +521,47 @@ public enum PokeType2 {
 
         return 1; //fallback
     }
+
+    public static String getAttackTypeBoosterItemName(PokeType2 type) {
+        switch (type) {
+            case NORMAL:
+                return "Silk Scarf";
+            case FIGHTING:
+                return "Black Belt";
+            case FLYING:
+                return "Sharp Beak";
+            case POISON:
+                return "Poison Barb";
+            case GROUND:
+                return "Soft Sand";
+            case ROCK:
+                return "Hard Stone";
+            case BUG:
+                return "Silver Powder";
+            case GHOST:
+                return "Spell Tag";
+            case STEEL:
+                return "Metal Coat";
+            case FIRE:
+                return "Charcoal";
+            case WATER:
+                return "Mystic Water";
+            case GRASS:
+                return "Miracle Seed";
+            case ELECTRIC:
+                return "Magnet";
+            case PSYCHIC:
+                return "Twisted Spoon";
+            case ICE:
+                return "Never-Melt Ice";
+            case DRAGON:
+                return "Dragon Fang";
+            case DARK:
+                return "Black Glasses";
+            case FAIRY:
+                return "Fairy Feather";
+        }
+
+        return null; //fallback
+    }
 }
