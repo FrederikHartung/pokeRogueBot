@@ -72,4 +72,12 @@ public class ModifierShop {
     public int getTotalCols() {
         return colsForBuyableItems + colsForFreeItems;
     }
+
+    @Override
+    public String toString() {
+        return "ModifierShop{" +
+                "buyableItems=" + buyableItems +
+                ", freeItems=" + freeItems +
+                '}';
+    }
 }

@@ -11,4 +11,9 @@ public class ModifierShopItem {
     private ChooseModifierItem item;
     private int row;
     private int col;
+
+    @Override
+    public String toString() {
+        return item.getName();
+    }
 }

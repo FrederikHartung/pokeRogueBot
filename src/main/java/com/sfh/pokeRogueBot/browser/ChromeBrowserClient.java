@@ -189,7 +189,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
     }
 
     @Override
-    public String executeJsAndGetResult(String jsFilePath) {
+    public String executeJsAndGetResult(String jsFilePath){
         try {
             String jsCode = new String(Files.readAllBytes(Paths.get(jsFilePath)));
 
@@ -210,7 +210,6 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
             return null;
         }
     }
-
     @Override
     public void pressKey(KeyToPress keyToPress) {
         Actions actions = new Actions(driver);
