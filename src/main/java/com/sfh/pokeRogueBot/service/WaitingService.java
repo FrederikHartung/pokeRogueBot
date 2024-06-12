@@ -1,17 +1,17 @@
 package com.sfh.pokeRogueBot.service;
 
 import com.sfh.pokeRogueBot.config.WaitConfig;
-import com.sfh.pokeRogueBot.phase.impl.EncounterPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
+import com.sfh.pokeRogueBot.phase.impl.EncounterPhase;
 import com.sfh.pokeRogueBot.phase.impl.MessagePhase;
 import com.sfh.pokeRogueBot.stage.Stage;
 import com.sfh.pokeRogueBot.stage.fight.FightStage;
+import com.sfh.pokeRogueBot.stage.fight.SwitchDecisionStage;
+import com.sfh.pokeRogueBot.stage.fight.trainer.TrainerFightStartStage;
 import com.sfh.pokeRogueBot.stage.start.IntroStage;
 import com.sfh.pokeRogueBot.stage.start.LoginScreenStage;
 import com.sfh.pokeRogueBot.stage.start.MainMenuStage;
 import com.sfh.pokeRogueBot.stage.start.PokemonselectionStage;
-import com.sfh.pokeRogueBot.stage.fight.SwitchDecisionStage;
-import com.sfh.pokeRogueBot.stage.fight.trainer.TrainerFightStartStage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 

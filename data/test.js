@@ -38,24 +38,24 @@ function getAllActiveAndVisible() {
     return activeAndVisibleElements;
 }
 
-function getGetShopItems() {
-    let test = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.getAll();
-    let activeAndVisibleElements = test.filter(element => element._visible && element.active);
-    let modifierOption = [];
 
-    function logTextElements(container) {
-        if (container.type === "Text" && container.parentContainer.constructor.name === "ModifierOption") {
-            modifierOption.push(container.parentContainer);
-        } else if (container.type === "Container" && container.list) {
-            container.list.forEach(subElement => logTextElements(subElement));
-        }
+
+let test = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.getAll();
+let activeAndVisibleElements = test.filter(element => element._visible && element.active);
+let modifierOption = new Set();
+
+function logTextElements(container) {
+    if (container.type === "Text" && container.parentContainer.constructor.name === "ModifierOption") {
+        modifierOption.add(container.parentContainer);
+    } else if (container.type === "Container" && container.list) {
+        container.list.forEach(subElement => logTextElements(subElement));
     }
-
-    activeAndVisibleElements.forEach(element => {
-        logTextElements(element);
-    });
-
-    return modifierOption;
 }
 
-console.log(getGetShopItems());
+activeAndVisibleElements.forEach(element => {
+    logTextElements(element);
+});
+
+console.log(modifierOption);
+
+

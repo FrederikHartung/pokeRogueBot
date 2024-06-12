@@ -9,4 +9,6 @@ public abstract class AbstractModifierItem {
     private String name;
     private int cost;
     private int upgradeCount;
+    private int x;
+    private int y;
 }

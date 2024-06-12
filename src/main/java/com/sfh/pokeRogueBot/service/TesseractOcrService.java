@@ -5,7 +5,6 @@ import com.sfh.pokeRogueBot.filehandler.ScreenshotFilehandler;
 import com.sfh.pokeRogueBot.model.cv.OcrResult;
 import com.sfh.pokeRogueBot.template.OcrTemplate;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import java.awt.image.BufferedImage;
