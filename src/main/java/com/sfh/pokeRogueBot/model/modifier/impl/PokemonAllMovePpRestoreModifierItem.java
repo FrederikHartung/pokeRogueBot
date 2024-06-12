@@ -7,11 +7,10 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class TempStatBoostItem extends AbstractModifierItem implements ChooseModifierItem {
+public class PokemonAllMovePpRestoreModifierItem  extends AbstractModifierItem implements ChooseModifierItem {
 
-    public static final String TARGET = "TempBattleStatBoosterModifierType";
+    public static final String TARGET = "PokemonAllMovePpRestoreModifierType";
 
-    private String id;
-    private int tempBattleStat;
-    private int tier;
+    private int restorePoints;
+
 }

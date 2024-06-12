@@ -15,18 +15,18 @@ public class ChooseModifierItemDeserializer implements JsonDeserializer<ChooseMo
         String typeName = jsonObject.get("typeName").getAsString();
 
         switch (typeName) {
-            case HpModifierItem.TARGET:
-                return context.deserialize(json, HpModifierItem.class);
-            case PokeballModifierItem.TARGET:
-                return context.deserialize(json, PokeballModifierItem.class);
+            case PokemonHpRestoreModifierItem.TARGET:
+                return context.deserialize(json, PokemonHpRestoreModifierItem.class);
+            case AddPokeballModifierItem.TARGET:
+                return context.deserialize(json, AddPokeballModifierItem.class);
             case PpModifierItem.TARGET:
                 return context.deserialize(json, PpModifierItem.class);
-            case ReviveModifierItem.TARGET:
-                return context.deserialize(json, ReviveModifierItem.class);
+            case PokemonReviveModifierItem.TARGET:
+                return context.deserialize(json, PokemonReviveModifierItem.class);
             case TmModifierItem.TARGET:
                 return context.deserialize(json, TmModifierItem.class);
-            case TempStatBoostItem.TARGET:
-                return context.deserialize(json, TempStatBoostItem.class);
+            case TempBattleStatBoosterModifierItem.TARGET:
+                return context.deserialize(json, TempBattleStatBoosterModifierItem.class);
             case LureModifierItem.TARGET:
                 return context.deserialize(json, LureModifierItem.class);
             default:

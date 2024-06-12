@@ -7,12 +7,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class HpModifierItem extends AbstractModifierItem implements ChooseModifierItem {
+public class PokemonStatusHealModifierItem extends AbstractModifierItem implements ChooseModifierItem {
 
-    public static final String TARGET = "PokemonHpRestoreModifierType";
-
-    private boolean healStatus;
-    private int restorePercent;
-    private int restorePoints;
-
+    public static final String TARGET = "PokemonStatusHealModifierType";
 }

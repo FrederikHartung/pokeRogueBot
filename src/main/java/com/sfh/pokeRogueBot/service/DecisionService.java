@@ -3,13 +3,11 @@ package com.sfh.pokeRogueBot.service;
 import com.sfh.pokeRogueBot.model.RunProperty;
 import com.sfh.pokeRogueBot.model.enums.FightDecision;
 import com.sfh.pokeRogueBot.model.exception.PickModifierException;
-import com.sfh.pokeRogueBot.model.modifier.ModifierPosition;
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
-import com.sfh.pokeRogueBot.model.modifier.impl.HpModifierItem;
-import com.sfh.pokeRogueBot.model.modifier.impl.PokeballModifierItem;
-import com.sfh.pokeRogueBot.model.modifier.impl.TempStatBoostItem;
-import com.sfh.pokeRogueBot.model.poke.Pokemon;
+import com.sfh.pokeRogueBot.model.modifier.impl.PokemonHpRestoreModifierItem;
+import com.sfh.pokeRogueBot.model.modifier.impl.AddPokeballModifierItem;
+import com.sfh.pokeRogueBot.model.modifier.impl.TempBattleStatBoosterModifierItem;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -43,19 +41,19 @@ public class DecisionService {
         //Pokemon[] pokemons = jsService.getOwnTeam(); //todo
 
         //prio 1: pick hp item
-        MoveToModifierResult healItem = pickItem(shop, HpModifierItem.class);
+        MoveToModifierResult healItem = pickItem(shop, PokemonHpRestoreModifierItem.class);
         if(null != healItem){
             return healItem;
         }
 
         //prio 2: pick tempStatBoost item
-        MoveToModifierResult tempStatBoost = pickItem(shop, TempStatBoostItem.class);
+        MoveToModifierResult tempStatBoost = pickItem(shop, TempBattleStatBoosterModifierItem.class);
         if(null != tempStatBoost){
             return tempStatBoost;
         }
 
         //prio 2: pick tempStatBoost item
-        MoveToModifierResult pokeballModifierItem = pickItem(shop, PokeballModifierItem.class);
+        MoveToModifierResult pokeballModifierItem = pickItem(shop, AddPokeballModifierItem.class);
         if(null != pokeballModifierItem){
             return pokeballModifierItem;
         }

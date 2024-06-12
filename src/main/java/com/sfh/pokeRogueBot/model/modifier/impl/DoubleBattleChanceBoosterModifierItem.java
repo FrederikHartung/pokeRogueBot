@@ -7,11 +7,10 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class ReviveModifierItem extends AbstractModifierItem implements ChooseModifierItem {
+public class DoubleBattleChanceBoosterModifierItem  extends AbstractModifierItem implements ChooseModifierItem {
 
-    public static final String TARGET = "PokemonReviveModifierType";
+    public static final String TARGET = "DoubleBattleChanceBoosterModifierType";
 
-    private int restorePoints;
-    private int restorePercent;
+    private int battleCount;
 
 }
