@@ -1,12 +1,14 @@
 package com.sfh.pokeRogueBot.model.modifier;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
 
-@Data
+@Getter
+@AllArgsConstructor
 public class ModifierShopItem {
 
     private ChooseModifierItem item;
-    private int price;
     private int row;
     private int col;
 }

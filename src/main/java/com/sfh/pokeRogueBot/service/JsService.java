@@ -7,6 +7,7 @@ import com.sfh.pokeRogueBot.browser.JsClient;
 import com.sfh.pokeRogueBot.model.browser.enums.GameMode;
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem;
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItemDeserializer;
+import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.stereotype.Service;
@@ -41,9 +42,9 @@ public class JsService {
         return GameMode.UNKNOWN;
     }
 
-    public List<ChooseModifierItem> getModifierOptions(){
+    public ModifierShop getModifierShop(){
         String json = jsClient.executeJsAndGetResult("./bin/js/getModifierOptions.js");
-
-        return GSON.fromJson(json, TYPE);
+        List<ChooseModifierItem> options = GSON.fromJson(json, TYPE);
+        return new ModifierShop(options);
     }
 }
