@@ -18,7 +18,6 @@ public class SummonPhase extends AbstractPhase implements Phase {
     @Override
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
         return new PhaseAction[]{
-                this.pressSpace,
                 this.waitForTextRenderAction
         };
     }

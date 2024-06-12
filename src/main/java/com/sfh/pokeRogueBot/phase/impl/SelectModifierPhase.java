@@ -8,6 +8,7 @@ import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.DecisionService;
+import com.sfh.pokeRogueBot.service.WaitingService;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedList;
@@ -17,9 +18,11 @@ import java.util.List;
 public class SelectModifierPhase  extends AbstractPhase implements Phase {
 
     private final DecisionService decisionService;
+    private final WaitingService waitingService;
 
-    public SelectModifierPhase(DecisionService decisionService) {
+    public SelectModifierPhase(DecisionService decisionService, WaitingService waitingService) {
         this.decisionService = decisionService;
+        this.waitingService = waitingService;
     }
 
     @Override
@@ -32,6 +35,7 @@ public class SelectModifierPhase  extends AbstractPhase implements Phase {
         List<PhaseAction> actionList = new LinkedList<>();
         if (gameMode == GameMode.MODIFIER_SELECT) {
 
+            waitingService.waitLongerAfterAction(); //to let the modifier shop render
             MoveToModifierResult result = decisionService.getModifierToPick();
 
             //move to top left
