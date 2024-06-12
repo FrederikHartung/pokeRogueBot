@@ -49,10 +49,19 @@ public class PhaseProcessor {
             waitingService.waitEvenLongerForRender();
         }
         else if(action instanceof TakeScreenshotPhaseAction){
-            imageService.takeScreenshot("canvas");
+            takeScreenshot();
         }
         else {
             throw new NotSupportedException("Unknown action: " + action.getClass().getSimpleName());
+        }
+    }
+
+    public void takeScreenshot() {
+        try{
+            imageService.takeScreenshot("canvas");
+        }
+        catch (Exception e){
+            log.error("error while taking screenshot", e);
         }
     }
 

@@ -6,13 +6,16 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class ModifierShopItem {
+public class ModifierPosition {
 
-    private ChooseModifierItem item;
-    private ModifierPosition position;
+    private int row;
+    private int column;
 
     @Override
     public String toString() {
-        return item.getName();
+        return "{" +
+                "row=" + row +
+                ", column=" + column +
+                '}';
     }
 }

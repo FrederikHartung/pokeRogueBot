@@ -50,7 +50,7 @@ wait-time:
   shopStageWaitTime: 2000
   switchDecisionStageWaitTime: 2000
   trainerFightStageWaitTime: 8000
-  waitTimeAfterAction: 100
+  waitTimeAfterAction: 50
   waitTimeForRenderingText: 1000
   waitTimeForRenderingStages: 5000
   phaseDefault: 500

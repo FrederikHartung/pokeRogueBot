@@ -8,22 +8,18 @@ import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import org.springframework.stereotype.Component;
 
 @Component
-public class MessagePhase extends AbstractPhase implements Phase {
+public class SummonPhase extends AbstractPhase implements Phase {
 
     @Override
     public String getPhaseName() {
-        return Phase.MESSAGE_PHASE;
+        return Phase.SUMMON_PHASE;
     }
 
     @Override
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
-        if(gameMode == GameMode.MESSAGE){
-            return new PhaseAction[]{
-                    this.pressSpace,
-                    this.waitForTextRenderAction
-            };
-        }
-
-        throw new NotSupportedException("GameMode not supported for MessagePhase: " + gameMode);
+        return new PhaseAction[]{
+                this.pressSpace,
+                this.waitForTextRenderAction
+        };
     }
 }

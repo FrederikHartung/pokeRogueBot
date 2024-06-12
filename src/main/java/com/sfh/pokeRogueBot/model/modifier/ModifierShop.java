@@ -39,7 +39,7 @@ public class ModifierShop {
                 for(int i = 0; i < xBuyableArray.length; i++){
                     for(int j = 0; j < yBuyableArray.length; j++){
                         if(item.getX() == xBuyableArray[i] && item.getY() == yBuyableArray[j]){
-                            ModifierShopItem shopItem = new ModifierShopItem(item, i, j);
+                            ModifierShopItem shopItem = new ModifierShopItem(item, new ModifierPosition(i, j));
                             buyableItems.add(shopItem);
                         }
                     }
@@ -48,7 +48,7 @@ public class ModifierShop {
                 for(int i = 0; i < xFreeArray.length; i++){
                     for(int j = 0; j < yFreeArray.length; j++){
                         if(item.getX() == xFreeArray[i] && item.getY() == yFreeArray[j]){
-                            ModifierShopItem shopItem = new ModifierShopItem(item, i, j);
+                            ModifierShopItem shopItem = new ModifierShopItem(item, new ModifierPosition(i, j + rowsForBuyableItems));
                             freeItems.add(shopItem);
                         }
                     }

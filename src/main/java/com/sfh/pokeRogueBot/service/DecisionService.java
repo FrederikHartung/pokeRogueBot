@@ -2,7 +2,10 @@ package com.sfh.pokeRogueBot.service;
 
 import com.sfh.pokeRogueBot.model.RunProperty;
 import com.sfh.pokeRogueBot.model.enums.FightDecision;
+import com.sfh.pokeRogueBot.model.modifier.ModifierPosition;
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
+import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
+import com.sfh.pokeRogueBot.model.modifier.impl.HpModifierItem;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,10 +34,23 @@ public class DecisionService {
         return false;
     }
 
-    public void getModifierToPick(){
+    public MoveToModifierResult getModifierToPick(){
         ModifierShop shop = jsService.getModifierShop();
         log.info(shop.toString());
-        //Pokemon[] pokemons = jsService.getOwnTeam();
+        //Pokemon[] pokemons = jsService.getOwnTeam(); //todo
+
+        for(var item : shop.getFreeItems()){
+            if(item.getItem() instanceof HpModifierItem hpModifierItem){
+                log.debug("choosed free health item with name: " + item.getItem().getName() + " on position: " + item.getPosition());
+                return new MoveToModifierResult(
+                        shop.getTotalRows() + 1, //to move to the top left corner from the reroll button
+                        shop.getTotalCols() + 1, //to move to the top left corner from the reroll button
+                        item.getPosition().getRow(), //move to chosen item
+                        item.getPosition().getColumn()); //move to chosen item
+            }
+        }
+
+        return null;
     }
 
     public FightDecision getFightDecision() {

@@ -66,12 +66,14 @@ public class SimpleFightConfig implements Config {
             return true;
         }
         else if(null == phase && gameMode == GameMode.MESSAGE) {
-            log.debug("no phase detected, but gameMode is message: " + gameMode);
+            String phaseAsString = jsService.getCurrentPhaseAsString();
+            log.debug("no known phase detected, phaseAsString: " + phaseAsString + " , but gameMode is MESSAGE");
             phaseProcessor.handlePhase(phaseProvider.getMessagePhase(), gameMode);
             return true;
         }
         else{
-            log.debug("no phase detected, phase: " + phase + ", gameMode: " + gameMode);
+            String phaseAsString = jsService.getCurrentPhaseAsString();
+            log.debug("no known phase detected, phaseAsString: " + phaseAsString + " , gameMode: " + gameMode);
         }
 
         return false;
@@ -86,6 +88,7 @@ public class SimpleFightConfig implements Config {
         }
         else {
             String phaseAsString = jsService.getCurrentPhaseAsString();
+            phaseProcessor.takeScreenshot();
             throw new UnsupportedPhaseException(phaseAsString, gameMode);
         }
     }

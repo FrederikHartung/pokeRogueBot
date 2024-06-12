@@ -39,7 +39,7 @@ function getAllActiveAndVisible() {
 }
 
 
-
+// ---------- shop items ----------
 let test = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.getAll();
 let activeAndVisibleElements = test.filter(element => element._visible && element.active);
 let modifierOption = new Set();
@@ -57,5 +57,5 @@ activeAndVisibleElements.forEach(element => {
 });
 
 console.log(modifierOption);
-
+// ---------- shop items ----------
 
