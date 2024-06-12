@@ -18,11 +18,9 @@ import java.util.List;
 public class SelectModifierPhase  extends AbstractPhase implements Phase {
 
     private final DecisionService decisionService;
-    private final WaitingService waitingService;
 
-    public SelectModifierPhase(DecisionService decisionService, WaitingService waitingService) {
+    public SelectModifierPhase(DecisionService decisionService) {
         this.decisionService = decisionService;
-        this.waitingService = waitingService;
     }
 
     @Override
@@ -35,7 +33,6 @@ public class SelectModifierPhase  extends AbstractPhase implements Phase {
         List<PhaseAction> actionList = new LinkedList<>();
         if (gameMode == GameMode.MODIFIER_SELECT) {
 
-            waitingService.waitLongerAfterAction(); //to let the modifier shop render
             MoveToModifierResult result = decisionService.getModifierToPick();
 
             //move to top left

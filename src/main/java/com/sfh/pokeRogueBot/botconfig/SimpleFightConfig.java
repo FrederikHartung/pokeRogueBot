@@ -88,7 +88,7 @@ public class SimpleFightConfig implements Config {
         }
         else {
             String phaseAsString = jsService.getCurrentPhaseAsString();
-            phaseProcessor.takeScreenshot();
+            phaseProcessor.takeScreenshot("error");
             throw new UnsupportedPhaseException(phaseAsString, gameMode);
         }
     }

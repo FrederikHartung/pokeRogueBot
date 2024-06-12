@@ -2,9 +2,11 @@ package com.sfh.pokeRogueBot.model.modifier;
 
 import com.google.gson.*;
 import com.sfh.pokeRogueBot.model.modifier.impl.*;
+import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Type;
 
+@Slf4j
 public class ChooseModifierItemDeserializer implements JsonDeserializer<ChooseModifierItem> {
 
     @Override
@@ -26,7 +28,7 @@ public class ChooseModifierItemDeserializer implements JsonDeserializer<ChooseMo
             case TempStatBoostItem.TARGET:
                 return context.deserialize(json, TempStatBoostItem.class);
             default:
-                throw new JsonParseException("Unknown element type: " + typeName);
+                throw new JsonParseException("Unknown Modifier Type: " + typeName + ", value: " + jsonObject.get("type").toString());
         }
     }
 }

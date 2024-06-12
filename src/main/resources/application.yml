@@ -27,7 +27,7 @@ cv:
   allowedToleranceForTopLeftMismatch: 50
 
 browser:
-  closeOnExit: true
+  closeOnExit: false
   waitTimeForRenderAfterNavigation: 5000
   pathChromeUserDir: "./bin/webdriver/profile/"
   useInkognito: false

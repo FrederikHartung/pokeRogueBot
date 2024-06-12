@@ -1,6 +1,7 @@
 package com.sfh.pokeRogueBot.phase;
 
 import com.sfh.pokeRogueBot.browser.BrowserClient;
+import com.sfh.pokeRogueBot.filehandler.ScreenshotFilehandler;
 import com.sfh.pokeRogueBot.model.browser.enums.GameMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.phase.actions.*;
@@ -11,7 +12,7 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-public class PhaseProcessor {
+public class PhaseProcessor implements ScreenshotClient {
 
     private final WaitingService waitingService;
     private final BrowserClient browserClient;
@@ -49,16 +50,18 @@ public class PhaseProcessor {
             waitingService.waitEvenLongerForRender();
         }
         else if(action instanceof TakeScreenshotPhaseAction){
-            takeScreenshot();
+            takeScreenshot("phase");
         }
         else {
             throw new NotSupportedException("Unknown action: " + action.getClass().getSimpleName());
         }
     }
 
-    public void takeScreenshot() {
+    @Override
+    public void takeScreenshot(String prefix) {
         try{
-            imageService.takeScreenshot("canvas");
+            ScreenshotFilehandler.persistBufferedImage(imageService.takeScreenshot(prefix), prefix);
+
         }
         catch (Exception e){
             log.error("error while taking screenshot", e);

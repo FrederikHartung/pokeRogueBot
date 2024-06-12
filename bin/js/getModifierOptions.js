@@ -55,8 +55,7 @@ function buildResult(container) {
         console.log("New modifier type found: ", option.typeName);
         console.log("Please add the new modifier type to the function buildResult in getShopItems.js");
         console.log("--------------------")
-
-        console.log(container.modifierTypeOption.type);
+        option.type = container.modifierTypeOption.type;
     }
 
     resultArray.push(option);
