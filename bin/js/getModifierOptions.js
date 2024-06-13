@@ -14,9 +14,9 @@ function filterShopItems(container){
 function buildResult(container) {
     let option = {
         //ModifierType
-        option.id = container.modifierTypeOption.type.id,
+        id: container.modifierTypeOption.type.id,
         group: container.modifierTypeOption.type.group,
-        option.tier = container.modifierTypeOption.type.tier,
+        tier: container.modifierTypeOption.type.tier,
         name: container.modifierTypeOption.type.name,
         typeName: container.modifierTypeOption.type.constructor.name,
         x: container.x,
@@ -24,7 +24,7 @@ function buildResult(container) {
 
         //ModifierTypeOption
         cost: container.modifierTypeOption.cost,
-        upgradeCount: container.modifierTypeOption.upgradeCount;
+        upgradeCount: container.modifierTypeOption.upgradeCount,
     }
 
     if (option.typeName === "AddPokeballModifierType"){
