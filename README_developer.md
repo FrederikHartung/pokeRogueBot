@@ -24,3 +24,10 @@ Also they have to be added to the ChooseModifierItemDeserializer for Json parsin
 - [x] BerryModifierItem: Add Berry
 - [ ] Add getWaitTime() in Phase interface
 - [ ] Make PhaseProvider get the Phases with dependency injection
+- [ ] Combine Start and fightconfig and remove the different configurations
+- [ ] check which constants can be moved to the application.yml
+- [ ] make the h2 database as default
+- [ ] add login infos from .txt to .yml in application-default
+- [ ] add an application-default.yml.backupp to the repo
+- [ ] remove all the template and stages stuff
+- [ ] merge file handler to one class and make it an component
