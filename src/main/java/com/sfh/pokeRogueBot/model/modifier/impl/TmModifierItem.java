@@ -7,7 +7,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class TmModifierItem extends PokemonModifierItem implements ChooseModifierItem {
+public class TmModifierItem extends PokemonModifierItem {
 
     public static final String TARGET = "TmModifierType";
 

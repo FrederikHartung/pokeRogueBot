@@ -6,7 +6,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class PokemonLevelIncrementModifierItem extends PokemonModifierItem implements ChooseModifierItem {
+public class PokemonLevelIncrementModifierItem extends PokemonModifierItem {
 
     public static final String TARGET = "PokemonLevelIncrementModifierType";
 }

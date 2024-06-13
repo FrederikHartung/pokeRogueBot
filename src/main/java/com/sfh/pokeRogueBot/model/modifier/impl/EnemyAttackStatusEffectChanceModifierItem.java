@@ -7,7 +7,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class EnemyAttackStatusEffectChanceModifierItem extends ModifierItem implements ChooseModifierItem {
+public class EnemyAttackStatusEffectChanceModifierItem extends ModifierItem {
 
     public static final String TARGET = "EnemyAttackStatusEffectChanceModifierType";
 

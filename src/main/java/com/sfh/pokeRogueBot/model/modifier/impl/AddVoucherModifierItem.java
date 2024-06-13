@@ -7,7 +7,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class AddVoucherModifierItem  extends ModifierItem implements ChooseModifierItem {
+public class AddVoucherModifierItem  extends ModifierItem {
 
     public static final String TARGET = "AddVoucherModifierType";
 

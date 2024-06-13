@@ -8,7 +8,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class TempBattleStatBoosterModifierItem extends ModifierItem implements ChooseModifierItem, GeneratedPersistentModifierType {
+public class TempBattleStatBoosterModifierItem extends ModifierItem implements GeneratedPersistentModifierType {
 
     public static final String TARGET = "TempBattleStatBoosterModifierType";
 

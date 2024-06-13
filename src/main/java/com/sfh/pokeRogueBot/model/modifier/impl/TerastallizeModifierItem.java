@@ -8,7 +8,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class TerastallizeModifierItem extends PokemonHeldItemModifierItem implements ChooseModifierItem, GeneratedPersistentModifierType {
+public class TerastallizeModifierItem extends PokemonHeldItemModifierItem implements GeneratedPersistentModifierType {
 
     public static final String TARGET = "TerastallizeModifierType";
 

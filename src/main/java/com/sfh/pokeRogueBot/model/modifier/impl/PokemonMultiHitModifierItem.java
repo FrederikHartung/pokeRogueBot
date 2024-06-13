@@ -6,7 +6,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class PokemonMultiHitModifierItem extends PokemonHeldItemModifierItem implements ChooseModifierItem {
+public class PokemonMultiHitModifierItem extends PokemonHeldItemModifierItem {
 
     public static final String TARGET = "PokemonMultiHitModifierType";
 

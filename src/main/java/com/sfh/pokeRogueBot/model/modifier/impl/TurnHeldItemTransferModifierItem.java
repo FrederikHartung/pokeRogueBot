@@ -6,7 +6,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class TurnHeldItemTransferModifierItem extends PokemonHeldItemModifierItem implements ChooseModifierItem {
+public class TurnHeldItemTransferModifierItem extends PokemonHeldItemModifierItem {
 
     public static final String TARGET = "TurnHeldItemTransferModifierType";
 

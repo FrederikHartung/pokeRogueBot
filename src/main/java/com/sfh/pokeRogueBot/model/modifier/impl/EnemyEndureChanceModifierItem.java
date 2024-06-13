@@ -6,7 +6,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class EnemyEndureChanceModifierItem extends ModifierItem implements ChooseModifierItem {
+public class EnemyEndureChanceModifierItem extends ModifierItem {
 
     public static final String TARGET = "EnemyEndureChanceModifierType";
 

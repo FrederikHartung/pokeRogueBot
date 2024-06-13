@@ -8,7 +8,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class FormChangeItemModifierItem extends PokemonModifierItem implements ChooseModifierItem, GeneratedPersistentModifierType {
+public class FormChangeItemModifierItem extends PokemonModifierItem implements GeneratedPersistentModifierType {
 
     public static final String TARGET = "FormChangeItemModifierType";
 

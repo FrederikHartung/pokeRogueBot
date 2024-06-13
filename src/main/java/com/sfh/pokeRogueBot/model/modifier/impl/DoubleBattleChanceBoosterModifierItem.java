@@ -6,7 +6,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class DoubleBattleChanceBoosterModifierItem  extends ModifierItem implements ChooseModifierItem {
+public class DoubleBattleChanceBoosterModifierItem  extends ModifierItem {
 
     public static final String TARGET = "DoubleBattleChanceBoosterModifierType";
 

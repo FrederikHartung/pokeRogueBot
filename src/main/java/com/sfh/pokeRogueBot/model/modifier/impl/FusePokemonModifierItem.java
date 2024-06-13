@@ -6,7 +6,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class FusePokemonModifierItem extends PokemonModifierItem implements ChooseModifierItem {
+public class FusePokemonModifierItem extends PokemonModifierItem {
 
     public static final String TARGET = "FusePokemonModifierType";
 }

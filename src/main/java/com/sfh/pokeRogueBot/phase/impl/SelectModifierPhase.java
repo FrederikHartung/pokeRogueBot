@@ -56,14 +56,18 @@ public class SelectModifierPhase  extends AbstractPhase implements Phase {
             }
 
             actionList.add(this.pressSpace); //to confirm selection
-            return actionList.toArray(new PhaseAction[0]);
         }
         else if(gameMode == GameMode.PARTY){
             //todo, currently apply potion on first pokemon
             actionList.add(this.pressSpace);
-            return actionList.toArray(new PhaseAction[0]);
+        }
+        else if(gameMode == GameMode.MESSAGE){
+            actionList.add(this.pressSpace);
+        }
+        else {
+            throw new NotSupportedException("GameMode not supported for SelectModifierPhase: " + gameMode);
         }
 
-        throw new NotSupportedException("GameMode not supported for SelectModifierPhase: " + gameMode);
+        return actionList.toArray(new PhaseAction[0]);
     }
 }

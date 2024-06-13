@@ -6,7 +6,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class PokemonReviveModifierItem extends PokemonHpRestoreModifierItem implements ChooseModifierItem {
+public class PokemonReviveModifierItem extends PokemonHpRestoreModifierItem {
 
     public static final String TARGET = "PokemonReviveModifierType";
 
