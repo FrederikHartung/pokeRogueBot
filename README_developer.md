@@ -13,6 +13,7 @@ Also they have to be added to the ChooseModifierItemDeserializer for Json parsin
 
 ## Open todo's with high priority:
 - [x] add all MotifierTypes as a model
+- [ ] make enums return only non null values in js
 - [ ] handel fainted pokemons in the own team
 - [ ] learning of attacks 
 - [ ] level up handling

@@ -3,6 +3,32 @@ let activeAndVisibleElements = uiElements.filter(element => element._visible && 
 let modifierOption =  new Set();
 let resultArray = [];
 
+function getModifierTierEnumString(tier) {
+  const tierMapping = {
+    0: "COMMON",
+    1: "GREAT",
+    2: "ULTRA",
+    3: "ROGUE",
+    4: "MASTER",
+    5: "LUXURY"
+  };
+
+  return tierMapping[tier] || null;
+}
+
+function getPokeBallTypeEnumString(pokeBallIndex) {
+  const pokeBallMapping = {
+    0: "POKEBALL",
+    1: "GREAT_BALL",
+    2: "ULTRA_BALL",
+    3: "ROGUE_BALL",
+    4: "MASTER_BALL",
+    5: "LUXURY_BALL"
+  };
+
+  return pokeBallMapping[pokeBallIndex] || null;
+}
+
 function filterShopItems(container){
     if (container.type === "Text" && container.parentContainer.constructor.name === "ModifierOption") {
         modifierOption.add(container.parentContainer);
@@ -16,7 +42,7 @@ function buildResult(container) {
         //ModifierType
         id: container.modifierTypeOption.type.id,
         group: container.modifierTypeOption.type.group,
-        tier: container.modifierTypeOption.type.tier,
+        tier: getModifierTierEnumString(container.modifierTypeOption.type.tier),
         name: container.modifierTypeOption.type.name,
         typeName: container.modifierTypeOption.type.constructor.name,
         x: container.x,
@@ -29,7 +55,7 @@ function buildResult(container) {
 
     if (option.typeName === "AddPokeballModifierType"){
         option.count = container.modifierTypeOption.type.count;
-        option.pokeballType = container.modifierTypeOption.type.pokeballType;
+        option.pokeballType = getPokeBallTypeEnumString(container.modifierTypeOption.type.pokeballType);
     }
     else if (option.typeName === "AddVoucherModifierType"){
         option.vouchertype = container.modifierTypeOption.type.vouchertype;

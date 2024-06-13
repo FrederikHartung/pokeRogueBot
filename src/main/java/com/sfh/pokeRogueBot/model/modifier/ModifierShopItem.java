@@ -13,6 +13,6 @@ public class ModifierShopItem {
 
     @Override
     public String toString() {
-        return item.getName();
+        return item.getTier().name() + ": " + item.getName() + ", Type: " + item.getTypeName();
     }
 }
