@@ -53,13 +53,6 @@ function buildResult(container) {
     else if (option.typeName === "TempBattleStatBoosterModifierType"){
         option.tempBattleStat = container.modifierTypeOption.type.tempBattleStat;
     }
-    else{
-        console.log("--------------------")
-        console.log("New modifier type found: ", option.typeName);
-        console.log("Please add the new modifier type to the function buildResult in getShopItems.js");
-        console.log("--------------------")
-        option.type = container.modifierTypeOption.type;
-    }
 
     resultArray.push(option);
 }
