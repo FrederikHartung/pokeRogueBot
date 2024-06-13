@@ -13,41 +13,44 @@ function filterShopItems(container){
 
 function buildResult(container) {
     let option = {
-        cost: container.modifierTypeOption.cost,
-        upgradeCount: container.modifierTypeOption.upgradeCount,
-        typeName: container.modifierTypeOption.type.constructor.name,
+        //ModifierType
+        option.id = container.modifierTypeOption.type.id,
         group: container.modifierTypeOption.type.group,
+        option.tier = container.modifierTypeOption.type.tier;
         name: container.modifierTypeOption.type.name,
+        typeName: container.modifierTypeOption.type.constructor.name,
         x: container.x,
         y: container.y,
+
+        //ModifierTypeOption
+        cost: container.modifierTypeOption.cost,
+        upgradeCount: container.modifierTypeOption.upgradeCount,
     }
 
-    if (option.typeName === "PokemonHpRestoreModifierType"){
-        option.healStatus = container.modifierTypeOption.type.healStatus;
-        option.restorePercent = container.modifierTypeOption.type.restorePercent;
-        option.restorePoints = container.modifierTypeOption.type.restorePoints;
-    }
-    else if (option.typeName === "TmModifierType"){
-        option.id = container.modifierTypeOption.type.id;
-        option.tier = container.modifierTypeOption.type.tier;
-        option.moveId = container.modifierTypeOption.type.moveId;
-    }
-    else if (option.typeName === "AddPokeballModifierType"){
-        option.id = container.modifierTypeOption.type.id; 
-        option.tier = container.modifierTypeOption.type.tier;
+    if (option.typeName === "AddPokeballModifierType"){
         option.count = container.modifierTypeOption.type.count;
         option.pokeballType = container.modifierTypeOption.type.pokeballType;
     }
-    else if (option.typeName === "PokemonPpRestoreModifierType"){
+    else if (option.typeName === "AddVoucherModifierType"){
+        option.vouchertype = container.modifierTypeOption.type.vouchertype;
+        option.count = container.modifierTypeOption.type.count;
+    }
+    else if (option.typeName === "PokemonHpRestoreModifierType"){
+        option.healStatus = container.modifierTypeOption.type.healStatus;
+        option.restorePercent = container.modifierTypeOption.type.restorePercent;
         option.restorePoints = container.modifierTypeOption.type.restorePoints;
     }
     else if (option.typeName === "PokemonReviveModifierType"){
         option.restorePoints = container.modifierTypeOption.type.restorePoints;
         option.restorePercent = container.modifierTypeOption.type.restorePercent;
     }
+    else if (option.typeName === "TmModifierType"){
+        option.moveId = container.modifierTypeOption.type.moveId;
+    }
+    else if (option.typeName === "PokemonPpRestoreModifierType"){
+        option.restorePoints = container.modifierTypeOption.type.restorePoints;
+    }
     else if (option.typeName === "TempBattleStatBoosterModifierType"){
-        option.id = container.modifierTypeOption.type.id;
-        option.tier = container.modifierTypeOption.type.tier;
         option.tempBattleStat = container.modifierTypeOption.type.tempBattleStat;
     }
     else{
