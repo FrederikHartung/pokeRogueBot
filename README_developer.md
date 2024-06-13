@@ -22,3 +22,5 @@ Also they have to be added to the ChooseModifierItemDeserializer for Json parsin
 - [x] PokemonNatureChangeModifierItem: Add Nature
 - [x] AddVoucherModifierItem: Add Voucher
 - [x] BerryModifierItem: Add Berry
+- [ ] Add getWaitTime() in Phase interface
+- [ ] Make PhaseProvider get the Phases with dependency injection

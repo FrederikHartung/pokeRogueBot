@@ -19,6 +19,7 @@ public class PhaseProvider {
     private final SelectModifierPhase selectModifierPhase;
     private final CheckSwitchPhase checkSwitchPhase;
     private final SummonPhase summonPhase;
+    private final StatChangePhase statChangePhase;
 
     public Phase fromString(String phaseAsString){
         return switch (phaseAsString) {
@@ -31,6 +32,7 @@ public class PhaseProvider {
             case Phase.SELECT_MODIFIER_PHASE -> selectModifierPhase;
             case Phase.CHECK_SWITCH_PHASE -> checkSwitchPhase;
             case Phase.SUMMON_PHASE -> summonPhase;
+            case Phase.STAT_CHANGE_PHASE -> statChangePhase;
             default -> null;
         };
 

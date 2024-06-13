@@ -101,7 +101,7 @@ public class StartGameConfig implements Config {
         }
         else if(null == phase && gameMode == GameMode.MESSAGE) {
             String phaseAsString = jsService.getCurrentPhaseAsString();
-            log.debug("no known phase detected, phaseAsString: " + phaseAsString + " , but gameMode is MESSAGE");
+            log.error("no known phase detected, phaseAsString: " + phaseAsString + " , but gameMode is MESSAGE");
             phaseProcessor.handlePhase(phaseProvider.getMessagePhase(), gameMode);
             return true;
         }

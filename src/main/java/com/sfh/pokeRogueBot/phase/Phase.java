@@ -16,6 +16,7 @@ public interface Phase {
     String SUMMON_PHASE = "SummonPhase";
     String SELECT_GENDER_PHASE = "SelectGenderPhase";
     String SELECT_STARTER_PHASE = "SelectStarterPhase";
+    String STAT_CHANGE_PHASE = "StatChangePhase";
 
     String getPhaseName();
 
