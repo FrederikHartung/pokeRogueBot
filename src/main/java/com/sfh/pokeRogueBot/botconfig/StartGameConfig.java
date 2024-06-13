@@ -9,7 +9,6 @@ import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.stage.StageIdentifier;
 import com.sfh.pokeRogueBot.stage.StageProcessor;
 import com.sfh.pokeRogueBot.stage.StageProvider;
-import com.sfh.pokeRogueBot.template.TemplatePathValidator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.support.RetryTemplateBuilder;
@@ -24,26 +23,20 @@ import static com.sfh.pokeRogueBot.phase.Phase.TITLE_PHASE;
 public class StartGameConfig implements Config {
 
     private final StageProcessor stageProcessor;
-    private final StageIdentifier stageIdentifier;
     private final StageProvider stageProvider;
 
     private final TempFileManager tempFileManager;
-    private final TemplatePathValidator templatePathValidator;
     private final BrowserClient browserClient;
     private final JsService jsService;
 
 
     public StartGameConfig(StageProcessor stageProcessor,
-                           StageIdentifier stageIdentifier,
                            StageProvider stageProvider,
                            TempFileManager tempFileManager,
-                           TemplatePathValidator templatePathValidator,
                            BrowserClient browserClient, JsService jsService) {
         this.stageProcessor = stageProcessor;
-        this.stageIdentifier = stageIdentifier;
         this.stageProvider = stageProvider;
         this.tempFileManager = tempFileManager;
-        this.templatePathValidator = templatePathValidator;
         this.browserClient = browserClient;
         this.jsService = jsService;
     }
@@ -51,7 +44,6 @@ public class StartGameConfig implements Config {
     @Override
     public void applay() throws Exception {
 
-        templatePathValidator.checkIfAllTemplatesArePresent();
         tempFileManager.deleteTempData();
         browserClient.navigateTo(Constants.TARGET_URL);
 

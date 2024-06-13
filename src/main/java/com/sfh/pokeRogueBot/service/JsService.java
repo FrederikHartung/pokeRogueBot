@@ -46,6 +46,9 @@ public class JsService {
     public ModifierShop getModifierShop(){
         String json = jsClient.executeJsAndGetResult("./bin/js/getModifierOptions.js");
         List<ChooseModifierItem> options = GSON.fromJson(json, TYPE);
+        if(options == null || options.isEmpty()){
+            throw new IllegalStateException("Modifier options are empty");
+        }
         return new ModifierShop(options);
     }
 
