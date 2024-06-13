@@ -30,7 +30,7 @@ browser:
   target-url: "https://pokerogue.net/"
   use-local-host: true
   local-host-url: "http://localhost:8000/"
-  closeOnExit: false
+  closeOnExit: true
   waitTimeForRenderAfterNavigation: 5000
   pathChromeUserDir: "./bin/webdriver/profile/"
   useInkognito: false
