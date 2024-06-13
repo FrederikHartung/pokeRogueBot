@@ -27,6 +27,9 @@ cv:
   allowedToleranceForTopLeftMismatch: 50
 
 browser:
+  target-url: "https://pokerogue.net/"
+  use-local-host: true
+  local-host-url: "http://localhost:8000/"
   closeOnExit: false
   waitTimeForRenderAfterNavigation: 5000
   pathChromeUserDir: "./bin/webdriver/profile/"

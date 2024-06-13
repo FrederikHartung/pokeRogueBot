@@ -10,7 +10,4 @@ public class PokemonReviveModifierItem extends PokemonHpRestoreModifierItem impl
 
     public static final String TARGET = "PokemonReviveModifierType";
 
-    private int restorePoints;
-    private int restorePercent;
-
 }

@@ -10,6 +10,7 @@ import com.sfh.pokeRogueBot.stage.StageIdentifier;
 import com.sfh.pokeRogueBot.stage.StageProcessor;
 import com.sfh.pokeRogueBot.stage.StageProvider;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.support.RetryTemplateBuilder;
 import org.springframework.stereotype.Component;
@@ -29,23 +30,40 @@ public class StartGameConfig implements Config {
     private final BrowserClient browserClient;
     private final JsService jsService;
 
+    private final String targetUrl;
+    private final boolean useLocalHost;
+    private final String localHostUrl;
+
 
     public StartGameConfig(StageProcessor stageProcessor,
                            StageProvider stageProvider,
                            TempFileManager tempFileManager,
-                           BrowserClient browserClient, JsService jsService) {
+                           BrowserClient browserClient,
+                           JsService jsService,
+                           @Value("${browser.target-url}") String targetUrl,
+                           @Value("${browser.use-local-host}") boolean useLocalHost,
+                           @Value("${browser.local-host-url}") String localHostUrl) {
         this.stageProcessor = stageProcessor;
         this.stageProvider = stageProvider;
         this.tempFileManager = tempFileManager;
         this.browserClient = browserClient;
         this.jsService = jsService;
+        this.targetUrl = targetUrl;
+        this.useLocalHost = useLocalHost;
+        this.localHostUrl = localHostUrl;
     }
 
     @Override
     public void applay() throws Exception {
 
         tempFileManager.deleteTempData();
-        browserClient.navigateTo(Constants.TARGET_URL);
+
+        if(!useLocalHost) {
+            browserClient.navigateTo(targetUrl);
+        }
+        else {
+            browserClient.navigateTo(localHostUrl);
+        }
 
         RetryTemplate retryTemplate = new RetryTemplateBuilder()
                 .retryOn(StageNotFoundException.class)
