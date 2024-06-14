@@ -4,6 +4,74 @@ var enemyPartyDto = [];
 var ownParty = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].party;
 var ownPartyDto = [];
 
+function getNatureAsString(id){
+    const Nature = [
+        "HARDY",
+        "LONELY",
+        "BRAVE",
+        "ADAMANT",
+        "NAUGHTY",
+        "BOLD",
+        "DOCILE",
+        "RELAXED",
+        "IMPISH",
+        "LAX",
+        "TIMID",
+        "HASTY",
+        "SERIOUS",
+        "JOLLY",
+        "NAIVE",
+        "MODEST",
+        "MILD",
+        "QUIET",
+        "BASHFUL",
+        "RASH",
+        "CALM",
+        "GENTLE",
+        "SASSY",
+        "CAREFUL",
+        "QUIRKY"
+    ];
+
+        if (id >= 0 && id < Nature.length) {
+            return Nature[id];
+        } else {
+            return "UNKNOWN";
+        }
+}
+
+function getTypeAsString(id){
+    const Nature = {
+        "-1": "UNKNOWN",
+        0: "NORMAL",
+        1: "FIGHTING",
+        2: "FLYING",
+        3: "POISON",
+        4: "GROUND",
+        5: "ROCK",
+        6: "BUG",
+        7: "GHOST",
+        8: "STEEL",
+        9: "FIRE",
+        10: "WATER",
+        11: "GRASS",
+        12: "ELECTRIC",
+        13: "PSYCHIC",
+        14: "ICE",
+        15: "DRAGON",
+        16: "DARK",
+        17: "FAIRY",
+        18: "STELLAR"
+    };
+
+    const nature = Nature[id];
+        if (nature !== undefined) {
+            return nature;
+        } else {
+            return "UNKNOWN";
+        }
+}
+
 function getPokemonDto(pokemon){
     let dtoIvs = {
         hp: pokemon.ivs[0], //integer
@@ -30,6 +98,7 @@ function getPokemonDto(pokemon){
             ppUp: pokemon.moveset[j].ppUp, //integer
             ppUsed: pokemon.moveset[j].ppUsed, //integer
             virtual: pokemon.moveset[j].virtual, //boolean
+            name: pokemon.moveset[j].getName(), //string
         }
         dtoMoveset.push(moveset);
     }
@@ -63,8 +132,8 @@ function getPokemonDto(pokemon){
         speciesString: pokemon.species.species, //string
         speciesId: pokemon.species.speciesId, //integer
         subLegendary: pokemon.species.subLegendary, //boolean
-        type1: pokemon.species.type1, //integer
-        type2: pokemon.species.type2, //integer
+        type1: getTypeAsString(pokemon.species.type1), //integer
+        type2: getTypeAsString(pokemon.species.type2), //integer
         weight: pokemon.species.weight, //integer
     }
 
@@ -78,14 +147,14 @@ function getPokemonDto(pokemon){
         gender: pokemon.gender, //integer
         hp: pokemon.hp, //integer
         id: pokemon.id, //long
-        ivs: dtoIvs, //array of integers 
+        ivs: dtoIvs, //object
         level: pokemon.level, //integer
         luck: pokemon.luck, //integer
         metBiome: pokemon.metBiome, //integer
         metLevel: pokemon.metLevel, //integer
         moveset: dtoMoveset, //array of objects
         name: pokemon.name, //string
-        nature: pokemon.nature, //integer
+        nature: getNatureAsString(pokemon.nature), //String
         natureOverride: pokemon.natureOverride, //integer
         passive: pokemon.passive, //boolean
         pokerus: pokemon.pokerus, //boolean
@@ -93,12 +162,12 @@ function getPokemonDto(pokemon){
         shiny: pokemon.shiny, //boolean
         species: dtoSpecies, //object
         stats: dtoStats, //object
-        status: pokemon.status, //obj ? todo
+        //status: pokemon.status, //obj ? todo
         trainerSlot: pokemon.trainerSlot, //integer
         variant: pokemon.variant, //integer
 
         //battleInfo
-        isBoss: pokemon.battleInfo.boss, //boolean
+        boss: pokemon.battleInfo.boss, //boolean
         bossSegments: pokemon.battleInfo.bossSegments, //integer
         player: pokemon.battleInfo.player, //boolean
     }

@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.service;
 
-import com.sfh.pokeRogueBot.model.RunProperty;
+import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.model.enums.FightDecision;
 import com.sfh.pokeRogueBot.model.exception.PickModifierException;
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop;

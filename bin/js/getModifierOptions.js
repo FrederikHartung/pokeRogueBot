@@ -1,7 +1,7 @@
-let uiElements = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.getAll();
-let activeAndVisibleElements = uiElements.filter(element => element._visible && element.active);
-let modifierOption =  new Set();
-let resultArray = [];
+var uiElements = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.getAll();
+var activeAndVisibleElements = uiElements.filter(element => element._visible && element.active);
+var modifierOption =  new Set();
+var resultArray = [];
 
 function getModifierTierEnumString(tier) {
   const tierMapping = {

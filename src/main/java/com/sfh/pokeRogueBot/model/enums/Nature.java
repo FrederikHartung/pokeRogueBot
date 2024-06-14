@@ -2,6 +2,7 @@ package com.sfh.pokeRogueBot.model.enums;
 
 public enum Nature {
 
+    UNKNOWN,
     HARDY,
     LONELY,
     BRAVE,

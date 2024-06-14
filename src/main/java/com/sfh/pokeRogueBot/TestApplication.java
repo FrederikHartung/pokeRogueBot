@@ -16,7 +16,7 @@ public class TestApplication {
         ConfigurableApplicationContext context = SpringApplication.run(Application.class, args);
 
         try{
-            String jsonStringPath = "./data/getEnemyTeam.json";
+            String jsonStringPath = "./bin/js/getCurrentWavePokemons.json";
             String jsonString = JsonStringProvider.readJsonString(jsonStringPath);
             Gson gson = new Gson();
             GameJsonProperties gameJsonProperties = gson.fromJson(jsonString, GameJsonProperties.class);

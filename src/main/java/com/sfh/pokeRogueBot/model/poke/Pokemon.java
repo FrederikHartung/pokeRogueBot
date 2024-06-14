@@ -1,23 +1,43 @@
 package com.sfh.pokeRogueBot.model.poke;
 
+import com.sfh.pokeRogueBot.model.browser.pokemonjson.Iv;
+import com.sfh.pokeRogueBot.model.browser.pokemonjson.MoveSetEntry;
+import com.sfh.pokeRogueBot.model.browser.pokemonjson.Species;
+import com.sfh.pokeRogueBot.model.browser.pokemonjson.Stats;
+import com.sfh.pokeRogueBot.model.enums.Nature;
+import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
-@Getter
-@Setter
+@Data
 public class Pokemon {
 
-    private final String name;
-    private final PokeType pokeType1;
-    private final PokeType pokeType2;
-
+    private boolean active;
+    private Integer aiType;
+    private boolean exclusive;
+    private int fieldPosition;
+    private Integer formIndex;
+    private Integer friendship;
+    private Integer gender;
     private int hp;
-    private int pokeDexNr;
+    private int id;
+    private Iv ivs;
     private int level;
-
-    protected Pokemon(String name, PokeType pokeType1, PokeType pokeType2) {
-        this.name = name;
-        this.pokeType1 = pokeType1;
-        this.pokeType2 = pokeType2;
-    }
+    private int luck;
+    private int metBiome;
+    private int metLevel;
+    private MoveSetEntry[] moveset;
+    private String name;
+    private Nature nature;
+    private boolean passive;
+    private boolean pokerus;
+    private int position;
+    private boolean shiny;
+    private Species species;
+    private Stats stats;
+    private int status;
+    private int variant;
+    private boolean boss;
+    private int bossSegments;
+    private boolean player;
 }
