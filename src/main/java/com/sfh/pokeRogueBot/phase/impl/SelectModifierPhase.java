@@ -17,6 +17,8 @@ import java.util.List;
 @Component
 public class SelectModifierPhase  extends AbstractPhase implements Phase {
 
+    public static final String NAME = "SelectModifierPhase";
+
     private final DecisionService decisionService;
 
     public SelectModifierPhase(DecisionService decisionService) {
@@ -25,7 +27,7 @@ public class SelectModifierPhase  extends AbstractPhase implements Phase {
 
     @Override
     public String getPhaseName() {
-        return Phase.SELECT_MODIFIER_PHASE;
+        return NAME;
     }
 
     @Override

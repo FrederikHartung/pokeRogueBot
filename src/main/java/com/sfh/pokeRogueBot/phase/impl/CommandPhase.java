@@ -12,6 +12,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class CommandPhase extends AbstractPhase implements Phase {
 
+    public static final String NAME = "CommandPhase";
+
     private final DecisionService decisionService;
 
     public CommandPhase(DecisionService decisionService) {
@@ -20,7 +22,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
 
     @Override
     public String getPhaseName() {
-        return Phase.COMMAND_PHASE;
+        return NAME;
     }
 
     @Override

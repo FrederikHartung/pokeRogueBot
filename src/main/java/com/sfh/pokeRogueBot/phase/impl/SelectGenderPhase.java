@@ -10,9 +10,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class SelectGenderPhase extends AbstractPhase implements Phase {
 
+    public static final String NAME = "SelectGenderPhase";
+
     @Override
     public String getPhaseName() {
-        return Phase.SELECT_GENDER_PHASE;
+        return NAME;
     }
 
     @Override

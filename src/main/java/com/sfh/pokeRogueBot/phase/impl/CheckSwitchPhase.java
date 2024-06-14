@@ -10,9 +10,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class CheckSwitchPhase extends AbstractPhase implements Phase {
 
+    public static final String NAME = "CheckSwitchPhase";
+
     @Override
     public String getPhaseName() {
-        return Phase.CHECK_SWITCH_PHASE;
+        return NAME;
     }
 
     @Override

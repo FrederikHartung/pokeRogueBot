@@ -9,9 +9,12 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class StatChangePhase extends AbstractPhase implements Phase {
+
+    public static final String NAME = "StatChangePhase";
+
     @Override
     public String getPhaseName() {
-        return Phase.STAT_CHANGE_PHASE;
+        return NAME;
     }
 
     @Override

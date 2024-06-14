@@ -8,9 +8,9 @@ import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import org.springframework.stereotype.Component;
 
 @Component
-public class SummonPhase extends AbstractPhase implements Phase {
+public class SelectTargetPhase extends AbstractPhase implements Phase {
 
-    public static final String NAME = "SummonPhase";
+    public static final String NAME = "SelectTargetPhase";
 
     @Override
     public String getPhaseName() {
@@ -19,8 +19,12 @@ public class SummonPhase extends AbstractPhase implements Phase {
 
     @Override
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
-        return new PhaseAction[]{
-                this.waitForTextRenderAction
-        };
+        if(gameMode == GameMode.TARGET_SELECT){
+            return new PhaseAction[]{
+                    pressSpace //todo: choose correct target
+            };
+        }
+
+        throw new NotSupportedException("GameMode not supported in SelectTargetPhase: " + gameMode);
     }
 }
