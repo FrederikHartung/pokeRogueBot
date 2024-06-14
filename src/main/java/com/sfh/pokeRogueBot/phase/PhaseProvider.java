@@ -1,5 +1,6 @@
 package com.sfh.pokeRogueBot.phase;
 
+import com.sfh.pokeRogueBot.model.exception.UnsupportedPhaseException;
 import com.sfh.pokeRogueBot.phase.impl.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -22,6 +23,6 @@ public class PhaseProvider {
         return phases.stream()
                 .filter(phase -> phase.getPhaseName().equals(phaseAsString))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Phase not found: " + phaseAsString));
+                .orElseThrow(() -> new UnsupportedPhaseException("Phase not found: " + phaseAsString));
     }
 }

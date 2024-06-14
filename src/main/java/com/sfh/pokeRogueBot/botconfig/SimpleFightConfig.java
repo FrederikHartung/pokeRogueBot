@@ -7,10 +7,13 @@ import com.sfh.pokeRogueBot.model.exception.UnsupportedPhaseException;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.PhaseProcessor;
 import com.sfh.pokeRogueBot.phase.PhaseProvider;
+import com.sfh.pokeRogueBot.phase.impl.MessagePhase;
 import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.service.RunPropertyService;
 import com.sfh.pokeRogueBot.service.WaitingService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.retry.support.RetryTemplate;
+import org.springframework.retry.support.RetryTemplateBuilder;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -37,13 +40,31 @@ public class SimpleFightConfig implements Config {
         RunProperty runProperty = runPropertyService.getRunProperty();
         runProperty.setStatus(RunStatus.ONGOING);
         runPropertyService.save(runProperty);
-        startWaveFightingMode(runProperty);
+
+        log.debug("starting wave fighting mode");
+        RetryTemplate retryTemplate = new RetryTemplateBuilder() //todo: add configurable retry policy
+                .retryOn(UnsupportedPhaseException.class)
+                .maxAttempts(5)
+                .fixedBackoff(1000)
+                .build();
+
+        log.debug("starting wave fighting mode");
+        try{
+            retryTemplate.execute(context -> {
+                startWaveFightingMode(runProperty);
+                return null;
+            });
+        }
+        catch (Exception e){
+            phaseProcessor.takeScreenshot("error_" + e.getClass().getSimpleName());
+            throw e;
+        }
 
         log.info("finished run, status: " + runProperty.getStatus());
     }
 
     private void startWaveFightingMode(RunProperty runProperty) throws Exception {
-        log.debug("starting wave fighting mode");
+
         while (runProperty.getStatus() == RunStatus.ONGOING) {
 
             String phaseAsString = jsService.getCurrentPhaseAsString();
@@ -68,7 +89,7 @@ public class SimpleFightConfig implements Config {
         else if(null == phase && gameMode == GameMode.MESSAGE) {
             String phaseAsString = jsService.getCurrentPhaseAsString();
             log.debug("no known phase detected, phaseAsString: " + phaseAsString + " , but gameMode is MESSAGE");
-            phaseProcessor.handlePhase(phaseProvider.getMessagePhase(), gameMode);
+            phaseProcessor.handlePhase(phaseProvider.fromString(MessagePhase.NAME), gameMode);
             return true;
         }
         else{
@@ -88,7 +109,6 @@ public class SimpleFightConfig implements Config {
         }
         else {
             String phaseAsString = jsService.getCurrentPhaseAsString();
-            phaseProcessor.takeScreenshot("error");
             throw new UnsupportedPhaseException(phaseAsString, gameMode);
         }
     }

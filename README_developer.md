@@ -35,3 +35,6 @@ Also they have to be added to the ChooseModifierItemDeserializer for Json parsin
 - [ ] remove all the template and stages stuff
 - [ ] merge file handler to one class and make it a component
 - [ ] SelectTargetPhase: select correct target
+- [ ] SimpleFightConfig: add configurable retry policy
+- [ ] MoveEffectPhase: check if waiting in message gamemode is correct or space has to be pressed
+- [ ] ExpPhase: check if waiting in message gamemode is correct or space has to be pressed

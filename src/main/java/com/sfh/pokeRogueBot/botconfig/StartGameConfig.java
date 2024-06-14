@@ -10,6 +10,7 @@ import com.sfh.pokeRogueBot.model.exception.UnsupportedPhaseException;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.PhaseProcessor;
 import com.sfh.pokeRogueBot.phase.PhaseProvider;
+import com.sfh.pokeRogueBot.phase.impl.MessagePhase;
 import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.service.WaitingService;
 import com.sfh.pokeRogueBot.stage.StageIdentifier;
@@ -102,7 +103,7 @@ public class StartGameConfig implements Config {
         else if(null == phase && gameMode == GameMode.MESSAGE) {
             String phaseAsString = jsService.getCurrentPhaseAsString();
             log.error("no known phase detected, phaseAsString: " + phaseAsString + " , but gameMode is MESSAGE");
-            phaseProcessor.handlePhase(phaseProvider.getMessagePhase(), gameMode);
+            phaseProcessor.handlePhase(phaseProvider.fromString(MessagePhase.NAME), gameMode);
             return true;
         }
         else{
