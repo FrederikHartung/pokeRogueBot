@@ -10,9 +10,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class EncounterPhase extends AbstractPhase implements Phase {
 
+    public static final String NAME = "EncounterPhase";
+
     @Override
     public String getPhaseName() {
-        return Phase.ENCOUNTER_PHASE;
+        return NAME;
     }
 
     @Override
