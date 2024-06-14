@@ -8,22 +8,23 @@ import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ExpPhase extends AbstractPhase implements Phase {
+public class FaintPhase extends AbstractPhase implements Phase {
 
-    public static final String NAME = "ExpPhase";
+        public static final String NAME = "FaintPhase";
 
-    @Override
-    public String getPhaseName() {
-        return NAME;
-    }
+        @Override
+        public String getPhaseName() {
+            return NAME;
+        }
 
     @Override
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
-        if(gameMode == GameMode.MESSAGE)
+        if (gameMode == GameMode.MESSAGE) {
             return new PhaseAction[]{
-                    this.pressSpace
+                    pressSpace,
             };
+        }
 
-        throw new NotSupportedException("GameMode not supported for ExpPhase: " + gameMode);
+        throw new NotSupportedException("FaintPhase does not support GameMode: " + gameMode);
     }
 }

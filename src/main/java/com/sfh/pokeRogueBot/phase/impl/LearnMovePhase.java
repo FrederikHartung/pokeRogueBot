@@ -8,9 +8,9 @@ import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ExpPhase extends AbstractPhase implements Phase {
+public class LearnMovePhase extends AbstractPhase implements Phase {
 
-    public static final String NAME = "ExpPhase";
+    public static final String NAME = "LearnMovePhase";
 
     @Override
     public String getPhaseName() {
@@ -24,6 +24,7 @@ public class ExpPhase extends AbstractPhase implements Phase {
                     this.pressSpace
             };
 
-        throw new NotSupportedException("GameMode not supported for ExpPhase: " + gameMode);
+        throw new NotSupportedException("GameMode not supported for LearnMovePhase: " + gameMode);
     }
+
 }

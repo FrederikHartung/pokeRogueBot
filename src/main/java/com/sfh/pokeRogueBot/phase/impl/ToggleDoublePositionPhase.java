@@ -8,9 +8,9 @@ import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ExpPhase extends AbstractPhase implements Phase {
+public class ToggleDoublePositionPhase extends AbstractPhase implements Phase {
 
-    public static final String NAME = "ExpPhase";
+    public static final String NAME = "ToggleDoublePositionPhase";
 
     @Override
     public String getPhaseName() {
@@ -19,11 +19,11 @@ public class ExpPhase extends AbstractPhase implements Phase {
 
     @Override
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
-        if(gameMode == GameMode.MESSAGE)
+        if (gameMode == GameMode.MESSAGE)
             return new PhaseAction[]{
-                    this.pressSpace
+                    this.waitAction
             };
 
-        throw new NotSupportedException("GameMode not supported for ExpPhase: " + gameMode);
+        throw new NotSupportedException("GameMode not supported for ToggleDoublePositionPhase: " + gameMode);
     }
 }
