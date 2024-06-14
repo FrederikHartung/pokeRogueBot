@@ -41,3 +41,4 @@ Also they have to be added to the ChooseModifierItemDeserializer for Json parsin
 - [ ] SimpleFightConfig: add configurable retry policy
 - [x] MoveEffectPhase: check if waiting in message gamemode is correct or space has to be pressed
 - [x] ExpPhase: check if waiting in message gamemode is correct or space has to be pressed
+- [ ] pokemon status in js 
