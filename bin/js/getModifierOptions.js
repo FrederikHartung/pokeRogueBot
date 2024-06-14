@@ -13,7 +13,7 @@ function getModifierTierEnumString(tier) {
     5: "LUXURY"
   };
 
-  return tierMapping[tier] || null;
+  return tierMapping[tier] || "COMMON";
 }
 
 function getPokeBallTypeEnumString(pokeBallIndex) {
@@ -26,7 +26,7 @@ function getPokeBallTypeEnumString(pokeBallIndex) {
     5: "LUXURY_BALL"
   };
 
-  return pokeBallMapping[pokeBallIndex] || null;
+  return pokeBallMapping[pokeBallIndex] || "POKEBALL";
 }
 
 function filterShopItems(container){
