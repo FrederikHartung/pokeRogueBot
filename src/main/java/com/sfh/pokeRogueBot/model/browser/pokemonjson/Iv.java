@@ -12,9 +12,12 @@ import lombok.Data;
 public class Iv {
 
     private Integer hp;
-    private Integer atk;
-    private Integer def;
-    private Integer spe;
-    private Integer spd;
-    private Integer spa;
+
+    private Integer attack;
+    private Integer defense;
+
+    private Integer specialAttack;
+    private Integer specialDefense;
+
+    private Integer speed;
 }

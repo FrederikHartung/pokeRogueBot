@@ -1,6 +1,5 @@
 package com.sfh.pokeRogueBot.model.browser.pokemonjson;
 
-import com.google.gson.annotations.SerializedName;
 import lombok.Data;
 
 @Data
@@ -8,13 +7,11 @@ public class Stats {
 
     private Integer hp;
 
-    private Integer atk;
+    private Integer attack;
+    private Integer defense;
 
-    private Integer def;
+    private Integer specialAttack;
+    private Integer specialDefense;
 
-    private Integer spe;
-
-    private Integer spd;
-
-    private Integer spa;
+    private Integer speed;
 }

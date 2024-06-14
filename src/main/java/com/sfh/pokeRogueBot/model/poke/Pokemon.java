@@ -20,7 +20,7 @@ public class Pokemon {
     private Integer friendship;
     private Integer gender;
     private int hp;
-    private int id;
+    private long id;
     private Iv ivs;
     private int level;
     private int luck;

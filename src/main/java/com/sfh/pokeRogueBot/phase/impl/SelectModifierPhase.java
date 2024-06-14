@@ -36,35 +36,39 @@ public class SelectModifierPhase  extends AbstractPhase implements Phase {
         if (gameMode == GameMode.MODIFIER_SELECT) {
 
             MoveToModifierResult result = decisionService.getModifierToPick();
+            actionList.add(waitForTextRenderAction);
 
             //move to top left
             for(int i = 0; i < result.getMoveUpRowsAtStart(); i++){
                 actionList.add(this.pressArrowUp);
-                actionList.add(this.waitAction);
-            }
-            for(int i = 0; i < result.getMoveLeftColumnsAtStart(); i++){
-                actionList.add(this.pressArrowLeft);
-                actionList.add(this.waitAction);
+                actionList.add(this.waitForTextRenderAction);
             }
 
             //move to chosen item
             for(int i = 0; i < result.getMoveDownRowsToTarget(); i++){
                 actionList.add(this.pressArrowDown);
-                actionList.add(this.waitAction);
+                actionList.add(this.waitForTextRenderAction);
             }
             for(int i = 0; i < result.getMoveRightColumnsToTarget(); i++){
                 actionList.add(this.pressArrowRight);
-                actionList.add(this.waitAction);
+                actionList.add(this.waitForTextRenderAction);
             }
 
             actionList.add(this.pressSpace); //to confirm selection
         }
         else if(gameMode == GameMode.PARTY){
             //todo, currently apply potion on first pokemon
+            actionList.add(pressArrowLeft); //to go back to the first pokemon //todo
+            actionList.add(waitAction);
             actionList.add(this.pressSpace);
         }
         else if(gameMode == GameMode.MESSAGE){
             actionList.add(this.pressSpace);
+        }
+        else if(gameMode == GameMode.SUMMARY){
+            actionList.add(this.pressBackspace); //go back to team
+            actionList.add(waitForTextRenderAction);
+            actionList.add(this.pressBackspace); //go back to modifier shop
         }
         else {
             throw new NotSupportedException("GameMode not supported for SelectModifierPhase: " + gameMode);

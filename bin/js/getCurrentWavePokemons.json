@@ -27,17 +27,19 @@
           "moveId":33,
           "ppUp":0,
           "ppUsed":1,
-          "virtual":false
+          "virtual":false,
+          "name":"Tackle"
         },
         {
           "moveId":39,
           "ppUp":0,
           "ppUsed":0,
-          "virtual":false
+          "virtual":false,
+          "name":"Tail Whip"
         }
       ],
       "name":"Rattata",
-      "nature":13,
+      "nature":"JOLLY",
       "natureOverride":-1,
       "passive":false,
       "pokerus":false,
@@ -70,8 +72,8 @@
         "speciesString":"Mouse Pokémon",
         "speciesId":19,
         "subLegendary":false,
-        "type1":0,
-        "type2":null,
+        "type1":"NORMAL",
+        "type2":"UNKNOWN",
         "weight":3.5
       },
       "stats":{
@@ -84,7 +86,7 @@
       },
       "trainerSlot":0,
       "variant":0,
-      "isBoss":false,
+      "boss":false,
       "bossSegments":0,
       "player":false
     }
@@ -116,23 +118,26 @@
           "moveId":33,
           "ppUp":0,
           "ppUsed":1,
-          "virtual":false
+          "virtual":false,
+          "name":"Tackle"
         },
         {
           "moveId":45,
           "ppUp":0,
           "ppUsed":0,
-          "virtual":false
+          "virtual":false,
+          "name":"Growl"
         },
         {
           "moveId":22,
           "ppUp":0,
           "ppUsed":0,
-          "virtual":false
+          "virtual":false,
+          "name":"Vine Whip"
         }
       ],
       "name":"Bulbasaur",
-      "nature":6,
+      "nature":"DOCILE",
       "natureOverride":-1,
       "passive":false,
       "pokerus":false,
@@ -165,8 +170,8 @@
         "speciesString":"Seed Pokémon",
         "speciesId":1,
         "subLegendary":false,
-        "type1":11,
-        "type2":3,
+        "type1":"GRASS",
+        "type2":"POISON",
         "weight":6.9
       },
       "stats":{
@@ -178,7 +183,7 @@
         "speed":10
       },
       "variant":0,
-      "isBoss":false,
+      "boss":false,
       "player":true,
       "compatibleTms":[
         14,
@@ -264,23 +269,26 @@
           "moveId":10,
           "ppUp":0,
           "ppUsed":0,
-          "virtual":false
+          "virtual":false,
+          "name":"Scratch"
         },
         {
           "moveId":45,
           "ppUp":0,
           "ppUsed":0,
-          "virtual":false
+          "virtual":false,
+          "name":"Growl"
         },
         {
           "moveId":52,
           "ppUp":0,
           "ppUsed":0,
-          "virtual":false
+          "virtual":false,
+          "name":"Ember"
         }
       ],
       "name":"Charmander",
-      "nature":24,
+      "nature":"QUIRKY",
       "natureOverride":-1,
       "passive":false,
       "pokerus":false,
@@ -313,8 +321,8 @@
         "speciesString":"Lizard Pokémon",
         "speciesId":4,
         "subLegendary":false,
-        "type1":9,
-        "type2":null,
+        "type1":"FIRE",
+        "type2":"UNKNOWN",
         "weight":8.5
       },
       "stats":{
@@ -326,7 +334,7 @@
         "speed":12
       },
       "variant":0,
-      "isBoss":false,
+      "boss":false,
       "player":true,
       "compatibleTms":[
         5,
@@ -429,23 +437,26 @@
           "moveId":33,
           "ppUp":0,
           "ppUsed":0,
-          "virtual":false
+          "virtual":false,
+          "name":"Tackle"
         },
         {
           "moveId":39,
           "ppUp":0,
           "ppUsed":0,
-          "virtual":false
+          "virtual":false,
+          "name":"Tail Whip"
         },
         {
           "moveId":55,
           "ppUp":0,
           "ppUsed":0,
-          "virtual":false
+          "virtual":false,
+          "name":"Water Gun"
         }
       ],
       "name":"Squirtle",
-      "nature":0,
+      "nature":"HARDY",
       "natureOverride":-1,
       "passive":false,
       "pokerus":false,
@@ -478,8 +489,8 @@
         "speciesString":"Tiny Turtle Pokémon",
         "speciesId":7,
         "subLegendary":false,
-        "type1":10,
-        "type2":null,
+        "type1":"WATER",
+        "type2":"UNKNOWN",
         "weight":9
       },
       "stats":{
@@ -491,7 +502,7 @@
         "speed":9
       },
       "variant":0,
-      "isBoss":false,
+      "boss":false,
       "player":true,
       "compatibleTms":[
         5,

@@ -45,6 +45,10 @@ public class DecisionService {
         return false;
     }
 
+    public int getPokemonIndexToSwitchTo(){
+        return switchPokemonNeuron.getPokemonIndexToSwitchTo();
+    }
+
     public MoveToModifierResult getModifierToPick(){
         ModifierShop shop = jsService.getModifierShop();
         log.info(shop.toString());
@@ -76,8 +80,8 @@ public class DecisionService {
             if (type.isInstance(item.getItem())) {
                 log.debug("choosed free item with name: " + item.getItem().getName() + " on position: " + item.getPosition());
                 return new MoveToModifierResult(
-                        shop.getTotalRows() + 1, // to move to the top left corner from the reroll button
-                        shop.getTotalCols() + 1, // to move to the top left corner from the reroll button
+                        shop.getTotalRows(), // to move to the top left corner from the reroll button
+                        shop.getTotalCols(), // to move to the top left corner from the reroll button
                         item.getPosition().getRow(), // move to chosen item
                         item.getPosition().getColumn()); // move to chosen item
             }

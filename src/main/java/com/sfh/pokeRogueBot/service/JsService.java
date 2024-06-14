@@ -9,6 +9,7 @@ import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem;
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItemDeserializer;
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
+import com.sfh.pokeRogueBot.model.run.Wave;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.stereotype.Service;
@@ -55,5 +56,11 @@ public class JsService {
     public Pokemon[] getCurrentWavePokemons() {
         String json = jsClient.executeJsAndGetResult("./bin/js/getCurrentWavePokemons.js");
         return GSON.fromJson(json, Pokemon[].class);
+    }
+
+    public Wave getWave() {
+        String json = jsClient.executeJsAndGetResult("./bin/js/getCurrentWavePokemons.js");
+        Wave wave = GSON.fromJson(json, Wave.class);
+        return wave;
     }
 }

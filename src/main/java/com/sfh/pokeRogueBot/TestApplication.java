@@ -2,7 +2,7 @@ package com.sfh.pokeRogueBot;
 
 import com.google.gson.Gson;
 import com.sfh.pokeRogueBot.config.JsonStringProvider;
-import com.sfh.pokeRogueBot.model.browser.GameJsonProperties;
+import com.sfh.pokeRogueBot.model.run.Wave;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -19,7 +19,7 @@ public class TestApplication {
             String jsonStringPath = "./bin/js/getCurrentWavePokemons.json";
             String jsonString = JsonStringProvider.readJsonString(jsonStringPath);
             Gson gson = new Gson();
-            GameJsonProperties gameJsonProperties = gson.fromJson(jsonString, GameJsonProperties.class);
+            Wave wave = gson.fromJson(jsonString, Wave.class);
             System.out.println(jsonString);
 
         } catch (Exception e) {

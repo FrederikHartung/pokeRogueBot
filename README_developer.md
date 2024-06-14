@@ -16,7 +16,11 @@ Also they have to be added to the ChooseModifierItemDeserializer for Json parsin
 ## Open todo's with high priority:
 - [x] add all MotifierTypes as a model
 - [x] make enums return only non null values in js
-- [ ] handel fainted pokemons in the own team
+- [x] handel fainted pokemons in the own team
+  - [x] get the info, which pokemon are not fainted
+  - [x] select a not fainted pokemon
+- [ ] give the heal item in dubble fights the correct pokemon
+- [ ] add error handling for loop detection
 - [ ] learning of attacks 
 - [x] level up handling
 - [ ] Wave Info:
