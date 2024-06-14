@@ -21,7 +21,6 @@ public class RunProperty {
     private final Pokemon[] team = new Pokemon[6];
     private boolean isTrainerFight = false;
     private boolean isFightOngoing = false;
-    private boolean lastPhaseNotDetected = false;
 
     public RunProperty(int runNumber) {
         this.runNumber = runNumber;

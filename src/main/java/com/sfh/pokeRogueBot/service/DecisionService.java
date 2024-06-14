@@ -8,6 +8,7 @@ import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.model.modifier.impl.PokemonHpRestoreModifierItem;
 import com.sfh.pokeRogueBot.model.modifier.impl.AddPokeballModifierItem;
 import com.sfh.pokeRogueBot.model.modifier.impl.TempBattleStatBoosterModifierItem;
+import com.sfh.pokeRogueBot.service.neurons.SwitchPokemonNeuron;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -16,15 +17,24 @@ import org.springframework.stereotype.Service;
 public class DecisionService {
 
     private final RunPropertyService runPropertyService;
-    private final FightInfoService fightInfoService;
     private final JsService jsService;
+
+    private final CombatNeuron combatNeuron;
+    private final SwitchPokemonNeuron switchPokemonNeuron;
 
     private RunProperty runProperty = null;
 
-    public DecisionService(RunPropertyService runPropertyService, FightInfoService fightInfoService, JsService jsService) {
+    public DecisionService(
+            RunPropertyService runPropertyService,
+            JsService jsService,
+            CombatNeuron combatNeuron,
+            SwitchPokemonNeuron switchPokemonNeuron
+    ) {
         this.runPropertyService = runPropertyService;
-        this.fightInfoService = fightInfoService;
         this.jsService = jsService;
+
+        this.combatNeuron = combatNeuron;
+        this.switchPokemonNeuron = switchPokemonNeuron;
     }
 
     public boolean shouldSwitchPokemon() {

@@ -52,8 +52,8 @@ public class JsService {
         return new ModifierShop(options);
     }
 
-    public Pokemon[] getOwnTeam() {
-        String json = jsClient.executeJsAndGetResult("./bin/js/getOwnTeam.js");
+    public Pokemon[] getCurrentWavePokemons() {
+        String json = jsClient.executeJsAndGetResult("./bin/js/getCurrentWavePokemons.js");
         return GSON.fromJson(json, Pokemon[].class);
     }
 }

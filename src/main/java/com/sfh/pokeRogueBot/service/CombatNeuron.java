@@ -8,12 +8,12 @@ import java.awt.image.BufferedImage;
 
 @Slf4j
 @Service
-public class FightInfoService {
+public class CombatNeuron {
 
     private final ImageService imageService;
     private final CvService cvService;
 
-    public FightInfoService(ImageService imageService, CvService cvService) {
+    public CombatNeuron(ImageService imageService, CvService cvService) {
         this.imageService = imageService;
         this.cvService = cvService;
     }

@@ -18,7 +18,10 @@ Also they have to be added to the ChooseModifierItemDeserializer for Json parsin
 - [x] make enums return only non null values in js
 - [ ] handel fainted pokemons in the own team
 - [ ] learning of attacks 
-- [ ] level up handling
+- [x] level up handling
+- [ ] Wave Info:
+  - [ ] is wild or trainer
+  - [ ] is double or single
 
 
 ## Open todo's with low priority:

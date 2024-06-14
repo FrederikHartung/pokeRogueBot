@@ -1,7 +1,7 @@
 package com.sfh.pokeRogueBot.model.enums;
 
 public enum RunStatus {
-    ONGOING,
+    WAVE_FIGHTING,
     ERROR,
     LOST,
     SAVED,

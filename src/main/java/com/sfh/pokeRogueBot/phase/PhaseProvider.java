@@ -23,6 +23,6 @@ public class PhaseProvider {
         return phases.stream()
                 .filter(phase -> phase.getPhaseName().equals(phaseAsString))
                 .findFirst()
-                .orElseThrow(() -> new UnsupportedPhaseException("Phase not found: " + phaseAsString));
+                .orElse(null);
     }
 }
