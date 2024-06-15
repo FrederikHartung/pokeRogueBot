@@ -2,13 +2,11 @@ package com.sfh.pokeRogueBot.phase.impl;
 
 import com.sfh.pokeRogueBot.model.browser.enums.GameMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
-import com.sfh.pokeRogueBot.model.modifier.ModifierPosition;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.DecisionService;
-import com.sfh.pokeRogueBot.service.WaitingService;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedList;

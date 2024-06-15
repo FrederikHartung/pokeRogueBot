@@ -29,6 +29,7 @@ Also they have to be added to the ChooseModifierItemDeserializer for Json parsin
 
 
 ## Open todo's with low priority:
+- [ ] Image Service refactoren
 - [x] PokemonNatureChangeModifierItem: Add Nature
 - [x] AddVoucherModifierItem: Add Voucher
 - [x] BerryModifierItem: Add Berry

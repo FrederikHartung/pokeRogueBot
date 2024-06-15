@@ -1,8 +1,8 @@
 package com.sfh.pokeRogueBot.service;
 
 import com.sfh.pokeRogueBot.mapper.RunPropertyMapper;
-import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.model.entities.RunPropertyEntity;
+import com.sfh.pokeRogueBot.model.run.RunProperty;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 

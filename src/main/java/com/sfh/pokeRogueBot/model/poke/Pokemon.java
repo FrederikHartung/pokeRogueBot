@@ -6,8 +6,6 @@ import com.sfh.pokeRogueBot.model.browser.pokemonjson.Species;
 import com.sfh.pokeRogueBot.model.browser.pokemonjson.Stats;
 import com.sfh.pokeRogueBot.model.enums.Nature;
 import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
 
 @Data
 public class Pokemon {

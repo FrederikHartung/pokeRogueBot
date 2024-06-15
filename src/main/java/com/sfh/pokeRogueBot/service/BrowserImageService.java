@@ -2,17 +2,13 @@ package com.sfh.pokeRogueBot.service;
 
 import com.sfh.pokeRogueBot.browser.ImageClient;
 import com.sfh.pokeRogueBot.config.Constants;
-import com.sfh.pokeRogueBot.model.cv.Point;
-import com.sfh.pokeRogueBot.model.cv.Size;
 import com.sfh.pokeRogueBot.model.exception.ImageValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
 
 @Slf4j
@@ -49,32 +45,6 @@ public class BrowserImageService implements ImageService {
 
         if (image.getType() != BufferedImage.TYPE_3BYTE_BGR) {
             throw new ImageValidationException("Image has wrong color type: " + checkColorType(image) + ", filenamePrefix: " + filenamePrefix);
-        }
-    }
-
-    /**
-     * Loads a template from the given path.
-     * Don't need to scale, because all templates are based on the same canvas size.
-     */
-    @Override
-    public BufferedImage loadTemplate(String path) throws ImageValidationException, IOException {
-        File file = new File(path);
-        BufferedImage template = ImageIO.read(file);
-        template = removeAlphaChannel(template);
-
-        validateTemplate(template, path);
-
-        return template;
-    }
-
-    @Override
-    public BufferedImage getSubImage(BufferedImage image, Point topLeft, Size size) {
-        return image.getSubimage(topLeft.getX(), topLeft.getY(), size.getWidth(), size.getHeight());
-    }
-
-    public static void validateTemplate(BufferedImage image, String path) throws ImageValidationException {
-        if (image.getType() != BufferedImage.TYPE_3BYTE_BGR) {
-            throw new ImageValidationException("Template has wrong color type: " + checkColorType(image) + ", path: " + path);
         }
     }
 

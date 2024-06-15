@@ -1,9 +1,10 @@
 package com.sfh.pokeRogueBot.model.modifier;
 
-import lombok.Getter;
-
 import javax.annotation.Nonnull;
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 public class ModifierShop {

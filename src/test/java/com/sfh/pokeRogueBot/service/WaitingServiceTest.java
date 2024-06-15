@@ -1,8 +1,6 @@
 package com.sfh.pokeRogueBot.service;
 
-import com.sfh.pokeRogueBot.browser.ChromeBrowserClient;
 import com.sfh.pokeRogueBot.config.WaitConfig;
-import com.sfh.pokeRogueBot.stage.StageProcessor;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

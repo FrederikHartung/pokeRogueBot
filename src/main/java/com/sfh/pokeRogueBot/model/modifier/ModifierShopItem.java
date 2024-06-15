@@ -1,7 +1,6 @@
 package com.sfh.pokeRogueBot.model.modifier;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.Getter;
 
 @Getter

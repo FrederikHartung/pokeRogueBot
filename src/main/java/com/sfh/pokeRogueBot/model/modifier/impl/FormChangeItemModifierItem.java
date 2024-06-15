@@ -1,7 +1,6 @@
 package com.sfh.pokeRogueBot.model.modifier.impl;
 
 import com.sfh.pokeRogueBot.model.enums.FormChangeItem;
-import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem;
 import com.sfh.pokeRogueBot.model.modifier.GeneratedPersistentModifierType;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

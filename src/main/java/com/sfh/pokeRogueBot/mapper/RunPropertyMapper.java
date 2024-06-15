@@ -1,8 +1,8 @@
 package com.sfh.pokeRogueBot.mapper;
 
-import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.model.entities.RunPropertyEntity;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
+import com.sfh.pokeRogueBot.model.run.RunProperty;
 
 public class RunPropertyMapper {
 
