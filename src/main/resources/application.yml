@@ -6,66 +6,45 @@ spring:
     driverClassName: org.h2.Driver
     username: sa
     password: password
-    jpa:
-      database-platform: org.hibernate.dialect.H2Dialect
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: update
+    properties:
       hibernate:
-        ddl-auto: update
-        show-sql: true
-
-ocr:
-  language: deu
-  datapath: /opt/homebrew/Cellar/tesseract/5.3.4_1/share/tessdata
-  jnaLibraryPath: /opt/homebrew/opt/tesseract/lib/
-
-cv:
-  retry:
-    maxAttemptsForSearchingTemplates: 5
-    backoffPeriodForSearchingTemplates: 1000
-  allowedToleranceForTopLeftMismatch: 30
-
+        format_sql: true
 
 browser:
+  target-url: "http://localhost:8000/"
   closeOnExit: false
   waitTimeForRenderAfterNavigation: 5000
   pathChromeUserDir: "./bin/webdriver/profile/"
-  useInkognito: true
+  useInkognito: false
 
-stage-processor:
-  waitTimeAfterAction: 100
+wait-time:
+  defaultWaitTime: 2000
+  gameSpeedModificator: 1
+  loginStageWaitTime: 1000
+  introStageWaitTime: 1000
+  mainmenuStageWaitTime: 1000
+  pokemonSelectionStageWaitTime: 2000
+  enemyFaintedStageWaitTime: 2000
+  fightStageWaitTime: 2000
+  savegameStageWaitTime: 2000
+  shopStageWaitTime: 2000
+  switchDecisionStageWaitTime: 2000
+  trainerFightStageWaitTime: 8000
+  waitTimeAfterAction: 200
   waitTimeForRenderingText: 1000
-  waitTimeForRenderingStages: 5000
-
-stage-identifier:
-  numberOfRetries: 30
-  waitTimeForRetryMS: 2000
-  waitTimeForHtmlElements: 5000
+  waitTimeForRenderingStages: 2500
+  phaseDefault: 500
+  encounterPhase: 500
+  messagePhase: 100
 
 stage:
   mainmenu:
-    updateGameSettings: true
-
-
-handler:
-  login:
-    retryCount: 11
-    retryDelayMs: 5000
-    delayForFirstCheckMs: 5000
-    loginFormSearchWords:
-      - "Benutzername"
-      - "Passwort"
-      - "Melde"
-      - "dich"
-      - "an"
-      - "oder"
-      - "erstelle"
-      - "einen"
-      - "Account"
-      - "zum"
-      - "starten"
-      - "Keine"
-      - "Email"
-      - "nötig"
-    loginFormOcrConfidenceThreshhold: 0.7
+    updateGameSettings: false
+    startRun: true
 
 logging:
   level:

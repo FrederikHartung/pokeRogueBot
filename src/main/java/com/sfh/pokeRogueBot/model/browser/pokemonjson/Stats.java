@@ -1,0 +1,17 @@
+package com.sfh.pokeRogueBot.model.browser.pokemonjson;
+
+import lombok.Data;
+
+@Data
+public class Stats {
+
+    private Integer hp;
+
+    private Integer attack;
+    private Integer defense;
+
+    private Integer specialAttack;
+    private Integer specialDefense;
+
+    private Integer speed;
+}

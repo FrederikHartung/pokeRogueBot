@@ -1,25 +1,21 @@
 package com.sfh.pokeRogueBot.service;
 
 import com.sfh.pokeRogueBot.browser.ImageClient;
-import com.sfh.pokeRogueBot.config.Constants;
-import com.sfh.pokeRogueBot.model.cv.Point;
-import com.sfh.pokeRogueBot.model.cv.ScaleFactor;
-import com.sfh.pokeRogueBot.model.cv.Size;
 import com.sfh.pokeRogueBot.model.exception.ImageValidationException;
-import com.sfh.pokeRogueBot.util.ScalingUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
-import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
 
 @Slf4j
-@Component
+@Service
 public class BrowserImageService implements ImageService {
+
+    private static final int STANDARDISED_CANVAS_WIDTH = 1480;
+    private static final int STANDARDISED_CANVAS_HEIGHT = 830;
 
     private final ImageClient imageClient;
 
@@ -27,79 +23,15 @@ public class BrowserImageService implements ImageService {
         this.imageClient = imageClient;
     }
 
-    /**
-     * Takes a screenshot from the canvas and scales it to the standardised canvas size.
-     * The canvas size can change depending on the screen size or resolution.
-     */
-    @Override
-    public BufferedImage takeScreenshot(String filenamePrefix) throws ImageValidationException, IOException {
-        BufferedImage canvas = imageClient.takeScreenshotFromCanvas();
-
-        BufferedImage scaledImage = scaleImage(canvas);
-        scaledImage = removeAlphaChannel(scaledImage);
-
-        validateImage(scaledImage, filenamePrefix);
-
-        return scaledImage;
-    }
-
     public static void validateImage(BufferedImage image, String filenamePrefix) throws ImageValidationException {
-        if (image.getWidth() != Constants.STANDARDISED_CANVAS_WIDTH || image.getHeight() != Constants.STANDARDISED_CANVAS_HEIGHT) {
+        if (image.getWidth() != STANDARDISED_CANVAS_WIDTH || image.getHeight() != STANDARDISED_CANVAS_HEIGHT) {
             throw new ImageValidationException("Image has wrong dimensions: " + image.getWidth() + "x" + image.getHeight()
-                    + ", expected: " + Constants.STANDARDISED_CANVAS_WIDTH + "x" + Constants.STANDARDISED_CANVAS_HEIGHT);
+                    + ", expected: " + STANDARDISED_CANVAS_WIDTH + "x" + STANDARDISED_CANVAS_HEIGHT);
         }
 
         if (image.getType() != BufferedImage.TYPE_3BYTE_BGR) {
             throw new ImageValidationException("Image has wrong color type: " + checkColorType(image) + ", filenamePrefix: " + filenamePrefix);
         }
-    }
-
-    /**
-     * Loads a template from the given path.
-     * Don't need to scale, because all templates are based on the same canvas size.
-     */
-    @Override
-    public BufferedImage loadTemplate(String path) throws ImageValidationException, IOException {
-        File file = new File(path);
-        BufferedImage template = ImageIO.read(file);
-        template = removeAlphaChannel(template);
-
-        validateTemplate(template, path);
-
-        return template;
-    }
-
-    @Override
-    public BufferedImage getSubImage(BufferedImage image, Point topLeft, Size size) {
-        return image.getSubimage(topLeft.getX(), topLeft.getY(), size.getWidth(), size.getHeight());
-    }
-
-    public static void validateTemplate(BufferedImage image, String path) throws ImageValidationException {
-        if (image.getType() != BufferedImage.TYPE_3BYTE_BGR) {
-            throw new ImageValidationException("Template has wrong color type: " + checkColorType(image) + ", path: " + path);
-        }
-    }
-
-    private BufferedImage scaleImage(BufferedImage originalImage) {
-        int newWidth = Constants.STANDARDISED_CANVAS_WIDTH;
-        int newHeight = Constants.STANDARDISED_CANVAS_HEIGHT;
-
-        BufferedImage scaledImage = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_3BYTE_BGR);
-        Graphics2D g2d = scaledImage.createGraphics();
-
-        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-
-        double scaleFactorX = newWidth / (double) originalImage.getWidth();
-        double scaleFactorY = newHeight / (double) originalImage.getHeight();
-
-        AffineTransform affineTransform = AffineTransform.getScaleInstance(scaleFactorX, scaleFactorY);
-        g2d.drawRenderedImage(originalImage, affineTransform);
-        g2d.dispose();
-
-        return scaledImage;
     }
 
     private static String checkColorType(BufferedImage image) {
@@ -130,5 +62,43 @@ public class BrowserImageService implements ImageService {
             return newImage;
         }
         return image;
+    }
+
+    /**
+     * Takes a screenshot from the canvas and scales it to the standardised canvas size.
+     * The canvas size can change depending on the screen size or resolution.
+     */
+    @Override
+    public BufferedImage takeScreenshot(String filenamePrefix) throws ImageValidationException, IOException {
+        BufferedImage canvas = imageClient.takeScreenshotFromCanvas();
+
+        BufferedImage scaledImage = scaleImage(canvas);
+        scaledImage = removeAlphaChannel(scaledImage);
+
+        validateImage(scaledImage, filenamePrefix);
+
+        return scaledImage;
+    }
+
+    private BufferedImage scaleImage(BufferedImage originalImage) {
+        int newWidth = STANDARDISED_CANVAS_WIDTH;
+        int newHeight = STANDARDISED_CANVAS_HEIGHT;
+
+        BufferedImage scaledImage = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_3BYTE_BGR);
+        Graphics2D g2d = scaledImage.createGraphics();
+
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+
+        double scaleFactorX = newWidth / (double) originalImage.getWidth();
+        double scaleFactorY = newHeight / (double) originalImage.getHeight();
+
+        AffineTransform affineTransform = AffineTransform.getScaleInstance(scaleFactorX, scaleFactorY);
+        g2d.drawRenderedImage(originalImage, affineTransform);
+        g2d.dispose();
+
+        return scaledImage;
     }
 }
