@@ -48,7 +48,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
         if (null == this.driver) {
             ChromeOptions options = new ChromeOptions();
 
-            options.addArguments("user-data-dir=" + pathChromeUserDir);
+            //options.addArguments("user-data-dir=" + pathChromeUserDir);
             if (useInkognito) {
                 options.addArguments("--incognito");
                 log.debug("starting in incognito mode");
