@@ -5,6 +5,7 @@ import com.sfh.pokeRogueBot.model.exception.PickModifierException;
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.model.modifier.impl.AddPokeballModifierItem;
+import com.sfh.pokeRogueBot.model.modifier.impl.AddVoucherModifierItem;
 import com.sfh.pokeRogueBot.model.modifier.impl.PokemonHpRestoreModifierItem;
 import com.sfh.pokeRogueBot.model.modifier.impl.TempBattleStatBoosterModifierItem;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
@@ -53,6 +54,13 @@ public class DecisionService {
         ModifierShop shop = jsService.getModifierShop();
         log.info(shop.toString());
         //Pokemon[] pokemons = jsService.getOwnTeam(); //todo
+
+
+        //prio 0: pick hp item
+        MoveToModifierResult voucherItem = pickItem(shop, AddVoucherModifierItem.class);
+        if (null != voucherItem) {
+            return voucherItem;
+        }
 
         //prio 1: pick hp item
         MoveToModifierResult healItem = pickItem(shop, PokemonHpRestoreModifierItem.class);
