@@ -3,7 +3,9 @@
 
 # PokeRogueBot
 This is a bot for the pokeRogue browser game. The Bot reads the current state of the game with the help of JavaScript out of the browser and reacts to it.  
+
 The bot does not cheat or write any values with JavaScript. If the current state of the game is read with JavaScript, the bot processes the information in the Java Part of the application.  
+
 After getting to a Result, the bot calculates which buttons are to press and sends the Commands with the help of Selenium to the browser.  
 
 ## Documentation
