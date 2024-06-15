@@ -1,17 +1,13 @@
-# developer dokumentation
+# developer documentation
 
-## For Phases:
-Make sure to add new phases with their name to the Phase interface.  
-Also they have to be @Component and to be added to the PhaseProvider as a field and to the fromString method.
+## Development Strategy
+Focus on progress and not on perfection. It's better to stick to a bad implementation and improve it later than to try to make it perfect from the beginning.  
+If a good idea comes up, write it down and implement it later. Focus on the current task. Order the tasks by their level of improvement and how easy they are to implement.  
+Only refactor, when it's really necessary.
 
-## For Modifier:
-Modifier need to extend ModifierItem and implement the ChooseModifierItem Interface.  
-They also need the "@EqualsAndHashCode(callSuper = true)" and "@Data" Annotation.
-If a modifier has extra fields, they need to be added to getModifierOptions.js to retrieve them from the browser with js.  
-Also they have to be added to the ChooseModifierItemDeserializer for Json parsing.  
 
 ## Sprint 1, week 09.06-16.06.:
-- [ ] achieve first lost run
+- [x] achieve first lost run
 
 ## Open todo's with high priority:
 - [x] add all MotifierTypes as a model
