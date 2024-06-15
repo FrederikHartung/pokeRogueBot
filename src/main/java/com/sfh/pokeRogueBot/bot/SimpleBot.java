@@ -2,7 +2,7 @@ package com.sfh.pokeRogueBot.bot;
 
 import com.sfh.pokeRogueBot.browser.BrowserClient;
 import com.sfh.pokeRogueBot.file.FileManager;
-import com.sfh.pokeRogueBot.model.browser.enums.GameMode;
+import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.exception.UnsupportedPhaseException;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
@@ -60,6 +60,12 @@ public class SimpleBot implements Bot {
         fileManager.deleteTempData();
         browserClient.navigateTo(targetUrl);
 
+        while (true){
+            startRun();
+        }
+    }
+
+    private void startRun(){
         runProperty = runPropertyService.getRunProperty();
         runProperty.setStatus(RunStatus.STARTING);
         runPropertyService.save(runProperty);
@@ -70,7 +76,7 @@ public class SimpleBot implements Bot {
                 .fixedBackoff(1000)
                 .build();
 
-        log.debug("starting wave fighting mode");
+        log.debug("run " + runProperty.getRunNumber() + ", starting wave fighting mode");
         try {
             while (runProperty.getStatus() == RunStatus.STARTING || runProperty.getStatus() == RunStatus.WAVE_FIGHTING) {
 
@@ -84,6 +90,7 @@ public class SimpleBot implements Bot {
 
             }
         } catch (Exception e) {
+            log.error("error while running", e);
             phaseProcessor.takeScreenshot("error_" + e.getClass().getSimpleName());
             runProperty.setStatus(RunStatus.ERROR);
             return;

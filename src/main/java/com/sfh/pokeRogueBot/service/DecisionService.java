@@ -1,14 +1,14 @@
 package com.sfh.pokeRogueBot.service;
 
-import com.sfh.pokeRogueBot.model.enums.FightDecision;
-import com.sfh.pokeRogueBot.model.exception.PickModifierException;
-import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
+import com.sfh.pokeRogueBot.model.enums.BattleType;
+import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
-import com.sfh.pokeRogueBot.model.modifier.impl.AddPokeballModifierItem;
-import com.sfh.pokeRogueBot.model.modifier.impl.AddVoucherModifierItem;
-import com.sfh.pokeRogueBot.model.modifier.impl.PokemonHpRestoreModifierItem;
-import com.sfh.pokeRogueBot.model.modifier.impl.TempBattleStatBoosterModifierItem;
+import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
+import com.sfh.pokeRogueBot.model.run.Wave;
+import com.sfh.pokeRogueBot.phase.ScreenshotClient;
+import com.sfh.pokeRogueBot.service.neurons.ChooseModifierNeuron;
+import com.sfh.pokeRogueBot.service.neurons.CombatNeuron;
 import com.sfh.pokeRogueBot.service.neurons.SwitchPokemonNeuron;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,29 +20,34 @@ public class DecisionService {
     private final RunPropertyService runPropertyService;
     private final JsService jsService;
 
+    private final ChooseModifierNeuron chooseModifierNeuron;
     private final CombatNeuron combatNeuron;
     private final SwitchPokemonNeuron switchPokemonNeuron;
 
+    private final ScreenshotClient screenshotClient;
+
     private RunProperty runProperty = null;
+    private Wave wave;
+    private boolean waveEnded = true; //default for game start
+    private boolean waveHasShiny = false;
+    private boolean waveHasPokerus = false;
 
     public DecisionService(
             RunPropertyService runPropertyService,
-            JsService jsService,
+            JsService jsService, ChooseModifierNeuron chooseModifierNeuron,
             CombatNeuron combatNeuron,
-            SwitchPokemonNeuron switchPokemonNeuron
+            SwitchPokemonNeuron switchPokemonNeuron, ScreenshotClient screenshotClient
     ) {
         this.runPropertyService = runPropertyService;
         this.jsService = jsService;
+        this.screenshotClient = screenshotClient;
 
+        this.chooseModifierNeuron = chooseModifierNeuron;
         this.combatNeuron = combatNeuron;
         this.switchPokemonNeuron = switchPokemonNeuron;
     }
 
     public boolean shouldSwitchPokemon() {
-        if (null == runProperty) {
-            runProperty = runPropertyService.getRunProperty();
-        }
-
         return false;
     }
 
@@ -51,54 +56,42 @@ public class DecisionService {
     }
 
     public MoveToModifierResult getModifierToPick() {
-        ModifierShop shop = jsService.getModifierShop();
-        log.info(shop.toString());
-        //Pokemon[] pokemons = jsService.getOwnTeam(); //todo
-
-
-        //prio 0: pick hp item
-        MoveToModifierResult voucherItem = pickItem(shop, AddVoucherModifierItem.class);
-        if (null != voucherItem) {
-            return voucherItem;
-        }
-
-        //prio 1: pick hp item
-        MoveToModifierResult healItem = pickItem(shop, PokemonHpRestoreModifierItem.class);
-        if (null != healItem) {
-            return healItem;
-        }
-
-        //prio 2: pick tempStatBoost item
-        MoveToModifierResult tempStatBoost = pickItem(shop, TempBattleStatBoosterModifierItem.class);
-        if (null != tempStatBoost) {
-            return tempStatBoost;
-        }
-
-        //prio 2: pick tempStatBoost item
-        MoveToModifierResult pokeballModifierItem = pickItem(shop, AddPokeballModifierItem.class);
-        if (null != pokeballModifierItem) {
-            return pokeballModifierItem;
-        }
-
-        throw new PickModifierException("can't pick any item from the shop because of my poor logic");
+        return chooseModifierNeuron.getModifierToPick();
     }
 
-    private <T> MoveToModifierResult pickItem(ModifierShop shop, Class<T> type) {
-        for (var item : shop.getFreeItems()) {
-            if (type.isInstance(item.getItem())) {
-                log.debug("choosed free item with name: " + item.getItem().getName() + " on position: " + item.getPosition());
-                return new MoveToModifierResult(
-                        shop.getTotalRows(), // to move to the top left corner from the reroll button
-                        shop.getTotalCols(), // to move to the top left corner from the reroll button
-                        item.getPosition().getRow(), // move to chosen item
-                        item.getPosition().getColumn()); // move to chosen item
+    public CommandPhaseDecision getFightDecision() {
+        if(waveEnded){
+            wave = jsService.getWave();
+        }
+
+        if (null != wave && wave.getBattleType() == BattleType.WILD) {
+            for(Pokemon wildPokemon : wave.getWavePokemon().getEnemyTeam()) {
+                if (wildPokemon.isShiny() && !waveHasShiny) {
+                    log.info("Shiny pokemon detected: " + wildPokemon.getName());
+                    waveHasShiny = true;
+                    screenshotClient.takeScreenshot("shiny_pokemon_detected");
+                }
+
+                if(wildPokemon.isPokerus() && !waveHasPokerus){
+                    log.info("Pokerus pokemon detected: " + wildPokemon.getName());
+                    waveHasPokerus = true;
+                    screenshotClient.takeScreenshot("pokerus_pokemon_detected");
+                }
             }
+
+            if(!wave.isDoubleFight() || wave.getEnemyFaints() == 1){
+                return CommandPhaseDecision.BALL;
+            }
+
+            return CommandPhaseDecision.ATTACK;
         }
 
-        return null;
+        return CommandPhaseDecision.ATTACK;
     }
 
-    public FightDecision getFightDecision() {
-        return FightDecision.ATTACK;
+    public void setWaveEnded(boolean waveEnded) {
+        this.waveEnded = waveEnded;
+        this.waveHasPokerus = false;
+        this.waveHasShiny = false;
     }
 }

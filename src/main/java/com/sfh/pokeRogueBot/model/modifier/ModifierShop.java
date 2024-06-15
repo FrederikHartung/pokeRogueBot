@@ -36,12 +36,14 @@ public class ModifierShop {
         buyableItems = new LinkedList<>();
         freeItems = new LinkedList<>();
 
+        //row zero is bottom left -> reroll button and co.
+        //then comes the free item row(s) and on the top the buyable items
         items.forEach(item -> {
             if (item.getCost() > 0) {
                 for (int i = 0; i < xBuyableArray.length; i++) {
                     for (int j = 0; j < yBuyableArray.length; j++) {
                         if (item.getX() == xBuyableArray[i] && item.getY() == yBuyableArray[j]) {
-                            ModifierShopItem shopItem = new ModifierShopItem(item, new ModifierPosition(i, j));
+                            ModifierShopItem shopItem = new ModifierShopItem(item, new ModifierPosition(i, j + rowsForBuyableItems + 1)); // +1 for reroll row and + all free item rows
                             buyableItems.add(shopItem);
                         }
                     }
@@ -50,7 +52,7 @@ public class ModifierShop {
                 for (int i = 0; i < xFreeArray.length; i++) {
                     for (int j = 0; j < yFreeArray.length; j++) {
                         if (item.getX() == xFreeArray[i] && item.getY() == yFreeArray[j]) {
-                            ModifierShopItem shopItem = new ModifierShopItem(item, new ModifierPosition(i, j + rowsForBuyableItems));
+                            ModifierShopItem shopItem = new ModifierShopItem(item, new ModifierPosition(i, j + 1)); // +1 for reroll row
                             freeItems.add(shopItem);
                         }
                     }
@@ -65,14 +67,6 @@ public class ModifierShop {
 
     public List<ModifierShopItem> getFreeItems() {
         return freeItems;
-    }
-
-    public int getTotalRows() {
-        return rowsForBuyableItems + rowsForFreeItems;
-    }
-
-    public int getTotalCols() {
-        return colsForBuyableItems + colsForFreeItems;
     }
 
     @Override

@@ -122,6 +122,25 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
     }
 
     @Override
+    public boolean setModifierOptionsCursor(String jsFilePath, int rowIndex, int columnIndex) {
+        try {
+            String jsCode = new String(Files.readAllBytes(Paths.get(jsFilePath)));
+
+            JavascriptExecutor js = (JavascriptExecutor) driver;
+            Object result = js.executeScript(jsCode, rowIndex, columnIndex);
+
+            if (result instanceof Boolean resultAsBoolean) {
+                return resultAsBoolean;
+            } else {
+                throw new NotSupportedException("Result of JS execution is not a Boolean, got type: " + result.getClass().getSimpleName());
+            }
+        } catch (Exception e) {
+            log.error("Error while executing JS: " + jsFilePath, e);
+            return false;
+        }
+    }
+
+    @Override
     public void pressKey(KeyToPress keyToPress) {
         Actions actions = new Actions(driver);
         switch (keyToPress) {
@@ -136,6 +155,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
                         .perform();
                 break;
             case ARROW_LEFT:
+                log.debug("Pressing arrow left");
                 actions.sendKeys(Keys.ARROW_LEFT)
                         .perform();
                 break;

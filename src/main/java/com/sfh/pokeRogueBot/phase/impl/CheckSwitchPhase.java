@@ -1,16 +1,23 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
-import com.sfh.pokeRogueBot.model.browser.enums.GameMode;
+import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
+import com.sfh.pokeRogueBot.service.DecisionService;
 import org.springframework.stereotype.Component;
 
 @Component
 public class CheckSwitchPhase extends AbstractPhase implements Phase {
 
     public static final String NAME = "CheckSwitchPhase";
+
+    private final DecisionService decisionService;
+
+    public CheckSwitchPhase(DecisionService decisionService) {
+        this.decisionService = decisionService;
+    }
 
     @Override
     public String getPhaseName() {

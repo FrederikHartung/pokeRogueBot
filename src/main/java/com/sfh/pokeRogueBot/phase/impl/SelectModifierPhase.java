@@ -1,26 +1,34 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
-import com.sfh.pokeRogueBot.model.browser.enums.GameMode;
+import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.DecisionService;
+import com.sfh.pokeRogueBot.service.JsService;
+import com.sfh.pokeRogueBot.service.WaitingService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedList;
 import java.util.List;
 
+@Slf4j
 @Component
 public class SelectModifierPhase extends AbstractPhase implements Phase {
 
     public static final String NAME = "SelectModifierPhase";
 
     private final DecisionService decisionService;
+    private final JsService jsService;
+    private final WaitingService waitService;
 
-    public SelectModifierPhase(DecisionService decisionService) {
+    public SelectModifierPhase(DecisionService decisionService, JsService jsService, WaitingService waitService) {
         this.decisionService = decisionService;
+        this.jsService = jsService;
+        this.waitService = waitService;
     }
 
     @Override
@@ -33,25 +41,17 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
         List<PhaseAction> actionList = new LinkedList<>();
         if (gameMode == GameMode.MODIFIER_SELECT) {
 
+            waitService.waitEvenLonger(); //wait for the modifier shop to render
             MoveToModifierResult result = decisionService.getModifierToPick();
-            actionList.add(waitForTextRenderAction);
-
-            //move to top left
-            for (int i = 0; i < result.getMoveUpRowsAtStart(); i++) {
-                actionList.add(this.pressArrowUp);
-                actionList.add(this.waitForTextRenderAction);
+            boolean isSettingCursorSuccessfull = jsService.setModifierOptionsCursor(result.getRowIndex(), result.getColumnIndex());
+            if(!isSettingCursorSuccessfull) {
+                throw new IllegalStateException("Could not set cursor to modifier option");
             }
 
-            //move to chosen item
-            for (int i = 0; i < result.getMoveDownRowsToTarget(); i++) {
-                actionList.add(this.pressArrowDown);
-                actionList.add(this.waitForTextRenderAction);
-            }
-            for (int i = 0; i < result.getMoveRightColumnsToTarget(); i++) {
-                actionList.add(this.pressArrowRight);
-                actionList.add(this.waitForTextRenderAction);
-            }
+            log.debug("moved cursor to: " + result.getRowIndex() + ", " + result.getColumnIndex() + ", result: " + result);
+            waitService.waitEvenLonger(); //wait for the cursor to be set
 
+            decisionService.setWaveEnded(true); //inform the decision service that the wave has ended
             actionList.add(this.pressSpace); //to confirm selection
         } else if (gameMode == GameMode.PARTY) {
             //todo, currently apply potion on first pokemon

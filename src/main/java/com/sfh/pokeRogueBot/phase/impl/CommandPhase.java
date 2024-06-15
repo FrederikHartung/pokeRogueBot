@@ -1,7 +1,7 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
-import com.sfh.pokeRogueBot.model.browser.enums.GameMode;
-import com.sfh.pokeRogueBot.model.enums.FightDecision;
+import com.sfh.pokeRogueBot.model.enums.GameMode;
+import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
@@ -28,13 +28,38 @@ public class CommandPhase extends AbstractPhase implements Phase {
     @Override
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
         if (gameMode == GameMode.COMMAND) { //fight, ball, pokemon, run
-            FightDecision fightDecision = decisionService.getFightDecision();
-            if (fightDecision == FightDecision.ATTACK) {
+            CommandPhaseDecision commandPhaseDecision = decisionService.getFightDecision();
+            if (commandPhaseDecision == CommandPhaseDecision.ATTACK) {
                 return new PhaseAction[]{
                         this.pressSpace,
                 };
             }
-        } else if (gameMode == GameMode.FIGHT) { //wich move to use
+            else if(commandPhaseDecision == CommandPhaseDecision.BALL){
+                return new PhaseAction[]{
+                        this.pressArrowRight,
+                        this.waitAction,
+                        this.pressSpace,
+                };
+            }
+            else if(commandPhaseDecision == CommandPhaseDecision.SWITCH){
+                return new PhaseAction[]{
+                        this.pressArrowDown,
+                        this.waitAction,
+                        this.pressSpace,
+                };
+            }
+            else if(commandPhaseDecision == CommandPhaseDecision.RUN){
+                return new PhaseAction[]{
+                        this.pressArrowRight,
+                        this.waitAction,
+                        this.pressArrowDown,
+                        this.waitAction,
+                        this.pressSpace,
+                };
+            }
+        }
+        else if (gameMode == GameMode.FIGHT) { //wich move to use
+            
             return new PhaseAction[]{
                     this.pressSpace,
             };
