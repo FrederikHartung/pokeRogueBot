@@ -72,6 +72,25 @@ function getTypeAsString(id){
         }
 }
 
+function getStatusEffectAsString(id){
+    const StatusEffect = {
+        NONE,
+        POISON,
+        TOXIC,
+        PARALYSIS,
+        SLEEP,
+        FREEZE,
+        BURN,
+        FAINT
+    };
+    const statusEffect = StatusEffect[id];
+    if (statusEffect !== undefined) {
+        return statusEffect;
+    } else {
+        return "UNKNOWN";
+    }
+}
+
 function getPokemonDto(pokemon){
     let dtoIvs = {
         hp: pokemon.ivs[0], //integer
@@ -162,7 +181,18 @@ function getPokemonDto(pokemon){
         shiny: pokemon.shiny, //boolean
         species: dtoSpecies, //object
         stats: dtoStats, //object
-        //status: pokemon.status, //obj ? todo
+        status: {
+            effect: getStatusEffectAsString(pokemon.status.effect), //string
+            turnCount: pokemon.status.turnCount, //integer
+            },
+        battleStats: {
+            hp: pokemon.summonData.battleStats[0], //integer
+            attack: pokemon.summonData.battleStats[1], //integer
+            defense: pokemon.summonData.battleStats[2], //integer
+            specialAttack: pokemon.summonData.battleStats[3], //integer
+            specialDefense: pokemon.summonData.battleStats[4], //integer
+            speed: pokemon.summonData.battleStats[5], //integer
+        },
         trainerSlot: pokemon.trainerSlot, //integer
         variant: pokemon.variant, //integer
 

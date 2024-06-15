@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public enum PokeType2 {
+public enum PokeType {
     UNKNOWN(-1),
     NORMAL(0),
     FIGHTING(1),
@@ -32,16 +32,16 @@ public enum PokeType2 {
     };
     private final int value;
 
-    public static PokeType2 fromValue(int value) {
-        for (PokeType2 type : PokeType2.values()) {
+    public static PokeType fromValue(int value) {
+        for (PokeType type : PokeType.values()) {
             if (type.getValue() == value) {
                 return type;
             }
         }
-        throw new IllegalArgumentException("Unknown PokeType2 enum value: " + value);
+        throw new IllegalArgumentException("Unknown PokeType enum value: " + value);
     }
 
-    public static float getTypeDamageMultiplier(PokeType2 attackType, PokeType2 defType) {
+    public static float getTypeDamageMultiplier(PokeType attackType, PokeType defType) {
         if (attackType == UNKNOWN || defType == UNKNOWN) {
             return 1;
         }
@@ -521,7 +521,7 @@ public enum PokeType2 {
         return 1; //fallback
     }
 
-    public static String getAttackTypeBoosterItemName(PokeType2 type) {
+    public static String getAttackTypeBoosterItemName(PokeType type) {
         switch (type) {
             case NORMAL:
                 return "Silk Scarf";

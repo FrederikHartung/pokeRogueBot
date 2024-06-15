@@ -3,6 +3,7 @@ package com.sfh.pokeRogueBot.phase.impl;
 import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
+import com.sfh.pokeRogueBot.model.run.AttackDecision;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
@@ -59,7 +60,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
             }
         }
         else if (gameMode == GameMode.FIGHT) { //wich move to use
-            
+            AttackDecision attackDecision = decisionService.getAttackDecision();
             return new PhaseAction[]{
                     this.pressSpace,
             };
