@@ -45,11 +45,11 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
 
     @Override
     public void navigateTo(String targetUrl) {
-        if(null == this.driver){
+        if (null == this.driver) {
             ChromeOptions options = new ChromeOptions();
 
             options.addArguments("user-data-dir=" + pathChromeUserDir);
-            if(useInkognito){
+            if (useInkognito) {
                 options.addArguments("--incognito");
                 log.debug("starting in incognito mode");
             }
@@ -65,24 +65,23 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
         }
     }
 
-    private WebElement getCanvas(){
+    private WebElement getCanvas() {
         return driver.findElement(By.tagName("canvas"));
     }
 
     @Override
-    public WebElement getElementByXpath(String xpath){
+    public WebElement getElementByXpath(String xpath) {
         return driver.findElement(By.xpath(xpath));
     }
 
     @Override
     public void destroy() throws Exception {
-        try{
-            if(closeOnExit && null != driver){
+        try {
+            if (closeOnExit && null != driver) {
                 driver.quit();
                 log.debug("Browser closed");
             }
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             log.error("Error while closing browser", e);
         }
     }
@@ -102,20 +101,18 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
     }
 
     @Override
-    public String executeJsAndGetResult(String jsFilePath){
+    public String executeJsAndGetResult(String jsFilePath) {
         try {
             String jsCode = new String(Files.readAllBytes(Paths.get(jsFilePath)));
 
             JavascriptExecutor js = (JavascriptExecutor) driver;
             Object result = js.executeScript(jsCode);
 
-            if(result instanceof String resultAsString){
+            if (result instanceof String resultAsString) {
                 return resultAsString;
-            }
-            else if(result instanceof Long){
+            } else if (result instanceof Long) {
                 return String.valueOf(result);
-            }
-            else{
+            } else {
                 throw new NotSupportedException("Result of JS execution is not a string, got type: " + result.getClass().getSimpleName());
             }
         } catch (Exception e) {
@@ -127,7 +124,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
     @Override
     public void pressKey(KeyToPress keyToPress) {
         Actions actions = new Actions(driver);
-        switch (keyToPress){
+        switch (keyToPress) {
             case SPACE:
                 WebElement canvasElement = getCanvas();
                 actions.moveToElement(canvasElement)

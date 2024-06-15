@@ -27,15 +27,14 @@ public class CommandPhase extends AbstractPhase implements Phase {
 
     @Override
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
-        if(gameMode == GameMode.COMMAND){ //fight, ball, pokemon, run
+        if (gameMode == GameMode.COMMAND) { //fight, ball, pokemon, run
             FightDecision fightDecision = decisionService.getFightDecision();
-            if(fightDecision == FightDecision.ATTACK){
+            if (fightDecision == FightDecision.ATTACK) {
                 return new PhaseAction[]{
                         this.pressSpace,
                 };
             }
-        }
-        else if(gameMode == GameMode.FIGHT){ //wich move to use
+        } else if (gameMode == GameMode.FIGHT) { //wich move to use
             return new PhaseAction[]{
                     this.pressSpace,
             };

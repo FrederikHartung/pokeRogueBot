@@ -11,13 +11,13 @@ import org.springframework.context.ConfigurableApplicationContext;
 @Slf4j
 public class Application {
 
-	public static void main(String[] args) {
-		ConfigurableApplicationContext context = SpringApplication.run(Application.class, args);
-		try{
-			Bot bot = context.getBean(SimpleBot.class);
+    public static void main(String[] args) {
+        ConfigurableApplicationContext context = SpringApplication.run(Application.class, args);
+        try {
+            Bot bot = context.getBean(SimpleBot.class);
             bot.start();
         } catch (Exception e) {
-			log.error("Error starting the bot: " + e.getMessage(), e);
-		}
-	}
+            log.error("Error starting the bot: " + e.getMessage(), e);
+        }
+    }
 }

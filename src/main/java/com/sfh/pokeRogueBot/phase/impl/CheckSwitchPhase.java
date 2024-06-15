@@ -19,7 +19,7 @@ public class CheckSwitchPhase extends AbstractPhase implements Phase {
 
     @Override
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
-        if(gameMode == GameMode.CONFIRM){
+        if (gameMode == GameMode.CONFIRM) {
             return new PhaseAction[]{
                     this.pressArrowDown, //todo: dont switch pokemon
                     this.waitAction,

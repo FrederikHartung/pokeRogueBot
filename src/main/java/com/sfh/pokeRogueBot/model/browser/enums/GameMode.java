@@ -44,10 +44,6 @@ public enum GameMode {
         this.value = value;
     }
 
-    public int getValue() {
-        return value;
-    }
-
     public static GameMode fromValue(int value) {
         for (GameMode state : GameMode.values()) {
             if (state.value == value) {
@@ -55,6 +51,10 @@ public enum GameMode {
             }
         }
         throw new IllegalArgumentException("Unknown value: " + value);
+    }
+
+    public int getValue() {
+        return value;
     }
 }
 

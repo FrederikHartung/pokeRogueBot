@@ -50,6 +50,6 @@ class RunPropertyServiceTest {
     void save_calls_repository_save() {
         RunProperty runProperty = new RunProperty(64);
         service.save(runProperty);
-        //verify(repository).save(argThat(entity -> entity.getRunNumber() == 64));
+        verify(repository).save(argThat(entity -> entity.getRunNumber() == 64));
     }
 }

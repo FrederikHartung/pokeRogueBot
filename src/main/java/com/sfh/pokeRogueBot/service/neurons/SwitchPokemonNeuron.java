@@ -16,11 +16,11 @@ public class SwitchPokemonNeuron {
         this.jsService = jsService;
     }
 
-    public int getPokemonIndexToSwitchTo(){
+    public int getPokemonIndexToSwitchTo() {
         Wave wave = jsService.getWave();
         Pokemon[] team = wave.getPlayerTeam();
-        for(int i = 0; i < team.length; i++){
-            if(team[i].getHp() != 0){
+        for (int i = 0; i < team.length; i++) {
+            if (team[i].getHp() != 0) {
                 log.info("Switching to pokemon: " + team[i].getName() + " on index: " + i);
                 return i;
             }

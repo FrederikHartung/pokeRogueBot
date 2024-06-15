@@ -8,7 +8,7 @@ import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import org.springframework.stereotype.Component;
 
 @Component
-public class TitlePhase  extends AbstractPhase implements Phase {
+public class TitlePhase extends AbstractPhase implements Phase {
 
     public static final String NAME = "TitlePhase";
 
@@ -19,7 +19,7 @@ public class TitlePhase  extends AbstractPhase implements Phase {
 
     @Override
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
-        if(gameMode == GameMode.TITLE){
+        if (gameMode == GameMode.TITLE) {
             return new PhaseAction[]{
                     this.pressSpace
             };

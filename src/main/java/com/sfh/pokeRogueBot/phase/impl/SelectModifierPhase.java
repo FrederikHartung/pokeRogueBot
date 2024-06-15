@@ -13,7 +13,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 @Component
-public class SelectModifierPhase  extends AbstractPhase implements Phase {
+public class SelectModifierPhase extends AbstractPhase implements Phase {
 
     public static final String NAME = "SelectModifierPhase";
 
@@ -37,38 +37,34 @@ public class SelectModifierPhase  extends AbstractPhase implements Phase {
             actionList.add(waitForTextRenderAction);
 
             //move to top left
-            for(int i = 0; i < result.getMoveUpRowsAtStart(); i++){
+            for (int i = 0; i < result.getMoveUpRowsAtStart(); i++) {
                 actionList.add(this.pressArrowUp);
                 actionList.add(this.waitForTextRenderAction);
             }
 
             //move to chosen item
-            for(int i = 0; i < result.getMoveDownRowsToTarget(); i++){
+            for (int i = 0; i < result.getMoveDownRowsToTarget(); i++) {
                 actionList.add(this.pressArrowDown);
                 actionList.add(this.waitForTextRenderAction);
             }
-            for(int i = 0; i < result.getMoveRightColumnsToTarget(); i++){
+            for (int i = 0; i < result.getMoveRightColumnsToTarget(); i++) {
                 actionList.add(this.pressArrowRight);
                 actionList.add(this.waitForTextRenderAction);
             }
 
             actionList.add(this.pressSpace); //to confirm selection
-        }
-        else if(gameMode == GameMode.PARTY){
+        } else if (gameMode == GameMode.PARTY) {
             //todo, currently apply potion on first pokemon
             actionList.add(pressArrowLeft); //to go back to the first pokemon //todo
             actionList.add(waitAction);
             actionList.add(this.pressSpace);
-        }
-        else if(gameMode == GameMode.MESSAGE){
+        } else if (gameMode == GameMode.MESSAGE) {
             actionList.add(this.pressSpace);
-        }
-        else if(gameMode == GameMode.SUMMARY){
+        } else if (gameMode == GameMode.SUMMARY) {
             actionList.add(this.pressBackspace); //go back to team
             actionList.add(waitForTextRenderAction);
             actionList.add(this.pressBackspace); //go back to modifier shop
-        }
-        else {
+        } else {
             throw new NotSupportedException("GameMode not supported for SelectModifierPhase: " + gameMode);
         }
 

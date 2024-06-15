@@ -1,7 +1,7 @@
 package com.sfh.pokeRogueBot.bot;
 
 import com.sfh.pokeRogueBot.browser.BrowserClient;
-import com.sfh.pokeRogueBot.filehandler.TempFileManager;
+import com.sfh.pokeRogueBot.file.FileManager;
 import com.sfh.pokeRogueBot.model.browser.enums.GameMode;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.exception.UnsupportedPhaseException;
@@ -26,7 +26,7 @@ public class SimpleBot implements Bot {
     private final JsService jsService;
     private final PhaseProcessor phaseProcessor;
     private final PhaseProvider phaseProvider;
-    private final TempFileManager tempFileManager;
+    private final FileManager fileManager;
     private final BrowserClient browserClient;
 
     private final String targetUrl;
@@ -37,7 +37,7 @@ public class SimpleBot implements Bot {
             JsService jsService,
             PhaseProcessor phaseProcessor,
             PhaseProvider phaseProvider,
-            TempFileManager tempFileManager,
+            FileManager fileManager,
             BrowserClient browserClient,
             @Value("${browser.target-url}") String targetUrl,
             @Value(("${stage.mainmenu.startRun}")) boolean startRun
@@ -46,7 +46,7 @@ public class SimpleBot implements Bot {
         this.jsService = jsService;
         this.phaseProcessor = phaseProcessor;
         this.phaseProvider = phaseProvider;
-        this.tempFileManager = tempFileManager;
+        this.fileManager = fileManager;
         this.browserClient = browserClient;
         this.targetUrl = targetUrl;
         this.startRun = startRun;
@@ -54,7 +54,7 @@ public class SimpleBot implements Bot {
 
     @Override
     public void start() {
-        tempFileManager.deleteTempData();
+        fileManager.deleteTempData();
         browserClient.navigateTo(targetUrl);
 
         RunProperty runProperty = runPropertyService.getRunProperty();
@@ -68,7 +68,7 @@ public class SimpleBot implements Bot {
                 .build();
 
         log.debug("starting wave fighting mode");
-        try{
+        try {
             while (runProperty.getStatus() == RunStatus.WAVE_FIGHTING) {
 
                 retryTemplate.execute(context -> {
@@ -77,8 +77,7 @@ public class SimpleBot implements Bot {
                 });
 
             }
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             phaseProcessor.takeScreenshot("error_" + e.getClass().getSimpleName());
             runProperty.setStatus(RunStatus.ERROR);
             return;
@@ -94,17 +93,15 @@ public class SimpleBot implements Bot {
         Phase phase = phaseProvider.fromString(phaseAsString);
         GameMode gameMode = jsService.getGameMode();
 
-        if(null != phase && gameMode != GameMode.UNKNOWN){
+        if (null != phase && gameMode != GameMode.UNKNOWN) {
             log.debug("phase detected: " + phase.getPhaseName() + ", gameMode: " + gameMode);
             phaseProcessor.handlePhase(phase, gameMode);
             return;
-        }
-        else if(null == phase && gameMode == GameMode.MESSAGE) {
+        } else if (null == phase && gameMode == GameMode.MESSAGE) {
             log.debug("no known phase detected, phaseAsString: " + phaseAsString + " , but gameMode is MESSAGE");
             phaseProcessor.handlePhase(phaseProvider.fromString(MessagePhase.NAME), gameMode);
             return;
-        }
-        else{
+        } else {
             log.debug("no known phase detected, phaseAsString: " + phaseAsString + " , gameMode: " + gameMode);
         }
 

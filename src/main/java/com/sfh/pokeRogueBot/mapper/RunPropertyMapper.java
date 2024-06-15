@@ -9,7 +9,7 @@ public class RunPropertyMapper {
     private RunPropertyMapper() {
     }
 
-    public static RunProperty toRunProperty(RunPropertyEntity entity){
+    public static RunProperty toRunProperty(RunPropertyEntity entity) {
         RunProperty runProperty = new RunProperty(entity.getRunNumber());
         runProperty.setStatus(RunStatus.values()[entity.getStatus()]);
         runProperty.setRoundNumber(entity.getRoundNumber());
@@ -20,7 +20,7 @@ public class RunPropertyMapper {
         return runProperty;
     }
 
-    public static RunPropertyEntity toRunPropertyEntity(RunProperty runProperty){
+    public static RunPropertyEntity toRunPropertyEntity(RunProperty runProperty) {
         RunPropertyEntity entity = new RunPropertyEntity();
         entity.setRunNumber(runProperty.getRunNumber());
         entity.setStatus(null != runProperty.getStatus() ? runProperty.getStatus().ordinal() : -1);

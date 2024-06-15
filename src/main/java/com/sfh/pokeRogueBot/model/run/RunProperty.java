@@ -11,14 +11,13 @@ public class RunProperty {
 
     // RunPropertyEntity properties
     private final int runNumber;
+    //own properties
+    private final Pokemon[] team = new Pokemon[6];
     private RunStatus status;
     private int roundNumber;
     private int defeatedWildPokemon;
     private int caughtPokemon;
     private int defeatedTrainer;
-
-    //own properties
-    private final Pokemon[] team = new Pokemon[6];
     private boolean isTrainerFight = false;
     private boolean isFightOngoing = false;
 

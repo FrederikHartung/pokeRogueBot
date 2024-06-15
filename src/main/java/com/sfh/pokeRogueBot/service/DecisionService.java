@@ -38,45 +38,45 @@ public class DecisionService {
     }
 
     public boolean shouldSwitchPokemon() {
-        if(null == runProperty){
+        if (null == runProperty) {
             runProperty = runPropertyService.getRunProperty();
         }
 
         return false;
     }
 
-    public int getPokemonIndexToSwitchTo(){
+    public int getPokemonIndexToSwitchTo() {
         return switchPokemonNeuron.getPokemonIndexToSwitchTo();
     }
 
-    public MoveToModifierResult getModifierToPick(){
+    public MoveToModifierResult getModifierToPick() {
         ModifierShop shop = jsService.getModifierShop();
         log.info(shop.toString());
         //Pokemon[] pokemons = jsService.getOwnTeam(); //todo
 
         //prio 1: pick hp item
         MoveToModifierResult healItem = pickItem(shop, PokemonHpRestoreModifierItem.class);
-        if(null != healItem){
+        if (null != healItem) {
             return healItem;
         }
 
         //prio 2: pick tempStatBoost item
         MoveToModifierResult tempStatBoost = pickItem(shop, TempBattleStatBoosterModifierItem.class);
-        if(null != tempStatBoost){
+        if (null != tempStatBoost) {
             return tempStatBoost;
         }
 
         //prio 2: pick tempStatBoost item
         MoveToModifierResult pokeballModifierItem = pickItem(shop, AddPokeballModifierItem.class);
-        if(null != pokeballModifierItem){
+        if (null != pokeballModifierItem) {
             return pokeballModifierItem;
         }
 
         throw new PickModifierException("can't pick any item from the shop because of my poor logic");
     }
 
-    private <T> MoveToModifierResult pickItem(ModifierShop shop, Class<T> type){
-        for(var item : shop.getFreeItems()){
+    private <T> MoveToModifierResult pickItem(ModifierShop shop, Class<T> type) {
+        for (var item : shop.getFreeItems()) {
             if (type.isInstance(item.getItem())) {
                 log.debug("choosed free item with name: " + item.getItem().getName() + " on position: " + item.getPosition());
                 return new MoveToModifierResult(

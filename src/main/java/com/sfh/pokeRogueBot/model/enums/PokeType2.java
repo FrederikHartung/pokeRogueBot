@@ -27,6 +27,9 @@ public enum PokeType2 {
     FAIRY(17),
     STELLAR(18);
 
+    public static final float[] DAMAGE_MULTIPLIER = new float[]{
+            0f, 0.125f, 0.25f, 0.5f, 1f, 2f, 4f, 8f
+    };
     private final int value;
 
     public static PokeType2 fromValue(int value) {
@@ -37,10 +40,6 @@ public enum PokeType2 {
         }
         throw new IllegalArgumentException("Unknown PokeType2 enum value: " + value);
     }
-
-    public static final float[] DAMAGE_MULTIPLIER = new float[]{
-            0f, 0.125f, 0.25f, 0.5f, 1f, 2f, 4f, 8f
-    };
 
     public static float getTypeDamageMultiplier(PokeType2 attackType, PokeType2 defType) {
         if (attackType == UNKNOWN || defType == UNKNOWN) {

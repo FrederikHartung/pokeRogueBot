@@ -24,7 +24,8 @@ public class JsService {
     private static final Gson GSON = new GsonBuilder()
             .registerTypeAdapter(ChooseModifierItem.class, new ChooseModifierItemDeserializer())
             .create();
-    private static final Type TYPE = new TypeToken<List<ChooseModifierItem>>(){}.getType();
+    private static final Type TYPE = new TypeToken<List<ChooseModifierItem>>() {
+    }.getType();
 
     private final JsClient jsClient;
 
@@ -36,18 +37,18 @@ public class JsService {
         return jsClient.executeJsAndGetResult("./bin/js/getCurrentPhase.js");
     }
 
-    public GameMode getGameMode(){
+    public GameMode getGameMode() {
         String response = jsClient.executeJsAndGetResult("./bin/js/getGameMode.js");
-        if(NumberUtils.isParsable(response)){
+        if (NumberUtils.isParsable(response)) {
             return GameMode.fromValue(Integer.parseInt(response));
         }
         return GameMode.UNKNOWN;
     }
 
-    public ModifierShop getModifierShop(){
+    public ModifierShop getModifierShop() {
         String json = jsClient.executeJsAndGetResult("./bin/js/getModifierOptions.js");
         List<ChooseModifierItem> options = GSON.fromJson(json, TYPE);
-        if(options == null || options.isEmpty()){
+        if (options == null || options.isEmpty()) {
             throw new IllegalStateException("Modifier options are empty");
         }
         return new ModifierShop(options);

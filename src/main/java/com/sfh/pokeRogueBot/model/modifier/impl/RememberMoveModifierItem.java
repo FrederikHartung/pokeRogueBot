@@ -5,7 +5,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class RememberMoveModifierItem  extends PokemonModifierItem {
+public class RememberMoveModifierItem extends PokemonModifierItem {
 
     public static final String TARGET = "RememberMoveModifierType";
 

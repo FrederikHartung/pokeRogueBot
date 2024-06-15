@@ -10,12 +10,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class FaintPhase extends AbstractPhase implements Phase {
 
-        public static final String NAME = "FaintPhase";
+    public static final String NAME = "FaintPhase";
 
-        @Override
-        public String getPhaseName() {
-            return NAME;
-        }
+    @Override
+    public String getPhaseName() {
+        return NAME;
+    }
 
     @Override
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {

@@ -19,7 +19,7 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
 
     @Override
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
-        if(gameMode == GameMode.STARTER_SELECT){
+        if (gameMode == GameMode.STARTER_SELECT) {
             return new PhaseAction[]{
                     pressArrowRight,
                     waitAction,

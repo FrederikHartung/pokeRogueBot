@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 @Data
-//@Entity
+@Entity
 @Table(name = "run_property")
 public class RunPropertyEntity {
 
