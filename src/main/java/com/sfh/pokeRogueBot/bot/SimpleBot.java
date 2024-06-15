@@ -78,6 +78,7 @@ public class SimpleBot implements Bot {
 
             }
         } catch (Exception e) {
+            log.error("error while running", e);
             phaseProcessor.takeScreenshot("error_" + e.getClass().getSimpleName());
             runProperty.setStatus(RunStatus.ERROR);
             return;
