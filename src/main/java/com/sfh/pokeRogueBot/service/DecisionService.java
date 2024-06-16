@@ -97,6 +97,10 @@ public class DecisionService {
     }
 
     public AttackDecision getAttackDecision() {
-        return combatNeuron.getAttackDecision(wave);
+        if(!wave.isDoubleFight()){
+            return combatNeuron.getAttackDecisionForSingleFight(wave);
+        }
+
+        return combatNeuron.getAttackDecisionForDoubleFight(wave);
     }
 }

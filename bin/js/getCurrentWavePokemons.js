@@ -106,6 +106,21 @@ function getStatusEffectAsString(id) {
     }
 }
 
+function getCategoryAsString(id) {
+    const Category = [
+        "PHYSICAL",
+        "SPECIAL",
+        "STATUS"
+    ];
+
+    const category = Category[id];
+    if (category !== undefined) {
+        return category;
+    } else {
+        return "UNKNOWN";
+    }
+}
+
 function getStatus(pokemon) {
     if (!pokemon) { // Überprüft, ob pokemon null oder undefined ist
         console.log("pokemon is null");
@@ -154,7 +169,7 @@ function getMovesetDto(pokemon) {
             name: moveSetItem.getName(),
             id: moveSetItem.moveId,
             accuracy: move.accuracy,
-            category: move.category,
+            category: getCategoryAsString(move.category),
             chance: move.chance,
             defaultType: getTypeAsString(move.defaultType),
             moveTarget: move.moveTarget,

@@ -1,5 +1,6 @@
 package com.sfh.pokeRogueBot.model.browser.pokemonjson;
 
+import com.sfh.pokeRogueBot.model.enums.MoveCategory;
 import com.sfh.pokeRogueBot.model.enums.PokeType;
 import lombok.Data;
 
@@ -9,11 +10,12 @@ public class Move {
     private String name;
     private int id;
     private int accuracy;
-    //private int category;
+    private MoveCategory category;
     //private int chance;
     //private int moveTarget;
     //private PokeType defaultType;
     private int power;
+    private int priority;
     private PokeType type;
     private int movePp;
     private int pPUsed;
