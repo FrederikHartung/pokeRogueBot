@@ -72,17 +72,18 @@ function getTypeAsString(id){
         }
 }
 
-function getStatusEffectAsString(id){
-    const StatusEffect = {
-        NONE,
-        POISON,
-        TOXIC,
-        PARALYSIS,
-        SLEEP,
-        FREEZE,
-        BURN,
-        FAINT
-    };
+function getStatusEffectAsString(id) {
+    const StatusEffect = [
+        "NONE",
+        "POISON",
+        "TOXIC",
+        "PARALYSIS",
+        "SLEEP",
+        "FREEZE",
+        "BURN",
+        "FAINT"
+    ];
+    
     const statusEffect = StatusEffect[id];
     if (statusEffect !== undefined) {
         return statusEffect;
@@ -91,15 +92,92 @@ function getStatusEffectAsString(id){
     }
 }
 
-function getStatus(status){
-    if(status === null){
+function getStatus(pokemon) {
+    if (!pokemon) { // Überprüft, ob pokemon null oder undefined ist
+        console.log("pokemon is null");
         return null;
     }
-    return effect = {
-        effect: getStatusEffectAsString(pokemon.status.effect), //string
-        turnCount: pokemon.status.turnCount, //integer
+    
+    var status = pokemon.status;
+    if (!status) { // Überprüft, ob status null oder undefined ist
+        return null;
+    }
+    
+    if (!status.effect) { // Überprüft, ob status.effect null oder undefined ist
+        console.log("status effect is null");
+        return null;
+    }
+    
+    if (status.turnCount === null || status.turnCount === undefined) { // Überprüft, ob status.turnCount null oder undefined ist
+        console.log("status turn count is null");
+        return null;
+    }
+    
+    return {
+        effect: getStatusEffectAsString(status.effect), // String
+        turnCount: status.turnCount, // Integer
     };
 }
+
+function getMovesetDto(pokemon) {
+    if (!pokemon || !pokemon.moveset || !pokemon.summonData) {
+        return [];
+    }
+
+    var moveSet = pokemon.moveset;
+    var disabledId = pokemon.summonData.disabledMove;
+    var movesetDto = [];
+
+    moveSet.forEach(moveSetItem => {
+        var move = moveSetItem.getMove();
+        if (!move) {
+            return;
+        }
+
+        var isMoveDisabled = disabledId === moveSetItem.moveId;
+        var isMoveUsable = !isMoveDisabled && ((moveSetItem.getMovePp() - moveSetItem.ppUsed) > 0);
+        var moveDto = {
+            name: moveSetItem.getName(),
+            id: moveSetItem.moveId,
+            accuracy: move.accuracy,
+            category: move.category,
+            chance: move.chance,
+            defaultType: move.defaultType,
+            moveTarget: move.moveTarget,
+            power: move.power,
+            priority: move.priority,
+            type: move.type,
+            movePp: moveSetItem.getMovePp(),
+            pPUsed: moveSetItem.ppUsed,
+            pPLeft: moveSetItem.getMovePp() - moveSetItem.ppUsed,
+            isUsable: isMoveUsable,
+        };
+        movesetDto.push(moveDto);
+    });
+
+    return movesetDto;
+}
+
+function getBattleStats(pokemon) {
+    if (!pokemon || !pokemon.summonData) {
+        return null;
+    }
+
+    var battleStats = pokemon.summonData.battleStats;
+    if (battleStats) {
+        return {
+            hp: pokemon.summonData.battleStats[0], //integer
+            attack: pokemon.summonData.battleStats[1], //integer
+            defense: pokemon.summonData.battleStats[2], //integer
+            specialAttack: pokemon.summonData.battleStats[3], //integer
+            specialDefense: pokemon.summonData.battleStats[4], //integer
+            speed: pokemon.summonData.battleStats[5], //integer
+        };
+    }
+    return null;
+}
+
+
 
 function getPokemonDto(pokemon){
     let dtoIvs = {
@@ -118,18 +196,6 @@ function getPokemonDto(pokemon){
         specialAttack: pokemon.stats[3], //integer
         specialDefense: pokemon.stats[4], //integer
         speed: pokemon.stats[5], //integer
-    }
-
-    let dtoMoveset = [];
-    for(let j = 0; j < pokemon.moveset.length; j++){
-        let moveset = {
-            moveId: pokemon.moveset[j].moveId, //integer
-            ppUp: pokemon.moveset[j].ppUp, //integer
-            ppUsed: pokemon.moveset[j].ppUsed, //integer
-            virtual: pokemon.moveset[j].virtual, //boolean
-            name: pokemon.moveset[j].getName(), //string
-        }
-        dtoMoveset.push(moveset);
     }
 
     let dtoBaseStats = {
@@ -181,7 +247,7 @@ function getPokemonDto(pokemon){
         luck: pokemon.luck, //integer
         metBiome: pokemon.metBiome, //integer
         metLevel: pokemon.metLevel, //integer
-        moveset: dtoMoveset, //array of objects
+        moveset: getMovesetDto(pokemon), //array of objects
         name: pokemon.name, //string
         nature: getNatureAsString(pokemon.nature), //String
         natureOverride: pokemon.natureOverride, //integer
@@ -191,15 +257,8 @@ function getPokemonDto(pokemon){
         shiny: pokemon.shiny, //boolean
         species: dtoSpecies, //object
         stats: dtoStats, //object
-        status: getStatus(pokemon.status), //object
-        battleStats: {
-            hp: pokemon.summonData.battleStats[0], //integer
-            attack: pokemon.summonData.battleStats[1], //integer
-            defense: pokemon.summonData.battleStats[2], //integer
-            specialAttack: pokemon.summonData.battleStats[3], //integer
-            specialDefense: pokemon.summonData.battleStats[4], //integer
-            speed: pokemon.summonData.battleStats[5], //integer
-        },
+        status: getStatus(pokemon), //object
+        battleStats: getBattleStats(pokemon), //object
         trainerSlot: pokemon.trainerSlot, //integer
         variant: pokemon.variant, //integer
 
@@ -225,14 +284,15 @@ for (let i = 0; i < ownParty.length; i++) {
     ownPartyDto.push(getPokemonDto(ownParty[i]));
 }
 
-console.log(JSON.stringify( {
-    enemyParty: enemyPartyDto,
-    ownParty: ownPartyDto
-}));
+console.log("enemy party:");
+console.log(enemyPartyDto);
+console.log("own party:");
+console.log(ownPartyDto);
 
-return JSON.stringify( {
+/*return JSON.stringify( {
     enemyParty: enemyPartyDto,
     ownParty: ownPartyDto
 });
+*/
 
 
