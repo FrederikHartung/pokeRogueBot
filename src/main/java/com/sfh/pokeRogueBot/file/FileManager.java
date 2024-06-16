@@ -7,6 +7,8 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @Component
 @Slf4j
@@ -14,7 +16,7 @@ public class FileManager {
 
     public static final String IMAGE_IO_FILE_EXTENSION = "png";
     public static final String SCREENSHOT_FILE_EXTENSION = ".png";
-    public static final String DIR_TEMP = "./data/temp/";
+    public static final String DIR_TEMP = Paths.get(".", "data", "temp").toString();
     private int fileIndex = 0;
 
     public void deleteTempData() {
