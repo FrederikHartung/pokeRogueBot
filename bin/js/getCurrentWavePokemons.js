@@ -91,6 +91,16 @@ function getStatusEffectAsString(id){
     }
 }
 
+function getStatus(status){
+    if(status === null){
+        return null;
+    }
+    return effect = {
+        effect: getStatusEffectAsString(pokemon.status.effect), //string
+        turnCount: pokemon.status.turnCount, //integer
+    };
+}
+
 function getPokemonDto(pokemon){
     let dtoIvs = {
         hp: pokemon.ivs[0], //integer
@@ -181,10 +191,7 @@ function getPokemonDto(pokemon){
         shiny: pokemon.shiny, //boolean
         species: dtoSpecies, //object
         stats: dtoStats, //object
-        status: {
-            effect: getStatusEffectAsString(pokemon.status.effect), //string
-            turnCount: pokemon.status.turnCount, //integer
-            },
+        status: getStatus(pokemon.status), //object
         battleStats: {
             hp: pokemon.summonData.battleStats[0], //integer
             attack: pokemon.summonData.battleStats[1], //integer
