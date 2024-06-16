@@ -1,6 +1,7 @@
 package com.sfh.pokeRogueBot.model.poke;
 
 import com.sfh.pokeRogueBot.model.browser.pokemonjson.*;
+import com.sfh.pokeRogueBot.model.enums.Gender;
 import com.sfh.pokeRogueBot.model.enums.Nature;
 import lombok.Data;
 
@@ -13,8 +14,8 @@ public class Pokemon {
     //private boolean exclusive;
     //private int fieldPosition;
     //private Integer formIndex;
-    private Integer friendship;
-    private Integer gender;
+    private int friendship;
+    private Gender gender;
     private int hp;
     private long id;
     private Iv ivs;

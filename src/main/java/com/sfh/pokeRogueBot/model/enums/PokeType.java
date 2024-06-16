@@ -4,42 +4,31 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@AllArgsConstructor
 public enum PokeType {
-    UNKNOWN(-1),
-    NORMAL(0),
-    FIGHTING(1),
-    FLYING(2),
-    POISON(3),
-    GROUND(4),
-    ROCK(5),
-    BUG(6),
-    GHOST(7),
-    STEEL(8),
-    FIRE(9),
-    WATER(10),
-    GRASS(11),
-    ELECTRIC(12),
-    PSYCHIC(13),
-    ICE(14),
-    DRAGON(15),
-    DARK(16),
-    FAIRY(17),
-    STELLAR(18);
+    UNKNOWN,
+    NORMAL,
+    FIGHTING,
+    FLYING,
+    POISON,
+    GROUND,
+    ROCK,
+    BUG,
+    GHOST,
+    STEEL,
+    FIRE,
+    WATER,
+    GRASS,
+    ELECTRIC,
+    PSYCHIC,
+    ICE,
+    DRAGON,
+    DARK,
+    FAIRY,
+    STELLAR;
 
     public static final float[] DAMAGE_MULTIPLIER = new float[]{
             0f, 0.125f, 0.25f, 0.5f, 1f, 2f, 4f, 8f
     };
-    private final int value;
-
-    public static PokeType fromValue(int value) {
-        for (PokeType type : PokeType.values()) {
-            if (type.getValue() == value) {
-                return type;
-            }
-        }
-        throw new IllegalArgumentException("Unknown PokeType enum value: " + value);
-    }
 
     public static float getTypeDamageMultiplier(PokeType attackType, PokeType defType) {
         if (attackType == UNKNOWN || defType == UNKNOWN) {

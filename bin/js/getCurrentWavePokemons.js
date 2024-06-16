@@ -72,6 +72,20 @@ function getTypeAsString(id){
         }
 }
 
+function getGenderAsString(id){
+    const Gender = [
+        "MALE",
+        "FEMALE",
+    ]
+
+    const gender = Gender[id];
+    if(gender !== undefined){
+        return gender;
+    } else {
+        return "UNKNOWN";
+    }
+}
+
 function getStatusEffectAsString(id) {
     const StatusEffect = [
         "NONE",
@@ -142,11 +156,11 @@ function getMovesetDto(pokemon) {
             accuracy: move.accuracy,
             category: move.category,
             chance: move.chance,
-            defaultType: move.defaultType,
+            defaultType: getTypeAsString(move.defaultType),
             moveTarget: move.moveTarget,
             power: move.power,
             priority: move.priority,
-            type: move.type,
+            type: getTypeAsString(move.type),
             movePp: moveSetItem.getMovePp(),
             pPUsed: moveSetItem.ppUsed,
             pPLeft: moveSetItem.getMovePp() - moveSetItem.ppUsed,
@@ -239,7 +253,7 @@ function getPokemonDto(pokemon){
         fieldPosition: pokemon.fieldPosition, //integer
         formIndex: pokemon.formIndex, //integer
         friendship: pokemon.friendship, //integer
-        gender: pokemon.gender, //integer
+        gender: getGenderAsString(pokemon.gender), //String
         hp: pokemon.hp, //integer
         id: pokemon.id, //long
         ivs: dtoIvs, //object
@@ -284,15 +298,19 @@ for (let i = 0; i < ownParty.length; i++) {
     ownPartyDto.push(getPokemonDto(ownParty[i]));
 }
 
+
 console.log("enemy party:");
 console.log(enemyPartyDto);
 console.log("own party:");
 console.log(ownPartyDto);
 
-/*return JSON.stringify( {
+
+//console.log( JSON.stringify( { enemyParty: enemyPartyDto, ownParty: ownPartyDto }));
+
+/*
+return JSON.stringify( {
     enemyParty: enemyPartyDto,
     ownParty: ownPartyDto
 });
 */
-
 

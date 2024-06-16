@@ -12,7 +12,7 @@ public class Move {
     //private int category;
     //private int chance;
     //private int moveTarget;
-    private int defaultType;
+    //private PokeType defaultType;
     private int power;
     private PokeType type;
     private int movePp;
