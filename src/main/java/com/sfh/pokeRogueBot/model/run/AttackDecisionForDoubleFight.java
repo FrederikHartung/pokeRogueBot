@@ -3,10 +3,8 @@ package com.sfh.pokeRogueBot.model.run;
 import lombok.Data;
 
 @Data
-public class AttackDecisionForDoubleFight {
+public class AttackDecisionForDoubleFight implements AttackDecision {
 
-    private final AttackDecision maxDmgPokemon1;
-    private final AttackDecision maxDmgPokemon2;
-    private final AttackDecision finisherPokemon1;
-    private final AttackDecision finisherPokemon2;
+    private final AttackDecisionForPokemon pokemon1;
+    private final AttackDecisionForPokemon pokemon2;
 }

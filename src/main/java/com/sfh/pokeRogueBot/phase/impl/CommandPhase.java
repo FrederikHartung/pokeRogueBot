@@ -2,13 +2,22 @@ package com.sfh.pokeRogueBot.phase.impl;
 
 import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision;
+import com.sfh.pokeRogueBot.model.enums.MoveDecision;
+import com.sfh.pokeRogueBot.model.enums.MoveTarget;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.run.AttackDecision;
+import com.sfh.pokeRogueBot.model.run.AttackDecisionForDoubleFight;
+import com.sfh.pokeRogueBot.model.run.AttackDecisionForPokemon;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.DecisionService;
 import org.springframework.stereotype.Component;
+
+import java.util.LinkedList;
+import java.util.List;
+
+import static com.sfh.pokeRogueBot.model.enums.MoveDecision.*;
 
 @Component
 public class CommandPhase extends AbstractPhase implements Phase {
@@ -61,11 +70,63 @@ public class CommandPhase extends AbstractPhase implements Phase {
         }
         else if (gameMode == GameMode.FIGHT) { //wich move to use
             AttackDecision attackDecision = decisionService.getAttackDecision();
-            return new PhaseAction[]{
-                    this.pressSpace,
-            };
+
+            List<PhaseAction> actionList = new LinkedList<>();
+            if(attackDecision instanceof AttackDecisionForPokemon forSingleFight){
+                actionList.add(this.pressArrowUp);
+                actionList.add(this.pressArrowUp);
+                actionList.add(this.pressArrowUp); //to go back to top left
+
+                addActionsToList(forSingleFight.getMoveDecision(), actionList);
+
+                return actionList.toArray(new PhaseAction[0]);
+            }
+            else if(attackDecision instanceof AttackDecisionForDoubleFight forDoubleFight){
+                actionList.add(this.pressArrowUp);
+                actionList.add(this.pressArrowUp);
+                actionList.add(this.pressArrowUp); //to go back to top left
+
+                addActionsToList(forDoubleFight.getPokemon1().getMoveDecision(), actionList); //add the decisions for the first pokemon
+                actionList.add(this.waitForTextRenderAction); //second pokemon is active now and the phase is back to command phase
+                actionList.add(this.pressSpace); //enter fight game mode again for the second pokemon
+
+                actionList.add(this.pressArrowUp);
+                actionList.add(this.pressArrowUp);
+                actionList.add(this.pressArrowUp); //to go back to top left
+
+                addActionsToList(forDoubleFight.getPokemon2().getMoveDecision(), actionList); //add the decisions for the second pokemon
+
+                return actionList.toArray(new PhaseAction[0]);
+            }
+
+            throw new NotSupportedException("AttackDecision not supported in CommandPhase: " + attackDecision);
         }
 
         throw new NotSupportedException("GameMode not supported in CommandPhase: " + gameMode);
+    }
+
+    private void addActionsToList(MoveDecision moveDecision, List<PhaseAction> actionList){
+        switch (moveDecision) {
+            case TOP_LEFT:
+                actionList.add(this.pressSpace);
+                break;
+            case TOP_RIGHT:
+                actionList.add(this.pressArrowRight);
+                actionList.add(this.waitAction);
+                actionList.add(this.pressSpace);
+                break;
+            case BOTTOM_LEFT:
+                actionList.add(this.pressArrowDown);
+                actionList.add(this.waitAction);
+                actionList.add(this.pressSpace);
+                break;
+            case BOTTOM_RIGHT:
+                actionList.add(this.pressArrowRight);
+                actionList.add(this.waitAction);
+                actionList.add(this.pressArrowDown);
+                actionList.add(this.waitAction);
+                actionList.add(this.pressSpace);
+                break;
+        }
     }
 }

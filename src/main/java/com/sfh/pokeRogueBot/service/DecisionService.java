@@ -5,6 +5,7 @@ import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.run.AttackDecision;
+import com.sfh.pokeRogueBot.model.run.AttackDecisionForPokemon;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.model.run.Wave;
 import com.sfh.pokeRogueBot.phase.ScreenshotClient;
@@ -98,9 +99,19 @@ public class DecisionService {
 
     public AttackDecision getAttackDecision() {
         if(!wave.isDoubleFight()){
-            return combatNeuron.getAttackDecisionForSingleFight(wave);
+            return combatNeuron.getAttackDecisionForSingleFight(
+                    wave.getWavePokemon().getPlayerTeam()[0],
+                    wave.getWavePokemon().getEnemyTeam()[0]
+            );
         }
 
-        return combatNeuron.getAttackDecisionForDoubleFight(wave);
+        int playerPartySize = wave.getWavePokemon().getPlayerTeam().length;
+        int enemyPartySize = wave.getWavePokemon().getEnemyTeam().length;
+        return combatNeuron.getAttackDecisionForDoubleFight(
+                wave.getWavePokemon().getPlayerTeam()[0],
+                playerPartySize == 2 ? wave.getWavePokemon().getPlayerTeam()[1] : null,
+                wave.getWavePokemon().getEnemyTeam()[0],
+                enemyPartySize == 2 ? wave.getWavePokemon().getEnemyTeam()[1] : null
+        );
     }
 }
