@@ -313,19 +313,20 @@ for (let i = 0; i < ownParty.length; i++) {
     ownPartyDto.push(getPokemonDto(ownParty[i]));
 }
 
-
+/*
 console.log("enemy party:");
 console.log(enemyPartyDto);
 console.log("own party:");
 console.log(ownPartyDto);
+*/
 
 
 //console.log( JSON.stringify( { enemyParty: enemyPartyDto, ownParty: ownPartyDto }));
 
-/*
+
 return JSON.stringify( {
     enemyParty: enemyPartyDto,
     ownParty: ownPartyDto
 });
-*/
+
 

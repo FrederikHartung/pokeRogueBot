@@ -180,7 +180,7 @@ public class CombatNeuron {
             int expectedMinDamage = Math.round(minDamage * accuracy);
             int expectedMaxDamage = Math.round(maxDamage * accuracy);
 
-            PossibleAttackMove attackMove = new PossibleAttackMove(i, expectedMinDamage, expectedMaxDamage, move.getPriority(), playerPokemon.getStats().getSpeed());
+            PossibleAttackMove attackMove = new PossibleAttackMove(i, expectedMinDamage, expectedMaxDamage, move.getPriority(), playerPokemon.getStats().getSpeed(), move.getName());
             possibleAttackMoves.add(attackMove);
         }
 
@@ -188,6 +188,10 @@ public class CombatNeuron {
     }
 
     private int calculateDamage(Pokemon attacker, Pokemon defender, Move move, double randomFactor) {
+
+        if(move.getPower() < 0){
+            return 0;
+        }
 
         int level = attacker.getLevel();
         int attackStat = move.getCategory() == MoveCategory.SPECIAL ? attacker.getStats().getSpecialAttack() : attacker.getStats().getAttack();

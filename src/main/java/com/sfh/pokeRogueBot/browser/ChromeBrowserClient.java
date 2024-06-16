@@ -112,7 +112,10 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
                 return resultAsString;
             } else if (result instanceof Long) {
                 return String.valueOf(result);
-            } else {
+            } else if( null == result){
+                throw new NotSupportedException("Result of JS execution is null");
+            }
+            else {
                 throw new NotSupportedException("Result of JS execution is not a string, got type: " + result.getClass().getSimpleName());
             }
         } catch (Exception e) {

@@ -12,4 +12,5 @@ public class PossibleAttackMove {
     private final int maxDamage;
     private final int attackPriority;
     private final int attackerSpeed;
+    private final String attackName;
 }
