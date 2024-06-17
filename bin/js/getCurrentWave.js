@@ -82,6 +82,7 @@ var battleSceneDto = {
     battleType: getBattleTypeString(currentBattle.battleType), //enum
     double: currentBattle.double, //boolean
     enemyFaints: currentBattle.enemyFaints, //int
+    money: battleScene.money, //int
     moneyScattered: currentBattle.moneyScattered, //int
     playerFaints: currentBattle.playerFaints, //int
     turn: currentBattle.turn, //int
