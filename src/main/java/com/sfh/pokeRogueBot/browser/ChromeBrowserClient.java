@@ -50,6 +50,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
     public void navigateTo(String targetUrl) {
         if (null == this.driver) {
             ChromeOptions options = new ChromeOptions();
+
             if(!StringUtils.isEmpty(pathChromeUserDir)){
                 log.debug("Using Chrome user dir: " + pathChromeUserDir + " and profile: " + chromeProfile);
                 options.addArguments("user-data-dir=" + pathChromeUserDir);
