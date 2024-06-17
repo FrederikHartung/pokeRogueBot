@@ -5,7 +5,6 @@ import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.run.AttackDecision;
-import com.sfh.pokeRogueBot.model.run.AttackDecisionForPokemon;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.model.run.Wave;
 import com.sfh.pokeRogueBot.phase.ScreenshotClient;
@@ -61,9 +60,12 @@ public class DecisionService {
         return chooseModifierNeuron.getModifierToPick();
     }
 
-    public CommandPhaseDecision getFightDecision() {
+    public CommandPhaseDecision getCommandDecision() {
         if(waveEnded){
             wave = jsService.getWave();
+        }
+        else{
+            wave.setWavePokemon(jsService.getWavePokemon());
         }
 
         if (null != wave && wave.getBattleType() == BattleType.WILD) {

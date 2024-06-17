@@ -10,6 +10,7 @@ import lombok.Data;
 public class ChosenAttackMove {
 
     private int index;
+    private String name;
     private int damage;
     private ChoosenAttackMoveType choosenAttackMoveType;
     private int attackPriority;
