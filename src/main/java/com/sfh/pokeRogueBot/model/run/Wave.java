@@ -20,6 +20,7 @@ public class Wave {
     @SerializedName("double")
     private boolean doubleFight;
     private int enemyFaints;
+    private int money;
     private int moneyScattered;
     private int playerFaints;
     private int turn;

@@ -76,4 +76,8 @@ public class ModifierShop {
                 ", freeItems=" + freeItems +
                 '}';
     }
+
+    public boolean freeItemsContains(String modifierType){
+        return freeItems.stream().anyMatch(item -> item.getItem().getTypeName().equals(modifierType));
+    }
 }

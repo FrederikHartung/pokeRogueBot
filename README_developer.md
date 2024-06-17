@@ -17,7 +17,7 @@ Only refactor, when it's really necessary.
   - [x] get the info, which pokemon are not fainted
   - [x] select a not fainted pokemon
 - [x] if the first attack is blocked, the second attack is chosen
-- [ ] applay revive item
+- [ ] apply revive item
 - [ ] check if the damage calculation is correct
 - [ ] enemy health calculation
 - [ ] if a exception is thrown, the run should be stopped, saved as error and then a new run should be started
