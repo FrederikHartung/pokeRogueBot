@@ -40,13 +40,13 @@ public class CommandPhase extends AbstractPhase implements Phase {
         if (gameMode == GameMode.COMMAND) { //fight, ball, pokemon, run
             CommandPhaseDecision commandPhaseDecision = decisionService.getCommandDecision();
             if (commandPhaseDecision == CommandPhaseDecision.ATTACK) {
-                log.debug("Attack decision");
+                log.debug("GameMode.COMMAND, Attack decision chosen");
                 return new PhaseAction[]{
                         this.pressSpace,
                 };
             }
             else if(commandPhaseDecision == CommandPhaseDecision.BALL){
-                log.debug("Ball decision");
+                log.debug("GameMode.COMMAND, Ball decision chosen");
                 return new PhaseAction[]{
                         this.pressArrowRight,
                         this.waitAction,
@@ -54,7 +54,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
                 };
             }
             else if(commandPhaseDecision == CommandPhaseDecision.SWITCH){
-                log.debug("Switch decision");
+                log.debug("GameMode.COMMAND, Switch decision chosen");
                 return new PhaseAction[]{
                         this.pressArrowDown,
                         this.waitAction,
@@ -62,7 +62,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
                 };
             }
             else if(commandPhaseDecision == CommandPhaseDecision.RUN){
-                log.debug("Run decision");
+                log.debug("GameMode.COMMAND, Run decision chosen");
                 return new PhaseAction[]{
                         this.pressArrowRight,
                         this.waitAction,
@@ -73,12 +73,14 @@ public class CommandPhase extends AbstractPhase implements Phase {
             }
         }
         else if (gameMode == GameMode.FIGHT) { //wich move to use
+            log.debug("GameMode.FIGHT, getting attackDecision");
             AttackDecision attackDecision = decisionService.getAttackDecision();
 
             List<PhaseAction> actionList = new LinkedList<>();
             if(attackDecision instanceof AttackDecisionForPokemon forSingleFight){
-                actionList.add(this.pressArrowUp);
-                actionList.add(this.waitAction);
+                log.debug("found attackDecision for single fight");
+                actionList.add(this.pressArrowUp); //to go back to top left
+                actionList.add(this.waitAction); //to go back to top left
                 actionList.add(this.pressArrowLeft); //to go back to top left
 
                 addActionsToList(forSingleFight.getMoveDecision(), forSingleFight.getMoveTarget(), actionList);
@@ -86,8 +88,9 @@ public class CommandPhase extends AbstractPhase implements Phase {
                 return actionList.toArray(new PhaseAction[0]);
             }
             else if(attackDecision instanceof AttackDecisionForDoubleFight forDoubleFight){
-                actionList.add(this.pressArrowUp);
-                actionList.add(this.waitAction);
+                log.debug("found attackDecision for double fight");
+                actionList.add(this.pressArrowUp); //to go back to top left
+                actionList.add(this.waitAction); //to go back to top left
                 actionList.add(this.pressArrowLeft); //to go back to top left
 
                 addActionsToList(forDoubleFight.getPokemon1().getMoveDecision(), forDoubleFight.getPokemon1().getMoveTarget(), actionList); //add the decisions for the first pokemon
@@ -144,16 +147,16 @@ public class CommandPhase extends AbstractPhase implements Phase {
                 break;
             case LEFT_ENEMY:
                 log.debug("Left enemy target selected");
-                actionList.add(this.waitForStageRenderPhaseAction);
+                actionList.add(this.waitForTextRenderAction);
                 actionList.add(this.pressArrowLeft);
-                actionList.add(this.waitForStageRenderPhaseAction);
+                actionList.add(this.waitForTextRenderAction);
                 actionList.add(this.pressSpace);
                 break;
             case RIGHT_ENEMY:
                 log.debug("Right enemy target selected");
-                actionList.add(this.waitForStageRenderPhaseAction);
+                actionList.add(this.waitForTextRenderAction);
                 actionList.add(this.pressArrowRight);
-                actionList.add(this.waitForStageRenderPhaseAction);
+                actionList.add(this.waitForTextRenderAction);
                 actionList.add(this.pressSpace);
                 break;
         }

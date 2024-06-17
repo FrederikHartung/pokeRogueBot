@@ -18,6 +18,7 @@ Only refactor, when it's really necessary.
   - [x] select a not fainted pokemon
 - [x] if the first attack is blocked, the second attack is chosen
 - [ ] check if the damage calculation is correct
+- [ ] enemy health calculation
 - [ ] if a exception is thrown, the run should be stopped, saved as error and then a new run should be started
 - [ ] handling a failed run
 - [ ] adding the savegame index to a runpropterty
