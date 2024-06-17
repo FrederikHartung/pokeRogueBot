@@ -7,8 +7,7 @@ import lombok.Data;
 @Data
 public class WavePokemon {
 
-    @SerializedName("enemyParty")
-    private Pokemon[] enemyTeam;
+    private Pokemon[] enemyParty;
     @SerializedName("ownParty")
-    private Pokemon[] playerTeam;
+    private Pokemon[] playerParty;
 }

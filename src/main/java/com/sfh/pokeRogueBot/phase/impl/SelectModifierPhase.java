@@ -25,6 +25,8 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
     private final JsService jsService;
     private final WaitingService waitService;
 
+    private int pokemonIndexToSwitchTo = -1; //on startup
+
     public SelectModifierPhase(DecisionService decisionService, JsService jsService, WaitingService waitService) {
         this.decisionService = decisionService;
         this.jsService = jsService;
@@ -43,6 +45,8 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
 
             waitService.waitEvenLonger(); //wait for the modifier shop to render
             MoveToModifierResult result = decisionService.getModifierToPick();
+            pokemonIndexToSwitchTo = result.getPokemonIndexToSwitchTo(); //store the pokemon index to switch to
+
             boolean isSettingCursorSuccessfull = jsService.setModifierOptionsCursor(result.getRowIndex(), result.getColumnIndex());
             if(!isSettingCursorSuccessfull) {
                 throw new IllegalStateException("Could not set cursor to modifier option");
@@ -54,9 +58,13 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
             decisionService.setWaveEnded(true); //inform the decision service that the wave has ended
             actionList.add(this.pressSpace); //to confirm selection
         } else if (gameMode == GameMode.PARTY) {
-            //todo, currently apply potion on first pokemon
-            actionList.add(pressArrowLeft); //to go back to the first pokemon //todo
-            actionList.add(waitAction);
+
+            boolean isSettingCursorSuccessfull = jsService.setPartyCursor(pokemonIndexToSwitchTo);
+            if(!isSettingCursorSuccessfull) {
+                throw new IllegalStateException("Could not set cursor to party pokemon");
+            }
+
+            actionList.add(this.waitForTextRenderAction);
             actionList.add(this.pressSpace);
         } else if (gameMode == GameMode.MESSAGE) {
             actionList.add(this.pressSpace);

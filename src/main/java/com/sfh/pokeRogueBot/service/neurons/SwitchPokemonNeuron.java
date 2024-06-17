@@ -1,6 +1,7 @@
 package com.sfh.pokeRogueBot.service.neurons;
 
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
+import com.sfh.pokeRogueBot.model.run.SwitchDecision;
 import com.sfh.pokeRogueBot.model.run.WavePokemon;
 import com.sfh.pokeRogueBot.service.JsService;
 import lombok.extern.slf4j.Slf4j;
@@ -16,13 +17,13 @@ public class SwitchPokemonNeuron {
         this.jsService = jsService;
     }
 
-    public int getPokemonIndexToSwitchTo() {
+    public SwitchDecision getFaintedPokemonSwitchDecision() {
         WavePokemon wave = jsService.getWavePokemon();
-        Pokemon[] team = wave.getPlayerTeam();
+        Pokemon[] team = wave.getPlayerParty();
         for (int i = 0; i < team.length; i++) {
             if (team[i].getHp() != 0) {
                 log.info("Switching to pokemon: " + team[i].getName() + " on index: " + i);
-                return i;
+                return new SwitchDecision(i, team[i].getName());
             }
         }
 

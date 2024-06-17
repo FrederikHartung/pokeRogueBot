@@ -33,6 +33,7 @@ public class JsService {
     public static final String GET_CURRENT_WAVE = Paths.get(".", "bin", "js", "getCurrentWave.js").toString();
     public static final String GET_CURRENT_WAVE_POKEMONS = Paths.get(".", "bin", "js", "getCurrentWavePokemons.js").toString();
     public static final String SET_MODIFIER_OPTIONS_CURSOR = Paths.get(".", "bin", "js", "setModifierOptionsCursor.js").toString();
+    public static final String SET_PARTY_CURSOR = Paths.get(".", "bin", "js", "setPartyCursor.js").toString();
 
     private final JsClient jsClient;
 
@@ -77,5 +78,9 @@ public class JsService {
 
     public boolean setModifierOptionsCursor(int rowIndex, int columnIndex) {
         return jsClient.setModifierOptionsCursor(SET_MODIFIER_OPTIONS_CURSOR, rowIndex, columnIndex);
+    }
+
+    public boolean setPartyCursor(int index) {
+        return jsClient.setPartyCursor(SET_PARTY_CURSOR, index);
     }
 }

@@ -155,6 +155,25 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
     }
 
     @Override
+    public boolean setPartyCursor(String setPartyCursor, int index) {
+        try {
+            String jsCode = new String(Files.readAllBytes(Paths.get(setPartyCursor)));
+
+            JavascriptExecutor js = (JavascriptExecutor) driver;
+            Object result = js.executeScript(jsCode, index);
+
+            if (result instanceof Boolean resultAsBoolean) {
+                return resultAsBoolean;
+            } else {
+                throw new NotSupportedException("Result of JS execution is not a Boolean, got type: " + result.getClass().getSimpleName());
+            }
+        } catch (Exception e) {
+            log.error("Error while executing JS: " + setPartyCursor, e);
+            return false;
+        }
+    }
+
+    @Override
     public void pressKey(KeyToPress keyToPress) {
         Actions actions = new Actions(driver);
         switch (keyToPress) {

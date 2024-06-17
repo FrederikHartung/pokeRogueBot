@@ -9,4 +9,5 @@ public class MoveToModifierResult {
 
     private int rowIndex;
     private int columnIndex;
+    private int pokemonIndexToSwitchTo;
 }
