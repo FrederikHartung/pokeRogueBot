@@ -1,6 +1,7 @@
 package com.sfh.pokeRogueBot.service.neurons;
 
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
+import com.sfh.pokeRogueBot.model.run.SwitchDecision;
 import com.sfh.pokeRogueBot.model.run.WavePokemon;
 import com.sfh.pokeRogueBot.service.JsService;
 import lombok.extern.slf4j.Slf4j;
@@ -16,13 +17,23 @@ public class SwitchPokemonNeuron {
         this.jsService = jsService;
     }
 
-    public int getPokemonIndexToSwitchTo() {
+    public SwitchDecision getFaintedPokemonSwitchDecision(boolean isDoubleFight) {
         WavePokemon wave = jsService.getWavePokemon();
-        Pokemon[] team = wave.getPlayerTeam();
-        for (int i = 0; i < team.length; i++) {
-            if (team[i].getHp() != 0) {
-                log.info("Switching to pokemon: " + team[i].getName() + " on index: " + i);
-                return i;
+        Pokemon[] team = wave.getPlayerParty();
+        if(!isDoubleFight) {
+            for (int i = 0; i < team.length; i++) {
+                if (team[i].getHp() != 0) {
+                    log.info("Switching to pokemon: " + team[i].getName() + " on index: " + i + " with name: " + team[i].getName());
+                    return new SwitchDecision(i, team[i].getName());
+                }
+            }
+        }
+        else if(team.length >= 3){
+            for (int i = 2; i < team.length; i++) {
+                if (team[i].getHp() != 0) {
+                    log.info("Switching to pokemon: " + team[i].getName() + " on index: " + i + " with name: " + team[i].getName());
+                    return new SwitchDecision(i, team[i].getName());
+                }
             }
         }
 

@@ -6,6 +6,7 @@ import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.run.AttackDecision;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
+import com.sfh.pokeRogueBot.model.run.SwitchDecision;
 import com.sfh.pokeRogueBot.model.run.Wave;
 import com.sfh.pokeRogueBot.phase.ScreenshotClient;
 import com.sfh.pokeRogueBot.service.neurons.ChooseModifierNeuron;
@@ -52,12 +53,12 @@ public class DecisionService {
         return false;
     }
 
-    public int getPokemonIndexToSwitchTo() {
-        return switchPokemonNeuron.getPokemonIndexToSwitchTo();
+    public SwitchDecision getFaintedPokemonSwitchDecision() {
+        return switchPokemonNeuron.getFaintedPokemonSwitchDecision(wave.isDoubleFight());
     }
 
     public MoveToModifierResult getModifierToPick() {
-        return chooseModifierNeuron.getModifierToPick();
+        return chooseModifierNeuron.getModifierToPick(jsService.getWavePokemon().getPlayerParty());
     }
 
     public CommandPhaseDecision getCommandDecision() {
@@ -69,7 +70,7 @@ public class DecisionService {
         }
 
         if (null != wave && wave.getBattleType() == BattleType.WILD) {
-            for(Pokemon wildPokemon : wave.getWavePokemon().getEnemyTeam()) {
+            for(Pokemon wildPokemon : wave.getWavePokemon().getEnemyParty()) {
                 if (wildPokemon.isShiny() && !waveHasShiny) {
                     log.info("Shiny pokemon detected: " + wildPokemon.getName());
                     waveHasShiny = true;
@@ -98,18 +99,18 @@ public class DecisionService {
     public AttackDecision getAttackDecision() {
         if(!wave.isDoubleFight()){
             return combatNeuron.getAttackDecisionForSingleFight(
-                    wave.getWavePokemon().getPlayerTeam()[0],
-                    wave.getWavePokemon().getEnemyTeam()[0]
+                    wave.getWavePokemon().getPlayerParty()[0],
+                    wave.getWavePokemon().getEnemyParty()[0]
             );
         }
 
-        int playerPartySize = wave.getWavePokemon().getPlayerTeam().length;
-        int enemyPartySize = wave.getWavePokemon().getEnemyTeam().length;
+        int playerPartySize = wave.getWavePokemon().getPlayerParty().length;
+        int enemyPartySize = wave.getWavePokemon().getEnemyParty().length;
         return combatNeuron.getAttackDecisionForDoubleFight(
-                wave.getWavePokemon().getPlayerTeam()[0],
-                playerPartySize == 2 ? wave.getWavePokemon().getPlayerTeam()[1] : null,
-                wave.getWavePokemon().getEnemyTeam()[0],
-                enemyPartySize == 2 ? wave.getWavePokemon().getEnemyTeam()[1] : null
+                wave.getWavePokemon().getPlayerParty()[0],
+                playerPartySize == 2 ? wave.getWavePokemon().getPlayerParty()[1] : null,
+                wave.getWavePokemon().getEnemyParty()[0],
+                enemyPartySize == 2 ? wave.getWavePokemon().getEnemyParty()[1] : null
         );
     }
 }

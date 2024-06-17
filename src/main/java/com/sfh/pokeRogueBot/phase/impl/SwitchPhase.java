@@ -2,24 +2,27 @@ package com.sfh.pokeRogueBot.phase.impl;
 
 import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
+import com.sfh.pokeRogueBot.model.run.SwitchDecision;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.DecisionService;
+import com.sfh.pokeRogueBot.service.JsService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.LinkedList;
-import java.util.List;
-
+@Slf4j
 @Component
 public class SwitchPhase extends AbstractPhase implements Phase {
 
     public static final String NAME = "SwitchPhase";
 
     private final DecisionService decisionService;
+    private final JsService jsService;
 
-    public SwitchPhase(DecisionService decisionService) {
+    public SwitchPhase(DecisionService decisionService, JsService jsService) {
         this.decisionService = decisionService;
+        this.jsService = jsService;
     }
 
     @Override
@@ -29,22 +32,22 @@ public class SwitchPhase extends AbstractPhase implements Phase {
 
     @Override
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
-        if (gameMode == GameMode.PARTY) {
-            int pokemonIndexToSwitchTo = decisionService.getPokemonIndexToSwitchTo();
-            List<PhaseAction> actions = new LinkedList<>();
-            actions.add(pressArrowRight);
-            actions.add(waitAction);
 
-            for (int i = 1; i < pokemonIndexToSwitchTo; i++) { //index 1 => 2nd pokemon => 0 X go down. Index 2 => 3rd pokemon => 1 X go down
-                actions.add(pressArrowDown);
-                actions.add(waitAction);
+        if (gameMode == GameMode.PARTY) { // maybe an own pokemon fainted
+            SwitchDecision switchDecision = decisionService.getFaintedPokemonSwitchDecision();
+            boolean switchSuccessful = jsService.setPartyCursor(switchDecision.getIndex());
+
+            if (switchSuccessful) {
+                return new PhaseAction[]{
+                        this.waitAction,
+                        this.pressSpace, //choose the pokemon
+                        this.waitAction, //render confirm button
+                        this.pressSpace, //confirm the switch
+                };
             }
-
-            actions.add(this.pressSpace); //choose the pokemon
-            actions.add(this.waitAction);
-            actions.add(this.pressSpace); //confirm the switch
-
-            return actions.toArray(new PhaseAction[0]);
+            else {
+                throw new IllegalStateException("Could not set cursor to party pokemon");
+            }
         }
 
         throw new NotSupportedException("GameMode not supported in SwitchPhase: " + gameMode);

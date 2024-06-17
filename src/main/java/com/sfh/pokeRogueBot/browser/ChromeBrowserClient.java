@@ -3,10 +3,12 @@ package com.sfh.pokeRogueBot.browser;
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.remote.UnreachableBrowserException;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -25,7 +27,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
     private final boolean closeOnExit;
     private final int waitTimeForRenderAfterNavigation;
     private final String pathChromeUserDir;
-    private final boolean useInkognito;
+    private final String chromeProfile;
 
     /**
      * The instance of the WebDriver is created when first time calling navigateTo()
@@ -36,11 +38,12 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
     public ChromeBrowserClient(@Value("${browser.closeOnExit:false}") boolean closeOnExit,
                                @Value("${browser.waitTimeForRenderAfterNavigation:5000}") int waitTimeForRenderAfterNavigation,
                                @Value("${browser.pathChromeUserDir}") String pathChromeUserDir,
-                               @Value("${browser.useInkognito:false}") boolean useInkognito) {
+                               @Value("${browser.chromeProfile}") String chromeProfile
+                               ) {
         this.closeOnExit = closeOnExit;
         this.waitTimeForRenderAfterNavigation = waitTimeForRenderAfterNavigation;
         this.pathChromeUserDir = pathChromeUserDir;
-        this.useInkognito = useInkognito;
+        this.chromeProfile = chromeProfile;
     }
 
     @Override
@@ -48,10 +51,10 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
         if (null == this.driver) {
             ChromeOptions options = new ChromeOptions();
 
-            //options.addArguments("user-data-dir=" + pathChromeUserDir);
-            if (useInkognito) {
-                options.addArguments("--incognito");
-                log.debug("starting in incognito mode");
+            if(!StringUtils.isEmpty(pathChromeUserDir)){
+                log.debug("Using Chrome user dir: " + pathChromeUserDir + " and profile: " + chromeProfile);
+                options.addArguments("user-data-dir=" + pathChromeUserDir);
+                options.addArguments("--profile-directory=" + chromeProfile);
             }
             this.driver = new ChromeDriver(options);
         }
@@ -118,7 +121,16 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
             else {
                 throw new NotSupportedException("Result of JS execution is not a string, got type: " + result.getClass().getSimpleName());
             }
-        } catch (Exception e) {
+        }
+        catch (NoSuchWindowException e){
+            log.error("browser window not found", e);
+            throw e;
+        }
+        catch (UnreachableBrowserException e){
+            log.error("browser unreachable", e);
+            throw e;
+        }
+        catch (Exception e) {
             log.error("Error while executing JS: " + jsFilePath, e);
             return null;
         }
@@ -139,6 +151,25 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
             }
         } catch (Exception e) {
             log.error("Error while executing JS: " + jsFilePath, e);
+            return false;
+        }
+    }
+
+    @Override
+    public boolean setPartyCursor(String setPartyCursor, int index) {
+        try {
+            String jsCode = new String(Files.readAllBytes(Paths.get(setPartyCursor)));
+
+            JavascriptExecutor js = (JavascriptExecutor) driver;
+            Object result = js.executeScript(jsCode, index);
+
+            if (result instanceof Boolean resultAsBoolean) {
+                return resultAsBoolean;
+            } else {
+                throw new NotSupportedException("Result of JS execution is not a Boolean, got type: " + result.getClass().getSimpleName());
+            }
+        } catch (Exception e) {
+            log.error("Error while executing JS: " + setPartyCursor, e);
             return false;
         }
     }

@@ -3,7 +3,7 @@ spring:
     url: jdbc:mysql://root:YXEejCkbTKJrhYlQAmjSsPhltUjqYdvh@roundhouse.proxy.rlwy.net:47733/railway
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
-    password: YXEejCkbTKJrhYlQAmjSsPhltUjqYdvh
+    password:
   jpa:
     show-sql: false
     hibernate:

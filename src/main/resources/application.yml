@@ -16,10 +16,10 @@ spring:
 
 browser:
   target-url: "http://localhost:8000/"
-  closeOnExit: false
+  closeOnExit: true
   waitTimeForRenderAfterNavigation: 5000
-  pathChromeUserDir: "./bin/webdriver/profile/"
-  useInkognito: false
+  pathChromeUserDir:
+  chromeProfile: "Default"
 
 wait-time:
   defaultWaitTime: 2000
