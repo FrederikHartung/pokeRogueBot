@@ -32,8 +32,8 @@ public class JsService {
     public static final String GET_MODIFIER_OPTIONS = Paths.get(".", "bin", "js", "getModifierOptions.js").toString();
     public static final String GET_CURRENT_WAVE = Paths.get(".", "bin", "js", "getCurrentWave.js").toString();
     public static final String GET_CURRENT_WAVE_POKEMONS = Paths.get(".", "bin", "js", "getCurrentWavePokemons.js").toString();
-    public static final String SET_MODIFIER_OPTIONS_CURSOR = Paths.get(".", "bin", "js", "setModifierOptionsCursor.js").toString();
-    public static final String SET_PARTY_CURSOR = Paths.get(".", "bin", "js", "setPartyCursor.js").toString();
+    public static final String SET_MODIFIER_OPTIONS_CURSOR = Paths.get(".", "bin", "js", "uihandler", "modifierSelectUiHandler_set_cursor.js").toString();
+    public static final String SET_PARTY_CURSOR = Paths.get(".", "bin", "js", "uihandler", "partyUiHandler_set_cursor.js").toString();
 
     private final JsClient jsClient;
 
