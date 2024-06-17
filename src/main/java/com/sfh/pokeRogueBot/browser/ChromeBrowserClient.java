@@ -24,8 +24,6 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
 
     private final boolean closeOnExit;
     private final int waitTimeForRenderAfterNavigation;
-    private final String pathChromeUserDir;
-    private final boolean useInkognito;
 
     /**
      * The instance of the WebDriver is created when first time calling navigateTo()
@@ -34,26 +32,16 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
 
 
     public ChromeBrowserClient(@Value("${browser.closeOnExit:false}") boolean closeOnExit,
-                               @Value("${browser.waitTimeForRenderAfterNavigation:5000}") int waitTimeForRenderAfterNavigation,
-                               @Value("${browser.pathChromeUserDir}") String pathChromeUserDir,
-                               @Value("${browser.useInkognito:false}") boolean useInkognito) {
+                               @Value("${browser.waitTimeForRenderAfterNavigation:5000}") int waitTimeForRenderAfterNavigation
+                               ) {
         this.closeOnExit = closeOnExit;
         this.waitTimeForRenderAfterNavigation = waitTimeForRenderAfterNavigation;
-        this.pathChromeUserDir = pathChromeUserDir;
-        this.useInkognito = useInkognito;
     }
 
     @Override
     public void navigateTo(String targetUrl) {
         if (null == this.driver) {
-            ChromeOptions options = new ChromeOptions();
-
-            options.addArguments("user-data-dir=" + pathChromeUserDir);
-            if (useInkognito) {
-                options.addArguments("--incognito");
-                log.debug("starting in incognito mode");
-            }
-            this.driver = new ChromeDriver(options);
+            this.driver = new ChromeDriver();
         }
 
         driver.get(targetUrl);
