@@ -2,7 +2,7 @@ package com.sfh.pokeRogueBot.phase;
 
 import com.sfh.pokeRogueBot.browser.BrowserClient;
 import com.sfh.pokeRogueBot.file.FileManager;
-import com.sfh.pokeRogueBot.model.browser.enums.GameMode;
+import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.phase.actions.*;
 import com.sfh.pokeRogueBot.service.ImageService;
@@ -42,11 +42,11 @@ public class PhaseProcessor implements ScreenshotClient {
         if (action instanceof PressKeyPhaseAction pressKeyPhaseAction) {
             browserClient.pressKey(pressKeyPhaseAction.getKeyToPress());
         } else if (action instanceof WaitPhaseAction) {
-            waitingService.waitAfterAction();
+            waitingService.waitBriefly();
         } else if (action instanceof WaitForTextRenderPhaseAction) {
-            waitingService.waitLongerAfterAction();
+            waitingService.waitLonger();
         } else if (action instanceof WaitForStageRenderPhaseAction) {
-            waitingService.waitEvenLongerForRender();
+            waitingService.waitEvenLonger();
         } else if (action instanceof TakeScreenshotPhaseAction) {
             takeScreenshot("phase");
         } else {
@@ -57,7 +57,7 @@ public class PhaseProcessor implements ScreenshotClient {
     @Override
     public void takeScreenshot(String prefix) {
         try {
-            waitingService.waitEvenLongerForRender();
+            waitingService.waitEvenLonger();
             fileManager.persistBufferedImage(imageService.takeScreenshot(prefix), prefix);
         } catch (Exception e) {
             log.error("error while taking screenshot", e);

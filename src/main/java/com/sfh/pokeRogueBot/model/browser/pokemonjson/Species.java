@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.model.browser.pokemonjson;
 
-import com.sfh.pokeRogueBot.model.enums.PokeType2;
+import com.sfh.pokeRogueBot.model.enums.PokeType;
 import lombok.Data;
 
 @Data
@@ -25,7 +25,7 @@ public class Species {
     private String speciesString;
     private int speciesId;
     private boolean subLegendary;
-    private PokeType2 type1;
-    private PokeType2 type2;
+    private PokeType type1;
+    private PokeType type2;
     private Float weight;
 }

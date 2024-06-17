@@ -112,7 +112,10 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
                 return resultAsString;
             } else if (result instanceof Long) {
                 return String.valueOf(result);
-            } else {
+            } else if( null == result){
+                throw new NotSupportedException("Result of JS execution is null");
+            }
+            else {
                 throw new NotSupportedException("Result of JS execution is not a string, got type: " + result.getClass().getSimpleName());
             }
         } catch (Exception e) {
@@ -122,32 +125,57 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
     }
 
     @Override
+    public boolean setModifierOptionsCursor(String jsFilePath, int rowIndex, int columnIndex) {
+        try {
+            String jsCode = new String(Files.readAllBytes(Paths.get(jsFilePath)));
+
+            JavascriptExecutor js = (JavascriptExecutor) driver;
+            Object result = js.executeScript(jsCode, rowIndex, columnIndex);
+
+            if (result instanceof Boolean resultAsBoolean) {
+                return resultAsBoolean;
+            } else {
+                throw new NotSupportedException("Result of JS execution is not a Boolean, got type: " + result.getClass().getSimpleName());
+            }
+        } catch (Exception e) {
+            log.error("Error while executing JS: " + jsFilePath, e);
+            return false;
+        }
+    }
+
+    @Override
     public void pressKey(KeyToPress keyToPress) {
         Actions actions = new Actions(driver);
         switch (keyToPress) {
             case SPACE:
+                log.debug("Pressing space");
                 WebElement canvasElement = getCanvas();
                 actions.moveToElement(canvasElement)
                         .sendKeys(Keys.SPACE)
                         .perform();
                 break;
             case ARROW_DOWN:
+                log.debug("Pressing arrow down");
                 actions.sendKeys(Keys.ARROW_DOWN)
                         .perform();
                 break;
             case ARROW_LEFT:
+                log.debug("Pressing arrow left");
                 actions.sendKeys(Keys.ARROW_LEFT)
                         .perform();
                 break;
             case ARROW_UP:
+                log.debug("Pressing arrow up");
                 actions.sendKeys(Keys.ARROW_UP)
                         .perform();
                 break;
             case ARROW_RIGHT:
+                log.debug("Pressing arrow right");
                 actions.sendKeys(Keys.ARROW_RIGHT)
                         .perform();
                 break;
             case BACK_SPACE:
+                log.debug("Pressing backspace");
                 actions.sendKeys(Keys.BACK_SPACE)
                         .perform();
                 break;

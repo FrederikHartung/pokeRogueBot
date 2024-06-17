@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
-import com.sfh.pokeRogueBot.model.browser.enums.GameMode;
+import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;

@@ -7,6 +7,8 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @Component
 @Slf4j
@@ -14,11 +16,11 @@ public class FileManager {
 
     public static final String IMAGE_IO_FILE_EXTENSION = "png";
     public static final String SCREENSHOT_FILE_EXTENSION = ".png";
-    public static final String DIR_TEMP = "./data/temp/";
+    public static final String DIR_TEMP = Paths.get(".", "data", "temp").toString();
     private int fileIndex = 0;
 
     public void deleteTempData() {
-        File folder = new File(DIR_TEMP);
+        File folder = new File(getScreenshotTempDirPath());
         File[] files = folder.listFiles();
         if (files == null) {
             return;
@@ -40,7 +42,7 @@ public class FileManager {
     }
 
     public void persistBufferedImage(BufferedImage bufferedImage, String fileNamePrefix) {
-        String filePath = DIR_TEMP + fileIndex + "_screenshot_" + fileNamePrefix + SCREENSHOT_FILE_EXTENSION;
+        String filePath = getFilePath(fileNamePrefix);
 
         try {
             ImageIO.write(bufferedImage, IMAGE_IO_FILE_EXTENSION, new File(filePath));
@@ -49,5 +51,22 @@ public class FileManager {
         } catch (Exception e) {
             log.error("Error while saving screenshot to: " + filePath, e);
         }
+    }
+
+    /**
+     * Returns the directory path for saving temporary screenshots.
+     * @return the directory path plus a file separator for the corresponding OS
+     */
+    public String getScreenshotTempDirPath() {
+        return DIR_TEMP + File.separator;
+    }
+
+    /**
+     * Returns the file path for the given file name prefix for saving screenshots.
+     * @param fileNamePrefix a custom filename prefix
+     * @return the file path where the screenshot will be saved
+     */
+    public String getFilePath(String fileNamePrefix) {
+        return DIR_TEMP + File.separator + fileIndex + "_" + fileNamePrefix + SCREENSHOT_FILE_EXTENSION;
     }
 }

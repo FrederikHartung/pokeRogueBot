@@ -13,7 +13,7 @@ public abstract class AbstractPhase implements Phase {
     protected final PressKeyPhaseAction pressArrowLeft = new PressKeyPhaseAction(KeyToPress.ARROW_LEFT);
     protected final WaitPhaseAction waitAction = new WaitPhaseAction();
     protected final WaitForTextRenderPhaseAction waitForTextRenderAction = new WaitForTextRenderPhaseAction();
-    protected final WaitForStageRenderPhaseAction waaitForStageRenderPhaseAction = new WaitForStageRenderPhaseAction();
+    protected final WaitForStageRenderPhaseAction waitForStageRenderPhaseAction = new WaitForStageRenderPhaseAction();
     protected final TakeScreenshotPhaseAction takeScreenshotAction = new TakeScreenshotPhaseAction();
     protected final QuitRunAction quitRunAction = new QuitRunAction();
 

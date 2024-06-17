@@ -7,8 +7,6 @@ import lombok.Getter;
 @Getter
 public class MoveToModifierResult {
 
-    private int moveUpRowsAtStart;
-    private int moveLeftColumnsAtStart;
-    private int moveRightColumnsToTarget;
-    private int moveDownRowsToTarget;
+    private int rowIndex;
+    private int columnIndex;
 }

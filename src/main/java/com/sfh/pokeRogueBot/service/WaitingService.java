@@ -17,19 +17,19 @@ public class WaitingService {
         this.waitConfig = waitConfig;
     }
 
-    public void waitAfterAction() {
+    public void waitBriefly() {
         int waitTime = calcWaitTime(waitConfig.getWaitTimeAfterAction());
         log.debug("Waiting for " + waitTime);
         sleep(waitTime);
     }
 
-    public void waitLongerAfterAction() {
+    public void waitLonger() {
         int waitTime = calcWaitTime(waitConfig.getWaitTimeForRenderingText());
         log.debug("Waiting longer for " + waitTime);
         sleep(waitTime);
     }
 
-    public void waitEvenLongerForRender() {
+    public void waitEvenLonger() {
         int waitTime = calcWaitTime(waitConfig.getWaitTimeForRenderingStages());
         log.debug("Waiting even longer for " + waitTime);
         sleep(waitTime);

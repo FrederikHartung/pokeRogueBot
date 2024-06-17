@@ -1,4 +1,4 @@
-package com.sfh.pokeRogueBot.model.browser.enums;
+package com.sfh.pokeRogueBot.model.enums;
 
 public enum GameMode {
     UNKNOWN(-1),

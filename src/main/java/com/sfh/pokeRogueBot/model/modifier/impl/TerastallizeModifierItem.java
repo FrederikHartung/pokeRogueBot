@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.model.modifier.impl;
 
-import com.sfh.pokeRogueBot.model.enums.PokeType2;
+import com.sfh.pokeRogueBot.model.enums.PokeType;
 import com.sfh.pokeRogueBot.model.modifier.GeneratedPersistentModifierType;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -11,5 +11,5 @@ public class TerastallizeModifierItem extends PokemonHeldItemModifierItem implem
 
     public static final String TARGET = "TerastallizeModifierType";
 
-    private PokeType2 teraType;
+    private PokeType teraType;
 }
