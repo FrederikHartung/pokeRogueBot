@@ -18,6 +18,8 @@ browser:
   target-url: "http://localhost:8000/"
   closeOnExit: false
   waitTimeForRenderAfterNavigation: 5000
+  pathChromeUserDir:
+  chromeProfile: "Default"
 
 wait-time:
   defaultWaitTime: 2000

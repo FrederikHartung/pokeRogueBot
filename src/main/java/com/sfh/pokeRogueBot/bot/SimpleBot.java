@@ -60,12 +60,12 @@ public class SimpleBot implements Bot {
         fileManager.deleteTempData();
         browserClient.navigateTo(targetUrl);
 
-        while (true){
-            startRun();
+        while (startRun()){
+            log.debug("run finished, starting new run");
         }
     }
 
-    private void startRun(){
+    private boolean startRun(){
         runProperty = runPropertyService.getRunProperty();
         runProperty.setStatus(RunStatus.STARTING);
         runPropertyService.save(runProperty);
@@ -93,11 +93,12 @@ public class SimpleBot implements Bot {
             log.error("error while running", e);
             phaseProcessor.takeScreenshot("error_" + e.getClass().getSimpleName());
             runProperty.setStatus(RunStatus.ERROR);
-            return;
+            return false;
         }
 
         runPropertyService.save(runProperty);
         log.info("finished run, status: " + runProperty.getStatus());
+        return true;
     }
 
     private void handleStageInWave() throws Exception {
