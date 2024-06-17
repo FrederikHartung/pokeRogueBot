@@ -1,5 +1,7 @@
 package com.sfh.pokeRogueBot.service.neurons;
 
+import com.sfh.pokeRogueBot.model.enums.PokeBallType;
+import com.sfh.pokeRogueBot.model.enums.VoucherType;
 import com.sfh.pokeRogueBot.model.exception.PickModifierException;
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
 import com.sfh.pokeRogueBot.model.modifier.ModifierShopItem;
@@ -28,7 +30,8 @@ public class ChooseModifierNeuron {
         ModifierShop shop = jsService.getModifierShop();
         log.info(shop.toString());
 
-        MoveToModifierResult itemToBuy = buyItemIfNeeded(shop, playerParty, playerGold);
+        boolean priorityItemExists = priorityItemExists(shop);
+        MoveToModifierResult itemToBuy = buyItemIfNeeded(shop, playerParty, playerGold, priorityItemExists);
         if(null != itemToBuy){
             return itemToBuy;
         }
@@ -36,7 +39,25 @@ public class ChooseModifierNeuron {
         return pickFreeItem(shop, playerParty);
     }
 
-    private MoveToModifierResult buyItemIfNeeded(ModifierShop shop, Pokemon[] playerParty, int playerGold) {
+    private boolean priorityItemExists(ModifierShop shop){
+        //if a egg voucher is available, pick it
+        if(shop.freeItemsContains(AddVoucherModifierItem.TARGET)){
+            return true;
+        }
+
+        //if a special pokeball is available, pick it
+        ModifierShopItem pokeBallModifier = shop.getFreeItems().stream()
+                .filter(item -> item.getItem().getTypeName().equals(AddPokeballModifierItem.TARGET))
+                .findFirst()
+                .orElse(null);
+        if(null != pokeBallModifier && ((AddPokeballModifierItem) pokeBallModifier.getItem()).getPokeballType() != PokeBallType.POKEBALL){
+            return true;
+        }
+
+        return false;
+    }
+
+    private MoveToModifierResult buyItemIfNeeded(ModifierShop shop, Pokemon[] playerParty, int playerGold, boolean priorityItemExists) {
         //if a pokemon is fainted and no free revive item is available, buy a revive item
         MoveToModifierResult reviveItem = buyReviveItemIfNeeded(shop, playerParty, playerGold);
         if(null != reviveItem) {
@@ -47,8 +68,15 @@ public class ChooseModifierNeuron {
         //buy potion if more than one pokemon is hurt
         MoveToModifierResult potionItem = buyPotionIfMoreThatOnePokemonIsHurt(shop, playerParty, playerGold);
         if(null != potionItem) {
-            log.debug("buying potion item for pokemon on index: " + potionItem.getPokemonIndexToSwitchTo());
+            log.debug("buying potion item for pokemon on index: " + potionItem.getPokemonIndexToSwitchTo() + " because a second pokemon is hurt");
             return potionItem;
+        }
+
+        //buy potion if no free is available or priority exists
+        MoveToModifierResult potionItem2 = buyPotionIfNoFreeIsAvailableOrPriorityExists(shop, playerParty, playerGold, priorityItemExists);
+        if(null != potionItem2) {
+            log.debug("buying potion item for pokemon on index " + potionItem2.getPokemonIndexToSwitchTo() + " because no free is available or priority exists");
+            return potionItem2;
         }
 
         return null;
@@ -69,6 +97,12 @@ public class ChooseModifierNeuron {
             return reviveItem;
         }
 
+        //pick pokeball item
+        MoveToModifierResult pokeballModifierItem = pickItem(shop, AddPokeballModifierItem.TARGET);
+        if (null != pokeballModifierItem) {
+            return pokeballModifierItem;
+        }
+
         //pick free heal item
         MoveToModifierResult healItem = pickItem(shop, PokemonHpRestoreModifierItem.TARGET);
         if (null != healItem) {
@@ -85,12 +119,6 @@ public class ChooseModifierNeuron {
         MoveToModifierResult berryItem = pickItem(shop, BerryModifierItem.TARGET);
         if (null != berryItem) {
             return berryItem;
-        }
-
-        //pick pokeball item
-        MoveToModifierResult pokeballModifierItem = pickItem(shop, AddPokeballModifierItem.TARGET);
-        if (null != pokeballModifierItem) {
-            return pokeballModifierItem;
         }
 
         //pick MoneyRewardModifierType
@@ -159,9 +187,46 @@ public class ChooseModifierNeuron {
         return null;
     }
 
+    private MoveToModifierResult buyPotionIfNoFreeIsAvailableOrPriorityExists(ModifierShop shop, Pokemon[] playerParty, int playerMoney, boolean priorityItemExists) {
+        if(!priorityItemExists){
+            ModifierShopItem freeHealItem =  shop.getFreeItems().stream()
+                    .filter(item -> item.getItem().getTypeName().equals(PokemonHpRestoreModifierItem.TARGET))
+                    .findFirst()
+                    .orElse(null);
+
+            if(freeHealItem != null){ //don't buy a item, when a free one is available
+                return null;
+            }
+        }
+
+        ModifierShopItem healItemToBuy =  shop.getBuyableItems().stream()
+                .filter(item -> item.getItem().getTypeName().equals(PokemonHpRestoreModifierItem.TARGET))
+                .findFirst()
+                .orElse(null);
+
+        if(healItemToBuy == null || healItemToBuy.getItem().getCost() > playerMoney){ //if no item is found or the player can't afford it
+            return null;
+        }
+
+        Pokemon mostHurtPokemon = Arrays.stream(playerParty)
+                .filter(p -> p.getHp() < p.getStats().getHp())
+                .max(Comparator.comparingInt(p -> p.getStats().getHp() - p.getHp()))
+                .orElse(null);
+
+        if(mostHurtPokemon != null){
+            for(int i = 0; i < playerParty.length; i++){
+                if(playerParty[i].equals(mostHurtPokemon)){
+                    return new MoveToModifierResult(healItemToBuy.getPosition().getRow(), healItemToBuy.getPosition().getColumn(), i);
+                }
+            }
+        }
+
+        return null;
+    }
+
     private MoveToModifierResult buyPotionIfMoreThatOnePokemonIsHurt(ModifierShop shop, Pokemon[] playerParty, int playerMoney) {
         ModifierShopItem potion =  shop.getBuyableItems().stream()
-                .filter(item -> item.getItem().getClass().equals(PokemonHpRestoreModifierItem.class))
+                .filter(item -> item.getItem().getTypeName().equals(PokemonHpRestoreModifierItem.TARGET))
                 .findFirst()
                 .orElse(null);
 

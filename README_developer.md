@@ -17,11 +17,14 @@ Only refactor, when it's really necessary.
   - [x] get the info, which pokemon are not fainted
   - [x] select a not fainted pokemon
 - [x] if the first attack is blocked, the second attack is chosen
-- [ ] apply revive item
+- [x] apply revive item
+- [x] handling a failed run
+- [ ] getting the attack move from the summary ui handler
+- [ ] learn attack decision
+- [ ] try to catch a pokemon
 - [ ] check if the damage calculation is correct
 - [ ] enemy health calculation
 - [ ] if a exception is thrown, the run should be stopped, saved as error and then a new run should be started
-- [ ] handling a failed run
 - [ ] adding the savegame index to a runpropterty
 - [ ] load savegame instead of continue
 - [ ] give the heal item in double fights the correct pokemon

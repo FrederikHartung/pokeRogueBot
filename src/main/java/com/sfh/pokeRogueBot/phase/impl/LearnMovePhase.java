@@ -19,10 +19,14 @@ public class LearnMovePhase extends AbstractPhase implements Phase {
 
     @Override
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
-        if (gameMode == GameMode.MESSAGE)
+        if (gameMode == GameMode.MESSAGE){
             return new PhaseAction[]{
                     this.pressSpace
             };
+        }
+        else if(gameMode == GameMode.CONFIRM){
+            //should pokemon learn message
+        }
 
         throw new NotSupportedException("GameMode not supported for LearnMovePhase: " + gameMode);
     }
