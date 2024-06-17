@@ -30,7 +30,7 @@ public class ChooseModifierNeuron {
         log.info(shop.toString());
 
         //pick vouchers
-        MoveToModifierResult voucherItem = pickItem(shop, AddVoucherModifierItem.class);
+        MoveToModifierResult voucherItem = pickItem(shop, AddVoucherModifierItem.TARGET);
         if (null != voucherItem) {
             return voucherItem;
         }
@@ -50,21 +50,33 @@ public class ChooseModifierNeuron {
         }
 
         //pick free heal item
-        MoveToModifierResult healItem = pickItem(shop, PokemonHpRestoreModifierItem.class);
+        MoveToModifierResult healItem = pickItem(shop, PokemonHpRestoreModifierItem.TARGET);
         if (null != healItem) {
             return healItem;
         }
 
         //pick tempStatBoost item
-        MoveToModifierResult tempStatBoost = pickItem(shop, TempBattleStatBoosterModifierItem.class);
+        MoveToModifierResult tempStatBoost = pickItem(shop, TempBattleStatBoosterModifierItem.TARGET);
         if (null != tempStatBoost) {
             return tempStatBoost;
         }
 
+        //pick berry item
+        MoveToModifierResult berryItem = pickItem(shop, BerryModifierItem.TARGET);
+        if (null != berryItem) {
+            return berryItem;
+        }
+
         //pick pokeball item
-        MoveToModifierResult pokeballModifierItem = pickItem(shop, AddPokeballModifierItem.class);
+        MoveToModifierResult pokeballModifierItem = pickItem(shop, AddPokeballModifierItem.TARGET);
         if (null != pokeballModifierItem) {
             return pokeballModifierItem;
+        }
+
+        //pick MoneyRewardModifierType
+        MoveToModifierResult moneyRewardModifierItem = pickItem(shop, MoneyRewardModifierItem.TARGET);
+        if (null != moneyRewardModifierItem) {
+            return moneyRewardModifierItem;
         }
 
         throw new PickModifierException("can't pick any item from the shop because of my poor logic");
@@ -114,7 +126,7 @@ public class ChooseModifierNeuron {
                 Pokemon mostAffectedPokemon = filteredPokemon.stream() //get the pokemon, where the potion heals the most
                         .max(Comparator.comparingInt(p -> Math.min(p.getStats().getHp() - p.getHp(),
                                 Math.max(potionItem.getRestorePoints(),
-                                        (potionItem.getRestorePercent() * p.getStats().getHp()))))).get();
+                                        (potionItem.getRestorePercent() * p.getStats().getHp()))))).orElse(null);
 
                 for(int i = 0; i < playerParty.length; i++){
                     if(playerParty[i].equals(mostAffectedPokemon)){
@@ -128,9 +140,9 @@ public class ChooseModifierNeuron {
         return null;
     }
 
-    private <T> MoveToModifierResult pickItem(ModifierShop shop, Class<T> type) {
+    private MoveToModifierResult pickItem(ModifierShop shop, String modifierType) {
         for (var item : shop.getFreeItems()) {
-            if (item.getItem().getClass().equals(type)) {
+            if (item.getItem().getTypeName().equals(modifierType)) {
                 log.debug("choosed free item with name: " + item.getItem().getName() + " on position: " + item.getPosition());
                 return new MoveToModifierResult(
                         item.getPosition().getRow(),
