@@ -83,10 +83,6 @@ public class DecisionService {
                 }
             }
 
-            if(!wave.isDoubleFight() || wave.getEnemyFaints() == 1){
-                return CommandPhaseDecision.BALL;
-            }
-
             return CommandPhaseDecision.ATTACK;
         }
 
