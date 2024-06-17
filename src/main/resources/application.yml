@@ -16,7 +16,7 @@ spring:
 
 browser:
   target-url: "http://localhost:8000/"
-  closeOnExit: false
+  closeOnExit: true
   waitTimeForRenderAfterNavigation: 5000
   pathChromeUserDir:
   chromeProfile: "Default"

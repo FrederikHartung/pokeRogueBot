@@ -81,6 +81,7 @@ public class JsService {
     }
 
     public boolean setPartyCursor(int index) {
+        log.debug("Setting party cursor to index: " + index);
         return jsClient.setPartyCursor(SET_PARTY_CURSOR, index);
     }
 }

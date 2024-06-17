@@ -35,13 +35,14 @@ public class SwitchPhase extends AbstractPhase implements Phase {
 
         if (gameMode == GameMode.PARTY) { // maybe an own pokemon fainted
             SwitchDecision switchDecision = decisionService.getFaintedPokemonSwitchDecision();
-            log.debug("Switching to pokemon at index: " + switchDecision.getIndex() + " with name: " + switchDecision.getPokeName());
             boolean switchSuccessful = jsService.setPartyCursor(switchDecision.getIndex());
 
             if (switchSuccessful) {
                 return new PhaseAction[]{
-                        this.waitForTextRenderAction,
-                        this.pressSpace
+                        this.waitAction,
+                        this.pressSpace, //choose the pokemon
+                        this.waitAction, //render confirm button
+                        this.pressSpace, //confirm the switch
                 };
             }
             else {

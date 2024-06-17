@@ -96,7 +96,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
                 addActionsToList(forDoubleFight.getPokemon1().getMoveDecision(), forDoubleFight.getPokemon1().getMoveTarget(), actionList); //add the decisions for the first pokemon
 
                 if(null != forDoubleFight.getPokemon1() && null != forDoubleFight.getPokemon2()){ //only when two player pokemon are available
-                    actionList.add(this.waitForTextRenderAction); //second pokemon is active now and the phase is back to command phase
+                    actionList.add(this.waitAction); //second pokemon is active now and the phase is back to command phase
                     actionList.add(this.pressSpace); //enter fight game mode again for the second pokemon
 
                     actionList.add(this.pressArrowUp);
@@ -147,16 +147,16 @@ public class CommandPhase extends AbstractPhase implements Phase {
                 break;
             case LEFT_ENEMY:
                 log.debug("Left enemy target selected");
-                actionList.add(this.waitForTextRenderAction);
+                actionList.add(this.waitAction);
                 actionList.add(this.pressArrowLeft);
-                actionList.add(this.waitForTextRenderAction);
+                actionList.add(this.waitAction);
                 actionList.add(this.pressSpace);
                 break;
             case RIGHT_ENEMY:
                 log.debug("Right enemy target selected");
-                actionList.add(this.waitForTextRenderAction);
+                actionList.add(this.waitAction);
                 actionList.add(this.pressArrowRight);
-                actionList.add(this.waitForTextRenderAction);
+                actionList.add(this.waitAction);
                 actionList.add(this.pressSpace);
                 break;
         }

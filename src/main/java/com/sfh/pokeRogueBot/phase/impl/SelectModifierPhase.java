@@ -56,7 +56,7 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
             waitService.waitEvenLonger(); //wait for the cursor to be set
 
             decisionService.setWaveEnded(true); //inform the decision service that the wave has ended
-            actionList.add(this.pressSpace); //to confirm selection
+            actionList.add(this.pressSpace); //to confirm selection -> gamemode will change to party
         } else if (gameMode == GameMode.PARTY) {
 
             boolean isSettingCursorSuccessfull = jsService.setPartyCursor(pokemonIndexToSwitchTo);
@@ -65,7 +65,9 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
             }
 
             actionList.add(this.waitForTextRenderAction);
-            actionList.add(this.pressSpace);
+            actionList.add(this.pressSpace); //open confirm menu
+            actionList.add(this.waitAction); //wait for confirm menu to render
+            actionList.add(this.pressSpace); //confirm the application of the modifier
         } else if (gameMode == GameMode.MESSAGE) {
             actionList.add(this.pressSpace);
         } else if (gameMode == GameMode.SUMMARY) {

@@ -54,7 +54,7 @@ public class DecisionService {
     }
 
     public SwitchDecision getFaintedPokemonSwitchDecision() {
-        return switchPokemonNeuron.getFaintedPokemonSwitchDecision();
+        return switchPokemonNeuron.getFaintedPokemonSwitchDecision(wave.isDoubleFight());
     }
 
     public MoveToModifierResult getModifierToPick() {
