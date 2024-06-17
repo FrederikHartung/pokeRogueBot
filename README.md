@@ -15,7 +15,7 @@ After getting to a Result, the bot calculates which buttons are to press and sen
 2. Install a Java 17 SDK, Maven (Java Build Tool), Intellij Idea (Java IDE) and Chrome (Browser).
 3. Clone the master Branch of the pokeRogue repository from "https://github.com/pagefaultgames/pokerogue". Read the README.md of the pokeRogue repository to get the game running on your local machine.
 4. Optional: Add a custom Chrome Profile to the bot. Read the section "How to add a chrome profile to persist the settings chosen in the title menu" to get more information.
-4. 5. Open this repository in Intellij Idea and run the Application class. The bot should start and connect to the browser.
+5. Open this repository in Intellij Idea and run the Application class. The bot should start and connect to the browser.
 
 ## Hows does the bot work
 Currently the bot implementation is very simple. It choses the first attack and tries to pick a potion item and apply it to the first pokemon in the team. This is done, till the player team is beaten.  
