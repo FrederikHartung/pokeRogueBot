@@ -129,6 +129,7 @@ public class DecisionService {
         for(int i = pokeballs.length - 1; i >= 0; i--){
             if(pokeballs[i] > 0){
                 pokeballs[i]--;
+                log.debug("Selected pokeball: " + i + " for wild pokemon: " + wave.getWavePokemon().getEnemyParty()[0].getName());
                 return i;
             }
         }

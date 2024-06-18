@@ -85,24 +85,21 @@ public class JsService {
     public boolean setModifierOptionsCursor(int rowIndex, int columnIndex) {
         log.debug("Setting modifier options cursor to row: " + rowIndex + ", column: " + columnIndex);
         String result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.setModifierSelectUiHandlerCursor(%s, %s)"
-                .formatted(columnIndex, rowIndex))
-                .toString();
+                        .formatted(columnIndex, rowIndex)).toString();
         return Boolean.parseBoolean(result);
     }
 
     public boolean setPartyCursor(int index) {
         log.debug("Setting party cursor to index: " + index);
         String result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.setPartyUiHandlerCursor(%s)"
-                .formatted(index))
-                .toString();
+                        .formatted(index)).toString();
         return Boolean.parseBoolean(result);
     }
 
     public boolean setPokeBallCursor(int index) {
         log.debug("Setting pokeball cursor to index: " + index);
-        String result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.gsgdsgsg(%s)"
-                        .formatted(index))
-                .toString();
+        String result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.setBallUiHandlerCursor(%s)"
+                        .formatted(index)).toString();
         return Boolean.parseBoolean(result);
     }
 }

@@ -22,16 +22,15 @@ public class CombatNeuron {
         this.damageCalculatingNeuron = damageCalculatingNeuron;
     }
 
-    public AttackDecisionForPokemon getAttackDecisionForSingleFight(@Nonnull Pokemon playerPokemon, @Nonnull Pokemon enemyPokemon, boolean tryToKillEnemy) {
-        log.debug("enemy pokemon health before attack: " + enemyPokemon.getHp() + ", enemy has more speed: "
-                + (enemyPokemon.getStats().getSpeed() > playerPokemon.getStats().getSpeed()));
+    public AttackDecisionForPokemon getAttackDecisionForSingleFight(@Nonnull Pokemon playerPokemon, @Nonnull Pokemon enemyPokemon, boolean tryToCatch) {
+        log.debug("enemy pokemon health before attack: " + enemyPokemon.getHp() + ", try to catch: " + tryToCatch);
 
         List<PossibleAttackMove> possibleAttackMoves = damageCalculatingNeuron.getPossibleAttackMoves(playerPokemon, enemyPokemon);
         for(PossibleAttackMove move : possibleAttackMoves){
             log.debug("Move: " + move.getAttackName() + ", min damage: " + move.getMinDamage() + ", max damage: " + move.getMaxDamage() + ", priority: " + move.getAttackPriority() + ", player speed: " + move.getAttackerSpeed() + ", enemy speed: " + enemyPokemon.getStats().getSpeed());
         }
 
-        if (tryToKillEnemy) {
+        if (!tryToCatch) {
             ChosenAttackMove finisherMove = getFinisherMove(possibleAttackMoves, enemyPokemon.getHp(), OwnPokemonIndex.SINGLE);
             if (finisherMove != null) {
                 log.debug("Finisher move found: " + finisherMove.getName() + " with damage: " + finisherMove.getDamage() + ", enemy pokemon health: " + enemyPokemon.getHp());
@@ -57,7 +56,7 @@ public class CombatNeuron {
         float highestDamage = -1;
 
         for (PossibleAttackMove move : possibleAttackMoves) {
-            if (move.getMaxDamage() > highestDamage && move.getMaxDamage() < enemyHealth) {
+            if (move.getMaxDamage() > highestDamage && move.getMaxDamage() < enemyHealth && move.getMaxDamage() > 0) {
                 highestDamage = move.getMaxDamage();
                 bestMove = move;
             }

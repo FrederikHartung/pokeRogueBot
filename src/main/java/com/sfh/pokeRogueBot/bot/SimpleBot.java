@@ -59,7 +59,6 @@ public class SimpleBot implements Bot {
     public void start() {
         fileManager.deleteTempData();
         browserClient.navigateTo(targetUrl);
-        jsService.init();
 
         while (startRun()){
             log.debug("run finished, starting new run");
@@ -70,6 +69,7 @@ public class SimpleBot implements Bot {
         runProperty = runPropertyService.getRunProperty();
         runProperty.setStatus(RunStatus.STARTING);
         runPropertyService.save(runProperty);
+        jsService.init();
 
         RetryTemplate retryTemplate = new RetryTemplateBuilder() //todo: add configurable retry policy
                 .retryOn(UnsupportedPhaseException.class)

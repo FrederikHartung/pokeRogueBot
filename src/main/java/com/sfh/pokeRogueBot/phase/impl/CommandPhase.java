@@ -128,6 +128,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
         else if (gameMode == GameMode.BALL){
             log.debug("GameMode.BALL, choosing strongest pokeball");
             int pokeballIndex = decisionService.selectStrongestPokeball();
+            log.debug("Selected pokeball index: " + pokeballIndex);
             if(pokeballIndex == -1){
                 return new PhaseAction[]{
                         this.pressBackspace, //go back to command menu and fight

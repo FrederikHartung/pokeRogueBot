@@ -45,4 +45,19 @@ window.poru.uihandler = {
             }
         }
     },
+
+    setStarterSelectUiHandlerCursor: (index) => {
+        var starterSelectUiHandler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[10];
+
+        if(starterSelectUiHandler && starterSelectUiHandler.active){
+            if(starterSelectUiHandler.cursor === index){
+                return true; //no move needed
+            }
+            else{
+                return starterSelectUiHandler.setCursor(index);
+            }
+        }
+
+        return false; //error or false state
+    },
 }

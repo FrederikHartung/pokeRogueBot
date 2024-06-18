@@ -7,5 +7,9 @@ window.poru.util = {
 
     getGameMode: function getGameMode() {
         return Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.getMode();
+    },
+
+    getPhase: () => {
+        return Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase;
     }
 }
