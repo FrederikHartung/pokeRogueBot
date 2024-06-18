@@ -71,6 +71,13 @@ window.poru.wave = {
             playerFaints: currentBattle.playerFaints, //int
             turn: currentBattle.turn, //int
             waveIndex: currentBattle.waveIndex, //int
+            pokeballCount: [
+                battleScene.pokeballCounts[0],
+                battleScene.pokeballCounts[1],
+                battleScene.pokeballCounts[2],
+                battleScene.pokeballCounts[3],
+                battleScene.pokeballCounts[4],
+            ]
         };
         
         return battleSceneDto;

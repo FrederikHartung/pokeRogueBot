@@ -11,7 +11,6 @@ import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
 import com.sfh.pokeRogueBot.model.run.Wave;
 import com.sfh.pokeRogueBot.model.run.WavePokemon;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Type;
@@ -95,6 +94,14 @@ public class JsService {
         log.debug("Setting party cursor to index: " + index);
         String result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.setPartyUiHandlerCursor(%s)"
                 .formatted(index))
+                .toString();
+        return Boolean.parseBoolean(result);
+    }
+
+    public boolean setPokeBallCursor(int index) {
+        log.debug("Setting pokeball cursor to index: " + index);
+        String result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.gsgdsgsg(%s)"
+                        .formatted(index))
                 .toString();
         return Boolean.parseBoolean(result);
     }

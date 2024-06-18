@@ -12,6 +12,7 @@ import com.sfh.pokeRogueBot.phase.ScreenshotClient;
 import com.sfh.pokeRogueBot.service.neurons.ChooseModifierNeuron;
 import com.sfh.pokeRogueBot.service.neurons.CombatNeuron;
 import com.sfh.pokeRogueBot.service.neurons.SwitchPokemonNeuron;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -33,6 +34,8 @@ public class DecisionService {
     private boolean waveEnded = true; //default for game start
     private boolean waveHasShiny = false;
     private boolean waveHasPokerus = false;
+    @Getter
+    private boolean capturePokemon = false;
 
     public DecisionService(
             RunPropertyService runPropertyService,
@@ -75,14 +78,18 @@ public class DecisionService {
                 if (wildPokemon.isShiny() && !waveHasShiny) {
                     log.info("Shiny pokemon detected: " + wildPokemon.getName());
                     waveHasShiny = true;
+                    capturePokemon = true;
                     screenshotClient.takeScreenshot("shiny_pokemon_detected");
                 }
 
                 if(wildPokemon.isPokerus() && !waveHasPokerus){
                     log.info("Pokerus pokemon detected: " + wildPokemon.getName());
                     waveHasPokerus = true;
+                    capturePokemon = true;
                     screenshotClient.takeScreenshot("pokerus_pokemon_detected");
                 }
+
+                capturePokemon = true;
             }
 
             return CommandPhaseDecision.ATTACK;
@@ -95,13 +102,15 @@ public class DecisionService {
         this.waveEnded = waveEnded;
         this.waveHasPokerus = false;
         this.waveHasShiny = false;
+        this.capturePokemon = false;
     }
 
     public AttackDecision getAttackDecision() {
         if(!wave.isDoubleFight()){
             return combatNeuron.getAttackDecisionForSingleFight(
                     wave.getWavePokemon().getPlayerParty()[0],
-                    wave.getWavePokemon().getEnemyParty()[0]
+                    wave.getWavePokemon().getEnemyParty()[0],
+                    this.capturePokemon
             );
         }
 
@@ -113,5 +122,18 @@ public class DecisionService {
                 wave.getWavePokemon().getEnemyParty()[0],
                 enemyPartySize == 2 ? wave.getWavePokemon().getEnemyParty()[1] : null
         );
+    }
+
+    public int selectStrongestPokeball() {
+        int[] pokeballs = wave.getPokeballCount();
+        for(int i = pokeballs.length - 1; i >= 0; i--){
+            if(pokeballs[i] > 0){
+                pokeballs[i]--;
+                return i;
+            }
+        }
+
+        capturePokemon = false; // when no pokeballs are left, we should not try to capture
+        return -1;
     }
 }

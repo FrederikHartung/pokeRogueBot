@@ -22,4 +22,5 @@ public class Wave {
     private int playerFaints;
     private int turn;
     private int waveIndex;
+    private int[] pokeballCount;
 }

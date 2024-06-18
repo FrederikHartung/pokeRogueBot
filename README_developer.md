@@ -19,10 +19,11 @@ Only refactor, when it's really necessary.
 - [x] if the first attack is blocked, the second attack is chosen
 - [x] apply revive item
 - [x] handling a failed run
-- [ ] getting the attack move from the summary ui handler
+- [x] check if the damage calculation is correct
+- [x] enemy health calculation
+- [ ] DamageCalculation: faint or catch attack
 - [ ] try to catch a pokemon
-- [ ] check if the damage calculation is correct
-- [ ] enemy health calculation
+- [ ] getting the attack move from the summary ui handler
 - [ ] modifier shop refactoring
 - [ ] learn attack decision
 - [ ] if an exception is thrown, the run should be stopped, saved as error and then a new run should be started

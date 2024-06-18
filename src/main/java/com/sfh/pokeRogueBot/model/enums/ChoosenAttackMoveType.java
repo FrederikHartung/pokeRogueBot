@@ -4,5 +4,6 @@ public enum ChoosenAttackMoveType {
 
     FINISHER,
     MAX_DAMAGE,
+    WEAKEN
 
 }

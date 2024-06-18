@@ -12,6 +12,7 @@ import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.DecisionService;
+import com.sfh.pokeRogueBot.service.JsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -25,9 +26,11 @@ public class CommandPhase extends AbstractPhase implements Phase {
     public static final String NAME = "CommandPhase";
 
     private final DecisionService decisionService;
+    private final JsService js;
 
-    public CommandPhase(DecisionService decisionService) {
+    public CommandPhase(DecisionService decisionService, JsService js) {
         this.decisionService = decisionService;
+        this.js = js;
     }
 
     @Override
@@ -72,9 +75,20 @@ public class CommandPhase extends AbstractPhase implements Phase {
                 };
             }
         }
-        else if (gameMode == GameMode.FIGHT) { //wich move to use
+        else if (gameMode == GameMode.FIGHT) { //which move to use
             log.debug("GameMode.FIGHT, getting attackDecision");
             AttackDecision attackDecision = decisionService.getAttackDecision();
+
+            if(null == attackDecision && decisionService.isCapturePokemon()){
+                log.debug("CapturePokemon decision chosen");
+                return new PhaseAction[]{
+                        this.pressBackspace, //go back to command menu
+                        this.waitAction,
+                        this.pressArrowRight, //go to ball menu
+                        this.waitAction,
+                        this.pressSpace, //open menu
+                };
+            }
 
             List<PhaseAction> actionList = new LinkedList<>();
             if(attackDecision instanceof AttackDecisionForPokemon forSingleFight){
@@ -110,6 +124,24 @@ public class CommandPhase extends AbstractPhase implements Phase {
             }
 
             throw new NotSupportedException("AttackDecision not supported in CommandPhase: " + attackDecision);
+        }
+        else if (gameMode == GameMode.BALL){
+            log.debug("GameMode.BALL, choosing strongest pokeball");
+            int pokeballIndex = decisionService.selectStrongestPokeball();
+            if(pokeballIndex == -1){
+                return new PhaseAction[]{
+                        this.pressBackspace, //go back to command menu and fight
+                };
+            }
+
+            boolean success = js.setPokeBallCursor(pokeballIndex);
+            if(success){
+                return new PhaseAction[]{
+                        this.pressSpace,
+                };
+            }
+
+            throw new IllegalStateException("Could not set pokeball cursor to index: " + pokeballIndex);
         }
 
         throw new NotSupportedException("GameMode not supported in CommandPhase: " + gameMode);
