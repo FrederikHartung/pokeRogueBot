@@ -8,8 +8,7 @@ window.poru.uihandler = {
                 return true; //no move needed
             }
             else{
-                partyUiHandler.setCursor(pokemonIndex);
-                return true; //moved
+                return partyUiHandler.setCursor(pokemonIndex);
             };
         }
 
@@ -32,5 +31,18 @@ window.poru.uihandler = {
         }
         
         return false; //false state or error
-    }
+    },
+
+    setBallUiHandlerCursor: (index) => {
+        var ballUiHandler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[4];
+
+        if(ballUiHandler && ballUiHandler.active){
+            if(ballUiHandler.cursor === index){
+                return true; //no move needed
+            }
+            else{
+                return ballUiHandler.setCursor(index);
+            }
+        }
+    },
 }
