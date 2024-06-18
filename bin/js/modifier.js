@@ -44,11 +44,11 @@ window.poru.modifier = {
         if (container.type === "Text" && container.parentContainer.constructor.name === "ModifierOption") {
             modifierOption.add(container.parentContainer);
         } else if (container.type === "Container" && container.list) {
-            container.list.forEach(subElement => this.filterShopItems(subElement));
+            container.list.forEach(subElement => filterShopItems(subElement, modifierOption));
         }
     },
 
-    buildResult: function buildResult(container) {
+    buildResult: function buildResult(container, resultArray) {
         let option = {
             //ModifierType
             id: container.modifierTypeOption.type.id,
@@ -105,7 +105,7 @@ window.poru.modifier = {
         });
         
         modifierOption.forEach(element => {
-            this.buildResult(element);
+            this.buildResult(element, resultArray);
         });
         
         return resultArray;

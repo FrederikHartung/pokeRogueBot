@@ -125,21 +125,10 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
     }
 
     @Override
-    public String executeCommandAndGetResult(String jsCommand){
+    public Object executeCommandAndGetResult(String jsCommand){
         try {
             JavascriptExecutor js = (JavascriptExecutor) driver;
-            Object result = js.executeScript(jsCommand);
-
-            if (result instanceof String resultAsString) {
-                return resultAsString;
-            } else if (result instanceof Long) {
-                return String.valueOf(result);
-            } else if( null == result){
-                throw new NotSupportedException("Result of JS execution is null");
-            }
-            else {
-                throw new NotSupportedException("Result of JS execution is not a string, got type: " + result.getClass().getSimpleName());
-            }
+            return js.executeScript(jsCommand);
         }
         catch (NoSuchWindowException e){
             log.error("browser window not found", e);

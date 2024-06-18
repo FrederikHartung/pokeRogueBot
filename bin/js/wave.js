@@ -29,10 +29,10 @@ window.poru.wave = {
 
     getArena: function getArena(battleScene) {
 
-        if(battleScene.arena){
+        if(battleScene && battleScene.arena){
             return {
                 biome: this.getBiomeEnumString(battleScene.arena.biomeType), //string
-                lastTimeOfDay: this.battleScene.arena.lastTimeOfDay, //int
+                lastTimeOfDay: battleScene.arena.lastTimeOfDay, //int
                 pokemonPool: {
                     gen0: battleScene.arena.pokemonPool[0],
                     gen1: battleScene.arena.pokemonPool[1],

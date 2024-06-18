@@ -8,5 +8,5 @@ public class Arena {
 
     private Biome biome;
     private int lastTimeOfDay;
-    private WildPokemonPool wildPokemonPool;
+    //private WildPokemonPool pokemonPool;
 }

@@ -18,25 +18,21 @@ public class WaitingService {
     }
 
     public void waitBriefly() {
-        int waitTime = calcWaitTime(waitConfig.getWaitTimeAfterAction());
+        int waitTime = waitConfig.getWaitTimeAfterAction();
         log.debug("Waiting for " + waitTime);
         sleep(waitTime);
     }
 
     public void waitLonger() {
-        int waitTime = calcWaitTime(waitConfig.getWaitTimeForRenderingText());
+        int waitTime = waitConfig.getWaitTimeForRenderingText();
         log.debug("Waiting longer for " + waitTime);
         sleep(waitTime);
     }
 
     public void waitEvenLonger() {
-        int waitTime = calcWaitTime(waitConfig.getWaitTimeForRenderingStages());
+        int waitTime = waitConfig.getWaitTimeForRenderingStages();
         log.debug("Waiting even longer for " + waitTime);
         sleep(waitTime);
-    }
-
-    public int calcWaitTime(int waitTime) {
-        return Math.round(waitTime / waitConfig.getGameSpeedModificator());
     }
 
     public void sleep(int waitTime) {
@@ -48,17 +44,6 @@ public class WaitingService {
     }
 
     public void waitAfterPhase(Phase phase) {
-        if (phase instanceof EncounterPhase) {
-            int waitTime = waitConfig.getEncounterPhase();
-            log.debug("Waiting for " + waitTime + "ms after encounter phase");
-            sleep(waitTime);
-        } else if (phase instanceof MessagePhase) {
-            int waitTime = waitConfig.getMessagePhase();
-            log.debug("Waiting for " + waitTime + "ms after message phase");
-            sleep(waitTime);
-        } else {
-            log.warn("default wait for phase: " + phase);
-            sleep(waitConfig.getPhaseDefault());
-        }
+        sleep(phase.getWaitAfterStage2x());
     }
 }

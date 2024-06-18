@@ -50,19 +50,19 @@ public class JsService {
     }
 
     public String getCurrentPhaseAsString() {
-        return jsClient.executeCommandAndGetResult("return window.poru.util.getPhaseName();");
+        return jsClient.executeCommandAndGetResult("return window.poru.util.getPhaseName();").toString();
     }
 
     public GameMode getGameMode() {
-        String response = jsClient.executeCommandAndGetResult("return window.poru.util.getGameMode();");
-        if (NumberUtils.isParsable(response)) {
-            return GameMode.fromValue(Integer.parseInt(response));
+        Object result = jsClient.executeCommandAndGetResult("return window.poru.util.getGameMode();");
+        if (result instanceof Long longValue) {
+            return GameMode.fromValue(longValue.intValue());
         }
         return GameMode.UNKNOWN;
     }
 
     public ModifierShop getModifierShop() {
-        String json = jsClient.executeCommandAndGetResult("return window.poru.modifier.getSelectModifiersJson();");
+        String json = jsClient.executeCommandAndGetResult("return window.poru.modifier.getSelectModifiersJson();").toString();
         List<ChooseModifierItem> options = GSON.fromJson(json, TYPE);
         if (options == null || options.isEmpty()) {
             throw new IllegalStateException("Modifier options are empty");
@@ -71,7 +71,7 @@ public class JsService {
     }
 
     public Wave getWave() {
-        String waveJson = jsClient.executeCommandAndGetResult("return window.poru.wave.getWaveJson();");
+        String waveJson = jsClient.executeCommandAndGetResult("return window.poru.wave.getWaveJson();").toString();
         Wave wave = GSON.fromJson(waveJson, Wave.class);
         WavePokemon wavePokemon = getWavePokemon();
         wave.setWavePokemon(wavePokemon);
@@ -79,19 +79,23 @@ public class JsService {
     }
 
     public WavePokemon getWavePokemon() {
-        String pokemonJson = jsClient.executeCommandAndGetResult("return window.poru.wave.getWavePokemonsJson();");
+        String pokemonJson = jsClient.executeCommandAndGetResult("return window.poru.wave.getWavePokemonsJson();").toString();
         return GSON.fromJson(pokemonJson, WavePokemon.class);
     }
 
     public boolean setModifierOptionsCursor(int rowIndex, int columnIndex) {
         log.debug("Setting modifier options cursor to row: " + rowIndex + ", column: " + columnIndex);
-        String result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.setModifierSelectUiHandlerCursor(%s, %s)".formatted(columnIndex, rowIndex));
+        String result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.setModifierSelectUiHandlerCursor(%s, %s)"
+                .formatted(columnIndex, rowIndex))
+                .toString();
         return Boolean.parseBoolean(result);
     }
 
     public boolean setPartyCursor(int index) {
         log.debug("Setting party cursor to index: " + index);
-        String result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.setPartyUiHandlerCursor(%s)".formatted(index));
+        String result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.setPartyUiHandlerCursor(%s)"
+                .formatted(index))
+                .toString();
         return Boolean.parseBoolean(result);
     }
 }

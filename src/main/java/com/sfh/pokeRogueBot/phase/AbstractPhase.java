@@ -21,4 +21,9 @@ public abstract class AbstractPhase implements Phase {
     public String toString() {
         return this.getPhaseName();
     }
+
+    @Override
+    public int getWaitAfterStage2x() {
+        return 2000;
+    }
 }

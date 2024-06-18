@@ -9,7 +9,7 @@ import lombok.Data;
 public class Wave {
 
     private WavePokemon wavePokemon;
-    
+
     private Arena arena;
     private BattleStyle battleStyle;
     private int battleScore;

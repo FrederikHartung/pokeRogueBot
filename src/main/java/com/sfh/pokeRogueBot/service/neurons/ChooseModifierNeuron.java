@@ -1,6 +1,7 @@
 package com.sfh.pokeRogueBot.service.neurons;
 
 import com.sfh.pokeRogueBot.model.enums.PokeBallType;
+import com.sfh.pokeRogueBot.model.enums.StatusEffect;
 import com.sfh.pokeRogueBot.model.enums.VoucherType;
 import com.sfh.pokeRogueBot.model.exception.PickModifierException;
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
@@ -209,6 +210,7 @@ public class ChooseModifierNeuron {
         }
 
         Pokemon mostHurtPokemon = Arrays.stream(playerParty)
+                .filter(p -> p.getHp() > 0)
                 .filter(p -> p.getHp() < p.getStats().getHp())
                 .max(Comparator.comparingInt(p -> p.getStats().getHp() - p.getHp()))
                 .orElse(null);
@@ -233,6 +235,7 @@ public class ChooseModifierNeuron {
         if(null != potion && potion.getItem().getCost() <= playerMoney){
             PokemonHpRestoreModifierItem potionItem = (PokemonHpRestoreModifierItem) potion.getItem();
             List<Pokemon> filteredPokemon = Arrays.stream(playerParty) //get the pokemon, where the potion is at least half used
+                    .filter(p -> p.getHp() > 0)
                     .filter(p -> {
                         int maxHeal = Math.max(potionItem.getRestorePoints(),
                                 potionItem.getRestorePercent() * p.getStats().getHp());

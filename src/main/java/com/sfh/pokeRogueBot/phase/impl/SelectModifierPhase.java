@@ -52,7 +52,7 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
                 throw new IllegalStateException("Could not set cursor to modifier option");
             }
 
-            log.debug("moved cursor to: " + result.getRowIndex() + ", " + result.getColumnIndex() + ", result: " + result);
+            log.debug("moved cursor to row: " + result.getRowIndex() + ", column: " + result.getColumnIndex());
             waitService.waitEvenLonger(); //wait for the cursor to be set
 
             decisionService.setWaveEnded(true); //inform the decision service that the wave has ended

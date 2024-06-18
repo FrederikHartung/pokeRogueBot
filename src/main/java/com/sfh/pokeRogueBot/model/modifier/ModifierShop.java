@@ -43,7 +43,7 @@ public class ModifierShop {
                 for (int i = 0; i < xBuyableArray.length; i++) {
                     for (int j = 0; j < yBuyableArray.length; j++) {
                         if (item.getX() == xBuyableArray[i] && item.getY() == yBuyableArray[j]) {
-                            ModifierShopItem shopItem = new ModifierShopItem(item, new ModifierPosition(i, j + rowsForBuyableItems + 1)); // +1 for reroll row and + all free item rows
+                            ModifierShopItem shopItem = new ModifierShopItem(item, new ModifierPosition(j  + rowsForBuyableItems + 1, i)); // +1 for reroll row and + all free item rows
                             buyableItems.add(shopItem);
                         }
                     }
@@ -52,7 +52,7 @@ public class ModifierShop {
                 for (int i = 0; i < xFreeArray.length; i++) {
                     for (int j = 0; j < yFreeArray.length; j++) {
                         if (item.getX() == xFreeArray[i] && item.getY() == yFreeArray[j]) {
-                            ModifierShopItem shopItem = new ModifierShopItem(item, new ModifierPosition(i, j + 1)); // +1 for reroll row
+                            ModifierShopItem shopItem = new ModifierShopItem(item, new ModifierPosition(j + 1, i)); // +1 for reroll row
                             freeItems.add(shopItem);
                         }
                     }

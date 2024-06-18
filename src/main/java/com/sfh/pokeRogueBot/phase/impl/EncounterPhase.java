@@ -13,6 +13,11 @@ public class EncounterPhase extends AbstractPhase implements Phase {
     public static final String NAME = "EncounterPhase";
 
     @Override
+    public int getWaitAfterStage2x() {
+        return 500;
+    }
+
+    @Override
     public String getPhaseName() {
         return NAME;
     }
