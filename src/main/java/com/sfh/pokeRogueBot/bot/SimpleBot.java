@@ -59,6 +59,7 @@ public class SimpleBot implements Bot {
     public void start() {
         fileManager.deleteTempData();
         browserClient.navigateTo(targetUrl);
+        jsService.init();
 
         while (startRun()){
             log.debug("run finished, starting new run");
