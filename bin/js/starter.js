@@ -31,4 +31,9 @@ window.poru.starter = {
         }
 
     },
+
+    getPossibleStarterJson: () => {
+        return JSON.stringify(this.getPossibleStarter());
+    },
+    
 }

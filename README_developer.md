@@ -21,8 +21,9 @@ Only refactor, when it's really necessary.
 - [x] handling a failed run
 - [x] check if the damage calculation is correct
 - [x] enemy health calculation
-- [ ] DamageCalculation: faint or catch attack
-- [ ] try to catch a pokemon
+- [x] DamageCalculation: faint or catch attack
+- [x] try to catch a pokemon
+- [ ] pick starter from config
 - [ ] getting the attack move from the summary ui handler
 - [ ] modifier shop refactoring
 - [ ] learn attack decision

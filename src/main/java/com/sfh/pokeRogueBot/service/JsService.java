@@ -8,6 +8,7 @@ import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem;
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItemDeserializer;
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
+import com.sfh.pokeRogueBot.model.run.Starter;
 import com.sfh.pokeRogueBot.model.run.Wave;
 import com.sfh.pokeRogueBot.model.run.WavePokemon;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,7 @@ public class JsService {
     public static final Path POKE = Paths.get(".", "bin", "js", "poke.js");
     public static final Path WAVE = Paths.get(".", "bin", "js", "wave.js");
     public static final Path MODIFIER = Paths.get(".", "bin", "js", "modifier.js");
+    public static final Path STARTER = Paths.get(".", "bin", "js", "starter.js");
 
     private final JsClient jsClient;
 
@@ -46,6 +48,7 @@ public class JsService {
         jsClient.addScriptToWindow(POKE);
         jsClient.addScriptToWindow(WAVE);
         jsClient.addScriptToWindow(MODIFIER);
+        jsClient.addScriptToWindow(STARTER);
     }
 
     public String getCurrentPhaseAsString() {
@@ -100,6 +103,25 @@ public class JsService {
         log.debug("Setting pokeball cursor to index: " + index);
         String result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.setBallUiHandlerCursor(%s)"
                         .formatted(index)).toString();
+        return Boolean.parseBoolean(result);
+    }
+
+    public Starter[] getAvailableStarterPokemon() {
+        log.debug("Getting starter pokemon");
+        String result = jsClient.executeCommandAndGetResult("return window.poru.starter.getPossibleStarterJson();").toString();
+        return GSON.fromJson(result, Starter[].class);
+    }
+
+    public boolean setPokemonSelectCursor(int speciesId) {
+        log.debug("Setting pokemon select cursor to speciesId: " + speciesId);
+        String result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.setStarterSelectUiHandlerCursor(%s);"
+                        .formatted(speciesId)).toString();
+        return Boolean.parseBoolean(result);
+    }
+
+    public boolean confirmPokemonSelect() {
+        log.debug("Confirming pokemon select");
+        String result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.confirmStarterSelect();").toString();
         return Boolean.parseBoolean(result);
     }
 }

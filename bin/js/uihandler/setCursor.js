@@ -75,4 +75,14 @@ window.poru.uihandler = {
         }
 
     },
+
+    confirmStarterSelect: () => {
+        var starterSelectUiHandler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[10];
+        if(starterSelectUiHandler && starterSelectUiHandler.active){
+            starterSelectUiHandler.tryStart()
+            return true;
+        }
+
+        return false;
+    }
 }
