@@ -181,6 +181,43 @@ window.poru.poke = {
         return movesetDto;
     },
 
+    getSpeciesDto: (species) => {
+        if(species){
+            return {
+                ability1: species.ability1, //integer
+                ability2: species.ability2, //integer
+                abilityHidden: species.abilityHidden, //integer
+                baseExp: species.baseExp, //integer
+                baseFriendship: species.baseFriendship, //integer
+                baseStats: {
+                    hp: species.baseStats[0], //integer
+                    attack: species.baseStats[1], //integer
+                    defense: species.baseStats[2], //integer
+                    specialAttack: species.baseStats[3], //integer
+                    specialDefense: species.baseStats[4], //integer
+                    speed: species.baseStats[5], //integer
+                },
+                baseTotal: species.baseTotal, //integer
+                canChangeForm: species.canChangeForm, //boolean
+                catchRate: species.catchRate, //integer
+                generation: species.generation, //integer
+                growthRate: species.growthRate, //integer
+                height: species.height, //integer
+                isStarterSelectable: species.isStarterSelectable, //boolean
+                legendary: species.legendary, //boolean
+                malePercent: species.malePercent, //float
+                mythical: species.mythical, //boolean
+                speciesString: species.species, //string
+                speciesId: species.speciesId, //integer
+                subLegendary: species.subLegendary, //boolean
+                type1: window.poru.poke.getTypeAsString(species.type1), //integer
+                type2: window.poru.poke.getTypeAsString(species.type2), //integer
+                weight: species.weight, //integer
+            }
+        }
+        return null;
+    },
+
     getBattleStats: (pokemon) => {
         if (!pokemon || !pokemon.summonData) {
             return null;
@@ -232,37 +269,7 @@ window.poru.poke = {
             pokerus: pokemon.pokerus, //boolean
             position: pokemon.position, //integer
             shiny: pokemon.shiny, //boolean
-            species: {
-                ability1: pokemon.species.ability1, //integer
-                ability2: pokemon.species.ability2, //integer
-                abilityHidden: pokemon.species.abilityHidden, //integer
-                baseExp: pokemon.species.baseExp, //integer
-                baseFriendship: pokemon.species.baseFriendship, //integer
-                baseStats: {
-                    hp: pokemon.species.baseStats[0], //integer
-                    attack: pokemon.species.baseStats[1], //integer
-                    defense: pokemon.species.baseStats[2], //integer
-                    specialAttack: pokemon.species.baseStats[3], //integer
-                    specialDefense: pokemon.species.baseStats[4], //integer
-                    speed: pokemon.species.baseStats[5], //integer
-                },
-                baseTotal: pokemon.species.baseTotal, //integer
-                canChangeForm: pokemon.species.canChangeForm, //boolean
-                catchRate: pokemon.species.catchRate, //integer
-                generation: pokemon.species.generation, //integer
-                growthRate: pokemon.species.growthRate, //integer
-                height: pokemon.species.height, //integer
-                isStarterSelectable: pokemon.species.isStarterSelectable, //boolean
-                legendary: pokemon.species.legendary, //boolean
-                malePercent: pokemon.species.malePercent, //float
-                mythical: pokemon.species.mythical, //boolean
-                speciesString: pokemon.species.species, //string
-                speciesId: pokemon.species.speciesId, //integer
-                subLegendary: pokemon.species.subLegendary, //boolean
-                type1: this.getTypeAsString(pokemon.species.type1), //integer
-                type2: this.getTypeAsString(pokemon.species.type2), //integer
-                weight: pokemon.species.weight, //integer
-            },
+            species: window.poru.poke.getSpeciesDto(pokemon.species), //object
             stats: {
                 hp: pokemon.stats[0], //integer
                 attack: pokemon.stats[1], //integer

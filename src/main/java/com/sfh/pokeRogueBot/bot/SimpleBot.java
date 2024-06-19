@@ -31,7 +31,6 @@ public class SimpleBot implements Bot {
     private final BrowserClient browserClient;
 
     private final String targetUrl;
-    private final boolean startRun;
 
     RunProperty runProperty;
 
@@ -42,8 +41,7 @@ public class SimpleBot implements Bot {
             PhaseProvider phaseProvider,
             FileManager fileManager,
             BrowserClient browserClient,
-            @Value("${browser.target-url}") String targetUrl,
-            @Value(("${stage.mainmenu.startRun}")) boolean startRun
+            @Value("${browser.target-url}") String targetUrl
     ) {
         this.runPropertyService = runPropertyService;
         this.jsService = jsService;
@@ -52,7 +50,6 @@ public class SimpleBot implements Bot {
         this.fileManager = fileManager;
         this.browserClient = browserClient;
         this.targetUrl = targetUrl;
-        this.startRun = startRun;
     }
 
     @Override

@@ -43,7 +43,7 @@ wait-time:
   learnMoveStageWaitTime: 500
 
 starter:
-  ids: [ 7, 4, 1]
+  ids: 7, 4, 1
 
 logging:
   level:

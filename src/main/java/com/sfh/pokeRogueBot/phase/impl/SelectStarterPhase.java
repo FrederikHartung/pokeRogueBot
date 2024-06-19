@@ -18,14 +18,14 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
     public static final String NAME = "SelectStarterPhase";
 
     private final JsService jsService;
-    private final int[] starterIds;
+    private final List<Integer>  starterIds;
     private final List<Starter> starters = new LinkedList<>();
 
     private boolean selectedStarters = false;
 
     public SelectStarterPhase(
             JsService jsService,
-            @Value("${starter.ids}") int[] starterIds
+            @Value("${starter.ids}") List<Integer> starterIds
     ) {
         this.jsService = jsService;
         this.starterIds = starterIds;
@@ -71,6 +71,7 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
 
                 return new PhaseAction[]{
                         this.waitAction,
+                        this.takeScreenshotAction,
                         this.pressSpace // confirm the selection
                 };
             }

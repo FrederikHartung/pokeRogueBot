@@ -18,7 +18,7 @@ window.poru.starter = {
                         var starter = {
                             speciesId: species.speciesId,
                             generation: generation,
-                            species: species,
+                            species: window.poru.poke.getSpeciesDto(species),
                             cost: starterCost,
                             cursorToSelect: cursor,
                         }
@@ -33,7 +33,7 @@ window.poru.starter = {
     },
 
     getPossibleStarterJson: () => {
-        return JSON.stringify(this.getPossibleStarter());
+        return JSON.stringify(window.poru.starter.getPossibleStarter());
     },
-    
+
 }
