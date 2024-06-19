@@ -54,20 +54,20 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
                 }
                 starters.remove(lastPokemonIndex);
 
-                if(!starters.isEmpty()){
-                    return new PhaseAction[]{
-                            this.waitAction,
-                            this.pressSpace, // select the starter
-                            this.waitAction,
-                            this.pressSpace // confirm the selection
-                    };
-                }
+                return new PhaseAction[]{
+                        this.waitAction,
+                        this.pressSpace, // select the starter
+                        this.waitAction,
+                        this.pressSpace // confirm the selection
+                };
             }
             else{
                 boolean success = jsService.confirmPokemonSelect();
                 if(!success){
                     throw new IllegalStateException("Failed to confirm starter selection");
                 }
+
+                selectedStarters = false; //set to false for next run
 
                 return new PhaseAction[]{
                         this.waitAction,
@@ -78,7 +78,7 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
 
         }
 
-        throw new NotSupportedException("gameMode not supported: " + gameMode);
+        throw new NotSupportedException("gameMode not supported in SelectStarterPhase: " + gameMode);
     }
 
     private void selectStarter(Starter[] availableStarters){
