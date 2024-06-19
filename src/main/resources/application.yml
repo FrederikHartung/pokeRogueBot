@@ -40,11 +40,10 @@ wait-time:
   phaseDefault: 500
   encounterPhase: 500
   messagePhase: 100
+  learnMoveStageWaitTime: 500
 
-stage:
-  mainmenu:
-    updateGameSettings: false
-    startRun: true
+starter:
+  ids: 7, 4, 1
 
 logging:
   level:

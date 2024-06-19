@@ -16,18 +16,57 @@ import java.util.List;
 @Service
 public class CombatNeuron {
 
-    public AttackDecisionForPokemon getAttackDecisionForSingleFight(@Nonnull Pokemon playerPokemon, @Nonnull Pokemon enemyPokemon) {
-        List<PossibleAttackMove> possibleAttackMoves = getPossibleAttackMoves(playerPokemon, enemyPokemon);
+    private final DamageCalculatingNeuron damageCalculatingNeuron;
 
-        ChosenAttackMove finisherMove = getFinisherMove(possibleAttackMoves, enemyPokemon.getHp(), OwnPokemonIndex.SINGLE);
-        if (finisherMove != null) {
-            log.debug("Finisher move found: " + finisherMove.getName() + " with damage: " + finisherMove.getDamage() + ", enemy pokemon health: " + enemyPokemon.getHp());
-            return new AttackDecisionForPokemon(finisherMove.getIndex(), MoveTarget.ENEMY, finisherMove.getDamage(), finisherMove.getAttackPriority(), finisherMove.getAttackerSpeed());
+    public CombatNeuron(DamageCalculatingNeuron damageCalculatingNeuron) {
+        this.damageCalculatingNeuron = damageCalculatingNeuron;
+    }
+
+    public AttackDecisionForPokemon getAttackDecisionForSingleFight(@Nonnull Pokemon playerPokemon, @Nonnull Pokemon enemyPokemon, boolean tryToCatch) {
+        log.debug("enemy pokemon health before attack: " + enemyPokemon.getHp() + ", try to catch: " + tryToCatch);
+
+        List<PossibleAttackMove> possibleAttackMoves = damageCalculatingNeuron.getPossibleAttackMoves(playerPokemon, enemyPokemon);
+        for(PossibleAttackMove move : possibleAttackMoves){
+            log.debug("Move: " + move.getAttackName() + ", min damage: " + move.getMinDamage() + ", max damage: " + move.getMaxDamage() + ", priority: " + move.getAttackPriority() + ", player speed: " + move.getAttackerSpeed() + ", enemy speed: " + enemyPokemon.getStats().getSpeed());
         }
 
-        ChosenAttackMove bestMove = getMaxDmgMove(possibleAttackMoves, OwnPokemonIndex.SINGLE);
-        log.debug("Best move found: " + bestMove.getName() + " with damage: " + bestMove.getDamage() + ", enemy pokemon health: " + enemyPokemon.getHp());
-        return new AttackDecisionForPokemon(bestMove.getIndex(), MoveTarget.ENEMY, bestMove.getDamage(), bestMove.getAttackPriority(), bestMove.getAttackerSpeed());
+        if (!tryToCatch) {
+            ChosenAttackMove finisherMove = getFinisherMove(possibleAttackMoves, enemyPokemon.getHp(), OwnPokemonIndex.SINGLE);
+            if (finisherMove != null) {
+                log.debug("Finisher move found: " + finisherMove.getName() + " with damage: " + finisherMove.getDamage() + ", enemy pokemon health: " + enemyPokemon.getHp());
+                return new AttackDecisionForPokemon(finisherMove.getIndex(), MoveTarget.ENEMY, finisherMove.getDamage(), finisherMove.getAttackPriority(), finisherMove.getAttackerSpeed());
+            }
+
+            ChosenAttackMove bestMove = getMaxDmgMove(possibleAttackMoves, OwnPokemonIndex.SINGLE);
+            log.debug("Best move found: " + bestMove.getName() + " with damage: " + bestMove.getDamage() + ", enemy pokemon health: " + enemyPokemon.getHp());
+            return new AttackDecisionForPokemon(bestMove.getIndex(), MoveTarget.ENEMY, bestMove.getDamage(), bestMove.getAttackPriority(), bestMove.getAttackerSpeed());
+
+        }
+
+        ChosenAttackMove tryToWeakenMove = getTryToWeakenMove(possibleAttackMoves, OwnPokemonIndex.SINGLE, enemyPokemon.getHp());
+        if(null != tryToWeakenMove){
+            return new AttackDecisionForPokemon(tryToWeakenMove.getIndex(), MoveTarget.ENEMY, tryToWeakenMove.getDamage(), tryToWeakenMove.getAttackPriority(), tryToWeakenMove.getAttackerSpeed());
+        }
+
+        return null;
+}
+
+    private ChosenAttackMove getTryToWeakenMove(List<PossibleAttackMove> possibleAttackMoves, OwnPokemonIndex index, int enemyHealth) {
+        PossibleAttackMove bestMove = null;
+        float highestDamage = -1;
+
+        for (PossibleAttackMove move : possibleAttackMoves) {
+            if (move.getMaxDamage() > highestDamage && move.getMaxDamage() < enemyHealth && move.getMaxDamage() > 0) {
+                highestDamage = move.getMaxDamage();
+                bestMove = move;
+            }
+        }
+
+        if (bestMove != null) {
+            return new ChosenAttackMove(bestMove.getIndex(), bestMove.getAttackName(), bestMove.getMinDamage(), ChoosenAttackMoveType.WEAKEN, bestMove.getAttackPriority(), bestMove.getAttackerSpeed(), index);
+        }
+
+        return null; // enemy pokemon can't be weakened more, so throw a ball now
     }
     
     private ChosenAttackMove getMaxDmgMove(List<PossibleAttackMove> possibleAttackMoves, OwnPokemonIndex index) {
@@ -46,7 +85,7 @@ public class CombatNeuron {
             return new ChosenAttackMove(bestMove.getIndex(), bestMove.getAttackName(), bestMove.getMinDamage(), ChoosenAttackMoveType.MAX_DAMAGE, bestMove.getAttackPriority(), bestMove.getAttackerSpeed(), index);
         }
 
-        throw new IllegalStateException("No attack move found");
+        throw new IllegalStateException("No max dmg attack move found");
     }
 
     private ChosenAttackMove getFinisherMove(List<PossibleAttackMove> possibleAttackMoves, int enemyHealth, OwnPokemonIndex index) {
@@ -61,20 +100,6 @@ public class CombatNeuron {
             if (fastestMove.getMinDamage() >= enemyHealth) {
                 return new ChosenAttackMove(fastestMove.getIndex(), fastestMove.getAttackName(), fastestMove.getMinDamage(), ChoosenAttackMoveType.FINISHER, fastestMove.getAttackPriority(), fastestMove.getAttackerSpeed(), index);
             }
-        }
-
-        //if no finisher move with priority > 0 is found, check for other possible finisher moves
-        PossibleAttackMove bestMove = null;
-        int smallestDifference = -1;
-        for (PossibleAttackMove move : possibleAttackMoves) {
-            if ((move.getMinDamage() >= enemyHealth) && (move.getMinDamage() - enemyHealth) < smallestDifference) {
-                bestMove = move;
-                smallestDifference = move.getMinDamage() - enemyHealth;
-            }
-        }
-
-        if (bestMove != null) {
-            return new ChosenAttackMove(bestMove.getIndex(), bestMove.getAttackName(), bestMove.getMinDamage(), ChoosenAttackMoveType.FINISHER, bestMove.getAttackPriority(), bestMove.getAttackerSpeed(), index);
         }
 
         return null;
@@ -153,7 +178,7 @@ public class CombatNeuron {
         ChosenAttackMove chosenFinisher1 = null;
         ChosenAttackMove chosenMaxDmg1 = null;
         if(null != enemyPokemon1){
-            List<PossibleAttackMove> possibleAttackMoves1 = getPossibleAttackMoves(playerPokemon, enemyPokemon1);
+            List<PossibleAttackMove> possibleAttackMoves1 = damageCalculatingNeuron.getPossibleAttackMoves(playerPokemon, enemyPokemon1);
             chosenFinisher1 = getFinisherMove(possibleAttackMoves1, enemyPokemon1.getHp(), OwnPokemonIndex.FIRST);
             chosenMaxDmg1 = getMaxDmgMove(possibleAttackMoves1, OwnPokemonIndex.FIRST);
         }
@@ -161,61 +186,11 @@ public class CombatNeuron {
         ChosenAttackMove chosenFinisher2 = null;
         ChosenAttackMove chosenMaxDmg2 = null;
         if(null != enemyPokemon2){
-            List<PossibleAttackMove> possibleAttackMoves2 = getPossibleAttackMoves(playerPokemon, enemyPokemon2);
+            List<PossibleAttackMove> possibleAttackMoves2 = damageCalculatingNeuron.getPossibleAttackMoves(playerPokemon, enemyPokemon2);
             chosenFinisher2 = getFinisherMove(possibleAttackMoves2, enemyPokemon2.getHp(), OwnPokemonIndex.SECOND);
             chosenMaxDmg2 = getMaxDmgMove(possibleAttackMoves2, OwnPokemonIndex.SECOND);
         }
 
         return new PossibleAttackMovesForDoubleFight(chosenFinisher1, chosenFinisher2, chosenMaxDmg1, chosenMaxDmg2);
-    }
-
-    public List<PossibleAttackMove> getPossibleAttackMoves(@Nonnull Pokemon playerPokemon, @Nonnull Pokemon enemyPokemon) {
-        Move[] playerMoves = playerPokemon.getMoveset();
-
-        List<PossibleAttackMove> possibleAttackMoves = new LinkedList<>();
-        for(int i = 0; i < playerMoves.length; i++) {
-            Move move = playerMoves[i];
-            if(move == null || !move.isUsable()) {
-                continue;
-            }
-
-            int minDamage = calculateDamage(playerPokemon, enemyPokemon, move, 0.85);
-            int maxDamage = calculateDamage(playerPokemon, enemyPokemon, move, 1.0);
-            float accuracy = move.getAccuracy() / 100f;
-
-            int expectedMinDamage = Math.round(minDamage * accuracy);
-            int expectedMaxDamage = Math.round(maxDamage * accuracy);
-
-            PossibleAttackMove attackMove = new PossibleAttackMove(i, expectedMinDamage, expectedMaxDamage, move.getPriority(), playerPokemon.getStats().getSpeed(), move.getName());
-            possibleAttackMoves.add(attackMove);
-        }
-
-        return possibleAttackMoves;
-    }
-
-    private int calculateDamage(Pokemon attacker, Pokemon defender, Move move, double randomFactor) {
-
-        if(move.getPower() < 0){
-            return 0;
-        }
-
-        int level = attacker.getLevel();
-        int attackStat = move.getCategory() == MoveCategory.SPECIAL ? attacker.getStats().getSpecialAttack() : attacker.getStats().getAttack();
-        int defenseStat = move.getCategory() == MoveCategory.SPECIAL ? defender.getStats().getSpecialDefense() : defender.getStats().getDefense();
-        int power = move.getPower();
-
-        double typeEffectiveness1 = PokeType.getTypeDamageMultiplier(move.getType(), defender.getSpecies().getType1());
-        double typeEffectiveness2 = PokeType.getTypeDamageMultiplier(move.getType(), defender.getSpecies().getType2());
-
-        //if the attacking pokemon has the same type as the move, it gets a STAB bonus
-        double stab = move.getType() == attacker.getSpecies().getType1() || move.getType() == attacker.getSpecies().getType2() ? 1.5 : 1.0;
-
-        // calculate base damage
-        double baseDamage = (((2 * level / 5d + 2) * power * attackStat / defenseStat) / 50d + 2) * randomFactor;
-
-        // apply modifiers
-        double damage = baseDamage * stab * typeEffectiveness1 * typeEffectiveness2;
-
-        return (int) Math.round(damage);
     }
 }

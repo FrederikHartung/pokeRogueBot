@@ -8,9 +8,9 @@ import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import org.springframework.stereotype.Component;
 
 @Component
-public class LearnMovePhase extends AbstractPhase implements Phase {
+public class EvolutionPhase extends AbstractPhase implements Phase {
 
-    public static final String NAME = "LearnMovePhase";
+    public static final String NAME = "EvolutionPhase";
 
     @Override
     public String getPhaseName() {
@@ -19,29 +19,18 @@ public class LearnMovePhase extends AbstractPhase implements Phase {
 
     @Override
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
-        if (gameMode == GameMode.MESSAGE){
+        if (gameMode == GameMode.MESSAGE) {
             return new PhaseAction[]{
                     this.pressSpace
             };
         }
-        else if(gameMode == GameMode.CONFIRM){
-            //should pokemon learn message
-            return new PhaseAction[]{ //currently don't learn new moves
-                    this.pressArrowDown,
-                    this.waitAction,
-                    this.pressSpace, //no,
-                    this.waitForTextRenderAction,
-                    this.pressSpace, //confirm
-            };
-        }
-        else if(gameMode == GameMode.EVOLUTION_SCENE){
+        else if (gameMode == GameMode.EVOLUTION_SCENE) {
             return new PhaseAction[]{
                     this.waitAction,
                     this.pressSpace
             };
         }
 
-        throw new NotSupportedException("GameMode not supported for LearnMovePhase: " + gameMode);
+        throw new NotSupportedException("GameMode " + gameMode + " is not supported in " + NAME);
     }
-
 }

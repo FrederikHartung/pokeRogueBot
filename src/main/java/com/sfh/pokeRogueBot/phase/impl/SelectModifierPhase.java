@@ -45,6 +45,14 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
 
             waitService.waitEvenLonger(); //wait for the modifier shop to render
             MoveToModifierResult result = decisionService.getModifierToPick();
+            if(null == result){
+                //cant choose item, so dont pick any
+                return new PhaseAction[]{
+                        this.pressBackspace,
+                        this.waitForTextRenderAction,
+                        this.pressSpace
+                };
+            }
             pokemonIndexToSwitchTo = result.getPokemonIndexToSwitchTo(); //store the pokemon index to switch to
 
             boolean isSettingCursorSuccessfull = jsService.setModifierOptionsCursor(result.getRowIndex(), result.getColumnIndex());
@@ -52,7 +60,7 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
                 throw new IllegalStateException("Could not set cursor to modifier option");
             }
 
-            log.debug("moved cursor to: " + result.getRowIndex() + ", " + result.getColumnIndex() + ", result: " + result);
+            log.debug("moved cursor to row: " + result.getRowIndex() + ", column: " + result.getColumnIndex());
             waitService.waitEvenLonger(); //wait for the cursor to be set
 
             decisionService.setWaveEnded(true); //inform the decision service that the wave has ended

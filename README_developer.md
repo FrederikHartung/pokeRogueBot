@@ -19,12 +19,18 @@ Only refactor, when it's really necessary.
 - [x] if the first attack is blocked, the second attack is chosen
 - [x] apply revive item
 - [x] handling a failed run
+- [x] check if the damage calculation is correct
+- [x] enemy health calculation
+- [x] DamageCalculation: faint or catch attack
+- [x] try to catch a pokemon
+- [x] pick starter from config
+- [ ] only buy max 10 pokeballs
+- [ ] make attack decision not in the attack menu
+- [ ] don't buy revive items before wave 10
 - [ ] getting the attack move from the summary ui handler
+- [ ] modifier shop refactoring
 - [ ] learn attack decision
-- [ ] try to catch a pokemon
-- [ ] check if the damage calculation is correct
-- [ ] enemy health calculation
-- [ ] if a exception is thrown, the run should be stopped, saved as error and then a new run should be started
+- [ ] if an exception is thrown, the run should be stopped, saved as error and then a new run should be started
 - [ ] adding the savegame index to a runpropterty
 - [ ] load savegame instead of continue
 - [ ] give the heal item in double fights the correct pokemon

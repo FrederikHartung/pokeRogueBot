@@ -2,6 +2,7 @@ package com.sfh.pokeRogueBot.browser;
 
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
+import com.sfh.pokeRogueBot.service.JsService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.*;
@@ -18,6 +19,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 @Slf4j
@@ -104,23 +106,11 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
     }
 
     @Override
-    public String executeJsAndGetResult(String jsFilePath) {
+    public void addScriptToWindow(Path jsFilePath) {
         try {
-            String jsCode = new String(Files.readAllBytes(Paths.get(jsFilePath)));
-
             JavascriptExecutor js = (JavascriptExecutor) driver;
-            Object result = js.executeScript(jsCode);
-
-            if (result instanceof String resultAsString) {
-                return resultAsString;
-            } else if (result instanceof Long) {
-                return String.valueOf(result);
-            } else if( null == result){
-                throw new NotSupportedException("Result of JS execution is null");
-            }
-            else {
-                throw new NotSupportedException("Result of JS execution is not a string, got type: " + result.getClass().getSimpleName());
-            }
+            String jsCode = new String(Files.readAllBytes(jsFilePath));
+            js.executeScript(jsCode);
         }
         catch (NoSuchWindowException e){
             log.error("browser window not found", e);
@@ -131,46 +121,27 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
             throw e;
         }
         catch (Exception e) {
-            log.error("Error while executing JS: " + jsFilePath, e);
+            log.error("Error while adding script to window: " + jsFilePath, e);
+        }
+    }
+
+    @Override
+    public Object executeCommandAndGetResult(String jsCommand){
+        try {
+            JavascriptExecutor js = (JavascriptExecutor) driver;
+            return js.executeScript(jsCommand);
+        }
+        catch (NoSuchWindowException e){
+            log.error("browser window not found", e);
+            throw e;
+        }
+        catch (UnreachableBrowserException e){
+            log.error("browser unreachable", e);
+            throw e;
+        }
+        catch (Exception e) {
+            log.error("Error while executing JS command: " + jsCommand, e);
             return null;
-        }
-    }
-
-    @Override
-    public boolean setModifierOptionsCursor(String jsFilePath, int rowIndex, int columnIndex) {
-        try {
-            String jsCode = new String(Files.readAllBytes(Paths.get(jsFilePath)));
-
-            JavascriptExecutor js = (JavascriptExecutor) driver;
-            Object result = js.executeScript(jsCode, rowIndex, columnIndex);
-
-            if (result instanceof Boolean resultAsBoolean) {
-                return resultAsBoolean;
-            } else {
-                throw new NotSupportedException("Result of JS execution is not a Boolean, got type: " + result.getClass().getSimpleName());
-            }
-        } catch (Exception e) {
-            log.error("Error while executing JS: " + jsFilePath, e);
-            return false;
-        }
-    }
-
-    @Override
-    public boolean setPartyCursor(String setPartyCursor, int index) {
-        try {
-            String jsCode = new String(Files.readAllBytes(Paths.get(setPartyCursor)));
-
-            JavascriptExecutor js = (JavascriptExecutor) driver;
-            Object result = js.executeScript(jsCode, index);
-
-            if (result instanceof Boolean resultAsBoolean) {
-                return resultAsBoolean;
-            } else {
-                throw new NotSupportedException("Result of JS execution is not a Boolean, got type: " + result.getClass().getSimpleName());
-            }
-        } catch (Exception e) {
-            log.error("Error while executing JS: " + setPartyCursor, e);
-            return false;
         }
     }
 

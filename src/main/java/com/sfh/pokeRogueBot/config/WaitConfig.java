@@ -26,6 +26,7 @@ public class WaitConfig {
     private int waitTimeAfterAction;
     private int waitTimeForRenderingText;
     private int waitTimeForRenderingStages;
+    private int learnMoveStageWaitTime;
     private int phaseDefault;
     private int encounterPhase;
     private int messagePhase;

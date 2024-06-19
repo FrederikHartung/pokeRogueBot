@@ -13,6 +13,11 @@ public class MessagePhase extends AbstractPhase implements Phase {
     public static final String NAME = "MessagePhase";
 
     @Override
+    public int getWaitAfterStage2x() {
+        return 100;
+    }
+
+    @Override
     public String getPhaseName() {
         return NAME;
     }
