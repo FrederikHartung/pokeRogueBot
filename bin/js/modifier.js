@@ -1,7 +1,7 @@
 if(!window.poru) window.poru = {};
 window.poru.modifier = {
 
-    getModifierTierEnumString: function getModifierTierEnumString(tier) {
+    getModifierTierEnumString: (tier) => {
         const tierMapping = {
           0: "COMMON",
           1: "GREAT",
@@ -14,7 +14,7 @@ window.poru.modifier = {
         return tierMapping[tier] || "COMMON";
     },
 
-    getModifierTierEnumString: function getModifierTierEnumString(tier) {
+    getModifierTierEnumString: (tier) => {
         const tierMapping = {
           0: "COMMON",
           1: "GREAT",
@@ -27,7 +27,7 @@ window.poru.modifier = {
         return tierMapping[tier] || "COMMON";
     },
 
-    getPokeBallTypeEnumString: function getPokeBallTypeEnumString(pokeBallIndex) {
+    getPokeBallTypeEnumString: (pokeBallIndex) => {
         const pokeBallMapping = {
             0: "POKEBALL",
             1: "GREAT_BALL",
@@ -40,7 +40,7 @@ window.poru.modifier = {
         return pokeBallMapping[pokeBallIndex] || "POKEBALL";
     },
 
-    filterShopItems: function filterShopItems(container, modifierOption){
+    filterShopItems: (container, modifierOption) => {
         if (container.type === "Text" && container.parentContainer.constructor.name === "ModifierOption") {
             modifierOption.add(container.parentContainer);
         } else if (container.type === "Container" && container.list) {
@@ -48,7 +48,7 @@ window.poru.modifier = {
         }
     },
 
-    buildResult: function buildResult(container, resultArray) {
+    buildResult: (container, resultArray) => {
         let option = {
             //ModifierType
             id: container.modifierTypeOption.type.id,
@@ -94,7 +94,7 @@ window.poru.modifier = {
         resultArray.push(option);
     },
 
-    getSelectModifiers: function get() {
+    getSelectModifiers: () => {
         var uiElements = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.getAll();
         var activeAndVisibleElements = uiElements.filter(element => element._visible && element.active);
         var modifierOption =  new Set();
@@ -111,7 +111,7 @@ window.poru.modifier = {
         return resultArray;
     },
 
-    getSelectModifiersJson: function getJson() {
+    getSelectModifiersJson: () => {
         return JSON.stringify(this.getSelectModifiers());
     },
 }

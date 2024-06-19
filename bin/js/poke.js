@@ -1,7 +1,7 @@
 if(!window.poru) window.poru = {};
 window.poru.poke = {
 
-    getNatureAsString: function getNatureAsString(id){
+    getNatureAsString: (id) => {
         const Nature = [
             "HARDY",
             "LONELY",
@@ -37,7 +37,7 @@ window.poru.poke = {
             }
     },
 
-    getTypeAsString: function getTypeAsString(id){
+    getTypeAsString: (id) => {
         const Nature = {
             "-1": "UNKNOWN",
             0: "NORMAL",
@@ -69,7 +69,7 @@ window.poru.poke = {
             }
     },
     
-    getGenderAsString: function getGenderAsString(id){
+    getGenderAsString: (id) => {
         const Gender = [
             "MALE",
             "FEMALE",
@@ -83,7 +83,7 @@ window.poru.poke = {
         }
     },
 
-    getStatusEffectAsString: function getStatusEffectAsString(id) {
+    getStatusEffectAsString: (id) => {
         const StatusEffect = [
             "NONE",
             "POISON",
@@ -103,7 +103,7 @@ window.poru.poke = {
         }
     },
 
-    getCategoryAsString: function getCategoryAsString(id) {
+    getCategoryAsString: (id) => {
         const Category = [
             "PHYSICAL",
             "SPECIAL",
@@ -118,7 +118,7 @@ window.poru.poke = {
         }
     },
 
-    getStatus: function getStatus(pokemon) {
+    getStatus: (pokemon) => {
         if (!pokemon) {
             return null;
         }
@@ -142,7 +142,7 @@ window.poru.poke = {
         };
     },
 
-    getMovesetDto: function getMovesetDto(pokemon) {
+    getMovesetDto: (pokemon) => {
         if (!pokemon || !pokemon.moveset || !pokemon.summonData) {
             return [];
         }
@@ -181,7 +181,7 @@ window.poru.poke = {
         return movesetDto;
     },
 
-    getBattleStats: function getBattleStats(pokemon) {
+    getBattleStats: (pokemon) => {
         if (!pokemon || !pokemon.summonData) {
             return null;
         }
@@ -200,7 +200,7 @@ window.poru.poke = {
         return null;
     },
 
-    getPokemonDto: function getPokemonDto(pokemon){
+    getPokemonDto: (pokemon) => {
     
         let dto = {
             active: pokemon.active, //boolean
@@ -288,6 +288,5 @@ window.poru.poke = {
     
         return dto;
     },
-
 
 }

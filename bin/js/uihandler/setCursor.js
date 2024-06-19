@@ -1,6 +1,6 @@
 if(!window.poru) window.poru = {};
 window.poru.uihandler = {
-    setPartyUiHandlerCursor: function setPartyUiHandler(pokemonIndex) {
+    setPartyUiHandlerCursor: (pokemonIndex) => {
         var partyUiHandler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[8];
 
         if(partyUiHandler && partyUiHandler.active) {
@@ -15,7 +15,7 @@ window.poru.uihandler = {
         return false; //error or false state
     },
 
-    setModifierSelectUiHandlerCursor: function setModifierSelectUiHandler(cursorColumn, cursorRow) {
+    setModifierSelectUiHandlerCursor: (cursorColumn, cursorRow) => {
         var modifierSelectUiHandler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[6];
         
         if(modifierSelectUiHandler && modifierSelectUiHandler.active){

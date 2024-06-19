@@ -1,7 +1,7 @@
 if(!window.poru) window.poru = {};
 window.poru.wave = {
 
-    getWavePokemons: function getWavePokemons() {
+    getWavePokemons: () => {
         
         var enemyParty = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentBattle.enemyParty;
         var enemyPartyDto = [];
@@ -27,7 +27,7 @@ window.poru.wave = {
         };
     },
 
-    getArena: function getArena(battleScene) {
+    getArena: (battleScene) => {
 
         if(battleScene && battleScene.arena){
             return {
@@ -50,11 +50,11 @@ window.poru.wave = {
         return null;
     },
 
-    getWavePokemonsJson: function getWavePokemonsJson() {
+    getWavePokemonsJson: () => {
         return JSON.stringify(this.getWavePokemons());
     },
 
-    getWave: function getWave() {
+    getWave: () => {
         var currentBattle = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentBattle;
         var battleScene = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1];
         
@@ -83,11 +83,11 @@ window.poru.wave = {
         return battleSceneDto;
     },
 
-    getWaveJson: function getWaveJson() {
+    getWaveJson: () => {
         return JSON.stringify(this.getWave());
     },
 
-    getBiomeEnumString: function getBiomeEnumString(index) {
+    getBiomeEnumString: (index) => {
         const biomeMapping = {
           0: "TOWN",
           1: "PLAINS",
@@ -129,7 +129,7 @@ window.poru.wave = {
         return biomeMapping[index] || "UNKNOWN";
     },
 
-    getBattleTypeString: function getBattleTypeString(index) {
+    getBattleTypeString: (index) => {
         const biomeMapping = {
           0: "WILD",
           1: "TRAINER",
@@ -139,7 +139,7 @@ window.poru.wave = {
         return biomeMapping[index] || "UNKNOWN";
     },
 
-    getBattleStyleString: function getBattleStyleString(index) {
+    getBattleStyleString: (index) => {
         const biomeMapping = {
           0: "SWITCH",
           1: "SET"
@@ -147,7 +147,6 @@ window.poru.wave = {
       
         return biomeMapping[index] || "UNKNOWN";
     },
-
 
 }
 
