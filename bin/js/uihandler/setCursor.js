@@ -46,18 +46,33 @@ window.poru.uihandler = {
         }
     },
 
-    setStarterSelectUiHandlerCursor: (index) => {
+    setStarterSelectUiHandlerCursor: (speciesId) => {
         var starterSelectUiHandler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[10];
-
-        if(starterSelectUiHandler && starterSelectUiHandler.active){
-            if(starterSelectUiHandler.cursor === index){
-                return true; //no move needed
-            }
-            else{
-                return starterSelectUiHandler.setCursor(index);
+        var starter = window.poru.starter.getPossibleStarter();
+        var speciesIndex = -1;
+        var targetGeneration = -1;
+        for(let i = 0; i < starter.length; i++) {
+            if(starter[i].speciesId === speciesId){
+                speciesIndex = starter[i].cursorToSelect;
+                targetGeneration = starter[i].generation;
+                console.log("Species found at index: " + speciesIndex + " in generation: " + targetGeneration);
+                break;
             }
         }
 
-        return false; //error or false state
+        if(speciesIndex === -1) return false; //error => species not found
+
+        if(starterSelectUiHandler && starterSelectUiHandler.active){
+            starterSelectUiHandler.setGenMode(true);
+            starterSelectUiHandler.genCursor = 0;
+            starterSelectUiHandler.genScrollCursor = 0;
+            starterSelectUiHandler.setCursor(targetGeneration);
+            starterSelectUiHandler.setGenMode(false);
+            starterSelectUiHandler.setCursor(speciesIndex);
+            starterSelectUiHandler.cursorObj.visible = true
+
+            return true;
+        }
+
     },
 }

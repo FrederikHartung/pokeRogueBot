@@ -13,8 +13,16 @@ window.poru.starter = {
                     var species = genSpecies[generation][cursor];
                     var dexEntry = dexData[species.speciesId];
 
-                    if(dexEntry && dexEntry.caughtAttr && dexEntry.caughtAttr === 149n) {
-                        starters.push(species);
+                    if(dexEntry && dexEntry.caughtAttr && dexEntry.caughtAttr > 0n) {
+                        starterCost = starterSelectUiHandler.scene.gameData.getSpeciesStarterValue(species.speciesId);
+                        var starter = {
+                            speciesId: species.speciesId,
+                            generation: generation,
+                            species: species,
+                            cost: starterCost,
+                            cursorToSelect: cursor,
+                        }
+                        starters.push(starter);
                     }
                 }
             }
