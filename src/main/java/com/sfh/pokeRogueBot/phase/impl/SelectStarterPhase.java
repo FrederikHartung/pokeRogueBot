@@ -7,11 +7,13 @@ import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.JsService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
 
+@Slf4j
 @Component
 public class SelectStarterPhase extends AbstractPhase implements Phase {
 
@@ -43,6 +45,9 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
             if(starters.isEmpty() && !selectedStarters){
                 selectStarter(jsService.getAvailableStarterPokemon());
                 selectedStarters = true;
+                StringJoiner joiner = new StringJoiner(", ");
+                starters.forEach(starter -> joiner.add(starter.getSpecies().getSpeciesString()));
+                log.debug("Selected starters: {}", joiner.toString());
                 return new PhaseAction[]{this.waitAction};
             }
             else if(!starters.isEmpty()){
@@ -70,12 +75,21 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
                 selectedStarters = false; //set to false for next run
 
                 return new PhaseAction[]{
-                        this.waitAction,
-                        this.takeScreenshotAction,
-                        this.pressSpace // confirm the selection
+                        this.waitForTextRenderAction,
+                        this.pressSpace
                 };
             }
 
+        }
+        else if(gameMode == GameMode.CONFIRM){
+            return new PhaseAction[]{
+                    this.pressSpace
+            };
+        }
+        else if(gameMode == GameMode.SAVE_SLOT){
+            return new PhaseAction[]{
+                    this.pressSpace
+            };
         }
 
         throw new NotSupportedException("gameMode not supported in SelectStarterPhase: " + gameMode);

@@ -45,6 +45,10 @@ public class CommandPhase extends AbstractPhase implements Phase {
             if (commandPhaseDecision == CommandPhaseDecision.ATTACK) {
                 log.debug("GameMode.COMMAND, Attack decision chosen");
                 return new PhaseAction[]{
+                        this.pressArrowUp,
+                        this.waitAction,
+                        this.pressArrowLeft,
+                        this.waitAction,
                         this.pressSpace,
                 };
             }

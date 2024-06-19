@@ -45,6 +45,14 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
 
             waitService.waitEvenLonger(); //wait for the modifier shop to render
             MoveToModifierResult result = decisionService.getModifierToPick();
+            if(null == result){
+                //cant choose item, so dont pick any
+                return new PhaseAction[]{
+                        this.pressBackspace,
+                        this.waitForTextRenderAction,
+                        this.pressSpace
+                };
+            }
             pokemonIndexToSwitchTo = result.getPokemonIndexToSwitchTo(); //store the pokemon index to switch to
 
             boolean isSettingCursorSuccessfull = jsService.setModifierOptionsCursor(result.getRowIndex(), result.getColumnIndex());

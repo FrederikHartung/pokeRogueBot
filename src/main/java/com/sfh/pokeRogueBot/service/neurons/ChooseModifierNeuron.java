@@ -93,7 +93,7 @@ public class ChooseModifierNeuron {
 
         //pick revive items if free and needed
         MoveToModifierResult reviveItem = pickReviveItemIfFreeAndNeeded(shop, playerParty);
-        if(null != reviveItem) {
+        if (null != reviveItem) {
             log.debug("picked revive item for pokemon on index: " + reviveItem.getPokemonIndexToSwitchTo());
             return reviveItem;
         }
@@ -128,7 +128,13 @@ public class ChooseModifierNeuron {
             return moneyRewardModifierItem;
         }
 
-        throw new PickModifierException("can't pick any item from the shop because of my poor logic");
+        //pick Lure
+        MoveToModifierResult lureItem = pickItem(shop, DoubleBattleChanceBoosterModifierItem.TARGET);
+        if (null != lureItem) {
+            return lureItem;
+        }
+
+        return null;
     }
 
     private MoveToModifierResult pickReviveItemIfFreeAndNeeded(ModifierShop shop, Pokemon[] playerParty){

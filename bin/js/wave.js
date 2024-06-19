@@ -31,7 +31,7 @@ window.poru.wave = {
 
         if(battleScene && battleScene.arena){
             return {
-                biome: this.getBiomeEnumString(battleScene.arena.biomeType), //string
+                biome: window.poru.wave.getBiomeEnumString(battleScene.arena.biomeType), //string
                 lastTimeOfDay: battleScene.arena.lastTimeOfDay, //int
                 pokemonPool: {
                     gen0: battleScene.arena.pokemonPool[0],
@@ -51,7 +51,7 @@ window.poru.wave = {
     },
 
     getWavePokemonsJson: () => {
-        return JSON.stringify(this.getWavePokemons());
+        return JSON.stringify(window.poru.wave.getWavePokemons());
     },
 
     getWave: () => {
@@ -59,11 +59,11 @@ window.poru.wave = {
         var battleScene = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1];
         
         var battleSceneDto = {
-            arena: this.getArena(battleScene), //object
-            battleStyle: this.getBattleStyleString(battleScene.battleStyle), //String
+            arena: window.poru.wave.getArena(battleScene), //object
+            battleStyle: window.poru.wave.getBattleStyleString(battleScene.battleStyle), //String
             
             battleScore: currentBattle.battleScore, //int
-            battleType: this.getBattleTypeString(currentBattle.battleType), //enum
+            battleType: window.poru.wave.getBattleTypeString(currentBattle.battleType), //enum
             double: currentBattle.double, //boolean
             enemyFaints: currentBattle.enemyFaints, //int
             money: battleScene.money, //int
@@ -84,7 +84,7 @@ window.poru.wave = {
     },
 
     getWaveJson: () => {
-        return JSON.stringify(this.getWave());
+        return JSON.stringify(window.poru.wave.getWave());
     },
 
     getBiomeEnumString: (index) => {

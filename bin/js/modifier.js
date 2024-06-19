@@ -44,7 +44,7 @@ window.poru.modifier = {
         if (container.type === "Text" && container.parentContainer.constructor.name === "ModifierOption") {
             modifierOption.add(container.parentContainer);
         } else if (container.type === "Container" && container.list) {
-            container.list.forEach(subElement => filterShopItems(subElement, modifierOption));
+            container.list.forEach(subElement => window.poru.modifier.filterShopItems(subElement, modifierOption));
         }
     },
 
@@ -53,7 +53,7 @@ window.poru.modifier = {
             //ModifierType
             id: container.modifierTypeOption.type.id,
             group: container.modifierTypeOption.type.group,
-            tier: this.getModifierTierEnumString(container.modifierTypeOption.type.tier),
+            tier: window.poru.modifier.getModifierTierEnumString(container.modifierTypeOption.type.tier),
             name: container.modifierTypeOption.type.name,
             typeName: container.modifierTypeOption.type.constructor.name,
             x: container.x,
@@ -66,7 +66,7 @@ window.poru.modifier = {
     
         if (option.typeName === "AddPokeballModifierType"){
             option.count = container.modifierTypeOption.type.count;
-            option.pokeballType = this.getPokeBallTypeEnumString(container.modifierTypeOption.type.pokeballType);
+            option.pokeballType = window.poru.modifier.getPokeBallTypeEnumString(container.modifierTypeOption.type.pokeballType);
         }
         else if (option.typeName === "AddVoucherModifierType"){
             option.vouchertype = container.modifierTypeOption.type.vouchertype;
@@ -101,17 +101,17 @@ window.poru.modifier = {
         var resultArray = [];
         
         activeAndVisibleElements.forEach(element => {
-            this.filterShopItems(element, modifierOption);
+            window.poru.modifier.filterShopItems(element, modifierOption);
         });
         
         modifierOption.forEach(element => {
-            this.buildResult(element, resultArray);
+            window.poru.modifier.buildResult(element, resultArray);
         });
         
         return resultArray;
     },
 
     getSelectModifiersJson: () => {
-        return JSON.stringify(this.getSelectModifiers());
+        return JSON.stringify(window.poru.modifier.getSelectModifiers());
     },
 }

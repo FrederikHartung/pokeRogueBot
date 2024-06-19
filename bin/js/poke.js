@@ -137,7 +137,7 @@ window.poru.poke = {
         }
         
         return {
-            effect: this.getStatusEffectAsString(status.effect), // String
+            effect: window.poru.poke.getStatusEffectAsString(status.effect), // String
             turnCount: status.turnCount, // Integer
         };
     },
@@ -163,13 +163,13 @@ window.poru.poke = {
                 name: moveSetItem.getName(),
                 id: moveSetItem.moveId,
                 accuracy: move.accuracy,
-                category: this.getCategoryAsString(move.category),
+                category: window.poru.poke.getCategoryAsString(move.category),
                 chance: move.chance,
-                defaultType: this.getTypeAsString(move.defaultType),
+                defaultType: window.poru.poke.getTypeAsString(move.defaultType),
                 moveTarget: move.moveTarget,
                 power: move.power,
                 priority: move.priority,
-                type: this.getTypeAsString(move.type),
+                type: window.poru.poke.getTypeAsString(move.type),
                 movePp: moveSetItem.getMovePp(),
                 pPUsed: moveSetItem.ppUsed,
                 pPLeft: moveSetItem.getMovePp() - moveSetItem.ppUsed,
@@ -246,7 +246,7 @@ window.poru.poke = {
             fieldPosition: pokemon.fieldPosition, //integer
             formIndex: pokemon.formIndex, //integer
             friendship: pokemon.friendship, //integer
-            gender: this.getGenderAsString(pokemon.gender), //String
+            gender: window.poru.poke.getGenderAsString(pokemon.gender), //String
             hp: pokemon.hp, //integer
             id: pokemon.id, //long
             ivs: {
@@ -261,9 +261,9 @@ window.poru.poke = {
             luck: pokemon.luck, //integer
             metBiome: pokemon.metBiome, //integer
             metLevel: pokemon.metLevel, //integer
-            moveset: this.getMovesetDto(pokemon), //array of objects
+            moveset: window.poru.poke.getMovesetDto(pokemon), //array of objects
             name: pokemon.name, //string
-            nature: this.getNatureAsString(pokemon.nature), //String
+            nature: window.poru.poke.getNatureAsString(pokemon.nature), //String
             natureOverride: pokemon.natureOverride, //integer
             passive: pokemon.passive, //boolean
             pokerus: pokemon.pokerus, //boolean
@@ -278,8 +278,8 @@ window.poru.poke = {
                 specialDefense: pokemon.stats[4], //integer
                 speed: pokemon.stats[5], //integer
             },
-            status: this.getStatus(pokemon), //object
-            battleStats: this.getBattleStats(pokemon), //object
+            status: window.poru.poke.getStatus(pokemon), //object
+            battleStats: window.poru.poke.getBattleStats(pokemon), //object
             trainerSlot: pokemon.trainerSlot, //integer
             variant: pokemon.variant, //integer
     

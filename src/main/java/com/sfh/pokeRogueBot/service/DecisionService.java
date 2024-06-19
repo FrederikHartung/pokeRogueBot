@@ -68,6 +68,7 @@ public class DecisionService {
     public CommandPhaseDecision getCommandDecision() {
         if(waveEnded){
             wave = jsService.getWave();
+            capturePokemon = false;
         }
         else{
             wave.setWavePokemon(jsService.getWavePokemon());
