@@ -127,7 +127,6 @@ public class DecisionService {
 
         //=> wave is a double fight
 
-        boolean isTrainerFight = waveDto.is
         int playerPartySize = waveDto.getWavePokemon().getPlayerParty().length;
         int enemyPartySize = waveDto.getWavePokemon().getEnemyParty().length;
 
