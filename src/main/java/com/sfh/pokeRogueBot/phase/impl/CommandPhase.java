@@ -4,7 +4,7 @@ import com.sfh.pokeRogueBot.model.dto.WaveAndTurnDto;
 import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision;
 import com.sfh.pokeRogueBot.model.enums.MoveDecision;
-import com.sfh.pokeRogueBot.model.enums.MoveTarget;
+import com.sfh.pokeRogueBot.model.enums.SelectedMoveTarget;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.run.AttackDecision;
 import com.sfh.pokeRogueBot.model.run.AttackDecisionForDoubleFight;
@@ -120,7 +120,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
                 actionList.add(this.waitAction); //to go back to top left
                 actionList.add(this.pressArrowLeft); //to go back to top left
 
-                addActionsToList(forSingleFight.getMoveDecision(), forSingleFight.getMoveTarget(), actionList);
+                addActionsToList(forSingleFight.getMoveDecision(), forSingleFight.getSelectedMoveTarget(), actionList);
 
                 return actionList.toArray(new PhaseAction[0]);
             }
@@ -130,7 +130,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
                 actionList.add(this.waitAction); //to go back to top left
                 actionList.add(this.pressArrowLeft); //to go back to top left
 
-                addActionsToList(forDoubleFight.getPokemon1().getMoveDecision(), forDoubleFight.getPokemon1().getMoveTarget(), actionList); //add the decisions for the first pokemon
+                addActionsToList(forDoubleFight.getPokemon1().getMoveDecision(), forDoubleFight.getPokemon1().getSelectedMoveTarget(), actionList); //add the decisions for the first pokemon
 
                 if(null != forDoubleFight.getPokemon1() && null != forDoubleFight.getPokemon2()){ //only when two player pokemon are available
                     actionList.add(this.waitForTextRenderAction); //second pokemon is active now and the phase is back to command phase
@@ -140,7 +140,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
                     actionList.add(this.waitAction);
                     actionList.add(this.pressArrowLeft); //to go back to top left
 
-                    addActionsToList(forDoubleFight.getPokemon2().getMoveDecision(), forDoubleFight.getPokemon2().getMoveTarget(), actionList); //add the decisions for the second pokemon
+                    addActionsToList(forDoubleFight.getPokemon2().getMoveDecision(), forDoubleFight.getPokemon2().getSelectedMoveTarget(), actionList); //add the decisions for the second pokemon
                 }
 
                 return actionList.toArray(new PhaseAction[0]);
@@ -173,7 +173,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
         throw new NotSupportedException("GameMode not supported in CommandPhase: " + gameMode);
     }
 
-    private void addActionsToList(MoveDecision moveDecision, MoveTarget moveTarget, List<PhaseAction> actionList){
+    private void addActionsToList(MoveDecision moveDecision, SelectedMoveTarget selectedMoveTarget, List<PhaseAction> actionList){
         actionList.add(this.waitAction);
         switch (moveDecision) {
             case TOP_LEFT:
@@ -200,7 +200,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
 
         actionList.add(this.waitAction); //now choose the target
 
-        switch (moveTarget) {
+        switch (selectedMoveTarget) {
             case ENEMY:
                 log.debug("Enemy target selected");
                 break;

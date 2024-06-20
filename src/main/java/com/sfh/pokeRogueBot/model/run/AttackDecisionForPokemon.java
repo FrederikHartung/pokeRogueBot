@@ -1,19 +1,19 @@
 package com.sfh.pokeRogueBot.model.run;
 
 import com.sfh.pokeRogueBot.model.enums.MoveDecision;
-import com.sfh.pokeRogueBot.model.enums.MoveTarget;
+import com.sfh.pokeRogueBot.model.enums.SelectedMoveTarget;
 import lombok.Data;
 
 @Data
 public class AttackDecisionForPokemon implements AttackDecision {
 
     private final MoveDecision moveDecision;
-    private final MoveTarget moveTarget;
+    private final SelectedMoveTarget selectedMoveTarget;
     private final int expectedDamage;
     private final int attackPriority;
     private final int attackerSpeed;
 
-    public AttackDecisionForPokemon(int attackIndex, MoveTarget target, int expectedDamage, int attackPriority, int attackerSpeed) {
+    public AttackDecisionForPokemon(int attackIndex, SelectedMoveTarget target, int expectedDamage, int attackPriority, int attackerSpeed) {
         this.attackPriority = attackPriority;
         this.attackerSpeed = attackerSpeed;
         switch (attackIndex) {
@@ -32,7 +32,7 @@ public class AttackDecisionForPokemon implements AttackDecision {
             default:
                 throw new IllegalArgumentException("Invalid attack index: " + attackIndex);
         }
-        moveTarget = target;
+        selectedMoveTarget = target;
         this.expectedDamage = expectedDamage;
     }
 }

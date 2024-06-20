@@ -1,6 +1,37 @@
 if(!window.poru) window.poru = {};
 window.poru.poke = {
 
+    getMoveTargetAsString: (id) => {
+        const MoveTarget = [
+            "USER",
+            "OTHER",
+            "ALL_OTHERS",
+            "NEAR_OTHER",
+            "ALL_NEAR_OTHERS",
+            "NEAR_ENEMY",
+            "ALL_NEAR_ENEMIES",
+            "RANDOM_NEAR_ENEMY",
+            "ALL_ENEMIES",
+            "ATTACKER",
+            "NEAR_ALLY",
+            "ALLY",
+            "USER_OR_NEAR_ALLY",
+            "USER_AND_ALLIES",
+            "ALL",
+            "USER_SIDE",
+            "ENEMY_SIDE",
+            "BOTH_SIDES",
+            "PARTY",
+            "CURSE"
+        ];
+    
+            if (id >= 0 && id < MoveTarget.length) {
+                return MoveTarget[id];
+            } else {
+                return "UNKNOWN";
+            }
+    },
+
     getNatureAsString: (id) => {
         const Nature = [
             "HARDY",
@@ -169,6 +200,7 @@ window.poru.poke = {
                 moveTarget: move.moveTarget,
                 power: move.power,
                 priority: move.priority,
+                moveTarget: move.moveTarget,
                 type: window.poru.poke.getTypeAsString(move.type),
                 movePp: moveSetItem.getMovePp(),
                 pPUsed: moveSetItem.ppUsed,
