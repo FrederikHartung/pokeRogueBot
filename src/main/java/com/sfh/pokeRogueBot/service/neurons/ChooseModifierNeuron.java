@@ -9,6 +9,7 @@ import com.sfh.pokeRogueBot.model.modifier.ModifierShopItem;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.model.modifier.impl.*;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
+import com.sfh.pokeRogueBot.model.run.Wave;
 import com.sfh.pokeRogueBot.service.JsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -22,17 +23,19 @@ import java.util.List;
 public class ChooseModifierNeuron {
 
     private final JsService jsService;
+    private final ChosePokeBallModifierNeuron chosePokeBallModifierNeuron;
 
-    public ChooseModifierNeuron(JsService jsService) {
+    public ChooseModifierNeuron(JsService jsService, ChosePokeBallModifierNeuron chosePokeBallModifierNeuron) {
         this.jsService = jsService;
+        this.chosePokeBallModifierNeuron = chosePokeBallModifierNeuron;
     }
 
-    public MoveToModifierResult getModifierToPick(Pokemon[] playerParty, int playerGold) {
+    public MoveToModifierResult getModifierToPick(Pokemon[] playerParty, Wave wave) {
         ModifierShop shop = jsService.getModifierShop();
         log.info(shop.toString());
 
-        boolean priorityItemExists = priorityItemExists(shop);
-        MoveToModifierResult itemToBuy = buyItemIfNeeded(shop, playerParty, playerGold, priorityItemExists);
+        boolean priorityItemExists = priorityItemExists(shop, wave);
+        MoveToModifierResult itemToBuy = buyItemIfNeeded(shop, playerParty, wave.getMoney(), priorityItemExists);
         if(null != itemToBuy){
             return itemToBuy;
         }
@@ -40,20 +43,13 @@ public class ChooseModifierNeuron {
         return pickFreeItem(shop, playerParty);
     }
 
-    private boolean priorityItemExists(ModifierShop shop){
+    private boolean priorityItemExists(ModifierShop shop, Wave wave) {
         //if a egg voucher is available, pick it
         if(shop.freeItemsContains(AddVoucherModifierItem.TARGET)){
             return true;
         }
 
-        //if a special pokeball is available, pick it
-        ModifierShopItem pokeBallModifier = shop.getFreeItems().stream()
-                .filter(item -> item.getItem().getTypeName().equals(AddPokeballModifierItem.TARGET))
-                .findFirst()
-                .orElse(null);
-        if(null != pokeBallModifier && ((AddPokeballModifierItem) pokeBallModifier.getItem()).getPokeballType() != PokeBallType.POKEBALL){
-            return true;
-        }
+        boolean pokeBallPriority = chosePokeBallModifierNeuron.priorityItemExists(shop, wave);
 
         return false;
     }

@@ -62,7 +62,7 @@ public class DecisionService {
 
     public MoveToModifierResult getModifierToPick() {
         wave = jsService.getWave();
-        return chooseModifierNeuron.getModifierToPick(wave.getWavePokemon().getPlayerParty(), wave.getMoney());
+        return chooseModifierNeuron.getModifierToPick(wave.getWavePokemon().getPlayerParty(), wave);
     }
 
     public CommandPhaseDecision getCommandDecision() {
