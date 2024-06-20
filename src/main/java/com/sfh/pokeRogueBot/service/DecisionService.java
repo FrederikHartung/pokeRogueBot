@@ -116,6 +116,8 @@ public class DecisionService {
                     log.debug("trying to catch boss: " + wildPokemon.getName());
                 }
             }
+            log.debug("trying to find attack decision: isTrainer: "
+                    + waveDto.isTrainerFight() + ", capture pokemon: " + capturePokemon);
             return combatNeuron.getAttackDecisionForSingleFight(
                     waveDto.getWavePokemon().getPlayerParty()[0],
                     waveDto.getWavePokemon().getEnemyParty()[0],
