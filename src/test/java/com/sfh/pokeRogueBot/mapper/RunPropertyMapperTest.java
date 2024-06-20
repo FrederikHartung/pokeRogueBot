@@ -21,7 +21,7 @@ class RunPropertyMapperTest {
 
         RunProperty result = RunPropertyMapper.toRunProperty(entity);
         assertEquals(1, result.getRunNumber());
-        assertEquals(RunStatus.LOST, result.getStatus());
+        assertEquals(RunStatus.ERROR, result.getStatus());
         assertEquals(3, result.getRoundNumber());
         assertEquals(4, result.getDefeatedWildPokemon());
         assertEquals(5, result.getCaughtPokemon());
@@ -39,7 +39,7 @@ class RunPropertyMapperTest {
 
         RunPropertyEntity result = RunPropertyMapper.toRunPropertyEntity(runProperty);
         assertEquals(1, result.getRunNumber());
-        assertEquals(2, result.getStatus());
+        assertEquals(3, result.getStatus());
         assertEquals(3, result.getRoundNumber());
         assertEquals(4, result.getDefeatedWildPokemon());
         assertEquals(5, result.getCaughtPokemon());

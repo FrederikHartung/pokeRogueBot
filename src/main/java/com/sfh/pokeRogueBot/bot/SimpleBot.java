@@ -14,6 +14,7 @@ import com.sfh.pokeRogueBot.phase.impl.TitlePhase;
 import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.service.RunPropertyService;
 import lombok.extern.slf4j.Slf4j;
+import org.openqa.selenium.JavascriptException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.support.RetryTemplateBuilder;
@@ -70,6 +71,7 @@ public class SimpleBot implements Bot {
 
         RetryTemplate retryTemplate = new RetryTemplateBuilder() //todo: add configurable retry policy
                 .retryOn(UnsupportedPhaseException.class)
+                .retryOn(JavascriptException.class)
                 .maxAttempts(5)
                 .fixedBackoff(1000)
                 .build();

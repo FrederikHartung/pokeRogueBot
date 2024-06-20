@@ -139,6 +139,10 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
             log.error("browser unreachable", e);
             throw e;
         }
+        catch (JavascriptException e){
+            log.error("JavaScript Exception occured", e);
+            throw e;
+        }
         catch (Exception e) {
             log.error("Error while executing JS command: " + jsCommand, e);
             return null;

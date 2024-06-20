@@ -7,10 +7,12 @@ import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import org.springframework.stereotype.Component;
 
-@Component
-public class TitlePhase extends AbstractPhase implements Phase {
+import javax.print.attribute.standard.MediaSize;
 
-    public static final String NAME = "TitlePhase";
+@Component
+public class LoginPhase extends AbstractPhase implements Phase {
+
+    private static final String NAME = "LoginPhase";
 
     @Override
     public String getPhaseName() {
@@ -19,17 +21,12 @@ public class TitlePhase extends AbstractPhase implements Phase {
 
     @Override
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
-        if (gameMode == GameMode.TITLE) {
+        if(gameMode == GameMode.LOADING){
             return new PhaseAction[]{
-                    this.pressSpace
-            };
-        }
-        else if(gameMode == GameMode.MESSAGE){
-            return new PhaseAction[]{
-                    this.pressSpace
+                    this.waitForTextRenderAction
             };
         }
 
-        throw new NotSupportedException("TitlePhase does not support game mode: " + gameMode);
+        throw new NotSupportedException("Gamemode " + gameMode + "not supported in " + NAME);
     }
 }

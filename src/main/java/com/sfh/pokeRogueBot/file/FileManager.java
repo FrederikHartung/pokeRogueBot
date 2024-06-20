@@ -45,7 +45,10 @@ public class FileManager {
         String filePath = getFilePath(fileNamePrefix);
 
         try {
-            ImageIO.write(bufferedImage, IMAGE_IO_FILE_EXTENSION, new File(filePath));
+            if (Files.notExists(getTempDir())) {
+                Files.createDirectories(getTempDir());
+            }
+                ImageIO.write(bufferedImage, IMAGE_IO_FILE_EXTENSION, new File(filePath));
             fileIndex++;
             log.info("Screenshot persisted: " + filePath);
         } catch (Exception e) {
@@ -68,5 +71,9 @@ public class FileManager {
      */
     public String getFilePath(String fileNamePrefix) {
         return DIR_TEMP + File.separator + fileIndex + "_" + fileNamePrefix + SCREENSHOT_FILE_EXTENSION;
+    }
+
+    public Path getTempDir(){
+        return Paths.get(DIR_TEMP + File.separator);
     }
 }
