@@ -48,6 +48,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
         WaveAndTurnDto waveAndTurnDto = this.jsService.getWaveAndTurnIndex();
         if(null != waveAndTurnDto) {
 
+            //if the wave has ended, inform the decisionService
             if (waveAndTurnDto.getWaveIndex() > lastWaveIndex) {
                 decisionService.informWaveEnded(waveAndTurnDto.getWaveIndex());
                 this.lastWaveIndex = waveAndTurnDto.getWaveIndex();

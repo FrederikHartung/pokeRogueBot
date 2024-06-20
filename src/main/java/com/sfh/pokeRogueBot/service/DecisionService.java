@@ -123,8 +123,12 @@ public class DecisionService {
             );
         }
 
+        //=> wave is a double fight
+
+        boolean isTrainerFight = waveDto.is
         int playerPartySize = waveDto.getWavePokemon().getPlayerParty().length;
         int enemyPartySize = waveDto.getWavePokemon().getEnemyParty().length;
+
         return combatNeuron.getAttackDecisionForDoubleFight(
                 waveDto.getWavePokemon().getPlayerParty()[0],
                 playerPartySize == 2 ? waveDto.getWavePokemon().getPlayerParty()[1] : null,
