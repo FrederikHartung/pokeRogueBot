@@ -151,12 +151,13 @@ public class DecisionService {
         return -1;
     }
 
-    public void informWaveEnded() {
+    public void informWaveEnded(int newWaveIndex) {
         this.waveDto = jsService.getWaveDto();
         this.waveHasPokerus = false;
         this.waveHasShiny = false;
         this.capturePokemon = false;
         this.chooseModifierDecision = null;
+        runProperty.setWaveIndex(newWaveIndex);
     }
 
     public void informTurnEnded() {

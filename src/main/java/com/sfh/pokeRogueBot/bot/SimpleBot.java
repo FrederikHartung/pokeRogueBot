@@ -83,7 +83,7 @@ public class SimpleBot implements Bot {
                 retryTemplate.execute(context -> {
                     handleStageInWave();
                     if(runProperty.getStatus() == RunStatus.LOST){
-
+                        log.info("Run ended: Lost battle in Wave: " + runProperty.getWaveIndex());
                     }
                     return null;
                 });
@@ -93,6 +93,7 @@ public class SimpleBot implements Bot {
             log.error("error while running", e);
             phaseProcessor.takeScreenshot("error_" + e.getClass().getSimpleName());
             runProperty.setStatus(RunStatus.ERROR);
+            log.debug("Run ended: Error in Wave: " + runProperty.getWaveIndex());
             return false;
         }
 

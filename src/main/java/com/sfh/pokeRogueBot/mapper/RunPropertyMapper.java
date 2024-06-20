@@ -12,7 +12,7 @@ public class RunPropertyMapper {
     public static RunProperty toRunProperty(RunPropertyEntity entity) {
         RunProperty runProperty = new RunProperty(entity.getRunNumber());
         runProperty.setStatus(RunStatus.values()[entity.getStatus()]);
-        runProperty.setRoundNumber(entity.getRoundNumber());
+        runProperty.setWaveIndex(entity.getRoundNumber());
         runProperty.setDefeatedWildPokemon(entity.getDefeatedWildPokemon());
         runProperty.setCaughtPokemon(entity.getCaughtPokemon());
         runProperty.setDefeatedTrainer(entity.getDefeatedTrainer());
@@ -24,7 +24,7 @@ public class RunPropertyMapper {
         RunPropertyEntity entity = new RunPropertyEntity();
         entity.setRunNumber(runProperty.getRunNumber());
         entity.setStatus(null != runProperty.getStatus() ? runProperty.getStatus().ordinal() : -1);
-        entity.setRoundNumber(runProperty.getRoundNumber());
+        entity.setRoundNumber(runProperty.getWaveIndex());
         entity.setDefeatedWildPokemon(runProperty.getDefeatedWildPokemon());
         entity.setCaughtPokemon(runProperty.getCaughtPokemon());
         entity.setDefeatedTrainer(runProperty.getDefeatedTrainer());

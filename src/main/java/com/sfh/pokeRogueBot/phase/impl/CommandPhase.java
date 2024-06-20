@@ -49,7 +49,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
         if(null != waveAndTurnDto) {
 
             if (waveAndTurnDto.getWaveIndex() > lastWaveIndex) {
-                decisionService.informWaveEnded();
+                decisionService.informWaveEnded(waveAndTurnDto.getWaveIndex());
                 this.lastWaveIndex = waveAndTurnDto.getWaveIndex();
                 this.lastTurnIndex = waveAndTurnDto.getTurnIndex();
             }
