@@ -197,7 +197,7 @@ window.poru.poke = {
                 category: window.poru.poke.getCategoryAsString(move.category),
                 chance: move.chance,
                 defaultType: window.poru.poke.getTypeAsString(move.defaultType),
-                moveTarget: move.moveTarget,
+                moveTarget: window.poru.poke.getMoveTargetAsString(move.moveTarget),
                 power: move.power,
                 priority: move.priority,
                 moveTarget: move.moveTarget,
