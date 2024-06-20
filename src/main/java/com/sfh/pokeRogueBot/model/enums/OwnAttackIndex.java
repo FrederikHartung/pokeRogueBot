@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.model.enums;
 
-public enum MoveDecision {
+public enum OwnAttackIndex {
 
     TOP_LEFT,
     TOP_RIGHT,

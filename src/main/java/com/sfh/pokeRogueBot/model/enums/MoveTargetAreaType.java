@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.model.enums;
 
-public enum MoveTarget {
+public enum MoveTargetAreaType {
 
     /** @see <a href="https://bulbapedia.bulbagarden.net/wiki/Category:Moves_that_target_the_user Moves that target the User>Source</a> */
     USER,

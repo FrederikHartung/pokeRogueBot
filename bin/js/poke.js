@@ -200,7 +200,6 @@ window.poru.poke = {
                 moveTarget: window.poru.poke.getMoveTargetAsString(move.moveTarget),
                 power: move.power,
                 priority: move.priority,
-                moveTarget: move.moveTarget,
                 type: window.poru.poke.getTypeAsString(move.type),
                 movePp: moveSetItem.getMovePp(),
                 pPUsed: moveSetItem.ppUsed,

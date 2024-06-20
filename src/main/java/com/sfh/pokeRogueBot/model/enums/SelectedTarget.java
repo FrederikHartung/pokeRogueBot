@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.model.enums;
 
-public enum SelectedMoveTarget {
+public enum SelectedTarget {
 
     ENEMY,
     NONE,
