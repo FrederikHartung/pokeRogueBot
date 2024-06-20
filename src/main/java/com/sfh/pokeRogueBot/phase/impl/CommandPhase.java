@@ -132,7 +132,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
                 addActionsToList(forDoubleFight.getPokemon1().getMoveDecision(), forDoubleFight.getPokemon1().getMoveTarget(), actionList); //add the decisions for the first pokemon
 
                 if(null != forDoubleFight.getPokemon1() && null != forDoubleFight.getPokemon2()){ //only when two player pokemon are available
-                    actionList.add(this.waitAction); //second pokemon is active now and the phase is back to command phase
+                    actionList.add(this.waitForTextRenderAction); //second pokemon is active now and the phase is back to command phase
                     actionList.add(this.pressSpace); //enter fight game mode again for the second pokemon
 
                     actionList.add(this.pressArrowUp);
@@ -165,12 +165,15 @@ public class CommandPhase extends AbstractPhase implements Phase {
             }
 
             throw new IllegalStateException("Could not set pokeball cursor to index: " + pokeballIndex);
+        } else if (gameMode == GameMode.MESSAGE) {
+            log.debug("GameMode.MESSAGE detected in CommandPhase");
         }
 
         throw new NotSupportedException("GameMode not supported in CommandPhase: " + gameMode);
     }
 
     private void addActionsToList(MoveDecision moveDecision, MoveTarget moveTarget, List<PhaseAction> actionList){
+        actionList.add(this.waitAction);
         switch (moveDecision) {
             case TOP_LEFT:
                 actionList.add(this.pressSpace);

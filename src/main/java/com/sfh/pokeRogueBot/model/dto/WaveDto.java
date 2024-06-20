@@ -25,4 +25,12 @@ public class WaveDto {
     private int turn;
     private int waveIndex;
     private int[] pokeballCount;
+
+    public boolean isTrainerFight(){
+      return this.getBattleType() == BattleType.TRAINER;
+    }
+
+    public boolean isWildPokemonFight(){
+        return this.getBattleType() == BattleType.WILD;
+    }
 }

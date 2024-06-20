@@ -11,6 +11,7 @@ import com.sfh.pokeRogueBot.phase.PhaseProcessor;
 import com.sfh.pokeRogueBot.phase.PhaseProvider;
 import com.sfh.pokeRogueBot.phase.impl.MessagePhase;
 import com.sfh.pokeRogueBot.phase.impl.TitlePhase;
+import com.sfh.pokeRogueBot.service.DecisionService;
 import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.service.RunPropertyService;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,7 @@ public class SimpleBot implements Bot {
     private final PhaseProvider phaseProvider;
     private final FileManager fileManager;
     private final BrowserClient browserClient;
+    private final DecisionService decisionService;
 
     private final String targetUrl;
 
@@ -41,7 +43,7 @@ public class SimpleBot implements Bot {
             PhaseProcessor phaseProcessor,
             PhaseProvider phaseProvider,
             FileManager fileManager,
-            BrowserClient browserClient,
+            BrowserClient browserClient, DecisionService decisionService,
             @Value("${browser.target-url}") String targetUrl
     ) {
         this.runPropertyService = runPropertyService;
@@ -50,6 +52,7 @@ public class SimpleBot implements Bot {
         this.phaseProvider = phaseProvider;
         this.fileManager = fileManager;
         this.browserClient = browserClient;
+        this.decisionService = decisionService;
         this.targetUrl = targetUrl;
     }
 
@@ -68,6 +71,7 @@ public class SimpleBot implements Bot {
         runProperty.setStatus(RunStatus.STARTING);
         runPropertyService.save(runProperty);
         jsService.init();
+        decisionService.setRunProperty(runProperty);
 
         RetryTemplate retryTemplate = new RetryTemplateBuilder() //todo: add configurable retry policy
                 .retryOn(UnsupportedPhaseException.class)

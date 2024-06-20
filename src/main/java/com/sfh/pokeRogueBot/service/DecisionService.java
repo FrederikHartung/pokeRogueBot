@@ -1,19 +1,17 @@
 package com.sfh.pokeRogueBot.service;
 
+import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import com.sfh.pokeRogueBot.model.enums.BattleType;
 import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
-import com.sfh.pokeRogueBot.model.run.AttackDecision;
-import com.sfh.pokeRogueBot.model.run.ChooseModifierDecision;
-import com.sfh.pokeRogueBot.model.run.RunProperty;
-import com.sfh.pokeRogueBot.model.run.SwitchDecision;
-import com.sfh.pokeRogueBot.model.dto.WaveDto;
+import com.sfh.pokeRogueBot.model.run.*;
 import com.sfh.pokeRogueBot.phase.ScreenshotClient;
 import com.sfh.pokeRogueBot.service.neurons.ChooseModifierNeuron;
 import com.sfh.pokeRogueBot.service.neurons.CombatNeuron;
 import com.sfh.pokeRogueBot.service.neurons.SwitchPokemonNeuron;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -30,6 +28,8 @@ public class DecisionService {
 
     private final ScreenshotClient screenshotClient;
 
+    @Getter
+    @Setter
     private RunProperty runProperty = null;
     private WaveDto waveDto;
     private boolean waveHasShiny = false;
@@ -53,10 +53,6 @@ public class DecisionService {
         this.switchPokemonNeuron = switchPokemonNeuron;
     }
 
-    public boolean shouldSwitchPokemon() {
-        return false;
-    }
-
     public SwitchDecision getFaintedPokemonSwitchDecision() {
         return switchPokemonNeuron.getFaintedPokemonSwitchDecision(waveDto.isDoubleFight());
     }
@@ -77,7 +73,7 @@ public class DecisionService {
     }
 
     public CommandPhaseDecision getCommandDecision() {
-        if (null != waveDto && waveDto.getBattleType() == BattleType.WILD) {
+        if (null != waveDto && waveDto.isWildPokemonFight()) {
             for(Pokemon wildPokemon : waveDto.getWavePokemon().getEnemyParty()) {
                 if (wildPokemon.isShiny() && !waveHasShiny) {
                     log.info("Shiny pokemon detected: " + wildPokemon.getName());
@@ -158,6 +154,7 @@ public class DecisionService {
         this.capturePokemon = false;
         this.chooseModifierDecision = null;
         runProperty.setWaveIndex(newWaveIndex);
+        log.debug("new wave: Waveindex: " + waveDto.getWaveIndex() + ", is trainer fight: " + waveDto.isTrainerFight());
     }
 
     public void informTurnEnded() {
