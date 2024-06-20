@@ -49,6 +49,8 @@ public class ChooseModifierNeuron {
             return true;
         }
 
+        if(shop.freeItemsContains())
+
         boolean pokeBallPriority = chosePokeBallModifierNeuron.priorityItemExists(shop, wave);
         if(pokeBallPriority){
             return true;
