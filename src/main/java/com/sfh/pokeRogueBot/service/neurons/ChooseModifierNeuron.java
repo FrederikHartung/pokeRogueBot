@@ -40,7 +40,7 @@ public class ChooseModifierNeuron {
             return itemToBuy;
         }
 
-        return pickFreeItem(shop, playerParty);
+        return pickFreeItem(shop, wave);
     }
 
     private boolean priorityItemExists(ModifierShop shop, Wave wave) {
@@ -50,6 +50,9 @@ public class ChooseModifierNeuron {
         }
 
         boolean pokeBallPriority = chosePokeBallModifierNeuron.priorityItemExists(shop, wave);
+        if(pokeBallPriority){
+            return true;
+        }
 
         return false;
     }
@@ -79,8 +82,9 @@ public class ChooseModifierNeuron {
         return null;
     }
 
-    private MoveToModifierResult pickFreeItem(ModifierShop shop, Pokemon[] playerParty) {
+    private MoveToModifierResult pickFreeItem(ModifierShop shop, Wave wave) {
 
+        Pokemon[] playerParty = wave.getWavePokemon().getPlayerParty();
         //pick vouchers
         MoveToModifierResult voucherItem = pickItem(shop, AddVoucherModifierItem.TARGET);
         if (null != voucherItem) {
@@ -96,7 +100,7 @@ public class ChooseModifierNeuron {
 
         //pick pokeball item
         MoveToModifierResult pokeballModifierItem = pickItem(shop, AddPokeballModifierItem.TARGET);
-        if (null != pokeballModifierItem) {
+        if (null != pokeballModifierItem && chosePokeBallModifierNeuron.priorityItemExists(shop, wave)) {
             return pokeballModifierItem;
         }
 
