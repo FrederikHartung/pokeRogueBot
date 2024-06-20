@@ -1,5 +1,8 @@
 package com.sfh.pokeRogueBot.model.modifier;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import javax.annotation.Nonnull;
 import java.util.LinkedList;
 import java.util.List;
@@ -16,6 +19,10 @@ public class ModifierShop {
 
     private final List<ModifierShopItem> buyableItems;
     private final List<ModifierShopItem> freeItems;
+
+    @Setter
+    @Getter
+    private int money;
 
     public ModifierShop(@Nonnull List<ChooseModifierItem> items) {
         Set<Integer> xSetBuyable = items.stream().filter(item -> item.getCost() > 0).map(ChooseModifierItem::getX).collect(Collectors.toCollection(TreeSet::new)); //automatically sorted and removes duplicates

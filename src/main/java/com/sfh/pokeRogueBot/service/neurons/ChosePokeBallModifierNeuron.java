@@ -4,27 +4,25 @@ import com.sfh.pokeRogueBot.model.enums.PokeBallType;
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
 import com.sfh.pokeRogueBot.model.modifier.ModifierShopItem;
 import com.sfh.pokeRogueBot.model.modifier.impl.AddPokeballModifierItem;
-import com.sfh.pokeRogueBot.model.run.Wave;
+import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-
-import java.util.Map;
 
 @Slf4j
 @Component
 public class ChosePokeBallModifierNeuron {
 
-    public boolean priorityItemExists(ModifierShop shop, Wave wave){
+    public boolean priorityItemExists(ModifierShop shop, WaveDto waveDto){
         //if a special pokeball is available, pick it
         ModifierShopItem pokeBallModifier = shop.getFreeItems().stream()
                 .filter(item -> item.getItem().getTypeName().equals(AddPokeballModifierItem.TARGET))
                 .findFirst()
                 .orElse(null);
         if(null != pokeBallModifier){
-            int rogueBalls = wave.getPokeballCount()[PokeBallType.ROGUE_BALL.ordinal()];
-            int ultraBalls = wave.getPokeballCount()[PokeBallType.ULTRA_BALL.ordinal()];
-            int greatBalls = wave.getPokeballCount()[PokeBallType.GREAT_BALL.ordinal()];
-            int pokeBalls = wave.getPokeballCount()[PokeBallType.POKEBALL.ordinal()];
+            int rogueBalls = waveDto.getPokeballCount()[PokeBallType.ROGUE_BALL.ordinal()];
+            int ultraBalls = waveDto.getPokeballCount()[PokeBallType.ULTRA_BALL.ordinal()];
+            int greatBalls = waveDto.getPokeballCount()[PokeBallType.GREAT_BALL.ordinal()];
+            int pokeBalls = waveDto.getPokeballCount()[PokeBallType.POKEBALL.ordinal()];
 
             switch (((AddPokeballModifierItem)pokeBallModifier.getItem()).getPokeballType()){
                 case MASTER_BALL, LUXURY_BALL: //always pick these
@@ -51,7 +49,6 @@ public class ChosePokeBallModifierNeuron {
                     }
                     break;
             }
-            return true;
         }
 
         return false;

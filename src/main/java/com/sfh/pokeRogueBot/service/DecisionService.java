@@ -5,9 +5,10 @@ import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.run.AttackDecision;
+import com.sfh.pokeRogueBot.model.run.ChooseModifierDecision;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.model.run.SwitchDecision;
-import com.sfh.pokeRogueBot.model.run.Wave;
+import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import com.sfh.pokeRogueBot.phase.ScreenshotClient;
 import com.sfh.pokeRogueBot.service.neurons.ChooseModifierNeuron;
 import com.sfh.pokeRogueBot.service.neurons.CombatNeuron;
@@ -30,12 +31,12 @@ public class DecisionService {
     private final ScreenshotClient screenshotClient;
 
     private RunProperty runProperty = null;
-    private Wave wave;
-    private boolean waveEnded = true; //default for game start
+    private WaveDto waveDto;
     private boolean waveHasShiny = false;
     private boolean waveHasPokerus = false;
     @Getter
     private boolean capturePokemon = false;
+    private ChooseModifierDecision chooseModifierDecision;
 
     public DecisionService(
             RunPropertyService runPropertyService,
@@ -57,25 +58,27 @@ public class DecisionService {
     }
 
     public SwitchDecision getFaintedPokemonSwitchDecision() {
-        return switchPokemonNeuron.getFaintedPokemonSwitchDecision(wave.isDoubleFight());
+        return switchPokemonNeuron.getFaintedPokemonSwitchDecision(waveDto.isDoubleFight());
     }
 
     public MoveToModifierResult getModifierToPick() {
-        wave = jsService.getWave();
-        return chooseModifierNeuron.getModifierToPick(wave.getWavePokemon().getPlayerParty(), wave);
+        if(null == chooseModifierDecision){ //get new decision
+            this.waveDto = jsService.getWaveDto(); //always refresh money and pokemons before choosing the modifiers
+            this.chooseModifierDecision = chooseModifierNeuron.getModifierToPick(waveDto.getWavePokemon().getPlayerParty(), waveDto);
+        }
+
+        if(!chooseModifierDecision.getItemsToBuy().isEmpty()){ //buy items first
+            MoveToModifierResult result = chooseModifierDecision.getItemsToBuy().get(0);
+            chooseModifierDecision.getItemsToBuy().remove(0);
+            return result;
+        }
+
+        return chooseModifierDecision.getFreeItemToPick(); //if no items have to be bought, pick a free item
     }
 
     public CommandPhaseDecision getCommandDecision() {
-        if(waveEnded){
-            wave = jsService.getWave();
-            capturePokemon = false;
-        }
-        else{
-            wave.setWavePokemon(jsService.getWavePokemon());
-        }
-
-        if (null != wave && wave.getBattleType() == BattleType.WILD) {
-            for(Pokemon wildPokemon : wave.getWavePokemon().getEnemyParty()) {
+        if (null != waveDto && waveDto.getBattleType() == BattleType.WILD) {
+            for(Pokemon wildPokemon : waveDto.getWavePokemon().getEnemyParty()) {
                 if (wildPokemon.isShiny() && !waveHasShiny) {
                     log.info("Shiny pokemon detected: " + wildPokemon.getName());
                     waveHasShiny = true;
@@ -99,43 +102,48 @@ public class DecisionService {
         return CommandPhaseDecision.ATTACK;
     }
 
-    public void setWaveEnded(boolean waveEnded) {
-        this.waveEnded = waveEnded;
-        this.waveHasPokerus = false;
-        this.waveHasShiny = false;
-        this.capturePokemon = false;
-    }
-
     public AttackDecision getAttackDecision() {
-        if(!wave.isDoubleFight()){
+        if(!waveDto.isDoubleFight()){
             return combatNeuron.getAttackDecisionForSingleFight(
-                    wave.getWavePokemon().getPlayerParty()[0],
-                    wave.getWavePokemon().getEnemyParty()[0],
+                    waveDto.getWavePokemon().getPlayerParty()[0],
+                    waveDto.getWavePokemon().getEnemyParty()[0],
                     this.capturePokemon
             );
         }
 
-        int playerPartySize = wave.getWavePokemon().getPlayerParty().length;
-        int enemyPartySize = wave.getWavePokemon().getEnemyParty().length;
+        int playerPartySize = waveDto.getWavePokemon().getPlayerParty().length;
+        int enemyPartySize = waveDto.getWavePokemon().getEnemyParty().length;
         return combatNeuron.getAttackDecisionForDoubleFight(
-                wave.getWavePokemon().getPlayerParty()[0],
-                playerPartySize == 2 ? wave.getWavePokemon().getPlayerParty()[1] : null,
-                wave.getWavePokemon().getEnemyParty()[0],
-                enemyPartySize == 2 ? wave.getWavePokemon().getEnemyParty()[1] : null
+                waveDto.getWavePokemon().getPlayerParty()[0],
+                playerPartySize == 2 ? waveDto.getWavePokemon().getPlayerParty()[1] : null,
+                waveDto.getWavePokemon().getEnemyParty()[0],
+                enemyPartySize == 2 ? waveDto.getWavePokemon().getEnemyParty()[1] : null
         );
     }
 
     public int selectStrongestPokeball() {
-        int[] pokeballs = wave.getPokeballCount();
+        int[] pokeballs = waveDto.getPokeballCount();
         for(int i = pokeballs.length - 1; i >= 0; i--){
             if(pokeballs[i] > 0){
                 pokeballs[i]--;
-                log.debug("Selected pokeball: " + i + " for wild pokemon: " + wave.getWavePokemon().getEnemyParty()[0].getName());
+                log.debug("Selected pokeball: " + i + " for wild pokemon: " + waveDto.getWavePokemon().getEnemyParty()[0].getName());
                 return i;
             }
         }
 
         capturePokemon = false; // when no pokeballs are left, we should not try to capture
         return -1;
+    }
+
+    public void informWaveEnded() {
+        this.waveDto = jsService.getWaveDto();
+        this.waveHasPokerus = false;
+        this.waveHasShiny = false;
+        this.capturePokemon = false;
+        this.chooseModifierDecision = null;
+    }
+
+    public void informTurnEnded() {
+        this.waveDto.setWavePokemon(jsService.getWavePokemon());
     }
 }

@@ -24,9 +24,10 @@ Only refactor, when it's really necessary.
 - [x] DamageCalculation: faint or catch attack
 - [x] try to catch a pokemon
 - [x] pick starter from config
+- [ ] handle free potions if all pokemons are healed
 - [ ] only buy max 10 pokeballs
 - [ ] make attack decision not in the attack menu
-- [ ] don't buy revive items before wave 10
+- [ ] don't buy revive items before waveDto 10
 - [ ] getting the attack move from the summary ui handler
 - [ ] modifier shop refactoring
 - [ ] learn attack decision

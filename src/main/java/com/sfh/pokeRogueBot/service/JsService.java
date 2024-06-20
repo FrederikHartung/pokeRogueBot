@@ -4,12 +4,13 @@ import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.sfh.pokeRogueBot.browser.JsClient;
+import com.sfh.pokeRogueBot.model.dto.WaveAndTurnDto;
 import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem;
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItemDeserializer;
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
 import com.sfh.pokeRogueBot.model.run.Starter;
-import com.sfh.pokeRogueBot.model.run.Wave;
+import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import com.sfh.pokeRogueBot.model.run.WavePokemon;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -72,12 +73,12 @@ public class JsService {
         return new ModifierShop(options);
     }
 
-    public Wave getWave() {
+    public WaveDto getWaveDto() {
         String waveJson = jsClient.executeCommandAndGetResult("return window.poru.wave.getWaveJson();").toString();
-        Wave wave = GSON.fromJson(waveJson, Wave.class);
+        WaveDto waveDto = GSON.fromJson(waveJson, WaveDto.class);
         WavePokemon wavePokemon = getWavePokemon();
-        wave.setWavePokemon(wavePokemon);
-        return wave;
+        waveDto.setWavePokemon(wavePokemon);
+        return waveDto;
     }
 
     public WavePokemon getWavePokemon() {
@@ -123,5 +124,10 @@ public class JsService {
         log.debug("Confirming pokemon select");
         String result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.confirmStarterSelect();").toString();
         return Boolean.parseBoolean(result);
+    }
+
+    public WaveAndTurnDto getWaveAndTurnIndex() {
+        String result = jsClient.executeCommandAndGetResult("return window.poru.util.getWaveAndTurnJson();").toString();
+        return GSON.fromJson(result, WaveAndTurnDto.class);
     }
 }

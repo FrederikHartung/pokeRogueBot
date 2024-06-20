@@ -1,5 +1,6 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
+import com.sfh.pokeRogueBot.model.dto.WaveAndTurnDto;
 import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision;
 import com.sfh.pokeRogueBot.model.enums.MoveDecision;
@@ -26,12 +27,15 @@ public class CommandPhase extends AbstractPhase implements Phase {
     public static final String NAME = "CommandPhase";
 
     private final DecisionService decisionService;
-    private final JsService js;
+    private final JsService jsService;
 
-    public CommandPhase(DecisionService decisionService, JsService js) {
+    public CommandPhase(DecisionService decisionService, JsService jsService) {
         this.decisionService = decisionService;
-        this.js = js;
+        this.jsService = jsService;
     }
+
+    int lastWaveIndex = -1;
+    int lastTurnIndex = -1;
 
     @Override
     public String getPhaseName() {
@@ -40,6 +44,20 @@ public class CommandPhase extends AbstractPhase implements Phase {
 
     @Override
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
+
+        WaveAndTurnDto waveAndTurnDto = this.jsService.getWaveAndTurnIndex();
+        if(null != waveAndTurnDto) {
+
+            if (waveAndTurnDto.getWaveIndex() > lastWaveIndex) {
+                decisionService.informWaveEnded();
+                this.lastWaveIndex = waveAndTurnDto.getWaveIndex();
+                this.lastTurnIndex = waveAndTurnDto.getTurnIndex();
+            }
+            else if(waveAndTurnDto.getTurnIndex() > lastTurnIndex){
+                decisionService.informTurnEnded();
+            }
+        }
+
         if (gameMode == GameMode.COMMAND) { //fight, ball, pokemon, run
             CommandPhaseDecision commandPhaseDecision = decisionService.getCommandDecision();
             if (commandPhaseDecision == CommandPhaseDecision.ATTACK) {
@@ -139,7 +157,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
                 };
             }
 
-            boolean success = js.setPokeBallCursor(pokeballIndex);
+            boolean success = jsService.setPokeBallCursor(pokeballIndex);
             if(success){
                 return new PhaseAction[]{
                         this.pressSpace,
