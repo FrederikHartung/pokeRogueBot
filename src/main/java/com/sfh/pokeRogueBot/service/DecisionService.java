@@ -103,7 +103,23 @@ public class DecisionService {
     }
 
     public AttackDecision getAttackDecision() {
+
         if(!waveDto.isDoubleFight()){
+            Pokemon wildPokemon = waveDto.getWavePokemon().getEnemyParty()[0];
+            if(wildPokemon.isBoss()){
+                boolean isBossCatchable = wildPokemon.getHp() <= ((wildPokemon.getStats().getHp() / wildPokemon.getBossSegments()) - 1);
+                log.debug("fighting boss, last boss segments is reached and boss is catchable: " + isBossCatchable);
+                if(!isBossCatchable){
+                    return combatNeuron.getAttackDecisionForSingleFight(
+                            waveDto.getWavePokemon().getPlayerParty()[0],
+                            waveDto.getWavePokemon().getEnemyParty()[0],
+                            false
+                    );
+                }
+                else {
+                    log.debug("trying to catch boss: " + wildPokemon.getName());
+                }
+            }
             return combatNeuron.getAttackDecisionForSingleFight(
                     waveDto.getWavePokemon().getPlayerParty()[0],
                     waveDto.getWavePokemon().getEnemyParty()[0],
