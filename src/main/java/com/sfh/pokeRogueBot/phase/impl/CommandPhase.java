@@ -2,7 +2,7 @@ package com.sfh.pokeRogueBot.phase.impl;
 
 import com.sfh.pokeRogueBot.model.dto.WaveAndTurnDto;
 import com.sfh.pokeRogueBot.model.enums.GameMode;
-import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision;
+import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecisionType;
 import com.sfh.pokeRogueBot.model.enums.MoveDecision;
 import com.sfh.pokeRogueBot.model.enums.MoveTarget;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
@@ -60,8 +60,8 @@ public class CommandPhase extends AbstractPhase implements Phase {
         }
 
         if (gameMode == GameMode.COMMAND) { //fight, ball, pokemon, run
-            CommandPhaseDecision commandPhaseDecision = decisionService.getCommandDecision();
-            if (commandPhaseDecision == CommandPhaseDecision.ATTACK) {
+            CommandPhaseDecisionType commandPhaseDecisionType = decisionService.getCommandDecision();
+            if (commandPhaseDecisionType == CommandPhaseDecisionType.ATTACK) {
                 log.debug("GameMode.COMMAND, Attack decision chosen");
                 return new PhaseAction[]{
                         this.pressArrowUp,
@@ -71,7 +71,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
                         this.pressSpace,
                 };
             }
-            else if(commandPhaseDecision == CommandPhaseDecision.BALL){
+            else if(commandPhaseDecisionType == CommandPhaseDecisionType.BALL){
                 log.debug("GameMode.COMMAND, Ball decision chosen");
                 return new PhaseAction[]{
                         this.pressArrowRight,
@@ -79,7 +79,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
                         this.pressSpace,
                 };
             }
-            else if(commandPhaseDecision == CommandPhaseDecision.SWITCH){
+            else if(commandPhaseDecisionType == CommandPhaseDecisionType.SWITCH){
                 log.debug("GameMode.COMMAND, Switch decision chosen");
                 return new PhaseAction[]{
                         this.pressArrowDown,
@@ -87,7 +87,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
                         this.pressSpace,
                 };
             }
-            else if(commandPhaseDecision == CommandPhaseDecision.RUN){
+            else if(commandPhaseDecisionType == CommandPhaseDecisionType.RUN){
                 log.debug("GameMode.COMMAND, Run decision chosen");
                 return new PhaseAction[]{
                         this.pressArrowRight,
@@ -168,6 +168,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
             throw new IllegalStateException("Could not set pokeball cursor to index: " + pokeballIndex);
         } else if (gameMode == GameMode.MESSAGE) {
             log.debug("GameMode.MESSAGE detected in CommandPhase");
+            decisionService.logState();
         }
 
         throw new NotSupportedException("GameMode not supported in CommandPhase: " + gameMode);

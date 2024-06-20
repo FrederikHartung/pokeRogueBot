@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.model.enums;
 
-public enum CommandPhaseDecision {
+public enum CommandPhaseDecisionType {
     ATTACK,
     BALL,
     SWITCH,

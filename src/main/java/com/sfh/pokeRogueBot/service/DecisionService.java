@@ -1,8 +1,7 @@
 package com.sfh.pokeRogueBot.service;
 
 import com.sfh.pokeRogueBot.model.dto.WaveDto;
-import com.sfh.pokeRogueBot.model.enums.BattleType;
-import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision;
+import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecisionType;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.run.*;
@@ -73,7 +72,11 @@ public class DecisionService {
     }
 
     public CommandPhaseDecision getCommandDecision() {
-        if (null != waveDto && waveDto.isWildPokemonFight()) {
+        if(null == waveDto){
+            throw new IllegalStateException("WaveDto is null");
+        }
+        //take screenshot if a shiny or pokerus pokemon is in the wave and try to catch it
+        if (waveDto.isWildPokemonFight()) {
             for(Pokemon wildPokemon : waveDto.getWavePokemon().getEnemyParty()) {
                 if (wildPokemon.isShiny() && !waveHasShiny) {
                     log.info("Shiny pokemon detected: " + wildPokemon.getName());
@@ -88,17 +91,30 @@ public class DecisionService {
                     capturePokemon = true;
                     screenshotClient.takeScreenshot("pokerus_pokemon_detected");
                 }
-
-                capturePokemon = true;
             }
-
-            return CommandPhaseDecision.ATTACK;
         }
 
-        return CommandPhaseDecision.ATTACK;
+        CommandPhaseDecision decision = new CommandPhaseDecision();
+
+        //for single wild pokemon fights always try to catch the pokemon; For double fights only try to catch when one of the wild pokemon is fainted
+        if(waveDto.isWildPokemonFight()){
+            if(!waveDto.isDoubleFight()){
+                this.capturePokemon = true; //currently we always try to capture wild pokemon
+            }
+            else if(waveDto.getWavePokemon().getEnemyParty()[0].getHp() == 0 || waveDto.getWavePokemon().getEnemyParty()[1].getHp() == 0){
+                this.capturePokemon = true; //only try to capture when one of the wild pokemon is fainted
+            }
+        }
+        else{
+            this.capturePokemon = false; //can't catch trainer pokemon
+        }
+
+        if(!waveDto.isDoubleFight()){
+            
+        }
     }
 
-    public AttackDecision getAttackDecision() {
+    private AttackDecision getAttackDecision() {
 
         if(!waveDto.isDoubleFight()){
             Pokemon wildPokemon = waveDto.getWavePokemon().getEnemyParty()[0];
@@ -112,20 +128,19 @@ public class DecisionService {
                             false
                     );
                 }
-                else {
-                    log.debug("trying to catch boss: " + wildPokemon.getName());
-                }
             }
             return combatNeuron.getAttackDecisionForSingleFight(
                     waveDto.getWavePokemon().getPlayerParty()[0],
                     waveDto.getWavePokemon().getEnemyParty()[0],
-                    this.capturePokemon
+                    waveDto.hasPokeBalls() && this.capturePokemon
             );
         }
 
         //=> wave is a double fight
 
-        boolean isTrainerFight = waveDto.is
+        boolean isWildPokemonFight = waveDto.isWildPokemonFight();
+        boolean firstWildPokemonFainted = waveDto.getWavePokemon().getEnemyParty()[0].getHp() == 0 || waveDto.getWavePokemon().getEnemyParty()[1].getHp() == 0;
+        boolean tryToCaptureInDouble = isWildPokemonFight && firstWildPokemonFainted;
         int playerPartySize = waveDto.getWavePokemon().getPlayerParty().length;
         int enemyPartySize = waveDto.getWavePokemon().getEnemyParty().length;
 
@@ -133,7 +148,8 @@ public class DecisionService {
                 waveDto.getWavePokemon().getPlayerParty()[0],
                 playerPartySize == 2 ? waveDto.getWavePokemon().getPlayerParty()[1] : null,
                 waveDto.getWavePokemon().getEnemyParty()[0],
-                enemyPartySize == 2 ? waveDto.getWavePokemon().getEnemyParty()[1] : null
+                enemyPartySize == 2 ? waveDto.getWavePokemon().getEnemyParty()[1] : null,
+                tryToCaptureInDouble
         );
     }
 
@@ -163,5 +179,16 @@ public class DecisionService {
 
     public void informTurnEnded() {
         this.waveDto.setWavePokemon(jsService.getWavePokemon());
+    }
+
+    public void logState() {
+        log.debug("------------------");
+        log.debug("is double fight: " + waveDto.isDoubleFight() +", is wild pokemon: " + waveDto.isWildPokemonFight() + ", capture pokemon: " + capturePokemon);
+        for(Pokemon playerPokemon : waveDto.getWavePokemon().getPlayerParty()){
+            log.debug("Player pokemon: " + playerPokemon.getName() + ", hp: " + playerPokemon.getHp());
+        }
+        for(Pokemon enemyPokemon : waveDto.getWavePokemon().getEnemyParty()){
+            log.debug("Enemy pokemon: " + enemyPokemon.getName() + ", hp: " + enemyPokemon.getHp());
+        }
     }
 }

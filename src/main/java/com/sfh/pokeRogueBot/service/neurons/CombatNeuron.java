@@ -43,7 +43,7 @@ public class CombatNeuron {
 
         }
 
-        ChosenAttackMove tryToWeakenMove = getTryToWeakenMove(possibleAttackMoves, OwnPokemonIndex.SINGLE, enemyPokemon.getHp());
+        ChosenAttackMove tryToWeakenMove = getTryToWeakenMove(possibleAttackMoves, enemyPokemon.getHp());
         if(null != tryToWeakenMove){
             return new AttackDecisionForPokemon(tryToWeakenMove.getIndex(), MoveTarget.ENEMY, tryToWeakenMove.getDamage(), tryToWeakenMove.getAttackPriority(), tryToWeakenMove.getAttackerSpeed());
         }
@@ -51,7 +51,7 @@ public class CombatNeuron {
         return null;
 }
 
-    private ChosenAttackMove getTryToWeakenMove(List<PossibleAttackMove> possibleAttackMoves, OwnPokemonIndex index, int enemyHealth) {
+    private ChosenAttackMove getTryToWeakenMove(List<PossibleAttackMove> possibleAttackMoves, int enemyHealth) {
         PossibleAttackMove bestMove = null;
         float highestDamage = -1;
 
@@ -105,7 +105,7 @@ public class CombatNeuron {
         return null;
     }
 
-    public AttackDecisionForDoubleFight getAttackDecisionForDoubleFight(Pokemon playerPokemon1, Pokemon playerPokemon2, Pokemon enemyPokemon1, Pokemon enemyPokemon2) {
+    public AttackDecisionForDoubleFight getAttackDecisionForDoubleFight(Pokemon playerPokemon1, Pokemon playerPokemon2, Pokemon enemyPokemon1, Pokemon enemyPokemon2, boolean tryToCatch) {
 
         if(null == playerPokemon1 && null == playerPokemon2){
             throw new IllegalArgumentException("No player pokemon found");

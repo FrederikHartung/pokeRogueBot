@@ -33,4 +33,16 @@ public class WaveDto {
     public boolean isWildPokemonFight(){
         return this.getBattleType() == BattleType.WILD;
     }
+
+    public boolean hasPokeBalls(){
+        if(this.pokeballCount == null){
+            return false;
+        }
+        for(int i = 0; i < this.pokeballCount.length; i++){
+            if(this.pokeballCount[i] > 0){
+                return true;
+            }
+        }
+        return false;
+    }
 }
