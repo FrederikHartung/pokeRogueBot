@@ -10,3 +10,11 @@ for(let i = 0; i < enemyParty.length; i++) {
         
     }
 }
+for(let i = 0; i < ownParty.length; i++) {
+    let ownPokemon = ownParty[i];
+    for(moveset of ownPokemon.moveset) {
+        target = window.poru.poke.getMoveTargetAsString(moveset.moveTarget)
+        console.log("Own Pokemon " + ownPokemon.name + " move " + moveset.name + " target: " + target);
+
+    }
+}
