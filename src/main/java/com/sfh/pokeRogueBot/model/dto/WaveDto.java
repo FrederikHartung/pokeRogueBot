@@ -3,6 +3,7 @@ package com.sfh.pokeRogueBot.model.dto;
 import com.google.gson.annotations.SerializedName;
 import com.sfh.pokeRogueBot.model.enums.BattleStyle;
 import com.sfh.pokeRogueBot.model.enums.BattleType;
+import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.run.Arena;
 import com.sfh.pokeRogueBot.model.run.WavePokemon;
 import lombok.Data;
@@ -33,4 +34,17 @@ public class WaveDto {
     public boolean isWildPokemonFight(){
         return this.getBattleType() == BattleType.WILD;
     }
+
+    public boolean isOnlyOneEnemyLeft(){
+        Pokemon[] enemies = this.getWavePokemon().getEnemyParty();
+        int alivePokemons = 0;
+        for(Pokemon enemy : enemies){
+            if(enemy.getHp() > 0){
+                alivePokemons++;
+            }
+        }
+
+        return alivePokemons == 1;
+    }
+
 }
