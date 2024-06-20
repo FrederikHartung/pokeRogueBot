@@ -20,7 +20,7 @@ public class ChooseRareModifierNeuron {
                 case "Beerentüte":
                     break; //todo
                 default:
-                    
+
             }
         }
     }
