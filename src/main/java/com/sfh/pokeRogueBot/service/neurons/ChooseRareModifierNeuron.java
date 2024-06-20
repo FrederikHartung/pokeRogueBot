@@ -12,8 +12,13 @@ public class ChooseRareModifierNeuron {
     public void abc(ModifierShop shop){
         var freeItems = shop.getFreeItems();
         for(ModifierShopItem freeItem:freeItems){
-            if(freeItem.getItem().getName().equals("EP-Teiler")){
-                //todo
+            String name = freeItem.getItem().getName();
+
+            switch (name){
+                case "EP-Teiler":
+                    break; //todo
+                case "Beerentüte":
+                    break; //todo
             }
         }
     }
