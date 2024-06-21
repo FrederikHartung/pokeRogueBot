@@ -12,7 +12,7 @@ import com.sfh.pokeRogueBot.phase.PhaseProcessor;
 import com.sfh.pokeRogueBot.phase.PhaseProvider;
 import com.sfh.pokeRogueBot.phase.impl.MessagePhase;
 import com.sfh.pokeRogueBot.phase.impl.TitlePhase;
-import com.sfh.pokeRogueBot.service.DecisionService;
+import com.sfh.pokeRogueBot.service.Brain;
 import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.service.RunPropertyService;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +32,7 @@ public class SimpleBot implements Bot {
     private final PhaseProvider phaseProvider;
     private final FileManager fileManager;
     private final BrowserClient browserClient;
-    private final DecisionService decisionService;
+    private final Brain brain;
 
     private final String targetUrl;
 
@@ -44,7 +44,7 @@ public class SimpleBot implements Bot {
             PhaseProcessor phaseProcessor,
             PhaseProvider phaseProvider,
             FileManager fileManager,
-            BrowserClient browserClient, DecisionService decisionService,
+            BrowserClient browserClient, Brain brain,
             @Value("${browser.target-url}") String targetUrl
     ) {
         this.runPropertyService = runPropertyService;
@@ -53,7 +53,7 @@ public class SimpleBot implements Bot {
         this.phaseProvider = phaseProvider;
         this.fileManager = fileManager;
         this.browserClient = browserClient;
-        this.decisionService = decisionService;
+        this.brain = brain;
         this.targetUrl = targetUrl;
     }
 
@@ -72,7 +72,8 @@ public class SimpleBot implements Bot {
         runProperty.setStatus(RunStatus.STARTING);
         runPropertyService.save(runProperty);
         jsService.init();
-        decisionService.setRunProperty(runProperty);
+        brain.setRunProperty(runProperty);
+        brain.clearShortTermMemory();
 
         RetryTemplate retryTemplate = new RetryTemplateBuilder() //todo: add configurable retry policy
                 .retryOn(UnsupportedPhaseException.class)
@@ -122,9 +123,11 @@ public class SimpleBot implements Bot {
         if (null != phase && gameMode != GameMode.UNKNOWN) {
             log.debug("phase detected: " + phase.getPhaseName() + ", gameMode: " + gameMode);
             phaseProcessor.handlePhase(phase, gameMode);
+            brain.memorizePhase(phase.getPhaseName());
         } else if (null == phase && gameMode == GameMode.MESSAGE) {
             log.debug("no known phase detected, phaseAsString: " + phaseAsString + " , but gameMode is MESSAGE");
             phaseProcessor.handlePhase(phaseProvider.fromString(MessagePhase.NAME), gameMode);
+            brain.memorizePhase(MessagePhase.NAME);
         } else {
             log.debug("no known phase detected, phaseAsString: " + phaseAsString + " , gameMode: " + gameMode);
             throw new UnsupportedPhaseException(phaseAsString, gameMode);

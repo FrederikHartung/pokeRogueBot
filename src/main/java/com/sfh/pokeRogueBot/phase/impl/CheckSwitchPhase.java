@@ -5,7 +5,7 @@ import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
-import com.sfh.pokeRogueBot.service.DecisionService;
+import com.sfh.pokeRogueBot.service.Brain;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -13,10 +13,10 @@ public class CheckSwitchPhase extends AbstractPhase implements Phase {
 
     public static final String NAME = "CheckSwitchPhase";
 
-    private final DecisionService decisionService;
+    private final Brain brain;
 
-    public CheckSwitchPhase(DecisionService decisionService) {
-        this.decisionService = decisionService;
+    public CheckSwitchPhase(Brain brain) {
+        this.brain = brain;
     }
 
     @Override

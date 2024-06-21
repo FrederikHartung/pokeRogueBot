@@ -42,6 +42,11 @@ wait-time:
   messagePhase: 100
   learnMoveStageWaitTime: 500
 
+brain:
+  shortTermMemory:
+    memorySize: 50
+    uniquePhasesThreshold: 3
+
 starter:
   ids: 7, 4, 1 #the pokedex ids of the starter pokemons
 
