@@ -108,6 +108,12 @@ public class ChooseModifierNeuron {
             return reviveItem;
         }
 
+        //pick all level increment
+        MoveToModifierResult allLevelIncrement = pickItem(shop, AllPokemonLevelIncrementModifierItem.TARGET);
+        if (null != allLevelIncrement) {
+            return allLevelIncrement;
+        }
+
         //pick pokeball item
         MoveToModifierResult pokeballModifierItem = pickItem(shop, AddPokeballModifierItem.TARGET);
         if (null != pokeballModifierItem && modifierPriorityResult.isBall()) {
@@ -124,6 +130,12 @@ public class ChooseModifierNeuron {
         MoveToModifierResult tempStatBoost = pickItem(shop, TempBattleStatBoosterModifierItem.TARGET);
         if (null != tempStatBoost) {
             return tempStatBoost;
+        }
+
+        //pick level increment
+        MoveToModifierResult levelIncrement = pickItem(shop, PokemonLevelIncrementModifierItem.TARGET);
+        if (null != levelIncrement) {
+            return levelIncrement;
         }
 
         //pick berry item
