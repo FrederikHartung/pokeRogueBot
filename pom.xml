@@ -10,9 +10,9 @@
 	</parent>
 	<groupId>com.sfh</groupId>
 	<artifactId>pokeRogueBot</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.0</version>
 	<name>pokeRogueBot</name>
-	<description>A test project for OCR</description>
+	<description>A simple Bot for the pokeRogue Game</description>
 	<properties>
 		<java.version>17</java.version>
 	</properties>
