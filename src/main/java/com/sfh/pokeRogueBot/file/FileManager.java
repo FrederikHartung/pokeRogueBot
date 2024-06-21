@@ -139,6 +139,11 @@ public class FileManager {
         message.add("speed: " + iv.getSpeed());
 
         try {
+            Path parentDir = FILE_HATCHED_POKEMON.getParent();
+            if (!Files.exists(parentDir)) {
+                Files.createDirectories(parentDir);
+            }
+
             if(Files.notExists(FILE_HATCHED_POKEMON)){
                 Files.createFile(FILE_HATCHED_POKEMON);
             }
