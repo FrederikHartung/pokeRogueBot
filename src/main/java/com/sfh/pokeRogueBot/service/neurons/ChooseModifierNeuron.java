@@ -101,6 +101,8 @@ public class ChooseModifierNeuron {
             return voucherItem;
         }
 
+        //todo: add AllPokemonFullReviveModifierType
+
         //pick revive items if free and needed
         MoveToModifierResult reviveItem = pickReviveItemIfFreeAndNeeded(shop, playerParty);
         if (null != reviveItem) {

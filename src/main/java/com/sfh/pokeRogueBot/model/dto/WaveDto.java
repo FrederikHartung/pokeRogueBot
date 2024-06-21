@@ -47,4 +47,14 @@ public class WaveDto {
         return alivePokemons == 1;
     }
 
+
+    public boolean hasPokeBalls() {
+        for(int ballCount:pokeballCount){
+            if(ballCount > 0){
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

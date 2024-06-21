@@ -32,7 +32,6 @@ public class CommandPhase extends AbstractPhase implements Phase {
     }
 
     int lastWaveIndex = -1;
-    int lastTurnIndex = -1;
 
     @Override
     public String getPhaseName() {
@@ -49,10 +48,6 @@ public class CommandPhase extends AbstractPhase implements Phase {
             if (waveAndTurnDto.getWaveIndex() > lastWaveIndex) {
                 decisionService.informWaveEnded(waveAndTurnDto.getWaveIndex());
                 this.lastWaveIndex = waveAndTurnDto.getWaveIndex();
-                this.lastTurnIndex = waveAndTurnDto.getTurnIndex();
-            }
-            else if(waveAndTurnDto.getTurnIndex() > lastTurnIndex){
-                decisionService.informTurnEnded();
             }
         }
 
@@ -169,10 +164,10 @@ public class CommandPhase extends AbstractPhase implements Phase {
 
             throw new IllegalStateException("Could not set pokeball cursor to index: " + pokeballIndex);
         } else if (gameMode == GameMode.MESSAGE) {
-            log.debug("GameMode.MESSAGE detected in CommandPhase");
-            decisionService.informAboutNotCatchable();
+            log.warn("GameMode.MESSAGE detected in CommandPhase. Expecting error...");
             return new PhaseAction[]{
                     this.pressSpace,
+                    this.waitForStageRenderPhaseAction
             };
         }
 

@@ -73,27 +73,7 @@ public class DecisionService {
     }
 
     public CommandPhaseDecision getCommandDecision() {
-        if (null != waveDto && waveDto.isWildPokemonFight()) {
-            for(Pokemon wildPokemon : waveDto.getWavePokemon().getEnemyParty()) {
-                if (wildPokemon.isShiny() && !waveHasShiny) {
-                    log.info("Shiny pokemon detected: " + wildPokemon.getName());
-                    waveHasShiny = true;
-                    capturePokemon = true;
-                    screenshotClient.takeTempScreenshot("shiny_pokemon_detected");
-                }
-
-                if(wildPokemon.isPokerus() && !waveHasPokerus){
-                    log.info("Pokerus pokemon detected: " + wildPokemon.getName());
-                    waveHasPokerus = true;
-                    capturePokemon = true;
-                    screenshotClient.takeTempScreenshot("pokerus_pokemon_detected");
-                }
-
-                capturePokemon = true;
-            }
-
-            return CommandPhaseDecision.ATTACK;
-        }
+        waveDto = jsService.getWaveDto(); //always update current state
 
         return CommandPhaseDecision.ATTACK;
     }
@@ -179,14 +159,22 @@ public class DecisionService {
         this.chooseModifierDecision = null;
         runProperty.setWaveIndex(newWaveIndex);
         log.debug("new wave: Waveindex: " + waveDto.getWaveIndex() + ", is trainer fight: " + waveDto.isTrainerFight());
-    }
 
-    public void informTurnEnded() {
-        this.waveDto.setWavePokemon(jsService.getWavePokemon());
-    }
 
-    public void informAboutNotCatchable() {
-        this.capturePokemon = false;
+        if (null != waveDto && waveDto.isWildPokemonFight()) {
+            for(Pokemon wildPokemon : waveDto.getWavePokemon().getEnemyParty()) {
+                if (wildPokemon.isShiny() && !waveHasShiny) {
+                    log.info("Shiny pokemon detected: " + wildPokemon.getName());
+                    waveHasShiny = true;
+                    screenshotClient.takeTempScreenshot("shiny_pokemon_detected");
+                }
+            }
+
+            if(waveDto.hasPokeBalls()){
+                //if wave is wild pokemon fight and there are pokeballs present, try to capture
+                this.capturePokemon = true;
+            }
+        }
     }
 
     public boolean tryToCatchPokemon(){
