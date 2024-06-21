@@ -79,14 +79,14 @@ public class DecisionService {
                     log.info("Shiny pokemon detected: " + wildPokemon.getName());
                     waveHasShiny = true;
                     capturePokemon = true;
-                    screenshotClient.takeScreenshot("shiny_pokemon_detected");
+                    screenshotClient.takeTempScreenshot("shiny_pokemon_detected");
                 }
 
                 if(wildPokemon.isPokerus() && !waveHasPokerus){
                     log.info("Pokerus pokemon detected: " + wildPokemon.getName());
                     waveHasPokerus = true;
                     capturePokemon = true;
-                    screenshotClient.takeScreenshot("pokerus_pokemon_detected");
+                    screenshotClient.takeTempScreenshot("pokerus_pokemon_detected");
                 }
 
                 capturePokemon = true;

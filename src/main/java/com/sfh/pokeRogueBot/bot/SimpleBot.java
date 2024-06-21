@@ -97,12 +97,12 @@ public class SimpleBot implements Bot {
         }
         catch (CannotCatchTrainerPokemonException e){
             log.error("CannotCatchTrainerPokemonException in wave " + runProperty.getWaveIndex());
-            phaseProcessor.takeScreenshot("error_" + e.getClass().getSimpleName());
+            phaseProcessor.takeTempScreenshot("error_" + e.getClass().getSimpleName());
             browserClient.navigateTo(targetUrl); //reload the page
         }
         catch (Exception e) {
             log.error("error while running", e);
-            phaseProcessor.takeScreenshot("error_" + e.getClass().getSimpleName());
+            phaseProcessor.takeTempScreenshot("error_" + e.getClass().getSimpleName());
             runProperty.setStatus(RunStatus.ERROR);
             log.debug("Run ended: Error in Wave: " + runProperty.getWaveIndex());
             return false;

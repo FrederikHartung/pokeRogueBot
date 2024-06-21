@@ -15,5 +15,13 @@ window.poru.egg = {
 
     getHatchedPokemonJson: () => {
         return JSON.stringify(window.poru.egg.getHatchedPokemon());
-    }
+    },
+
+    getEggId: () => {
+        var eggPhase = window.poru.util.getPhase();
+        if(eggPhase.egg){
+            return eggPhase.egg.id;
+        }
+        return null;
+    },
 }

@@ -6,9 +6,11 @@ import com.google.gson.GsonBuilder;
 import com.sfh.pokeRogueBot.browser.JsClient;
 import com.sfh.pokeRogueBot.model.dto.WaveAndTurnDto;
 import com.sfh.pokeRogueBot.model.enums.GameMode;
+import com.sfh.pokeRogueBot.model.enums.PokeType;
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem;
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItemDeserializer;
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
+import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.run.Starter;
 import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import com.sfh.pokeRogueBot.model.run.WavePokemon;
@@ -36,6 +38,7 @@ public class JsService {
     public static final Path WAVE = Paths.get(".", "bin", "js", "wave.js");
     public static final Path MODIFIER = Paths.get(".", "bin", "js", "modifier.js");
     public static final Path STARTER = Paths.get(".", "bin", "js", "starter.js");
+    public static final Path EGG = Paths.get(".", "bin", "js", "egg.js");
 
     private final JsClient jsClient;
 
@@ -50,6 +53,7 @@ public class JsService {
         jsClient.addScriptToWindow(WAVE);
         jsClient.addScriptToWindow(MODIFIER);
         jsClient.addScriptToWindow(STARTER);
+        jsClient.addScriptToWindow(EGG);
     }
 
     public String getCurrentPhaseAsString() {
@@ -129,5 +133,14 @@ public class JsService {
     public WaveAndTurnDto getWaveAndTurnIndex() {
         String result = jsClient.executeCommandAndGetResult("return window.poru.util.getWaveAndTurnJson();").toString();
         return GSON.fromJson(result, WaveAndTurnDto.class);
+    }
+
+    public Pokemon getHatchedPokemon(){
+        String result = jsClient.executeCommandAndGetResult("return window.poru.egg.getHatchedPokemonJson();").toString();
+        return GSON.fromJson(result, Pokemon.class);
+    }
+
+    public int getEggId(){
+        return Integer.parseInt(jsClient.executeCommandAndGetResult("return window.poru.egg.getEggId();").toString());
     }
 }
