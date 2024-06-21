@@ -21,7 +21,7 @@ class FileManagerTest {
     void a_filepath_is_returned(){
 
         String fileNamePrefix = "test";
-        String filePath = fileManager.getFilePath(fileNamePrefix);
+        String filePath = fileManager.getTempFilePath(fileNamePrefix);
 
         if(isWindows()){
             assertEquals(".\\data\\temp\\0_test.png", filePath);

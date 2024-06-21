@@ -4,6 +4,7 @@ import com.sfh.pokeRogueBot.browser.BrowserClient;
 import com.sfh.pokeRogueBot.file.FileManager;
 import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
+import com.sfh.pokeRogueBot.model.exception.CannotCatchTrainerPokemonException;
 import com.sfh.pokeRogueBot.model.exception.UnsupportedPhaseException;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.phase.Phase;
@@ -11,9 +12,11 @@ import com.sfh.pokeRogueBot.phase.PhaseProcessor;
 import com.sfh.pokeRogueBot.phase.PhaseProvider;
 import com.sfh.pokeRogueBot.phase.impl.MessagePhase;
 import com.sfh.pokeRogueBot.phase.impl.TitlePhase;
+import com.sfh.pokeRogueBot.service.DecisionService;
 import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.service.RunPropertyService;
 import lombok.extern.slf4j.Slf4j;
+import org.openqa.selenium.JavascriptException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.support.RetryTemplateBuilder;
@@ -29,6 +32,7 @@ public class SimpleBot implements Bot {
     private final PhaseProvider phaseProvider;
     private final FileManager fileManager;
     private final BrowserClient browserClient;
+    private final DecisionService decisionService;
 
     private final String targetUrl;
 
@@ -40,7 +44,7 @@ public class SimpleBot implements Bot {
             PhaseProcessor phaseProcessor,
             PhaseProvider phaseProvider,
             FileManager fileManager,
-            BrowserClient browserClient,
+            BrowserClient browserClient, DecisionService decisionService,
             @Value("${browser.target-url}") String targetUrl
     ) {
         this.runPropertyService = runPropertyService;
@@ -49,6 +53,7 @@ public class SimpleBot implements Bot {
         this.phaseProvider = phaseProvider;
         this.fileManager = fileManager;
         this.browserClient = browserClient;
+        this.decisionService = decisionService;
         this.targetUrl = targetUrl;
     }
 
@@ -67,11 +72,13 @@ public class SimpleBot implements Bot {
         runProperty.setStatus(RunStatus.STARTING);
         runPropertyService.save(runProperty);
         jsService.init();
+        decisionService.setRunProperty(runProperty);
 
         RetryTemplate retryTemplate = new RetryTemplateBuilder() //todo: add configurable retry policy
                 .retryOn(UnsupportedPhaseException.class)
-                .maxAttempts(5)
-                .fixedBackoff(1000)
+                .retryOn(JavascriptException.class)
+                .maxAttempts(2)
+                .fixedBackoff(2500)
                 .build();
 
         log.debug("run " + runProperty.getRunNumber() + ", starting wave fighting mode");
@@ -81,16 +88,23 @@ public class SimpleBot implements Bot {
                 retryTemplate.execute(context -> {
                     handleStageInWave();
                     if(runProperty.getStatus() == RunStatus.LOST){
-
+                        log.info("Run ended: Lost battle in Wave: " + runProperty.getWaveIndex());
                     }
                     return null;
                 });
 
             }
-        } catch (Exception e) {
+        }
+        catch (CannotCatchTrainerPokemonException e){
+            log.error("CannotCatchTrainerPokemonException in wave " + runProperty.getWaveIndex());
+            phaseProcessor.takeTempScreenshot("error_" + e.getClass().getSimpleName());
+            browserClient.navigateTo(targetUrl); //reload the page
+        }
+        catch (Exception e) {
             log.error("error while running", e);
-            phaseProcessor.takeScreenshot("error_" + e.getClass().getSimpleName());
+            phaseProcessor.takeTempScreenshot("error_" + e.getClass().getSimpleName());
             runProperty.setStatus(RunStatus.ERROR);
+            log.debug("Run ended: Error in Wave: " + runProperty.getWaveIndex());
             return false;
         }
 

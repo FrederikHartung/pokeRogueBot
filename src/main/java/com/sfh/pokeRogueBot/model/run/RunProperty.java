@@ -14,7 +14,7 @@ public class RunProperty {
     //own properties
     private final Pokemon[] team = new Pokemon[6];
     private RunStatus status;
-    private int roundNumber;
+    private int waveIndex;
     private int defeatedWildPokemon;
     private int caughtPokemon;
     private int defeatedTrainer;

@@ -1,16 +1,39 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
+import com.sfh.pokeRogueBot.file.FileManager;
 import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
+import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
+import com.sfh.pokeRogueBot.phase.ScreenshotClient;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
+import com.sfh.pokeRogueBot.service.JsService;
+import com.sfh.pokeRogueBot.service.WaitingService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.HashSet;
+import java.util.Set;
+
+@Slf4j
 @Component
 public class EggHatchPhase extends AbstractPhase implements Phase {
 
     public static final String NAME = "EggHatchPhase";
+    private final ScreenshotClient screenshotClient;
+    private final JsService jsService;
+    private final WaitingService waitingService;
+    private final FileManager fileManager;
+
+    private final Set<Integer> eggIds = new HashSet<>();
+
+    public EggHatchPhase(ScreenshotClient screenshotClient, JsService jsService, WaitingService waitingService, FileManager fileManager) {
+        this.screenshotClient = screenshotClient;
+        this.jsService = jsService;
+        this.waitingService = waitingService;
+        this.fileManager = fileManager;
+    }
 
     @Override
     public String getPhaseName() {
@@ -25,9 +48,26 @@ public class EggHatchPhase extends AbstractPhase implements Phase {
             };
         }
         else if (gameMode == GameMode.EGG_HATCH_SCENE) {
+
+            int eggId = jsService.getEggId();
+            if(!eggIds.contains(eggId)){
+                eggIds.add(eggId);
+                waitingService.waitEvenLonger();
+                Pokemon hatchedPokemon = jsService.getHatchedPokemon();
+                if(null == hatchedPokemon){
+                    throw new IllegalStateException("Hatched Pokemon is null");
+                }
+
+                waitingService.waitEvenLonger();
+                waitingService.waitEvenLonger();
+                waitingService.waitEvenLonger();
+                screenshotClient.persistScreenshot(hatchedPokemon.getName() + "_hatched");
+                log.info(hatchedPokemon.getName() + " hatched");
+                fileManager.persistHatchedPokemon(hatchedPokemon);
+            }
+
             return new PhaseAction[]{
-                    this.waitAction,
-                    this.pressSpace
+                    this.pressSpace,
             };
         }
 

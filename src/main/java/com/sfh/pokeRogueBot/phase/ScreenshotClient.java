@@ -1,5 +1,6 @@
 package com.sfh.pokeRogueBot.phase;
 
 public interface ScreenshotClient {
-    void takeScreenshot(String prefix);
+    void takeTempScreenshot(String prefix);
+    void persistScreenshot(String prefix);
 }

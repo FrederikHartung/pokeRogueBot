@@ -63,7 +63,6 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
             log.debug("moved cursor to row: " + result.getRowIndex() + ", column: " + result.getColumnIndex());
             waitService.waitEvenLonger(); //wait for the cursor to be set
 
-            decisionService.setWaveEnded(true); //inform the decision service that the wave has ended
             actionList.add(this.pressSpace); //to confirm selection -> gamemode will change to party
         } else if (gameMode == GameMode.PARTY) {
 

@@ -19,8 +19,9 @@ public class AttemptCapturePhase extends AbstractPhase implements Phase {
 
     @Override
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
-        if (gameMode == GameMode.CONFIRM) {
-            return new PhaseAction[]{
+        if (gameMode == GameMode.CONFIRM) { //todo: release the pokemon with the lowest level
+
+            return new PhaseAction[]{ //don't take captured wild pokemons
                     this.waitAction,
                     this.pressArrowDown,
                     this.waitAction,

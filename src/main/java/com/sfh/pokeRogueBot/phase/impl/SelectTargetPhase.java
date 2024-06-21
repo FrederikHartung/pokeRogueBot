@@ -21,7 +21,12 @@ public class SelectTargetPhase extends AbstractPhase implements Phase {
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
         if (gameMode == GameMode.TARGET_SELECT) {
             return new PhaseAction[]{
-                    pressSpace //todo: choose correct target
+                    pressSpace
+            };
+        } else if (gameMode == GameMode.MESSAGE) {
+
+            return new PhaseAction[]{
+                    pressSpace
             };
         }
 

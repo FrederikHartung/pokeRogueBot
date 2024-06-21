@@ -24,6 +24,11 @@ public class TitlePhase extends AbstractPhase implements Phase {
                     this.pressSpace
             };
         }
+        else if(gameMode == GameMode.MESSAGE){
+            return new PhaseAction[]{
+                    this.pressSpace
+            };
+        }
 
         throw new NotSupportedException("TitlePhase does not support game mode: " + gameMode);
     }

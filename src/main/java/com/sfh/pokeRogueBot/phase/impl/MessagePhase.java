@@ -29,6 +29,10 @@ public class MessagePhase extends AbstractPhase implements Phase {
                     this.pressSpace,
                     this.waitForTextRenderAction
             };
+        } else if (gameMode == GameMode.COMMAND) {
+            return new PhaseAction[]{
+                    this.waitAction
+            };
         }
 
         throw new NotSupportedException("GameMode not supported for MessagePhase: " + gameMode);

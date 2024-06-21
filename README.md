@@ -37,6 +37,7 @@ browser:
   pathChromeUserDir: "/Users/yourUserName/Library/Application Support/Google/Chrome/" #profile path without the profile name!!!
   chromeProfile: "Profile 5" #profile name without the directory path!!!
 
+On windows OS: Make sure to "escape" the slashes correctly like this: "C:\\Users\\yourUserName\\AppData\\Local\\Google\\Chrome\\User Data\\"
 Use the proper indentation like in the "application.yml" file. If you don't add this property, the bot will start a new Chrome Profile.
 After that, you can switch back to your normal Chrome Profile and start the bot. The bot should open the browser with the new profile you added.
 

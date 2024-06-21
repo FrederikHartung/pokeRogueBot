@@ -48,19 +48,27 @@ public class PhaseProcessor implements ScreenshotClient {
         } else if (action instanceof WaitForStageRenderPhaseAction) {
             waitingService.waitEvenLonger();
         } else if (action instanceof TakeScreenshotPhaseAction) {
-            takeScreenshot("phase");
+            takeTempScreenshot("phase");
         } else {
             throw new NotSupportedException("Unknown action: " + action.getClass().getSimpleName());
         }
     }
 
     @Override
-    public void takeScreenshot(String prefix) {
+    public void takeTempScreenshot(String prefix) {
         try {
-            waitingService.waitEvenLonger();
-            fileManager.persistBufferedImage(imageService.takeScreenshot(prefix), prefix);
+            fileManager.saveTempImage(imageService.takeScreenshot(prefix), prefix);
         } catch (Exception e) {
-            log.error("error while taking screenshot", e);
+            log.error("error while taking temp screenshot", e);
+        }
+    }
+
+    @Override
+    public void persistScreenshot(String prefix) {
+        try {
+            fileManager.persistImage(imageService.takeScreenshot(prefix), prefix);
+        } catch (Exception e) {
+            log.error("error while saving screenshot", e);
         }
     }
 

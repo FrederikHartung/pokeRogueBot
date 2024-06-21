@@ -49,6 +49,11 @@ public class SwitchPhase extends AbstractPhase implements Phase {
                 throw new IllegalStateException("Could not set cursor to party pokemon");
             }
         }
+        else if(gameMode == GameMode.MESSAGE){
+            return new PhaseAction[]{
+                    this.waitAction
+            };
+        }
 
         throw new NotSupportedException("GameMode not supported in SwitchPhase: " + gameMode);
     }
