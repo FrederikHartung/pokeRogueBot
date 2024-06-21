@@ -10,22 +10,8 @@ Only refactor, when it's really necessary.
 - [x] achieve first lost run
 
 ## Open todo's with high priority:
-- [x] add all MotifierTypes as a model
-- [x] make enums return only non null values in js
-- [x] level up handling
-- [x] handel fainted pokemons in the own team
-  - [x] get the info, which pokemon are not fainted
-  - [x] select a not fainted pokemon
-- [x] if the first attack is blocked, the second attack is chosen
-- [x] apply revive item
-- [x] handling a failed run
-- [x] check if the damage calculation is correct
-- [x] enemy health calculation
-- [x] DamageCalculation: faint or catch attack
-- [x] try to catch a pokemon
-- [x] pick starter from config
-- [ ] handle free potions if all pokemons are healed
-- [ ] only buy max 10 pokeballs
+- [ ] remove the db and spring data
+- [ ] if an exception is thrown, save and go back to title screen
 - [ ] make attack decision not in the attack menu
 - [ ] don't buy revive items before waveDto 10
 - [ ] getting the attack move from the summary ui handler
