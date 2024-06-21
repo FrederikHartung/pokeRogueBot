@@ -162,6 +162,7 @@ public class ChooseModifierNeuron {
     private MoveToModifierResult buyReviveItemIfNeeded(ModifierShop shop, Pokemon[] playerParty){
         ModifierShopItem freeReviveItem =  shop.getFreeItems().stream()
                 .filter(item -> item.getItem() instanceof PokemonReviveModifierItem)
+                .filter(item -> !item.getItem().getTypeName().equals(PokemonStatusHealModifierItem.TARGET)) //todo: currently hyperhealer are interpreted as revive items
                 .findFirst()
                 .orElse(null);
 
@@ -171,6 +172,7 @@ public class ChooseModifierNeuron {
 
         ModifierShopItem reviveItemToBuy =  shop.getBuyableItems().stream()
                 .filter(item -> item.getItem() instanceof PokemonReviveModifierItem)
+                .filter(item -> !item.getItem().getTypeName().equals(PokemonStatusHealModifierItem.TARGET)) //todo: currently hyperhealer are interpreted as revive items
                 .findFirst()
                 .orElse(null);
 
