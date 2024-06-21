@@ -1,5 +1,6 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
+import com.sfh.pokeRogueBot.file.FileManager;
 import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
@@ -23,13 +24,15 @@ public class EggHatchPhase extends AbstractPhase implements Phase {
     private final ScreenshotClient screenshotClient;
     private final JsService jsService;
     private final WaitingService waitingService;
+    private final FileManager fileManager;
 
     private final Set<Integer> eggIds = new HashSet<>();
 
-    public EggHatchPhase(ScreenshotClient screenshotClient, JsService jsService, WaitingService waitingService) {
+    public EggHatchPhase(ScreenshotClient screenshotClient, JsService jsService, WaitingService waitingService, FileManager fileManager) {
         this.screenshotClient = screenshotClient;
         this.jsService = jsService;
         this.waitingService = waitingService;
+        this.fileManager = fileManager;
     }
 
     @Override
@@ -50,17 +53,18 @@ public class EggHatchPhase extends AbstractPhase implements Phase {
             if(!eggIds.contains(eggId)){
                 eggIds.add(eggId);
                 waitingService.waitEvenLonger();
-                Pokemon hatchingPokemon = jsService.getHatchedPokemon();
-                if(null == hatchingPokemon){
+                Pokemon hatchedPokemon = jsService.getHatchedPokemon();
+                if(null == hatchedPokemon){
                     throw new IllegalStateException("Hatched Pokemon is null");
                 }
 
-                screenshotClient.takeTempScreenshot(hatchingPokemon.getName() + "_hatched_0");
+                screenshotClient.takeTempScreenshot(hatchedPokemon.getName() + "_hatched_0");
                 waitingService.waitEvenLonger();
-                screenshotClient.takeTempScreenshot(hatchingPokemon.getName() + "_hatched_1");
+                screenshotClient.takeTempScreenshot(hatchedPokemon.getName() + "_hatched_1");
                 waitingService.waitEvenLonger();
-                screenshotClient.takeTempScreenshot(hatchingPokemon.getName() + "_hatched_2");
-                log.i
+                screenshotClient.takeTempScreenshot(hatchedPokemon.getName() + "_hatched_2");
+                log.info(hatchedPokemon.getName() + " hatched");
+                fileManager.persistHatchedPokemon(hatchedPokemon);
             }
 
             return new PhaseAction[]{
