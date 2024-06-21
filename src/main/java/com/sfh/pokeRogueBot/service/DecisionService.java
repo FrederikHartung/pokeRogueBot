@@ -69,7 +69,9 @@ public class DecisionService {
             return result;
         }
 
-        return chooseModifierDecision.getFreeItemToPick(); //if no items have to be bought, pick a free item
+        MoveToModifierResult freeItem = chooseModifierDecision.getFreeItemToPick();
+        chooseModifierDecision = null; //reset to null, so that in the next wave a new decision is taken
+        return freeItem;  //if no items have to be bought, pick a free item
     }
 
     public CommandPhaseDecision getCommandDecision() {
