@@ -2,7 +2,6 @@ package com.sfh.pokeRogueBot.phase.impl;
 
 import com.sfh.pokeRogueBot.model.dto.WaveAndTurnDto;
 import com.sfh.pokeRogueBot.model.enums.*;
-import com.sfh.pokeRogueBot.model.exception.CannotCatchTrainerPokemonException;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.run.AttackDecision;
 import com.sfh.pokeRogueBot.model.run.AttackDecisionForDoubleFight;
@@ -100,8 +99,8 @@ public class CommandPhase extends AbstractPhase implements Phase {
             log.debug("GameMode.FIGHT, getting attackDecision");
             AttackDecision attackDecision = decisionService.getAttackDecision();
 
-            if(null == attackDecision && decisionService.isCapturePokemon()){
-                log.debug("CapturePokemon decision chosen");
+            if(null == attackDecision && decisionService.tryToCatchPokemon()){
+                log.debug("CapturePokemon decision chosen because attackDecision is null and is capture pokemon");
                 return new PhaseAction[]{
                         this.pressBackspace, //go back to command menu
                         this.waitAction,
@@ -109,6 +108,10 @@ public class CommandPhase extends AbstractPhase implements Phase {
                         this.waitAction,
                         this.pressSpace, //open menu
                 };
+            }
+
+            if(null == attackDecision){
+                throw new IllegalStateException("cant find a attack move in the command phase");
             }
 
             List<PhaseAction> actionList = new LinkedList<>();

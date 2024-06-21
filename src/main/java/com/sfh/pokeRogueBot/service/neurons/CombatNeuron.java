@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Comparator;
 import java.util.List;
 
@@ -103,65 +104,61 @@ public class CombatNeuron {
         return null;
     }
 
-    public AttackDecisionForDoubleFight getAttackDecisionForDoubleFight(Pokemon playerPokemon1, Pokemon playerPokemon2, Pokemon enemyPokemon1, Pokemon enemyPokemon2) {
-
-        if(null == playerPokemon1 && null == playerPokemon2){
-            throw new IllegalArgumentException("No player pokemon found");
-        }
+    public AttackDecisionForDoubleFight getAttackDecisionForDoubleFight(
+            @Nullable Pokemon playerPokemon1,
+            @Nullable Pokemon playerPokemon2,
+            @Nullable Pokemon enemyPokemon1,
+            @Nullable Pokemon enemyPokemon2) {
 
         PossibleAttackMovesForDoubleFight pokemon1Moves = getMovesForDoubleFight(playerPokemon1, enemyPokemon1, enemyPokemon2);
         PossibleAttackMovesForDoubleFight pokemon2Moves = getMovesForDoubleFight(playerPokemon2, enemyPokemon1, enemyPokemon2);
 
-        if(null != playerPokemon1 && null != playerPokemon2){
-            AttackDecisionForPokemon pokemon1Decision = pickForDouble(playerPokemon1, pokemon1Moves);
+        AttackDecisionForPokemon pokemon1Decision = null;
+        AttackDecisionForPokemon pokemon2Decision = null;
+
+        if(null != playerPokemon1){
+            pokemon1Decision = pickForDouble(playerPokemon1, pokemon1Moves);
             log.debug("Pokemon 1 decision: target: " + pokemon1Decision.getSelectedTarget() + ", move: " + pokemon1Decision.getOwnAttackIndex() + ", damage: " + pokemon1Decision.getExpectedDamage() + ", target health: "  + (pokemon1Decision.getSelectedTarget() == SelectedTarget.LEFT_ENEMY ? enemyPokemon1.getHp() : enemyPokemon2.getHp()));
-            AttackDecisionForPokemon pokemon2Decision = pickForDouble(playerPokemon2, pokemon2Moves);
+
+        }
+
+        if(null != playerPokemon2){
+            pokemon2Decision = pickForDouble(playerPokemon2, pokemon2Moves);
             log.debug("Pokemon 2 decision: target: " + pokemon2Decision.getSelectedTarget() + ", move: " + pokemon2Decision.getOwnAttackIndex() + ", damage: " + pokemon2Decision.getExpectedDamage() + ", target health: "  + (pokemon2Decision.getSelectedTarget() == SelectedTarget.LEFT_ENEMY ? enemyPokemon1.getHp() : enemyPokemon2.getHp()));
-            return new AttackDecisionForDoubleFight(pokemon1Decision, pokemon2Decision);
         }
-        else if(null != playerPokemon1){
-            AttackDecisionForPokemon pokemon1Decision = pickForDouble(playerPokemon1, pokemon1Moves);
-            log.debug("Pokemon 1 decision: target: " + pokemon1Decision.getSelectedTarget() + ", move: " + pokemon1Decision.getOwnAttackIndex() + ", damage: " + pokemon1Decision.getExpectedDamage() + ", target health: "  + (pokemon1Decision.getSelectedTarget() == SelectedTarget.LEFT_ENEMY ? enemyPokemon1.getHp() : enemyPokemon2.getHp()));
-            return new AttackDecisionForDoubleFight(pokemon1Decision, null);
-        }
-        else{
-            AttackDecisionForPokemon pokemon2Decision = pickForDouble(playerPokemon2, pokemon2Moves);
-            log.debug("Pokemon 2 decision: target: " + pokemon2Decision.getSelectedTarget() + ", move: " + pokemon2Decision.getOwnAttackIndex() + ", damage: " + pokemon2Decision.getExpectedDamage() + ", target health: "  + (pokemon2Decision.getSelectedTarget() == SelectedTarget.LEFT_ENEMY ? enemyPokemon1.getHp() : enemyPokemon2.getHp()));
-            return new AttackDecisionForDoubleFight(null, pokemon2Decision);
-        }
+
+        return new AttackDecisionForDoubleFight(pokemon1Decision, pokemon2Decision);
     }
 
-    private AttackDecisionForPokemon pickForDouble(Pokemon playerPokemon, PossibleAttackMovesForDoubleFight pokemonMoves) {
+    private AttackDecisionForPokemon pickForDouble(@Nonnull Pokemon playerPokemon, PossibleAttackMovesForDoubleFight pokemonMoves) {
         AttackDecisionForPokemon pokemonDecision = null;
-        if(playerPokemon != null){
-            if(null != pokemonMoves.getChosenFinisher1()){
-                ChosenAttackMove ownPokemon1FinisherForEnemy1 = pokemonMoves.getChosenFinisher1();
-                pokemonDecision = new AttackDecisionForPokemon(ownPokemon1FinisherForEnemy1.getIndex(), SelectedTarget.LEFT_ENEMY, ownPokemon1FinisherForEnemy1.getDamage(), ownPokemon1FinisherForEnemy1.getAttackPriority(), ownPokemon1FinisherForEnemy1.getAttackerSpeed(), ownPokemon1FinisherForEnemy1.getMoveTargetAreaType());
-            }
-            else if(null != pokemonMoves.getChosenFinisher2()){
-                ChosenAttackMove ownPokemon1FinisherForEnemy2 = pokemonMoves.getChosenFinisher2();
-                pokemonDecision = new AttackDecisionForPokemon(ownPokemon1FinisherForEnemy2.getIndex(), SelectedTarget.LEFT_ENEMY, ownPokemon1FinisherForEnemy2.getDamage(), ownPokemon1FinisherForEnemy2.getAttackPriority(), ownPokemon1FinisherForEnemy2.getAttackerSpeed(), ownPokemon1FinisherForEnemy2.getMoveTargetAreaType());
-            }
-            else{
-                ChosenAttackMove ownPokemon1maxDmgForEnemy1 = pokemonMoves.getMaxDmgMove1();
-                ChosenAttackMove ownPokemon1maxDmgForEnemy2 = pokemonMoves.getMaxDmgMove2();
-                if(null != ownPokemon1maxDmgForEnemy1 && null != ownPokemon1maxDmgForEnemy2){
-                    if(ownPokemon1maxDmgForEnemy1.getDamage() > ownPokemon1maxDmgForEnemy2.getDamage()){
-                        pokemonDecision = new AttackDecisionForPokemon(ownPokemon1maxDmgForEnemy1.getIndex(), SelectedTarget.LEFT_ENEMY, ownPokemon1maxDmgForEnemy1.getDamage(), ownPokemon1maxDmgForEnemy1.getAttackPriority(), ownPokemon1maxDmgForEnemy1.getAttackerSpeed(), ownPokemon1maxDmgForEnemy1.getMoveTargetAreaType());
-                    }
-                    else{
-                        pokemonDecision = new AttackDecisionForPokemon(ownPokemon1maxDmgForEnemy2.getIndex(), SelectedTarget.RIGHT_ENEMY, ownPokemon1maxDmgForEnemy2.getDamage(), ownPokemon1maxDmgForEnemy2.getAttackPriority(), ownPokemon1maxDmgForEnemy2.getAttackerSpeed(), ownPokemon1maxDmgForEnemy2.getMoveTargetAreaType());
-                    }
-                }
-                else if(null != ownPokemon1maxDmgForEnemy1){
+        if(null != pokemonMoves.getChosenFinisher1()){
+            ChosenAttackMove ownPokemon1FinisherForEnemy1 = pokemonMoves.getChosenFinisher1();
+            pokemonDecision = new AttackDecisionForPokemon(ownPokemon1FinisherForEnemy1.getIndex(), SelectedTarget.LEFT_ENEMY, ownPokemon1FinisherForEnemy1.getDamage(), ownPokemon1FinisherForEnemy1.getAttackPriority(), ownPokemon1FinisherForEnemy1.getAttackerSpeed(), ownPokemon1FinisherForEnemy1.getMoveTargetAreaType());
+        }
+        else if(null != pokemonMoves.getChosenFinisher2()){
+            ChosenAttackMove ownPokemon1FinisherForEnemy2 = pokemonMoves.getChosenFinisher2();
+            pokemonDecision = new AttackDecisionForPokemon(ownPokemon1FinisherForEnemy2.getIndex(), SelectedTarget.LEFT_ENEMY, ownPokemon1FinisherForEnemy2.getDamage(), ownPokemon1FinisherForEnemy2.getAttackPriority(), ownPokemon1FinisherForEnemy2.getAttackerSpeed(), ownPokemon1FinisherForEnemy2.getMoveTargetAreaType());
+        }
+        else{
+            ChosenAttackMove ownPokemon1maxDmgForEnemy1 = pokemonMoves.getMaxDmgMove1();
+            ChosenAttackMove ownPokemon1maxDmgForEnemy2 = pokemonMoves.getMaxDmgMove2();
+            if(null != ownPokemon1maxDmgForEnemy1 && null != ownPokemon1maxDmgForEnemy2){
+                if(ownPokemon1maxDmgForEnemy1.getDamage() > ownPokemon1maxDmgForEnemy2.getDamage()){
                     pokemonDecision = new AttackDecisionForPokemon(ownPokemon1maxDmgForEnemy1.getIndex(), SelectedTarget.LEFT_ENEMY, ownPokemon1maxDmgForEnemy1.getDamage(), ownPokemon1maxDmgForEnemy1.getAttackPriority(), ownPokemon1maxDmgForEnemy1.getAttackerSpeed(), ownPokemon1maxDmgForEnemy1.getMoveTargetAreaType());
                 }
-                else if(null != ownPokemon1maxDmgForEnemy2){
+                else{
                     pokemonDecision = new AttackDecisionForPokemon(ownPokemon1maxDmgForEnemy2.getIndex(), SelectedTarget.RIGHT_ENEMY, ownPokemon1maxDmgForEnemy2.getDamage(), ownPokemon1maxDmgForEnemy2.getAttackPriority(), ownPokemon1maxDmgForEnemy2.getAttackerSpeed(), ownPokemon1maxDmgForEnemy2.getMoveTargetAreaType());
                 }
-                else{
-                    log.error("No move found for pokemon");
-                }
+            }
+            else if(null != ownPokemon1maxDmgForEnemy1){
+                pokemonDecision = new AttackDecisionForPokemon(ownPokemon1maxDmgForEnemy1.getIndex(), SelectedTarget.LEFT_ENEMY, ownPokemon1maxDmgForEnemy1.getDamage(), ownPokemon1maxDmgForEnemy1.getAttackPriority(), ownPokemon1maxDmgForEnemy1.getAttackerSpeed(), ownPokemon1maxDmgForEnemy1.getMoveTargetAreaType());
+            }
+            else if(null != ownPokemon1maxDmgForEnemy2){
+                pokemonDecision = new AttackDecisionForPokemon(ownPokemon1maxDmgForEnemy2.getIndex(), SelectedTarget.RIGHT_ENEMY, ownPokemon1maxDmgForEnemy2.getDamage(), ownPokemon1maxDmgForEnemy2.getAttackPriority(), ownPokemon1maxDmgForEnemy2.getAttackerSpeed(), ownPokemon1maxDmgForEnemy2.getMoveTargetAreaType());
+            }
+            else{
+                log.error("No move found for pokemon");
             }
         }
 

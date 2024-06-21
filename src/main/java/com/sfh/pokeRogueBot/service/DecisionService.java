@@ -1,7 +1,6 @@
 package com.sfh.pokeRogueBot.service;
 
 import com.sfh.pokeRogueBot.model.dto.WaveDto;
-import com.sfh.pokeRogueBot.model.enums.BattleType;
 import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
@@ -34,7 +33,6 @@ public class DecisionService {
     private WaveDto waveDto;
     private boolean waveHasShiny = false;
     private boolean waveHasPokerus = false;
-    @Getter
     private boolean capturePokemon = false;
     private ChooseModifierDecision chooseModifierDecision;
 
@@ -119,24 +117,43 @@ public class DecisionService {
                 }
             }
             log.debug("trying to find attack decision: isTrainer: "
-                    + waveDto.isTrainerFight() + ", capture pokemon: " + capturePokemon);
+                    + waveDto.isTrainerFight() + ", capture pokemon: " + tryToCatchPokemon());
             return combatNeuron.getAttackDecisionForSingleFight(
                     waveDto.getWavePokemon().getPlayerParty()[0],
                     waveDto.getWavePokemon().getEnemyParty()[0],
-                    this.capturePokemon
+                    tryToCatchPokemon()
             );
         }
 
         //=> wave is a double fight
 
-        int playerPartySize = waveDto.getWavePokemon().getPlayerParty().length;
-        int enemyPartySize = waveDto.getWavePokemon().getEnemyParty().length;
+        Pokemon[] playerParty = waveDto.getWavePokemon().getPlayerParty();
+        Pokemon[] enemyParty = waveDto.getWavePokemon().getEnemyParty();
+
+        int playerPartySize = 0;
+        for(Pokemon pokemon : playerParty){
+            if(pokemon.getHp() > 0){
+                playerPartySize++;
+            }
+        }
+        int enemyPartySize = 0;
+        for(Pokemon pokemon : enemyParty){
+            if(pokemon.getHp() > 0){
+                enemyPartySize++;
+            }
+        }
+
+        Pokemon playerPokemon1 = playerParty[0];
+        Pokemon playerPokemon2 = playerPartySize > 0 ? playerParty[1] : null;
+
+        Pokemon enemyPokemon1 = enemyParty[0];
+        Pokemon enemyPokemon2 = enemyPartySize > 0 ? enemyParty[1] : null;
 
         return combatNeuron.getAttackDecisionForDoubleFight(
-                waveDto.getWavePokemon().getPlayerParty()[0],
-                playerPartySize == 2 ? waveDto.getWavePokemon().getPlayerParty()[1] : null,
-                waveDto.getWavePokemon().getEnemyParty()[0],
-                enemyPartySize == 2 ? waveDto.getWavePokemon().getEnemyParty()[1] : null
+                playerPokemon1,
+                playerPokemon2,
+                enemyPokemon1,
+                enemyPokemon2
         );
     }
 
@@ -170,5 +187,9 @@ public class DecisionService {
 
     public void informAboutNotCatchable() {
         this.capturePokemon = false;
+    }
+
+    public boolean tryToCatchPokemon(){
+        return capturePokemon && waveDto.isWildPokemonFight();
     }
 }
