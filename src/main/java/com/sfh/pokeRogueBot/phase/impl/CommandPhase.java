@@ -139,7 +139,6 @@ public class CommandPhase extends AbstractPhase implements Phase {
 
                     addActionsToList(forDoubleFight.getPokemon2().getOwnAttackIndex(), forDoubleFight.getPokemon2().getSelectedTarget(), actionList, forDoubleFight.getPokemon2().getMoveTargetAreaType()); //add the decisions for the second pokemon
                 }
-                fdgfdgfd //todo: check the area type and if it is not near_other -> log warning
 
                 return actionList.toArray(new PhaseAction[0]);
             }
@@ -194,6 +193,13 @@ public class CommandPhase extends AbstractPhase implements Phase {
                 actionList.add(this.waitAction);
                 actionList.add(this.pressSpace);
                 break;
+        }
+
+        if(moveTarget == MoveTargetAreaType.ALL_ENEMIES){
+            return; //no need to select target
+        }
+        else if(moveTarget != MoveTargetAreaType.NEAR_OTHER){
+            log.warn("unchecked MoveTargetAreaType found: " + moveTarget);
         }
 
         actionList.add(this.waitAction); //now choose the target

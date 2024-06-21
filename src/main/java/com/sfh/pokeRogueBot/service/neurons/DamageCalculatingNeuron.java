@@ -31,7 +31,7 @@ public class DamageCalculatingNeuron {
             int expectedMinDamage = Math.round(minDamage * accuracy);
             int expectedMaxDamage = Math.round(maxDamage * accuracy);
 
-            PossibleAttackMove attackMove = new PossibleAttackMove(i, expectedMinDamage, expectedMaxDamage, move.getPriority(), playerPokemon.getStats().getSpeed(), move.getName());
+            PossibleAttackMove attackMove = new PossibleAttackMove(i, expectedMinDamage, expectedMaxDamage, move.getPriority(), playerPokemon.getStats().getSpeed(), move.getName(), move.getMoveTarget());
             possibleAttackMoves.add(attackMove);
         }
 
