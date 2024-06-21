@@ -4,6 +4,7 @@ import com.sfh.pokeRogueBot.browser.BrowserClient;
 import com.sfh.pokeRogueBot.file.FileManager;
 import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
+import com.sfh.pokeRogueBot.model.exception.CannotCatchTrainerPokemonException;
 import com.sfh.pokeRogueBot.model.exception.UnsupportedPhaseException;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.phase.Phase;
@@ -76,8 +77,8 @@ public class SimpleBot implements Bot {
         RetryTemplate retryTemplate = new RetryTemplateBuilder() //todo: add configurable retry policy
                 .retryOn(UnsupportedPhaseException.class)
                 .retryOn(JavascriptException.class)
-                .maxAttempts(5)
-                .fixedBackoff(1000)
+                .maxAttempts(2)
+                .fixedBackoff(2500)
                 .build();
 
         log.debug("run " + runProperty.getRunNumber() + ", starting wave fighting mode");
@@ -93,7 +94,13 @@ public class SimpleBot implements Bot {
                 });
 
             }
-        } catch (Exception e) {
+        }
+        catch (CannotCatchTrainerPokemonException e){
+            log.error("CannotCatchTrainerPokemonException in wave " + runProperty.getWaveIndex());
+            phaseProcessor.takeScreenshot("error_" + e.getClass().getSimpleName());
+            browserClient.navigateTo(targetUrl); //reload the page
+        }
+        catch (Exception e) {
             log.error("error while running", e);
             phaseProcessor.takeScreenshot("error_" + e.getClass().getSimpleName());
             runProperty.setStatus(RunStatus.ERROR);

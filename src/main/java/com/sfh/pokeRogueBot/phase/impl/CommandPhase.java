@@ -2,6 +2,7 @@ package com.sfh.pokeRogueBot.phase.impl;
 
 import com.sfh.pokeRogueBot.model.dto.WaveAndTurnDto;
 import com.sfh.pokeRogueBot.model.enums.*;
+import com.sfh.pokeRogueBot.model.exception.CannotCatchTrainerPokemonException;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.run.AttackDecision;
 import com.sfh.pokeRogueBot.model.run.AttackDecisionForDoubleFight;
@@ -165,6 +166,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
             throw new IllegalStateException("Could not set pokeball cursor to index: " + pokeballIndex);
         } else if (gameMode == GameMode.MESSAGE) {
             log.debug("GameMode.MESSAGE detected in CommandPhase");
+            throw new CannotCatchTrainerPokemonException(); //todo: rework
         }
 
         throw new NotSupportedException("GameMode not supported in CommandPhase: " + gameMode);
