@@ -1,0 +1,1 @@
+2024-06-21_16-29-31, Miniras, id: 782, shiny: false, legendary: false, sub legendary: false, mystical: false, base stats total: 300, || Base stats: hp: 45, atk: 55, def: 65, spAtk: 45, spDef: 45, speed: 45, || IVs: hp: 31, atk: 3, def: 25, spAtk: 25, spDef: 21, speed: 29, || ability hidden index: 142

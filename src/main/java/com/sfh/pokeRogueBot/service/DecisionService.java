@@ -192,4 +192,9 @@ public class DecisionService {
     public boolean tryToCatchPokemon(){
         return capturePokemon && waveDto.isWildPokemonFight();
     }
+
+    public void informAboutMissingPokeballs() {
+        log.debug("setting capturePokemon to false because no pokeballs are available");
+        this.capturePokemon = false;
+    }
 }

@@ -58,11 +58,10 @@ public class EggHatchPhase extends AbstractPhase implements Phase {
                     throw new IllegalStateException("Hatched Pokemon is null");
                 }
 
-                screenshotClient.takeTempScreenshot(hatchedPokemon.getName() + "_hatched_0");
                 waitingService.waitEvenLonger();
-                screenshotClient.takeTempScreenshot(hatchedPokemon.getName() + "_hatched_1");
                 waitingService.waitEvenLonger();
-                screenshotClient.takeTempScreenshot(hatchedPokemon.getName() + "_hatched_2");
+                waitingService.waitEvenLonger();
+                screenshotClient.persistScreenshot(hatchedPokemon.getName() + "_hatched");
                 log.info(hatchedPokemon.getName() + " hatched");
                 fileManager.persistHatchedPokemon(hatchedPokemon);
             }

@@ -116,14 +116,13 @@ public class FileManager {
         message.add(pokemon.getName());
         message.add("id: " + pokemon.getSpecies().getSpeciesId());
         message.add("shiny: " + pokemon.isShiny());
-        message.add("ability hidden index: " + pokemon.getSpecies().getAbilityHidden());
         message.add("legendary: " + pokemon.getSpecies().isLegendary());
         message.add("sub legendary: " + pokemon.getSpecies().isSubLegendary());
         message.add("mystical: " + pokemon.getSpecies().isMythical());
         message.add("base stats total: " + pokemon.getSpecies().getBaseTotal());
 
         Stats baseStats = pokemon.getSpecies().getBaseStats();
-        message.add("base stats: hp: " + baseStats.getHp());
+        message.add("|| Base stats: hp: " + baseStats.getHp());
         message.add("atk: " + baseStats.getAttack());
         message.add("def: " + baseStats.getDefense());
         message.add("spAtk: " + baseStats.getSpecialAttack());
@@ -131,12 +130,14 @@ public class FileManager {
         message.add("speed: " + baseStats.getSpeed());
 
         Iv iv = pokemon.getIvs();
-        message.add("IVs: hp: " + iv.getHp());
+        message.add("|| IVs: hp: " + iv.getHp());
         message.add("atk: " + iv.getAttack());
         message.add("def: " + iv.getDefense());
         message.add("spAtk: " + iv.getSpecialAttack());
         message.add("spDef: " + iv.getSpecialDefense());
         message.add("speed: " + iv.getSpeed());
+        message.add("|| ability hidden index: " + pokemon.getSpecies().getAbilityHidden());
+
 
         try {
             Path parentDir = FILE_HATCHED_POKEMON.getParent();
