@@ -166,7 +166,10 @@ public class CommandPhase extends AbstractPhase implements Phase {
             throw new IllegalStateException("Could not set pokeball cursor to index: " + pokeballIndex);
         } else if (gameMode == GameMode.MESSAGE) {
             log.debug("GameMode.MESSAGE detected in CommandPhase");
-            throw new CannotCatchTrainerPokemonException(); //todo: rework
+            decisionService.informAboutNotCatchable();
+            return new PhaseAction[]{
+                    this.pressSpace,
+            };
         }
 
         throw new NotSupportedException("GameMode not supported in CommandPhase: " + gameMode);

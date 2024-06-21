@@ -167,4 +167,8 @@ public class DecisionService {
     public void informTurnEnded() {
         this.waveDto.setWavePokemon(jsService.getWavePokemon());
     }
+
+    public void informAboutNotCatchable() {
+        this.capturePokemon = false;
+    }
 }
