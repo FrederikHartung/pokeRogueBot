@@ -6,7 +6,7 @@ import com.sfh.pokeRogueBot.model.run.SwitchDecision;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
-import com.sfh.pokeRogueBot.service.DecisionService;
+import com.sfh.pokeRogueBot.service.Brain;
 import com.sfh.pokeRogueBot.service.JsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -17,11 +17,11 @@ public class SwitchPhase extends AbstractPhase implements Phase {
 
     public static final String NAME = "SwitchPhase";
 
-    private final DecisionService decisionService;
+    private final Brain brain;
     private final JsService jsService;
 
-    public SwitchPhase(DecisionService decisionService, JsService jsService) {
-        this.decisionService = decisionService;
+    public SwitchPhase(Brain brain, JsService jsService) {
+        this.brain = brain;
         this.jsService = jsService;
     }
 
@@ -34,7 +34,7 @@ public class SwitchPhase extends AbstractPhase implements Phase {
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
 
         if (gameMode == GameMode.PARTY) { // maybe an own pokemon fainted
-            SwitchDecision switchDecision = decisionService.getFaintedPokemonSwitchDecision();
+            SwitchDecision switchDecision = brain.getFaintedPokemonSwitchDecision();
             boolean switchSuccessful = jsService.setPartyCursor(switchDecision.getIndex());
 
             if (switchSuccessful) {

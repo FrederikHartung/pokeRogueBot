@@ -9,7 +9,7 @@ import com.sfh.pokeRogueBot.model.run.AttackDecisionForPokemon;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
-import com.sfh.pokeRogueBot.service.DecisionService;
+import com.sfh.pokeRogueBot.service.Brain;
 import com.sfh.pokeRogueBot.service.JsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -23,11 +23,11 @@ public class CommandPhase extends AbstractPhase implements Phase {
 
     public static final String NAME = "CommandPhase";
 
-    private final DecisionService decisionService;
+    private final Brain brain;
     private final JsService jsService;
 
-    public CommandPhase(DecisionService decisionService, JsService jsService) {
-        this.decisionService = decisionService;
+    public CommandPhase(Brain brain, JsService jsService) {
+        this.brain = brain;
         this.jsService = jsService;
     }
 
@@ -44,15 +44,15 @@ public class CommandPhase extends AbstractPhase implements Phase {
         WaveAndTurnDto waveAndTurnDto = this.jsService.getWaveAndTurnIndex();
         if(null != waveAndTurnDto) {
 
-            //if the wave has ended, inform the decisionService
+            //if the wave has ended, inform the brain
             if (waveAndTurnDto.getWaveIndex() > lastWaveIndex) {
-                decisionService.informWaveEnded(waveAndTurnDto.getWaveIndex());
+                brain.informWaveEnded(waveAndTurnDto.getWaveIndex());
                 this.lastWaveIndex = waveAndTurnDto.getWaveIndex();
             }
         }
 
         if (gameMode == GameMode.COMMAND) { //fight, ball, pokemon, run
-            CommandPhaseDecision commandPhaseDecision = decisionService.getCommandDecision();
+            CommandPhaseDecision commandPhaseDecision = brain.getCommandDecision();
             if (commandPhaseDecision == CommandPhaseDecision.ATTACK) {
                 log.debug("GameMode.COMMAND, Attack decision chosen");
                 return new PhaseAction[]{
@@ -92,9 +92,9 @@ public class CommandPhase extends AbstractPhase implements Phase {
         }
         else if (gameMode == GameMode.FIGHT) { //which move to use
             log.debug("GameMode.FIGHT, getting attackDecision");
-            AttackDecision attackDecision = decisionService.getAttackDecision();
+            AttackDecision attackDecision = brain.getAttackDecision();
 
-            if(null == attackDecision && decisionService.tryToCatchPokemon()){
+            if(null == attackDecision && brain.tryToCatchPokemon()){
                 log.debug("CapturePokemon decision chosen because attackDecision is null and is capture pokemon");
                 return new PhaseAction[]{
                         this.pressBackspace, //go back to command menu
@@ -146,10 +146,10 @@ public class CommandPhase extends AbstractPhase implements Phase {
         }
         else if (gameMode == GameMode.BALL){
             log.debug("GameMode.BALL, choosing strongest pokeball");
-            int pokeballIndex = decisionService.selectStrongestPokeball();
+            int pokeballIndex = brain.selectStrongestPokeball();
             log.debug("Selected pokeball index: " + pokeballIndex);
             if(pokeballIndex == -1){
-                decisionService.informAboutMissingPokeballs();
+                brain.informAboutMissingPokeballs();
                 return new PhaseAction[]{
                         this.pressBackspace, //go back to command menu and fight
                 };

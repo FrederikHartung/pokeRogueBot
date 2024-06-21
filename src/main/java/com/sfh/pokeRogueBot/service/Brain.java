@@ -16,10 +16,11 @@ import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-public class DecisionService {
+public class Brain {
 
     private final RunPropertyService runPropertyService;
     private final JsService jsService;
+    private final ShortTermMemory shortTermMemory;
 
     private final ChooseModifierNeuron chooseModifierNeuron;
     private final CombatNeuron combatNeuron;
@@ -32,18 +33,18 @@ public class DecisionService {
     private RunProperty runProperty = null;
     private WaveDto waveDto;
     private boolean waveHasShiny = false;
-    private boolean waveHasPokerus = false;
     private boolean capturePokemon = false;
     private ChooseModifierDecision chooseModifierDecision;
 
-    public DecisionService(
+    public Brain(
             RunPropertyService runPropertyService,
-            JsService jsService, ChooseModifierNeuron chooseModifierNeuron,
+            JsService jsService, ShortTermMemory shortTermMemory, ChooseModifierNeuron chooseModifierNeuron,
             CombatNeuron combatNeuron,
             SwitchPokemonNeuron switchPokemonNeuron, ScreenshotClient screenshotClient
     ) {
         this.runPropertyService = runPropertyService;
         this.jsService = jsService;
+        this.shortTermMemory = shortTermMemory;
         this.screenshotClient = screenshotClient;
 
         this.chooseModifierNeuron = chooseModifierNeuron;
@@ -153,7 +154,6 @@ public class DecisionService {
 
     public void informWaveEnded(int newWaveIndex) {
         this.waveDto = jsService.getWaveDto();
-        this.waveHasPokerus = false;
         this.waveHasShiny = false;
         this.capturePokemon = false;
         this.chooseModifierDecision = null;
@@ -184,5 +184,13 @@ public class DecisionService {
     public void informAboutMissingPokeballs() {
         log.debug("setting capturePokemon to false because no pokeballs are available");
         this.capturePokemon = false;
+    }
+
+    public void memorizePhase(String phase) {
+        shortTermMemory.memorizePhase(phase);
+    }
+
+    public void clearShortTermMemory() {
+        shortTermMemory.clearMemory();
     }
 }

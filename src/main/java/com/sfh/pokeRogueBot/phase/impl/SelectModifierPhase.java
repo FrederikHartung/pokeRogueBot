@@ -6,7 +6,7 @@ import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
-import com.sfh.pokeRogueBot.service.DecisionService;
+import com.sfh.pokeRogueBot.service.Brain;
 import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.service.WaitingService;
 import lombok.extern.slf4j.Slf4j;
@@ -21,14 +21,14 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
 
     public static final String NAME = "SelectModifierPhase";
 
-    private final DecisionService decisionService;
+    private final Brain brain;
     private final JsService jsService;
     private final WaitingService waitService;
 
     private int pokemonIndexToSwitchTo = -1; //on startup
 
-    public SelectModifierPhase(DecisionService decisionService, JsService jsService, WaitingService waitService) {
-        this.decisionService = decisionService;
+    public SelectModifierPhase(Brain brain, JsService jsService, WaitingService waitService) {
+        this.brain = brain;
         this.jsService = jsService;
         this.waitService = waitService;
     }
@@ -44,7 +44,7 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
         if (gameMode == GameMode.MODIFIER_SELECT) {
 
             waitService.waitEvenLonger(); //wait for the modifier shop to render
-            MoveToModifierResult result = decisionService.getModifierToPick();
+            MoveToModifierResult result = brain.getModifierToPick();
             if(null == result){
                 //cant choose item, so dont pick any
                 return new PhaseAction[]{
