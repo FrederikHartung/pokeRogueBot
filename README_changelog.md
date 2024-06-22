@@ -1,6 +1,9 @@
 #Changelog
 
-## 1.0.0
+## 1.1
+- removed connection to a database
+
+## 1.0
 - added first implementation of the bot
 - added choosing of starters in the app config
 - added simple attack decision for single and double fights

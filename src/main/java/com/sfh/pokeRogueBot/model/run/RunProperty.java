@@ -9,19 +9,10 @@ import lombok.Setter;
 @Setter
 public class RunProperty {
 
-    // RunPropertyEntity properties
-    private final int runNumber;
-    //own properties
-    private final Pokemon[] team = new Pokemon[6];
+    private int runNumber;
     private RunStatus status;
     private int waveIndex;
     private int defeatedWildPokemon;
     private int caughtPokemon;
     private int defeatedTrainer;
-    private boolean isTrainerFight = false;
-    private boolean isFightOngoing = false;
-
-    public RunProperty(int runNumber) {
-        this.runNumber = runNumber;
-    }
 }

@@ -18,7 +18,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class Brain {
 
-    private final RunPropertyService runPropertyService;
     private final JsService jsService;
     private final ShortTermMemory shortTermMemory;
 
@@ -37,12 +36,10 @@ public class Brain {
     private ChooseModifierDecision chooseModifierDecision;
 
     public Brain(
-            RunPropertyService runPropertyService,
             JsService jsService, ShortTermMemory shortTermMemory, ChooseModifierNeuron chooseModifierNeuron,
             CombatNeuron combatNeuron,
             SwitchPokemonNeuron switchPokemonNeuron, ScreenshotClient screenshotClient
     ) {
-        this.runPropertyService = runPropertyService;
         this.jsService = jsService;
         this.shortTermMemory = shortTermMemory;
         this.screenshotClient = screenshotClient;

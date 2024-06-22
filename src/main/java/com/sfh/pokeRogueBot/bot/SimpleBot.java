@@ -14,7 +14,6 @@ import com.sfh.pokeRogueBot.phase.impl.MessagePhase;
 import com.sfh.pokeRogueBot.phase.impl.TitlePhase;
 import com.sfh.pokeRogueBot.service.Brain;
 import com.sfh.pokeRogueBot.service.JsService;
-import com.sfh.pokeRogueBot.service.RunPropertyService;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.JavascriptException;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,7 +25,6 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class SimpleBot implements Bot {
 
-    private final RunPropertyService runPropertyService;
     private final JsService jsService;
     private final PhaseProcessor phaseProcessor;
     private final PhaseProvider phaseProvider;
@@ -39,7 +37,6 @@ public class SimpleBot implements Bot {
     RunProperty runProperty;
 
     public SimpleBot(
-            RunPropertyService runPropertyService,
             JsService jsService,
             PhaseProcessor phaseProcessor,
             PhaseProvider phaseProvider,
@@ -47,7 +44,6 @@ public class SimpleBot implements Bot {
             BrowserClient browserClient, Brain brain,
             @Value("${browser.target-url}") String targetUrl
     ) {
-        this.runPropertyService = runPropertyService;
         this.jsService = jsService;
         this.phaseProcessor = phaseProcessor;
         this.phaseProvider = phaseProvider;
@@ -68,9 +64,8 @@ public class SimpleBot implements Bot {
     }
 
     private boolean startRun(){
-        runProperty = runPropertyService.getRunProperty();
+        runProperty = new RunProperty();
         runProperty.setStatus(RunStatus.STARTING);
-        runPropertyService.save(runProperty);
         jsService.init();
         brain.setRunProperty(runProperty);
         brain.clearShortTermMemory();
@@ -109,7 +104,6 @@ public class SimpleBot implements Bot {
             return false;
         }
 
-        runPropertyService.save(runProperty);
         log.info("finished run, status: " + runProperty.getStatus());
         return true;
     }
@@ -136,11 +130,9 @@ public class SimpleBot implements Bot {
         if(null != phase && phase.getPhaseName().equals(TitlePhase.NAME)){
             if(runProperty.getStatus() == RunStatus.STARTING){
                 runProperty.setStatus(RunStatus.WAVE_FIGHTING);
-                runPropertyService.save(runProperty);
             }
             else if(runProperty.getStatus() == RunStatus.WAVE_FIGHTING){
                 runProperty.setStatus(RunStatus.LOST);
-                runPropertyService.save(runProperty);
                 browserClient.navigateTo(targetUrl); //reload the page
             }
         }
