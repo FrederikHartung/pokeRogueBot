@@ -2,6 +2,10 @@
 
 ## 1.1
 - removed connection to a database
+- refactored SimpleBot and moved some of its logic to a WaveRunner class
+  - The bot can now run in a loop of for a configurable number of runs
+    (- If a run fails because of an exception, the bot tries to save and quit to title menu) WIP
+- added Unit tests for SimpleBot and WaveRunner
 
 ## 1.0
 - added first implementation of the bot

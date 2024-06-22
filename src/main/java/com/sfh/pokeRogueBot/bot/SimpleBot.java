@@ -14,6 +14,7 @@ import com.sfh.pokeRogueBot.phase.impl.MessagePhase;
 import com.sfh.pokeRogueBot.phase.impl.TitlePhase;
 import com.sfh.pokeRogueBot.service.Brain;
 import com.sfh.pokeRogueBot.service.JsService;
+import com.sfh.pokeRogueBot.service.RunPropertyService;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.JavascriptException;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,36 +22,60 @@ import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.support.RetryTemplateBuilder;
 import org.springframework.stereotype.Component;
 
-@Component
+/**
+ * The main bot class that controls the flow of the bot.
+ * On start, the Temp folder is cleared and the bot navigates to the target URL.
+ * After navigating to the target url, the bot continues with a save game or starts a new run.
+ * If a run is lost, the bot reloads the page and starts a new run.
+ * If an error occurs, the bot logs the error, saves the game and ends the run. After that, the bot starts a new run on a new save slot.
+ * The bot enters a loop and starts new runs till the app is closed or all save game slots are full.
+ * The bot can be configured to run a specific number of runs before stopping or endless with maxRunsTillShutdown = -1.
+ */
+
 @Slf4j
+@Component
 public class SimpleBot implements Bot {
 
     private final JsService jsService;
     private final PhaseProcessor phaseProcessor;
-    private final PhaseProvider phaseProvider;
     private final FileManager fileManager;
     private final BrowserClient browserClient;
     private final Brain brain;
+    private final RunPropertyService runPropertyService;
+    private final WaveRunner waveRunner;
 
     private final String targetUrl;
+    private final int maxRetriesPerRun;
+    private final int backoffPerRetry;
+    private final int maxRunsTillShutdown;
 
-    RunProperty runProperty;
+    private int runNumber = 1;
 
     public SimpleBot(
             JsService jsService,
             PhaseProcessor phaseProcessor,
-            PhaseProvider phaseProvider,
             FileManager fileManager,
-            BrowserClient browserClient, Brain brain,
-            @Value("${browser.target-url}") String targetUrl
+            BrowserClient browserClient,
+            Brain brain,
+            RunPropertyService runPropertyService,
+            WaveRunner waveRunner,
+            @Value("${browser.target-url}") String targetUrl,
+            @Value("${bot.maxRetriesPerRun}") int maxRetriesPerRun,
+            @Value("${bot.backoffPerRetry}") int backoffPerRetry,
+            @Value("${bot.maxRunsTillShutdown}") int maxRunsTillShutdown
     ) {
         this.jsService = jsService;
         this.phaseProcessor = phaseProcessor;
-        this.phaseProvider = phaseProvider;
         this.fileManager = fileManager;
         this.browserClient = browserClient;
         this.brain = brain;
+        this.runPropertyService = runPropertyService;
+        this.waveRunner = waveRunner;
+
         this.targetUrl = targetUrl;
+        this.maxRetriesPerRun = maxRetriesPerRun;
+        this.backoffPerRetry = backoffPerRetry;
+        this.maxRunsTillShutdown = maxRunsTillShutdown;
     }
 
     @Override
@@ -58,84 +83,55 @@ public class SimpleBot implements Bot {
         fileManager.deleteTempData();
         browserClient.navigateTo(targetUrl);
 
-        while (startRun()){
-            log.debug("run finished, starting new run");
+        while (runNumber <= maxRunsTillShutdown || maxRunsTillShutdown == -1) {
+            try{
+                startRun();
+                log.debug("run finished, starting new run");
+                runNumber++;
+            }
+            catch (IllegalStateException e){
+                log.error(e.getMessage());
+                return;
+            }
         }
+
+        log.debug("maxRunsTillShutdown reached, shutting down");
     }
 
-    private boolean startRun(){
-        runProperty = new RunProperty();
+    private void startRun() throws IllegalStateException {
+
+        RetryTemplate retryTemplate = new RetryTemplateBuilder()
+                .retryOn(UnsupportedPhaseException.class)
+                .retryOn(JavascriptException.class)
+                .maxAttempts(maxRetriesPerRun)
+                .fixedBackoff(backoffPerRetry)
+                .build();
+
+        RunProperty runProperty = runPropertyService.getRunProperty();
         runProperty.setStatus(RunStatus.STARTING);
         jsService.init();
         brain.setRunProperty(runProperty);
         brain.clearShortTermMemory();
 
-        RetryTemplate retryTemplate = new RetryTemplateBuilder() //todo: add configurable retry policy
-                .retryOn(UnsupportedPhaseException.class)
-                .retryOn(JavascriptException.class)
-                .maxAttempts(2)
-                .fixedBackoff(2500)
-                .build();
-
         log.debug("run " + runProperty.getRunNumber() + ", starting wave fighting mode");
-        try {
-            while (runProperty.getStatus() == RunStatus.STARTING || runProperty.getStatus() == RunStatus.WAVE_FIGHTING) {
-
-                retryTemplate.execute(context -> {
-                    handleStageInWave();
-                    if(runProperty.getStatus() == RunStatus.LOST){
-                        log.info("Run ended: Lost battle in Wave: " + runProperty.getWaveIndex());
-                    }
-                    return null;
-                });
-
-            }
-        }
-        catch (CannotCatchTrainerPokemonException e){
-            log.error("CannotCatchTrainerPokemonException in wave " + runProperty.getWaveIndex());
-            phaseProcessor.takeTempScreenshot("error_" + e.getClass().getSimpleName());
-            browserClient.navigateTo(targetUrl); //reload the page
-        }
-        catch (Exception e) {
-            log.error("error while running", e);
-            phaseProcessor.takeTempScreenshot("error_" + e.getClass().getSimpleName());
-            runProperty.setStatus(RunStatus.ERROR);
-            log.debug("Run ended: Error in Wave: " + runProperty.getWaveIndex());
-            return false;
+        while (runProperty.getStatus() == RunStatus.STARTING || runProperty.getStatus() == RunStatus.WAVE_FIGHTING) {
+            retryTemplate.execute(context -> {
+                waveRunner.handlePhaseInWave(runProperty);
+                return null;
+            });
         }
 
-        log.info("finished run, status: " + runProperty.getStatus());
-        return true;
-    }
-
-    private void handleStageInWave() throws Exception {
-
-        String phaseAsString = jsService.getCurrentPhaseAsString();
-        Phase phase = phaseProvider.fromString(phaseAsString);
-        GameMode gameMode = jsService.getGameMode();
-
-        if (null != phase && gameMode != GameMode.UNKNOWN) {
-            log.debug("phase detected: " + phase.getPhaseName() + ", gameMode: " + gameMode);
-            phaseProcessor.handlePhase(phase, gameMode);
-            brain.memorizePhase(phase.getPhaseName());
-        } else if (null == phase && gameMode == GameMode.MESSAGE) {
-            log.debug("no known phase detected, phaseAsString: " + phaseAsString + " , but gameMode is MESSAGE");
-            phaseProcessor.handlePhase(phaseProvider.fromString(MessagePhase.NAME), gameMode);
-            brain.memorizePhase(MessagePhase.NAME);
-        } else {
-            log.debug("no known phase detected, phaseAsString: " + phaseAsString + " , gameMode: " + gameMode);
-            throw new UnsupportedPhaseException(phaseAsString, gameMode);
+        if (runProperty.getStatus() == RunStatus.LOST) {
+            log.info("Run ended: Lost battle in Wave: " + runProperty.getWaveIndex());
+            return;
+        }
+        else if(runProperty.getStatus() == RunStatus.ERROR) {
+            log.warn("Run ended: Error in Wave: " + runProperty.getWaveIndex());
+            phaseProcessor.takeTempScreenshot("error");
+            return;
         }
 
-        if(null != phase && phase.getPhaseName().equals(TitlePhase.NAME)){
-            if(runProperty.getStatus() == RunStatus.STARTING){
-                runProperty.setStatus(RunStatus.WAVE_FIGHTING);
-            }
-            else if(runProperty.getStatus() == RunStatus.WAVE_FIGHTING){
-                runProperty.setStatus(RunStatus.LOST);
-                browserClient.navigateTo(targetUrl); //reload the page
-            }
-        }
+        throw new IllegalStateException("Run ended with unknown status: " + runProperty.getStatus());
     }
 }
 
