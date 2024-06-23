@@ -143,7 +143,7 @@ public class JsService {
         return Integer.parseInt(jsClient.executeCommandAndGetResult("return window.poru.egg.getEggId();").toString());
     }
 
-    public boolean setMenuCursorToSaveAndQuit() {
-        return Boolean.parseBoolean(jsClient.executeCommandAndGetResult("return window.poru.uihandler.setSaveAndQuitCursor();").toString());
+    public boolean saveAndQuit() {
+        return Boolean.parseBoolean(jsClient.executeCommandAndGetResult("return window.poru.uihandler.saveAndQuit();").toString());
     }
 }

@@ -17,7 +17,6 @@ class SimpleBotTest {
 
     SimpleBot bot;
     JsService jsService;
-    PhaseProcessor phaseProcessor;
     FileManager fileManager;
     BrowserClient browserClient;
     Brain brain;
@@ -34,7 +33,6 @@ class SimpleBotTest {
     @BeforeEach
     void setUp() {
         jsService = mock(JsService.class);
-        phaseProcessor = mock(PhaseProcessor.class);
         fileManager = mock(FileManager.class);
         browserClient = mock(BrowserClient.class);
         runPropertyService = mock(RunPropertyService.class);
@@ -139,7 +137,6 @@ class SimpleBotTest {
 
         bot.start();
         verify(waveRunner).handlePhaseInWave(runProperty);
-        verify(phaseProcessor).takeTempScreenshot(anyString());
     }
 
     /**
@@ -153,7 +150,6 @@ class SimpleBotTest {
 
         bot.start();
         verify(waveRunner).handlePhaseInWave(runProperty);
-        verify(phaseProcessor).takeTempScreenshot(anyString());
         verify(browserClient, times(2)).navigateTo(targetUrl); //one for the initial navigation, one for the reload
         verify(jsService).init(); //one for the initial navigation
     }
@@ -161,7 +157,6 @@ class SimpleBotTest {
     private SimpleBot getBot(){
         return new SimpleBot(
                 jsService,
-                phaseProcessor,
                 fileManager,
                 browserClient,
                 brain,

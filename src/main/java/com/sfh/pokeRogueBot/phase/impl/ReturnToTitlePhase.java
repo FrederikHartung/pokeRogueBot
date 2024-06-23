@@ -4,8 +4,10 @@ import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
+import com.sfh.pokeRogueBot.phase.ScreenshotClient;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.JsService;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -16,9 +18,14 @@ public class ReturnToTitlePhase extends AbstractPhase implements Phase {
     public static final String NAME = "ReturnToTitlePhase";
 
     private final JsService jsService;
+    private final ScreenshotClient screenshotClient;
 
-    public ReturnToTitlePhase(JsService jsService) {
+    @Setter
+    private String lastExceptionType = "";
+
+    public ReturnToTitlePhase(JsService jsService, ScreenshotClient screenshotClient) {
         this.jsService = jsService;
+        this.screenshotClient = screenshotClient;
     }
 
     @Override
@@ -29,36 +36,23 @@ public class ReturnToTitlePhase extends AbstractPhase implements Phase {
     @Override
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
 
-        if(gameMode != GameMode.MENU){
-            log.debug("found game mode in ReturnToTitlePhase: {}, trying to open menu", gameMode);
-            return new PhaseAction[]{
-                    pressBackspace,
-                    waitAction,
-                    pressBackspace,
-                    waitAction,
-                    pressBackspace,
-                    waitAction, //close all open windows
-                    pressEscape,
-                    waitAction,
-                    pressArrowUp, // now on save and quit
-                    waitAction,
-                    pressSpace
-            };
-        }
-        else{
-            log.debug("found menu in ReturnToTitlePhase, trying to save and quit");
-            boolean setCursorSuccess = jsService.setMenuCursorToSaveAndQuit();
-            if(setCursorSuccess) {
-                return new PhaseAction[]{ //save and quit to title
-                        waitAction,
-                        pressSpace
+        if(gameMode == GameMode.TITLE){
+
+            screenshotClient.takeTempScreenshot("error_" + lastExceptionType); //take screenshot for debugging
+            log.debug("Trying to save and quit");
+            boolean saveAndQuitSuccessful = jsService.saveAndQuit();
+            if(saveAndQuitSuccessful) {
+                return new PhaseAction[]{ //wait for render
+                        waitForStageRenderPhaseAction
                 };
             }
             else {
-                throw new IllegalStateException("Could not set cursor to save and quit in menu");
+                throw new IllegalStateException("Could not save and quit.");
             }
         }
-
+        else{
+            throw new NotSupportedException("GameMode is not supported in ReturnToTitlePhase: " + gameMode);
+        }
     }
 
 }

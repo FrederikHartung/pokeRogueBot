@@ -37,7 +37,6 @@ import org.springframework.stereotype.Component;
 public class SimpleBot implements Bot {
 
     private final JsService jsService;
-    private final PhaseProcessor phaseProcessor;
     private final FileManager fileManager;
     private final BrowserClient browserClient;
     private final Brain brain;
@@ -53,7 +52,6 @@ public class SimpleBot implements Bot {
 
     public SimpleBot(
             JsService jsService,
-            PhaseProcessor phaseProcessor,
             FileManager fileManager,
             BrowserClient browserClient,
             Brain brain,
@@ -65,7 +63,6 @@ public class SimpleBot implements Bot {
             @Value("${bot.maxRunsTillShutdown}") int maxRunsTillShutdown
     ) {
         this.jsService = jsService;
-        this.phaseProcessor = phaseProcessor;
         this.fileManager = fileManager;
         this.browserClient = browserClient;
         this.brain = brain;
@@ -127,12 +124,10 @@ public class SimpleBot implements Bot {
         }
         else if(runProperty.getStatus() == RunStatus.ERROR) {
             log.warn("Run ended: Error in Wave: " + runProperty.getWaveIndex());
-            phaseProcessor.takeTempScreenshot("error");
             return;
         }
         else if(runProperty.getStatus() == RunStatus.CRITICAL_ERROR) {
             log.error("Run ended: Critical error in Wave: " + runProperty.getWaveIndex());
-            phaseProcessor.takeTempScreenshot("critical_error");
             browserClient.navigateTo(targetUrl);
             return;
         }

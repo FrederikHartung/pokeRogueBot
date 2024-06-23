@@ -6,10 +6,11 @@
 - The bot can now run in a loop of for a configurable number of runs
 - Loop detection if the bot is stuck in a loop
 - added Unit tests for SimpleBot and WaveRunner
-
-Work in Progress:
 - If a run fails because of an exception, the bot tries to save and quit to title menu
 - If the bot can't save and quit, it reloads the page
+
+Work in Progress:
+
 
 ## 1.0
 - added first implementation of the bot

@@ -86,13 +86,11 @@ window.poru.uihandler = {
         return false;
     },
 
-    setSaveAndQuitCursor: () => {
-        var handler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[15];
-        if(handler && handler.active){
-            if(handler.cursor === 8){
-                return true;
-            }
-            return handler.setCursor(8);
+    saveAndQuit: () => {
+        var scene = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[15].scene;
+        if(scene){
+            scene.gameData.saveAll(scene, true, true, true, true).then(() => scene.reset(true));
+            return true;
         }
         return false;
     },

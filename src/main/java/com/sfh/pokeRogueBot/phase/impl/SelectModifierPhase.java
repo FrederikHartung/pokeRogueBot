@@ -1,6 +1,7 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
 import com.sfh.pokeRogueBot.model.enums.GameMode;
+import com.sfh.pokeRogueBot.model.exception.ActionLoopDetectedException;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
@@ -41,6 +42,7 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
     @Override
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
         List<PhaseAction> actionList = new LinkedList<>();
+
         if (gameMode == GameMode.MODIFIER_SELECT) {
 
             waitService.waitEvenLonger(); //wait for the modifier shop to render
