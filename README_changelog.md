@@ -6,8 +6,11 @@
 - The bot can now run in a loop of for a configurable number of runs
 - Loop detection if the bot is stuck in a loop
 - added Unit tests for SimpleBot and WaveRunner
-- If a run fails because of an exception, the bot tries to save and quit to title menu
-- If the bot can't save and quit, it reloads the page
+- Get the save games with JS
+- If save games are available, the bot tries to load the first save game
+- If no save games are available, the bot starts a new game
+- If an exception is thrown, the bot saves and goes back to the title screen to load/start a new game
+- Save games where an error occurred are retried when the bot is started the next time
 
 Work in Progress:
 

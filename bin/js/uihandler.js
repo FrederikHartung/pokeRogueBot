@@ -94,4 +94,84 @@ window.poru.uihandler = {
         }
         return false;
     },
+
+    getSaveSlots: () => {
+        var handler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[7];
+        if(handler){
+            var sessionSlots = handler.sessionSlots;
+            if(sessionSlots){
+                var sessionSlotsDto = [];
+                for(let i = 0; i < sessionSlots.length; i++){
+                    sessionSlotsDto.push({
+                        hasData: sessionSlots[i].hasData,
+                        slotId: sessionSlots[i].slotId,
+                    });
+                }
+
+                return sessionSlotsDto;
+            }
+        }
+
+        return null;
+    },
+
+    getSaveSlotsJson: () => {
+        return JSON.stringify(window.poru.uihandler.getSaveSlots());
+    },
+
+    setCursorToSaveSlot: (slotId) => {
+        var handler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[7];
+        if(handler){
+            if(handler.cursor === slotId){
+                return true;
+            }
+            return handler.setCursor(slotId);
+        }
+
+        return false;
+    },
+
+    setTitleUiHandlerCursorToLoadGame : () => {
+        var titleUiHandler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[1];
+        if(titleUiHandler && titleUiHandler.active){
+            var options = titleUiHandler.config.options;
+            var loadGameIndex = -1;
+            for(let i = 0; i < options.length; i++){
+                if(options[i].label === "Load Game"){
+                    loadGameIndex = i;
+                    break;
+                }
+            }
+
+            if(loadGameIndex === -1) return false; //no load game option found
+
+            if(titleUiHandler.cursor === loadGameIndex){
+                return true;
+            }
+            return titleUiHandler.setCursor(loadGameIndex);
+        }
+        return false;
+    },
+
+    setTitleUiHandlerCursorToNewGame : () => {
+        var titleUiHandler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[1];
+        if(titleUiHandler && titleUiHandler.active){
+            var options = titleUiHandler.config.options;
+            var newGameIndex = -1;
+            for(let i = 0; i < options.length; i++){
+                if(options[i].label === "New Game"){
+                    newGameIndex = i;
+                    break;
+                }
+            }
+
+            if(newGameIndex === -1) return false; //no new game option found
+
+            if(titleUiHandler.cursor === newGameIndex){
+                return true;
+            }
+            return titleUiHandler.setCursor(newGameIndex);
+        }
+        return false;
+    },
 }

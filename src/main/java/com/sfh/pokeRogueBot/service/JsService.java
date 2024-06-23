@@ -4,6 +4,7 @@ import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.sfh.pokeRogueBot.browser.JsClient;
+import com.sfh.pokeRogueBot.model.dto.SaveSlotDto;
 import com.sfh.pokeRogueBot.model.dto.WaveAndTurnDto;
 import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem;
@@ -32,7 +33,7 @@ public class JsService {
     }.getType();
 
     public static final Path UTIL = Paths.get(".", "bin", "js", "util.js");
-    public static final Path SET_CURSOR = Paths.get(".", "bin", "js", "uihandler", "setCursor.js");
+    public static final Path UI_HANDLER = Paths.get(".", "bin", "js", "uihandler.js");
     public static final Path POKE = Paths.get(".", "bin", "js", "poke.js");
     public static final Path WAVE = Paths.get(".", "bin", "js", "wave.js");
     public static final Path MODIFIER = Paths.get(".", "bin", "js", "modifier.js");
@@ -47,7 +48,7 @@ public class JsService {
 
     public void init(){
         jsClient.addScriptToWindow(UTIL);
-        jsClient.addScriptToWindow(SET_CURSOR);
+        jsClient.addScriptToWindow(UI_HANDLER);
         jsClient.addScriptToWindow(POKE);
         jsClient.addScriptToWindow(WAVE);
         jsClient.addScriptToWindow(MODIFIER);
@@ -145,5 +146,22 @@ public class JsService {
 
     public boolean saveAndQuit() {
         return Boolean.parseBoolean(jsClient.executeCommandAndGetResult("return window.poru.uihandler.saveAndQuit();").toString());
+    }
+
+    public boolean setCursorToLoadGame() {
+        return Boolean.parseBoolean(jsClient.executeCommandAndGetResult("return window.poru.uihandler.setTitleUiHandlerCursorToLoadGame();").toString());
+    }
+
+    public boolean setCursorToNewGame() {
+        return Boolean.parseBoolean(jsClient.executeCommandAndGetResult("return window.poru.uihandler.setTitleUiHandlerCursorToNewGame();").toString());
+    }
+
+    public boolean setCursorToSaveSlot(int index){
+        return Boolean.parseBoolean(jsClient.executeCommandAndGetResult("return window.poru.uihandler.setCursorToSaveSlot(%s);".formatted(index)).toString());
+    }
+
+    public SaveSlotDto[] getSaveSlots(){
+        String result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.getSaveSlotsJson();").toString();
+        return GSON.fromJson(result, SaveSlotDto[].class);
     }
 }

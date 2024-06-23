@@ -2,10 +2,12 @@ package com.sfh.pokeRogueBot.phase.impl;
 
 import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
+import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.model.run.Starter;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
+import com.sfh.pokeRogueBot.service.Brain;
 import com.sfh.pokeRogueBot.service.JsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,16 +22,18 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
     public static final String NAME = "SelectStarterPhase";
 
     private final JsService jsService;
+    private final Brain brain;
     private final List<Integer>  starterIds;
     private final List<Starter> starters = new LinkedList<>();
 
     private boolean selectedStarters = false;
 
     public SelectStarterPhase(
-            JsService jsService,
+            JsService jsService, Brain brain,
             @Value("${starter.ids}") List<Integer> starterIds
     ) {
         this.jsService = jsService;
+        this.brain = brain;
         this.starterIds = starterIds;
     }
 
@@ -87,9 +91,18 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
             };
         }
         else if(gameMode == GameMode.SAVE_SLOT){
-            return new PhaseAction[]{
-                    this.pressSpace
-            };
+            RunProperty runProperty = brain.getRunProperty();
+            log.debug("Setting Cursor to saveSlotIndex: {}", runProperty.getSaveSlotIndex());
+            boolean setSaveSlotCursorSuccess = jsService.setCursorToSaveSlot(runProperty.getSaveSlotIndex());
+            if(setSaveSlotCursorSuccess){
+                return new PhaseAction[]{
+                        this.pressSpace, //choose
+                        this.waitAction,
+                        this.pressSpace //confirm
+                };
+            }
+
+            throw new IllegalStateException("Failed to set cursor to save slot: " + runProperty.getSaveSlotIndex());
         }
 
         throw new NotSupportedException("gameMode not supported in SelectStarterPhase: " + gameMode);

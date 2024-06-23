@@ -2,24 +2,12 @@ package com.sfh.pokeRogueBot.bot;
 
 import com.sfh.pokeRogueBot.browser.BrowserClient;
 import com.sfh.pokeRogueBot.file.FileManager;
-import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
-import com.sfh.pokeRogueBot.model.exception.CannotCatchTrainerPokemonException;
-import com.sfh.pokeRogueBot.model.exception.UnsupportedPhaseException;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
-import com.sfh.pokeRogueBot.phase.Phase;
-import com.sfh.pokeRogueBot.phase.PhaseProcessor;
-import com.sfh.pokeRogueBot.phase.PhaseProvider;
-import com.sfh.pokeRogueBot.phase.impl.MessagePhase;
-import com.sfh.pokeRogueBot.phase.impl.TitlePhase;
 import com.sfh.pokeRogueBot.service.Brain;
 import com.sfh.pokeRogueBot.service.JsService;
-import com.sfh.pokeRogueBot.service.RunPropertyService;
 import lombok.extern.slf4j.Slf4j;
-import org.openqa.selenium.JavascriptException;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.retry.support.RetryTemplate;
-import org.springframework.retry.support.RetryTemplateBuilder;
 import org.springframework.stereotype.Component;
 
 /**
@@ -40,12 +28,9 @@ public class SimpleBot implements Bot {
     private final FileManager fileManager;
     private final BrowserClient browserClient;
     private final Brain brain;
-    private final RunPropertyService runPropertyService;
     private final WaveRunner waveRunner;
 
     private final String targetUrl;
-    private final int maxRetriesPerRun;
-    private final int backoffPerRetry;
     private final int maxRunsTillShutdown;
 
     private int runNumber = 1;
@@ -55,23 +40,17 @@ public class SimpleBot implements Bot {
             FileManager fileManager,
             BrowserClient browserClient,
             Brain brain,
-            RunPropertyService runPropertyService,
             WaveRunner waveRunner,
             @Value("${browser.target-url}") String targetUrl,
-            @Value("${bot.maxRetriesPerRun}") int maxRetriesPerRun,
-            @Value("${bot.backoffPerRetry}") int backoffPerRetry,
             @Value("${bot.maxRunsTillShutdown}") int maxRunsTillShutdown
     ) {
         this.jsService = jsService;
         this.fileManager = fileManager;
         this.browserClient = browserClient;
         this.brain = brain;
-        this.runPropertyService = runPropertyService;
         this.waveRunner = waveRunner;
 
         this.targetUrl = targetUrl;
-        this.maxRetriesPerRun = maxRetriesPerRun;
-        this.backoffPerRetry = backoffPerRetry;
         this.maxRunsTillShutdown = maxRunsTillShutdown;
     }
 
@@ -79,6 +58,7 @@ public class SimpleBot implements Bot {
     public void start() {
         fileManager.deleteTempData();
         browserClient.navigateTo(targetUrl);
+        jsService.init();
 
         while (runNumber <= maxRunsTillShutdown || maxRunsTillShutdown == -1) {
             try{
@@ -97,25 +77,12 @@ public class SimpleBot implements Bot {
 
     private void startRun() throws IllegalStateException {
 
-        RetryTemplate retryTemplate = new RetryTemplateBuilder()
-                .retryOn(UnsupportedPhaseException.class)
-                .retryOn(JavascriptException.class)
-                .maxAttempts(maxRetriesPerRun)
-                .fixedBackoff(backoffPerRetry)
-                .build();
-
-        RunProperty runProperty = runPropertyService.getRunProperty();
-        runProperty.setStatus(RunStatus.STARTING);
-        jsService.init();
-        brain.setRunProperty(runProperty);
         brain.clearShortTermMemory();
 
+        RunProperty runProperty = brain.getRunProperty();
         log.debug("run " + runProperty.getRunNumber() + ", starting wave fighting mode");
-        while (runProperty.getStatus() == RunStatus.STARTING || runProperty.getStatus() == RunStatus.WAVE_FIGHTING) {
-            retryTemplate.execute(context -> {
-                waveRunner.handlePhaseInWave(runProperty);
-                return null;
-            });
+        while (runProperty.getStatus() == RunStatus.OK) {
+            waveRunner.handlePhaseInWave(runProperty);
         }
 
         if (runProperty.getStatus() == RunStatus.LOST) {
@@ -126,13 +93,16 @@ public class SimpleBot implements Bot {
             log.warn("Run ended: Error in Wave: " + runProperty.getWaveIndex());
             return;
         }
-        else if(runProperty.getStatus() == RunStatus.CRITICAL_ERROR) {
-            log.error("Run ended: Critical error in Wave: " + runProperty.getWaveIndex());
-            browserClient.navigateTo(targetUrl);
-            return;
+        else if(runProperty.getStatus() == RunStatus.EXIT_APP) {
+            log.warn("Run ended: No available save slot, stopping bot.");
+            exitApp();
         }
 
         throw new IllegalStateException("Run ended with unknown status: " + runProperty.getStatus());
+    }
+
+    public void exitApp(){
+        System.exit(0);
     }
 }
 

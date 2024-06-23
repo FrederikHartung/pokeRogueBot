@@ -43,16 +43,6 @@ public class WaveRunner {
             Phase phase = phaseProvider.fromString(phaseAsString);
             GameMode gameMode = jsService.getGameMode();
 
-            if(null != phase && phase.getPhaseName().equals(TitlePhase.NAME)){
-                if(runProperty.getStatus() == RunStatus.STARTING){
-                    runProperty.setStatus(RunStatus.WAVE_FIGHTING);
-                }
-                else if(runProperty.getStatus() == RunStatus.WAVE_FIGHTING){
-                    runProperty.setStatus(RunStatus.LOST);
-                    return;
-                }
-            }
-
             if (null != phase && gameMode != GameMode.UNKNOWN) {
                 log.debug("phase detected: " + phase.getPhaseName() + ", gameMode: " + gameMode);
                 phaseProcessor.handlePhase(phase, gameMode);
@@ -69,11 +59,11 @@ public class WaveRunner {
         catch (Exception e){
             log.error("Error in WaveRunner, trying to save and quit to title", e);
             runProperty.setStatus(RunStatus.ERROR);
-            saveAndQuit(runProperty, e.getClass().getSimpleName());
+            saveAndQuit(e.getClass().getSimpleName());
         }
     }
 
-    private void saveAndQuit(RunProperty runProperty, String lastExceptionType) {
+    private void saveAndQuit(String lastExceptionType) {
         try{
             Phase phase = phaseProvider.fromString(ReturnToTitlePhase.NAME);
             if(phase instanceof ReturnToTitlePhase returnToTitlePhase) {
@@ -83,7 +73,6 @@ public class WaveRunner {
         }
         catch (Exception e){
             log.error("unable to save and quit", e);
-            runProperty.setStatus(RunStatus.CRITICAL_ERROR);
         }
     }
 }

@@ -1,7 +1,9 @@
 package com.sfh.pokeRogueBot.service;
 
+import com.sfh.pokeRogueBot.model.dto.SaveSlotDto;
 import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision;
+import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.run.*;
@@ -27,13 +29,13 @@ public class Brain {
 
     private final ScreenshotClient screenshotClient;
 
-    @Getter
-    @Setter
     private RunProperty runProperty = null;
     private WaveDto waveDto;
     private boolean waveHasShiny = false;
     private boolean capturePokemon = false;
     private ChooseModifierDecision chooseModifierDecision;
+    @Getter
+    private SaveSlotDto[] saveSlots;
 
     public Brain(
             JsService jsService, ShortTermMemory shortTermMemory, ChooseModifierNeuron chooseModifierNeuron,
@@ -189,5 +191,90 @@ public class Brain {
 
     public void clearShortTermMemory() {
         shortTermMemory.clearMemory();
+    }
+
+    /**
+     * If the save slots are not loaded, open the save slots menu to get the save slots data
+     * If the save slots are loaded, check if there is a save slot without an error
+     * @return if the load game menu should be opened
+     */
+    public boolean shouldLoadGame() {
+        if(null == saveSlots){
+            return true;
+        }
+
+        for(SaveSlotDto saveSlot : saveSlots){
+            if(saveSlot.isDataPresent() && !saveSlot.isErrorOccurred()){
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * When called, the save slot menu should be opened so the data is accessible with JS
+     * @return which save slot index should be loaded or -1 if no save slot should be loaded
+     */
+    public int getSaveSlotIndexToLoad() {
+        if(null == saveSlots){
+            this.saveSlots = jsService.getSaveSlots();
+        }
+
+        for(SaveSlotDto saveSlot : saveSlots){
+            if(saveSlot.isDataPresent() && !saveSlot.isErrorOccurred()){
+                return saveSlot.getSlotId();
+            }
+        }
+
+        return -1;
+    }
+
+    /**
+     * When called, the save slot data are already loaded.
+     * Returns which save slot index should be saved to or -1 if no save slot is free.
+     * @return a value >= 0 if the save slot is empty and has no error
+     */
+    public int getSaveSlotIndexToSave() {
+        if(null == saveSlots){
+            throw new IllegalStateException("Save slots are not loaded, cannot determine save slot index to save");
+        }
+
+        for(SaveSlotDto saveSlot : saveSlots){
+            if(!saveSlot.isDataPresent() && !saveSlot.isErrorOccurred()){
+                return saveSlot.getSlotId();
+            }
+        }
+
+        return -1;
+    }
+
+    public RunProperty getRunProperty() {
+        if(runProperty == null){
+            runProperty = new RunProperty(1);
+            return runProperty;
+        }
+
+        if(runProperty.getStatus() == RunStatus.OK){
+            return runProperty;
+        }
+
+        if(null == saveSlots){
+            throw new IllegalStateException("Save slots are not loaded, cannot determine run property");
+        }
+
+        switch (runProperty.getStatus()){
+            case ERROR:
+                saveSlots[runProperty.getSaveSlotIndex()].setErrorOccurred(true);
+                runProperty = new RunProperty(runProperty.getRunNumber() + 1);
+                return runProperty;
+            case LOST:
+                saveSlots[runProperty.getSaveSlotIndex()].setErrorOccurred(false);
+                saveSlots[runProperty.getSaveSlotIndex()].setDataPresent(false);
+                runProperty = new RunProperty(runProperty.getRunNumber() + 1);
+                return runProperty;
+            default:
+                throw new IllegalStateException("RunProperty has unknown status: " + runProperty.getStatus());
+        }
     }
 }

@@ -1,16 +1,31 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
+import com.sfh.pokeRogueBot.model.dto.SaveSlotDto;
 import com.sfh.pokeRogueBot.model.enums.GameMode;
+import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
+import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
+import com.sfh.pokeRogueBot.service.Brain;
+import com.sfh.pokeRogueBot.service.JsService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 public class TitlePhase extends AbstractPhase implements Phase {
 
     public static final String NAME = "TitlePhase";
+
+    private final Brain brain;
+    private final JsService jsService;
+
+    public TitlePhase(Brain brain, JsService jsService) {
+        this.brain = brain;
+        this.jsService = jsService;
+    }
 
     @Override
     public String getPhaseName() {
@@ -19,10 +34,77 @@ public class TitlePhase extends AbstractPhase implements Phase {
 
     @Override
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
+
+        RunProperty runProperty = brain.getRunProperty();
+
+        if(null == runProperty){
+            throw new IllegalStateException("RunProperty is null in TitlePhase");
+        }
+
         if (gameMode == GameMode.TITLE) {
-            return new PhaseAction[]{
-                    this.pressSpace
-            };
+
+            if(runProperty.getSaveSlotIndex() >= 0){
+                runProperty.setStatus(RunStatus.LOST);//run ended because of player fainted
+                return new PhaseAction[]{
+                        this.waitAction
+                };
+            }
+
+            if(brain.shouldLoadGame()){
+                boolean setCursorToLoadGameSuccessful = jsService.setCursorToLoadGame();
+                if(setCursorToLoadGameSuccessful){
+                    return new PhaseAction[]{
+                            this.pressSpace
+                    };
+                }
+
+                throw new IllegalStateException("Unable to set cursor to load game.");
+            }
+
+            //save games already loaded to the brain
+            int saveGameSlotIndex = brain.getSaveSlotIndexToSave();
+            if(saveGameSlotIndex == -1){
+                //no available save slot, close app
+                log.warn("No available save slot, closing app.");
+                runProperty.setStatus(RunStatus.EXIT_APP);
+                return new PhaseAction[]{
+                        this.waitAction
+                };
+            }
+
+            runProperty.setSaveSlotIndex(saveGameSlotIndex);
+
+            boolean setCursorToNewGameSuccessful = jsService.setCursorToNewGame();
+            if(setCursorToNewGameSuccessful){
+
+                return new PhaseAction[]{
+                        this.pressSpace
+                };
+            }
+
+            throw new IllegalStateException("Unable to set cursor to new game.");
+        }
+        else if(gameMode == GameMode.SAVE_SLOT){
+            int saveSlotIndexToLoad = brain.getSaveSlotIndexToLoad();
+            if(saveSlotIndexToLoad == -1 ){
+                // no save game found, return to title menu
+                return new PhaseAction[]{
+                        this.pressBackspace
+                };
+            }
+
+            boolean setCursorToSaveSlotSuccessful = jsService.setCursorToSaveSlot(saveSlotIndexToLoad);
+            if(setCursorToSaveSlotSuccessful){
+
+                //save new game to slot saveSlotIndexToLoad
+                runProperty.setSaveSlotIndex(saveSlotIndexToLoad);
+
+                return new PhaseAction[]{
+                        this.pressSpace
+                };
+            }
+
+            throw new IllegalStateException("Unable to set cursor to save slot.");
         }
         else if(gameMode == GameMode.MESSAGE){
             return new PhaseAction[]{

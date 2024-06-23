@@ -1,11 +1,8 @@
 package com.sfh.pokeRogueBot.model.enums;
 
 public enum RunStatus {
-    STARTING,
-    WAVE_FIGHTING,
+    OK,
     ERROR,
-    CRITICAL_ERROR,
     LOST,
-    SAVED,
-    WON
+    EXIT_APP
 }

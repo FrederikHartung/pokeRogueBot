@@ -91,6 +91,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
             }
         }
         else if (gameMode == GameMode.FIGHT) { //which move to use
+
             log.debug("GameMode.FIGHT, getting attackDecision");
             AttackDecision attackDecision = brain.getAttackDecision();
 
