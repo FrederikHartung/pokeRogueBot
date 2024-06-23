@@ -66,9 +66,18 @@ class BrainTest {
     }
 
     @Test
-    void if_the_save_slots_are_null_and_a_run_property_is_requested_an_exception_is_thrown(){
+    void if_the_save_slots_are_null_and_a_run_property_is_requested_and_the_status_is_not_ok_an_exception_is_thrown(){
         ReflectionTestUtils.setField(brain, "saveSlots", null);
+        runProperty.setStatus(RunStatus.ERROR);
         assertThrows(IllegalStateException.class, () -> brain.getRunProperty());
+    }
+
+    @Test
+    void if_the_save_slots_are_null_and_a_run_property_is_requested_and_the_status_is_ok_the_property_is_returned(){
+        ReflectionTestUtils.setField(brain, "saveSlots", null);
+        runProperty.setStatus(RunStatus.OK);
+        RunProperty newRunProperty = brain.getRunProperty();
+        assertSame(newRunProperty, runProperty);
     }
 
     /**

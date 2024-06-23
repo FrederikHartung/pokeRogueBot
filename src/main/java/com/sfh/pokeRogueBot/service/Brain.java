@@ -236,13 +236,15 @@ public class Brain {
             return runProperty;
         }
 
+        if(runProperty.getStatus() == RunStatus.OK){
+            return runProperty;
+        }
+
         if(null == saveSlots){
             throw new IllegalStateException("Save slots are not loaded, cannot determine run property");
         }
 
         switch (runProperty.getStatus()){
-            case OK:
-                return runProperty;
             case ERROR:
                 saveSlots[runProperty.getSaveSlotIndex()].setErrorOccurred(true);
                 runProperty = new RunProperty(runProperty.getRunNumber() + 1);

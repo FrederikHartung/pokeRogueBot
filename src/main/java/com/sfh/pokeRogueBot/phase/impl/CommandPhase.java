@@ -91,6 +91,11 @@ public class CommandPhase extends AbstractPhase implements Phase {
             }
         }
         else if (gameMode == GameMode.FIGHT) { //which move to use
+
+            if(true){
+                throw new NotSupportedException("GameMode.FIGHT not supported in CommandPhase"); //todo: remove, just for testing
+            }
+
             log.debug("GameMode.FIGHT, getting attackDecision");
             AttackDecision attackDecision = brain.getAttackDecision();
 
