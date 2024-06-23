@@ -41,8 +41,8 @@ public class TitlePhase extends AbstractPhase implements Phase {
 
         if (gameMode == GameMode.TITLE) {
 
-            if(runProperty.getSaveSlotIndex() >= 0){ //run ended because of player fainted or error
-                runProperty.setStatus(RunStatus.LOST);
+            if(runProperty.getSaveSlotIndex() >= 0){
+                runProperty.setStatus(RunStatus.LOST);//run ended because of player fainted
                 return new PhaseAction[]{
                         this.waitAction
                 };
