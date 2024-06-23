@@ -6,4 +6,4 @@ for(var i = 0; i < handlers.length; i++){
 }
 
 //get all ui handlers
-Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers
+var handlers = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers

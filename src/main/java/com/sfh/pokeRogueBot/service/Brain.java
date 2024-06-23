@@ -1,5 +1,6 @@
 package com.sfh.pokeRogueBot.service;
 
+import com.sfh.pokeRogueBot.model.dto.SaveSlotDto;
 import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
@@ -34,6 +35,8 @@ public class Brain {
     private boolean waveHasShiny = false;
     private boolean capturePokemon = false;
     private ChooseModifierDecision chooseModifierDecision;
+    @Getter
+    private SaveSlotDto[] saveSlots;
 
     public Brain(
             JsService jsService, ShortTermMemory shortTermMemory, ChooseModifierNeuron chooseModifierNeuron,
@@ -189,5 +192,28 @@ public class Brain {
 
     public void clearShortTermMemory() {
         shortTermMemory.clearMemory();
+    }
+
+    /**
+     * If the save slots are not loaded, open the save slots menu to get the save slots data
+     * If the save slots are loaded, check if there is a save slot without an error
+     * @return if the load game menu should be opened
+     */
+    public boolean shouldLoadGame() {
+        if(null == saveSlots){
+            return true;
+        }
+
+        for(SaveSlotDto saveSlot : saveSlots){
+            if(!saveSlot.isHasError()){
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public int getSaveSlotIndexToLoad() {
+        return -1;
     }
 }

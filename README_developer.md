@@ -13,7 +13,8 @@ Only refactor, when it's really necessary.
 
 ## Open todo's with high priority:
 - [x] remove the db and spring data
-- [ ] if an exception is thrown, save and go back to title screen
+- [x] if an exception is thrown, save and go back to title screen
+- [ ] load the first save game 
 - [ ] make attack decision not in the attack menu
 - [ ] don't buy revive items before waveDto 10
 - [ ] getting the attack move from the summary ui handler

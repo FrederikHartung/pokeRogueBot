@@ -8,6 +8,7 @@
 - added Unit tests for SimpleBot and WaveRunner
 - If a run fails because of an exception, the bot tries to save and quit to title menu
 - If the bot can't save and quit, it reloads the page
+- Get the save games with JS
 
 Work in Progress:
 
