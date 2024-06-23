@@ -204,7 +204,7 @@ public class Brain {
         }
 
         for(SaveSlotDto saveSlot : saveSlots){
-            if(!saveSlot.isErrorOccurred()){
+            if(saveSlot.isDataPresent() && !saveSlot.isErrorOccurred()){
                 return true;
             }
         }

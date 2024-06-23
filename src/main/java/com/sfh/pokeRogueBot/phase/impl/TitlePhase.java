@@ -39,14 +39,14 @@ public class TitlePhase extends AbstractPhase implements Phase {
             throw new IllegalStateException("RunProperty is null in TitlePhase");
         }
 
-        if(runProperty.getSaveSlotIndex() >= 0){ //run ended because of player fainted or error
-            runProperty.setStatus(RunStatus.LOST);
-            return new PhaseAction[]{
-                    this.waitAction
-            };
-        }
-
         if (gameMode == GameMode.TITLE) {
+
+            if(runProperty.getSaveSlotIndex() >= 0){ //run ended because of player fainted or error
+                runProperty.setStatus(RunStatus.LOST);
+                return new PhaseAction[]{
+                        this.waitAction
+                };
+            }
 
             if(brain.shouldLoadGame()){
                 boolean setCursorToLoadGameSuccessful = jsService.setCursorToLoadGame();
