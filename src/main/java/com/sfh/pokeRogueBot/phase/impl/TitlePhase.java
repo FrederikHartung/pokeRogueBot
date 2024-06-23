@@ -44,6 +44,7 @@ public class TitlePhase extends AbstractPhase implements Phase {
         if (gameMode == GameMode.TITLE) {
 
             if(runProperty.getSaveSlotIndex() >= 0){
+                log.debug("found run property with a save slot index, so the current run is lost.");
                 runProperty.setStatus(RunStatus.LOST);//run ended because of player fainted
                 return new PhaseAction[]{
                         this.waitAction
@@ -51,6 +52,7 @@ public class TitlePhase extends AbstractPhase implements Phase {
             }
 
             if(brain.shouldLoadGame()){
+                log.debug("opening load game screen.");
                 boolean setCursorToLoadGameSuccessful = jsService.setCursorToLoadGame();
                 if(setCursorToLoadGameSuccessful){
                     return new PhaseAction[]{
@@ -76,6 +78,7 @@ public class TitlePhase extends AbstractPhase implements Phase {
 
             boolean setCursorToNewGameSuccessful = jsService.setCursorToNewGame();
             if(setCursorToNewGameSuccessful){
+                log.debug("Setting cursor to new game.");
 
                 return new PhaseAction[]{
                         this.pressSpace
@@ -87,7 +90,7 @@ public class TitlePhase extends AbstractPhase implements Phase {
         else if(gameMode == GameMode.SAVE_SLOT){
             int saveSlotIndexToLoad = brain.getSaveSlotIndexToLoad();
             if(saveSlotIndexToLoad == -1 ){
-                // no save game found, return to title menu
+                log.debug("No save slot to load, pressing backspace and returning to title.");
                 return new PhaseAction[]{
                         this.pressBackspace
                 };
@@ -95,7 +98,7 @@ public class TitlePhase extends AbstractPhase implements Phase {
 
             boolean setCursorToSaveSlotSuccessful = jsService.setCursorToSaveSlot(saveSlotIndexToLoad);
             if(setCursorToSaveSlotSuccessful){
-
+                log.debug("Save slot index to load: " + saveSlotIndexToLoad);
                 //save new game to slot saveSlotIndexToLoad
                 runProperty.setSaveSlotIndex(saveSlotIndexToLoad);
 
