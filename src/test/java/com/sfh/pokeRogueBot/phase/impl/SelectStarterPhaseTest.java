@@ -47,7 +47,7 @@ class SelectStarterPhaseTest {
         PhaseAction[] actions = selectStarterPhase.getActionsForGameMode(gameModeSaveSlot);
         verify(jsService, never()).getAvailableStarterPokemon();
         verify(jsService, times(1)).setCursorToSaveSlot(1);
-        assertEquals(1, actions.length);
+        assertEquals(3, actions.length);
         assertEquals(PressKeyPhaseAction.class, actions[0].getClass());
         assertEquals(KeyToPress.SPACE, ((PressKeyPhaseAction) actions[0]).getKeyToPress());
     }

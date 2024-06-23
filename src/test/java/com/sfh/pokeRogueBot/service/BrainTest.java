@@ -43,7 +43,9 @@ class BrainTest {
 
         saveSlots = new SaveSlotDto[5];
         for(int i = 0; i < saveSlots.length; i++){
-            saveSlots[i] = new SaveSlotDto();
+            SaveSlotDto saveSlotDto = new SaveSlotDto();
+            saveSlotDto.setSlotId(i);
+            saveSlots[i] = saveSlotDto;
         }
         ReflectionTestUtils.setField(brain, "saveSlots", saveSlots);
     }
@@ -121,5 +123,29 @@ class BrainTest {
         assertFalse(saveSlots[runProperty.getSaveSlotIndex()].isErrorOccurred());
         assertFalse(saveSlots[runProperty.getSaveSlotIndex()].isDataPresent());
         assertEquals(2, newRunProperty.getRunNumber());
+    }
+
+    @Test
+    void a_save_slot_index_is_requested_but_save_game_is_null(){
+        ReflectionTestUtils.setField(brain, "saveSlots", null);
+        assertThrows(IllegalStateException.class, () -> brain.getSaveSlotIndexToSave());
+    }
+
+    @Test
+    void a_save_slot_index_is_requested(){
+        saveSlots[0].setDataPresent(true);
+        saveSlots[1].setDataPresent(true);
+        saveSlots[2].setDataPresent(false);
+        saveSlots[2].setErrorOccurred(true);
+
+        assertEquals(3, brain.getSaveSlotIndexToSave());
+    }
+
+    @Test
+    void if_no_save_slot_index_is_found_to_save_minus_one_is_returned(){
+        for(SaveSlotDto saveSlot : saveSlots){
+            saveSlot.setDataPresent(true);
+        }
+        assertEquals(-1, brain.getSaveSlotIndexToSave());
     }
 }

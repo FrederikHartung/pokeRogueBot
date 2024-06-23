@@ -93,8 +93,16 @@ public class SimpleBot implements Bot {
             log.warn("Run ended: Error in Wave: " + runProperty.getWaveIndex());
             return;
         }
+        else if(runProperty.getStatus() == RunStatus.EXIT_APP) {
+            log.warn("Run ended: No available save slot, stopping bot.");
+            exitApp();
+        }
 
         throw new IllegalStateException("Run ended with unknown status: " + runProperty.getStatus());
+    }
+
+    public void exitApp(){
+        System.exit(0);
     }
 }
 

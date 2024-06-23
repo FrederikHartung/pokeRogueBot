@@ -10,8 +10,10 @@ import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.Brain;
 import com.sfh.pokeRogueBot.service.JsService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 public class TitlePhase extends AbstractPhase implements Phase {
 
@@ -59,11 +61,22 @@ public class TitlePhase extends AbstractPhase implements Phase {
                 throw new IllegalStateException("Unable to set cursor to load game.");
             }
 
+            //save games already loaded to the brain
+            int saveGameSlotIndex = brain.getSaveSlotIndexToSave();
+            if(saveGameSlotIndex == -1){
+                //no available save slot, close app
+                log.warn("No available save slot, closing app.");
+                runProperty.setStatus(RunStatus.EXIT_APP);
+                return new PhaseAction[]{
+                        this.waitAction
+                };
+            }
+
+            runProperty.setSaveSlotIndex(saveGameSlotIndex);
+
             boolean setCursorToNewGameSuccessful = jsService.setCursorToNewGame();
             if(setCursorToNewGameSuccessful){
 
-                //save new game to slot 0
-                runProperty.setSaveSlotIndex(0);
                 return new PhaseAction[]{
                         this.pressSpace
                 };

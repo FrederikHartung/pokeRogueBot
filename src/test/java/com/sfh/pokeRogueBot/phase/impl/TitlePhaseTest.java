@@ -166,4 +166,35 @@ class TitlePhaseTest {
         assertThrows(NotSupportedException.class, () -> titlePhase.getActionsForGameMode(GameMode.UNKNOWN));
     }
 
+    @Test
+    void if_no_save_slot_is_empty_the_status_exit_app_is_returned() {
+        runProperty.setSaveSlotIndex(-1);
+        doReturn(-1).when(brain).getSaveSlotIndexToSave();
+
+        PhaseAction[] actions = titlePhase.getActionsForGameMode(gameModeTitle);
+
+        assertEquals(RunStatus.EXIT_APP, runProperty.getStatus());
+        assertEquals(1, actions.length);
+        assertEquals(WaitPhaseAction.class, actions[0].getClass());
+    }
+
+    /**
+     * If a new game is started, the save slot index is set to a free save slot.
+     */
+    @Test
+    void if_an_empty_save_slot_is_found_the_index_is_set_to_the_run_property_for_new_game(){
+        runProperty.setSaveSlotIndex(-1);
+        doReturn(3).when(brain).getSaveSlotIndexToSave();
+
+        PhaseAction[] actions = titlePhase.getActionsForGameMode(gameModeTitle);
+
+        assertEquals(RunStatus.OK, runProperty.getStatus());
+        assertEquals(1, actions.length);
+        assertEquals(PressKeyPhaseAction.class, actions[0].getClass());
+        assertEquals(KeyToPress.SPACE, ((PressKeyPhaseAction)actions[0]).getKeyToPress());
+        verify(brain, times(1)).getRunProperty();
+
+        assertEquals(3, runProperty.getSaveSlotIndex());
+    }
+
 }

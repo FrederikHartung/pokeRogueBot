@@ -230,6 +230,25 @@ public class Brain {
         return -1;
     }
 
+    /**
+     * When called, the save slot data are already loaded.
+     * Returns which save slot index should be saved to or -1 if no save slot is free.
+     * @return a value >= 0 if the save slot is empty and has no error
+     */
+    public int getSaveSlotIndexToSave() {
+        if(null == saveSlots){
+            throw new IllegalStateException("Save slots are not loaded, cannot determine save slot index to save");
+        }
+
+        for(SaveSlotDto saveSlot : saveSlots){
+            if(!saveSlot.isDataPresent() && !saveSlot.isErrorOccurred()){
+                return saveSlot.getSlotId();
+            }
+        }
+
+        return -1;
+    }
+
     public RunProperty getRunProperty() {
         if(runProperty == null){
             runProperty = new RunProperty(1);
@@ -258,5 +277,4 @@ public class Brain {
                 throw new IllegalStateException("RunProperty has unknown status: " + runProperty.getStatus());
         }
     }
-
 }

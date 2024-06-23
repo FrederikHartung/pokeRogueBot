@@ -137,6 +137,26 @@ class SimpleBotTest {
         verify(waveRunner).handlePhaseInWave(runProperty);
     }
 
+    /**
+     * If no saves lots are empty, the app stops
+     */
+    @Test
+    void a_run_property_with_status_exit_app_is_handled(){
+        maxRunsTillShutdown = 3;
+        SimpleBot localBot = spy(getBot());
+
+        doReturn(RunStatus.EXIT_APP).when(runProperty).getStatus();
+        doNothing().when(localBot).exitApp();
+
+        localBot.start();
+        verify(brain, times(1)).getRunProperty();
+        verify(brain, times(1)).clearShortTermMemory();
+        verify(jsService).init();
+        verify(browserClient).navigateTo(targetUrl);
+        verify(fileManager).deleteTempData();
+        verify(localBot).exitApp();
+    }
+
     private SimpleBot getBot(){
         return new SimpleBot(
                 jsService,
