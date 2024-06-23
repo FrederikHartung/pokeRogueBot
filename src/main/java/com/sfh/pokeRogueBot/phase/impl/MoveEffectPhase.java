@@ -23,7 +23,7 @@ public class MoveEffectPhase extends AbstractPhase implements Phase {
             return new PhaseAction[]{
                     waitAction //todo: check if this is correct or if space needs to be pressed
             };
-        } else if (gameMode == GameMode.PARTY) {
+        } else if (gameMode == GameMode.PARTY) { //todo: add handle if a enemy move forces the player to switch pokemon
             return new PhaseAction[]{
                     this.waitAction
             };
