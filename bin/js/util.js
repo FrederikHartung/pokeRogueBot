@@ -1,7 +1,6 @@
 if(!window.poru) window.poru = {};
 window.poru.util = {
     getPhaseName: () => {
-        console.log(Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.constructor.name);
         return Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.constructor.name;
     },
 

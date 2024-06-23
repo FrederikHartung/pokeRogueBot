@@ -84,5 +84,14 @@ window.poru.uihandler = {
         }
 
         return false;
-    }
+    },
+
+    saveAndQuit: () => {
+        var scene = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[15].scene;
+        if(scene){
+            scene.gameData.saveAll(scene, true, true, true, true).then(() => scene.reset(true));
+            return true;
+        }
+        return false;
+    },
 }

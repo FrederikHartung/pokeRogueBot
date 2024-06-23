@@ -7,5 +7,5 @@ public enum KeyToPress {
     ARROW_LEFT,
     ARROW_RIGHT,
     BACK_SPACE,
-    ESC
+    ESCAPE, ESC
 }

@@ -1,6 +1,18 @@
 #Changelog
 
-## 1.0.0
+## 1.1
+- removed connection to a database
+- refactored SimpleBot and moved some of its logic to a WaveRunner class
+- The bot can now run in a loop of for a configurable number of runs
+- Loop detection if the bot is stuck in a loop
+- added Unit tests for SimpleBot and WaveRunner
+- If a run fails because of an exception, the bot tries to save and quit to title menu
+- If the bot can't save and quit, it reloads the page
+
+Work in Progress:
+
+
+## 1.0
 - added first implementation of the bot
 - added choosing of starters in the app config
 - added simple attack decision for single and double fights

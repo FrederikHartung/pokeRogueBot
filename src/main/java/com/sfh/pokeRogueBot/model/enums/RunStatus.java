@@ -4,6 +4,7 @@ public enum RunStatus {
     STARTING,
     WAVE_FIGHTING,
     ERROR,
+    CRITICAL_ERROR,
     LOST,
     SAVED,
     WON

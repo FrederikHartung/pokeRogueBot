@@ -185,6 +185,11 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
                 actions.sendKeys(Keys.BACK_SPACE)
                         .perform();
                 break;
+            case ESCAPE:
+                log.debug("Pressing escape");
+                actions.sendKeys(Keys.ESCAPE)
+                        .perform();
+                break;
 
             default:
                 log.error("Unknown key to press: " + keyToPress);
