@@ -50,6 +50,7 @@ class BrainTest {
 
     /**
      * When a RunProperty is requested and non is present, a new one is created.
+     * After returning the new one, the field is set to the new one.
      */
     @Test
     void a_run_property_is_returned() {
@@ -59,6 +60,9 @@ class BrainTest {
         assertEquals(1, newRunProperty.getRunNumber());
         assertEquals(RunStatus.OK, newRunProperty.getStatus());
         assertEquals(-1, newRunProperty.getSaveSlotIndex());
+        RunProperty propertyInTheBrain = (RunProperty) ReflectionTestUtils.getField(brain, "runProperty");
+        assertNotNull(propertyInTheBrain);
+        assertSame(newRunProperty, propertyInTheBrain);
     }
 
     @Test

@@ -232,7 +232,8 @@ public class Brain {
 
     public RunProperty getRunProperty() {
         if(runProperty == null){
-            return new RunProperty(1);
+            runProperty = new RunProperty(1);
+            return runProperty;
         }
 
         if(null == saveSlots){
