@@ -130,6 +130,12 @@ public class SimpleBot implements Bot {
             phaseProcessor.takeTempScreenshot("error");
             return;
         }
+        else if(runProperty.getStatus() == RunStatus.CRITICAL_ERROR) {
+            log.error("Run ended: Critical error in Wave: " + runProperty.getWaveIndex());
+            phaseProcessor.takeTempScreenshot("critical_error");
+            browserClient.navigateTo(targetUrl);
+            return;
+        }
 
         throw new IllegalStateException("Run ended with unknown status: " + runProperty.getStatus());
     }

@@ -69,17 +69,18 @@ public class WaveRunner {
         catch (Exception e){
             log.error("Error in WaveRunner, trying to save and quit to title", e);
             runProperty.setStatus(RunStatus.ERROR);
-            saveAndQuit();
+            saveAndQuit(runProperty);
         }
     }
 
-    private void saveAndQuit(){
+    private void saveAndQuit(RunProperty runProperty) {
         try{
             Phase returnToTitlePhase = phaseProvider.fromString(ReturnToTitlePhase.NAME);
             phaseProcessor.handlePhase(returnToTitlePhase, GameMode.TITLE);
         }
         catch (Exception e){
             log.error("unable to save and quit", e);
+            runProperty.setStatus(RunStatus.CRITICAL_ERROR);
         }
     }
 }

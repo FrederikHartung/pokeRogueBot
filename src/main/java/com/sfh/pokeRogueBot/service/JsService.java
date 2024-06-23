@@ -6,7 +6,6 @@ import com.google.gson.GsonBuilder;
 import com.sfh.pokeRogueBot.browser.JsClient;
 import com.sfh.pokeRogueBot.model.dto.WaveAndTurnDto;
 import com.sfh.pokeRogueBot.model.enums.GameMode;
-import com.sfh.pokeRogueBot.model.enums.PokeType;
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem;
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItemDeserializer;
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
@@ -142,5 +141,9 @@ public class JsService {
 
     public int getEggId(){
         return Integer.parseInt(jsClient.executeCommandAndGetResult("return window.poru.egg.getEggId();").toString());
+    }
+
+    public boolean setMenuCursorToSaveAndQuit() {
+        return Boolean.parseBoolean(jsClient.executeCommandAndGetResult("return window.poru.uihandler.setSaveAndQuitCursor();").toString());
     }
 }

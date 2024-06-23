@@ -130,6 +130,10 @@ class WaveRunnerTest {
         assertEquals(RunStatus.WAVE_FIGHTING, runProperty.getStatus());
     }
 
+    /**
+     * If an exception occurs in save and quit and the bot can't return to the title, the status is set to CRITICAL_ERROR, so that the bot reloads the app.
+     * @throws Exception
+     */
     @Test
     void an_exception_occurs_in_save_and_quit() throws Exception {
         String unsupportedPhase = "unsupportedPhase";
@@ -142,6 +146,6 @@ class WaveRunnerTest {
         verify(phaseProcessor, never()).handlePhase(any(Phase.class), any());
         verify(phaseProvider).fromString(unsupportedPhase);
         verify(phaseProvider).fromString(ReturnToTitlePhase.NAME);
-        assertEquals(RunStatus.ERROR, runProperty.getStatus());
+        assertEquals(RunStatus.CRITICAL_ERROR, runProperty.getStatus());
     }
 }

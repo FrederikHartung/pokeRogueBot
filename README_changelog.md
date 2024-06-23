@@ -9,6 +9,7 @@
 
 Work in Progress:
 - If a run fails because of an exception, the bot tries to save and quit to title menu
+- If the bot can't save and quit, it reloads the page
 
 ## 1.0
 - added first implementation of the bot
