@@ -10,10 +10,13 @@ import lombok.Setter;
 public class RunProperty {
 
     private int runNumber;
-    private int saveSlotIndex = -1;
+    private int saveSlotIndex;
     private RunStatus status;
     private int waveIndex;
-    private int defeatedWildPokemon;
-    private int caughtPokemon;
-    private int defeatedTrainer;
+
+    public RunProperty(int runNumber) {
+        this.runNumber = runNumber;
+        this.status = RunStatus.OK;
+        this.saveSlotIndex = -1;
+    }
 }

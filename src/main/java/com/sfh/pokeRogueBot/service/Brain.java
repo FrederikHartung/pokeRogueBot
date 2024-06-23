@@ -3,6 +3,7 @@ package com.sfh.pokeRogueBot.service;
 import com.sfh.pokeRogueBot.model.dto.SaveSlotDto;
 import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision;
+import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.run.*;
@@ -28,8 +29,6 @@ public class Brain {
 
     private final ScreenshotClient screenshotClient;
 
-    @Getter
-    @Setter
     private RunProperty runProperty = null;
     private WaveDto waveDto;
     private boolean waveHasShiny = false;
@@ -205,7 +204,7 @@ public class Brain {
         }
 
         for(SaveSlotDto saveSlot : saveSlots){
-            if(!saveSlot.isHasError()){
+            if(!saveSlot.isErrorOccurred()){
                 return true;
             }
         }
@@ -213,7 +212,44 @@ public class Brain {
         return false;
     }
 
+    /**
+     * When called, the save slot menu should be opened so the data is accessible with JS
+     * @return which save slot index should be loaded or -1 if no save slot should be loaded
+     */
     public int getSaveSlotIndexToLoad() {
+        if(null == saveSlots){
+            this.saveSlots = jsService.getSaveSlots();
+        }
+
+        for(SaveSlotDto saveSlot : saveSlots){
+            if(saveSlot.isDataPresent() && !saveSlot.isErrorOccurred()){
+                return saveSlot.getSlotId();
+            }
+        }
+
         return -1;
     }
+
+    public RunProperty getRunProperty() {
+        if(runProperty == null){
+            return new RunProperty(1);
+        }
+
+        switch (runProperty.getStatus()){
+            case OK:
+                return runProperty;
+            case ERROR:
+                saveSlots[runProperty.getSaveSlotIndex()].setErrorOccurred(true);
+                runProperty = new RunProperty(runProperty.getRunNumber() + 1);
+                return runProperty;
+            case LOST:
+                saveSlots[runProperty.getSaveSlotIndex()].setErrorOccurred(false);
+                saveSlots[runProperty.getSaveSlotIndex()].setDataPresent(false);
+                runProperty = new RunProperty(runProperty.getRunNumber() + 1);
+                return runProperty;
+            default:
+                throw new IllegalStateException("RunProperty has unknown status: " + runProperty.getStatus());
+        }
+    }
+
 }

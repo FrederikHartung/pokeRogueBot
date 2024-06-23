@@ -2,6 +2,7 @@ package com.sfh.pokeRogueBot.phase.impl;
 
 import com.sfh.pokeRogueBot.model.dto.SaveSlotDto;
 import com.sfh.pokeRogueBot.model.enums.GameMode;
+import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
@@ -31,10 +32,23 @@ public class TitlePhase extends AbstractPhase implements Phase {
 
     @Override
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
-        if (gameMode == GameMode.TITLE) {
-            RunProperty runProperty = brain.getRunProperty();
 
-            if(!brain.shouldLoadGame()){
+        RunProperty runProperty = brain.getRunProperty();
+
+        if(null == runProperty){
+            throw new IllegalStateException("RunProperty is null in TitlePhase");
+        }
+
+        if(runProperty.getSaveSlotIndex() >= 0){ //run ended because of player fainted or error
+            runProperty.setStatus(RunStatus.LOST);
+            return new PhaseAction[]{
+                    this.waitAction
+            };
+        }
+
+        if (gameMode == GameMode.TITLE) {
+
+            if(brain.shouldLoadGame()){
                 boolean setCursorToLoadGameSuccessful = jsService.setCursorToLoadGame();
                 if(setCursorToLoadGameSuccessful){
                     return new PhaseAction[]{
@@ -47,6 +61,9 @@ public class TitlePhase extends AbstractPhase implements Phase {
 
             boolean setCursorToNewGameSuccessful = jsService.setCursorToNewGame();
             if(setCursorToNewGameSuccessful){
+
+                //save new game to slot 0
+                runProperty.setSaveSlotIndex(0);
                 return new PhaseAction[]{
                         this.pressSpace
                 };
@@ -65,6 +82,10 @@ public class TitlePhase extends AbstractPhase implements Phase {
 
             boolean setCursorToSaveSlotSuccessful = jsService.setCursorToSaveSlot(saveSlotIndexToLoad);
             if(setCursorToSaveSlotSuccessful){
+
+                //save new game to slot saveSlotIndexToLoad
+                runProperty.setSaveSlotIndex(saveSlotIndexToLoad);
+
                 return new PhaseAction[]{
                         this.pressSpace
                 };

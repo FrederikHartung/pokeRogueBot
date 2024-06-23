@@ -4,13 +4,12 @@ import com.sfh.pokeRogueBot.browser.BrowserClient;
 import com.sfh.pokeRogueBot.file.FileManager;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
-import com.sfh.pokeRogueBot.phase.PhaseProcessor;
 import com.sfh.pokeRogueBot.service.Brain;
 import com.sfh.pokeRogueBot.service.JsService;
-import com.sfh.pokeRogueBot.service.RunPropertyService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.*;
 
 class SimpleBotTest {
@@ -20,14 +19,11 @@ class SimpleBotTest {
     FileManager fileManager;
     BrowserClient browserClient;
     Brain brain;
-    RunPropertyService runPropertyService;
     WaveRunner waveRunner;
 
     RunProperty runProperty;
 
     final String targetUrl = "http://localhost:8000";
-    int maxRetriesPerRun = 1;
-    int backoffPerRetry = 10;
     int maxRunsTillShutdown = 1;
 
     @BeforeEach
@@ -35,14 +31,13 @@ class SimpleBotTest {
         jsService = mock(JsService.class);
         fileManager = mock(FileManager.class);
         browserClient = mock(BrowserClient.class);
-        runPropertyService = mock(RunPropertyService.class);
         brain = mock(Brain.class);
         waveRunner = mock(WaveRunner.class);
         SimpleBot objToSpy = getBot();
         bot = spy(objToSpy);
 
         runProperty = mock(RunProperty.class);
-        doReturn(runProperty).when(runPropertyService).getRunProperty();
+        doReturn(runProperty).when(brain).getRunProperty();
     }
 
     /**
@@ -64,12 +59,12 @@ class SimpleBotTest {
     }
 
     /**
-     * On every start the brain should get a new run property with status starting
+     * On every start the brain should get a new run property
      */
     @Test
-    void on_start_the_brain_should_get_a_new_run_property_with_status_starting(){
+    void on_start_the_brain_should_get_a_new_run_property(){
         bot.start();
-        verify(runPropertyService).getRunProperty();
+        verify(brain).getRunProperty();
     }
 
     /**
@@ -92,6 +87,8 @@ class SimpleBotTest {
 
     /**
      * If only a specific number of runs should be executed, only this number of runs should be executed
+     * The short term memory should be cleared on every run
+     * The JS Code, the navigation to the target and the deletion of temp data should only be executed once
      */
     @Test
     void if_maxRunsTillShutdown_is_not_negativ_only_a_specific_number_of_runs_is_excecuted(){
@@ -101,7 +98,11 @@ class SimpleBotTest {
         doReturn(RunStatus.LOST).when(runProperty).getStatus();
 
         localBot.start();
-        verify(runPropertyService, times(3)).getRunProperty();
+        verify(brain, times(3)).getRunProperty();
+        verify(brain, times(3)).clearShortTermMemory();
+        verify(jsService).init();
+        verify(browserClient).navigateTo(targetUrl);
+        verify(fileManager).deleteTempData();
     }
 
     /**
@@ -110,8 +111,7 @@ class SimpleBotTest {
     @Test
     void an_unknown_run_status_is_found(){
         doReturn(null).when(runProperty).getStatus();
-        bot.start();
-        verify(runPropertyService).getRunProperty();
+        assertDoesNotThrow(() -> bot.start());
     }
 
     /**
@@ -119,8 +119,7 @@ class SimpleBotTest {
      */
     @Test
     void a_run_is_lost(){
-        doReturn(RunStatus.WAVE_FIGHTING).doReturn(RunStatus.WAVE_FIGHTING)
-                .doReturn(RunStatus.LOST).doReturn(RunStatus.LOST)
+        doReturn(RunStatus.OK).doReturn(RunStatus.LOST)
                 .when(runProperty).getStatus();
         bot.start();
         verify(waveRunner).handlePhaseInWave(runProperty);
@@ -131,27 +130,11 @@ class SimpleBotTest {
      */
     @Test
     void a_run_is_aborted_because_of_an_exception(){
-        doReturn(RunStatus.STARTING).doReturn(RunStatus.WAVE_FIGHTING)
-                .doReturn(RunStatus.ERROR).doReturn(RunStatus.ERROR)
+        doReturn(RunStatus.OK).doReturn(RunStatus.ERROR)
                 .when(runProperty).getStatus();
 
         bot.start();
         verify(waveRunner).handlePhaseInWave(runProperty);
-    }
-
-    /**
-     * When a critical error is thrown, the run status switches to critical error and the page is reloaded
-     */
-    @Test
-    void a_run_is_aborted_because_of_a_critical_error(){
-        doReturn(RunStatus.STARTING).doReturn(RunStatus.WAVE_FIGHTING) //first run
-                .doReturn(RunStatus.CRITICAL_ERROR).doReturn(RunStatus.CRITICAL_ERROR)
-                .when(runProperty).getStatus();
-
-        bot.start();
-        verify(waveRunner).handlePhaseInWave(runProperty);
-        verify(browserClient, times(2)).navigateTo(targetUrl); //one for the initial navigation, one for the reload
-        verify(jsService).init(); //one for the initial navigation
     }
 
     private SimpleBot getBot(){
@@ -160,11 +143,8 @@ class SimpleBotTest {
                 fileManager,
                 browserClient,
                 brain,
-                runPropertyService,
                 waveRunner,
                 targetUrl,
-                maxRetriesPerRun,
-                backoffPerRetry,
                 maxRunsTillShutdown
         );
     }
