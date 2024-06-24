@@ -267,8 +267,13 @@ public class Brain {
 
         switch (runProperty.getStatus()){
             case ERROR:
-                log.debug("Error occurred, setting error to save slot: " + runProperty.getSaveSlotIndex());
-                saveSlots[runProperty.getSaveSlotIndex()].setErrorOccurred(true);
+                if(runProperty.getSaveSlotIndex() != -1){
+                    log.debug("Error occurred, setting error to save slot: " + runProperty.getSaveSlotIndex());
+                    saveSlots[runProperty.getSaveSlotIndex()].setErrorOccurred(true);
+                }
+                else{
+                    log.debug("Save slot index is -1, so error occurred before starting a run.");
+                }
                 runProperty = new RunProperty(runProperty.getRunNumber() + 1);
                 return runProperty;
             case LOST:

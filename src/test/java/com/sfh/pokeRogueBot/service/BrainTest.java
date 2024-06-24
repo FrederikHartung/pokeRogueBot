@@ -148,4 +148,15 @@ class BrainTest {
         }
         assertEquals(-1, brain.getSaveSlotIndexToSave());
     }
+
+    @Test
+    void a_run_property_with_error_and_save_slot_index_minus_one_is_processed(){
+        runProperty.setSaveSlotIndex(-1);
+        runProperty.setStatus(RunStatus.ERROR);
+
+        RunProperty newRunProperty = assertDoesNotThrow(() -> brain.getRunProperty());
+        assertNotSame(newRunProperty, runProperty);
+        assertEquals(runProperty.getRunNumber() + 1, newRunProperty.getRunNumber());
+        assertEquals(RunStatus.OK, newRunProperty.getStatus());
+    }
 }
