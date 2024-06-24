@@ -1,5 +1,12 @@
 #Changelog
 
+Work in Progress:
+
+## 1.2
+- added log persistence to file system
+- fixed a IndexOutOfBoundsException when an error occurres before a run is started
+- added more phases
+
 ## 1.1
 - removed connection to a database
 - refactored SimpleBot and moved some of its logic to a WaveRunner class
@@ -11,9 +18,6 @@
 - If no save games are available, the bot starts a new game
 - If an exception is thrown, the bot saves and goes back to the title screen to load/start a new game
 - Save games where an error occurred are retried when the bot is started the next time
-
-Work in Progress:
-
 
 ## 1.0
 - added first implementation of the bot

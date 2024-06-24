@@ -8,14 +8,9 @@ import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import org.springframework.stereotype.Component;
 
 @Component
-public class EncounterPhase extends AbstractPhase implements Phase {
+public class GameOverPhase extends AbstractPhase implements Phase {
 
-    public static final String NAME = "EncounterPhase";
-
-    @Override
-    public int getWaitAfterStage2x() {
-        return 500;
-    }
+    public static final String NAME = "GameOverPhase";
 
     @Override
     public String getPhaseName() {
@@ -26,15 +21,14 @@ public class EncounterPhase extends AbstractPhase implements Phase {
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
         if (gameMode == GameMode.MESSAGE) {
             return new PhaseAction[]{
-                    this.pressSpace
+                this.pressSpace
             };
         }
-        else if(gameMode == GameMode.TITLE){
-            return new PhaseAction[]{
-                    this.waitAction
-            };
-        }
+        throw new NotSupportedException("GameMode not supported in GameOverPhase: " + gameMode);
+    }
 
-        throw new NotSupportedException("GameMode not supported in EncounterPhase: " + gameMode);
+    @Override
+    public int getWaitAfterStage2x() {
+        return 100;
     }
 }

@@ -87,7 +87,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
                 log.debug("Browser closed");
             }
         } catch (Exception e) {
-            log.error("Error while closing browser", e);
+            log.error("Error while closing browser: " + e.getMessage());
         }
     }
 
@@ -194,6 +194,23 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
             default:
                 log.error("Unknown key to press: " + keyToPress);
                 throw new NotSupportedException("Unknown key to press in browser: " + keyToPress);
+        }
+    }
+
+    @Override
+    public boolean enterUserData(String userName, String password) {
+        String userNameXpath = "//*[@id=\"app\"]/div/input[1]";
+        String passwordXpath = "//*[@id=\"app\"]/div/input[2]";
+
+        try {
+            WebElement userNameElement = getElementByXpath(userNameXpath);
+            userNameElement.sendKeys(userName);
+            WebElement passwordElement = getElementByXpath(passwordXpath);
+            passwordElement.sendKeys(password);
+            return true;
+        } catch (NoSuchElementException e) {
+            log.error("Error while entering user data: " + e.getMessage());
+            return false;
         }
     }
 }

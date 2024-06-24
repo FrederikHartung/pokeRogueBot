@@ -59,7 +59,7 @@ public class PhaseProcessor implements ScreenshotClient {
         try {
             fileManager.saveTempImage(imageService.takeScreenshot(prefix), prefix);
         } catch (Exception e) {
-            log.error("error while taking temp screenshot", e);
+            log.error("error while taking temp screenshot: " + e.getMessage());
         }
     }
 
@@ -68,7 +68,7 @@ public class PhaseProcessor implements ScreenshotClient {
         try {
             fileManager.persistImage(imageService.takeScreenshot(prefix), prefix);
         } catch (Exception e) {
-            log.error("error while saving screenshot", e);
+            log.error("error while saving screenshot: " + e.getMessage());
         }
     }
 

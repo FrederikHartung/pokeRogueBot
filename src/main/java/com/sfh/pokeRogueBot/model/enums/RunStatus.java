@@ -4,5 +4,6 @@ public enum RunStatus {
     OK,
     ERROR,
     LOST,
+    RELOAD_APP,
     EXIT_APP
 }

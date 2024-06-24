@@ -11,6 +11,9 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+/**
+ * There is no ReturnToTitlePhase in the original game. This is a custom phase that is used to return to the title screen after an error.
+ */
 @Slf4j
 @Component
 public class ReturnToTitlePhase extends AbstractPhase implements Phase {
@@ -47,7 +50,9 @@ public class ReturnToTitlePhase extends AbstractPhase implements Phase {
                 };
             }
             else {
-                throw new IllegalStateException("Could not save and quit.");
+                return new PhaseAction[]{ //fallback, so no loop happens
+                        waitAction
+                };
             }
         }
         else{
