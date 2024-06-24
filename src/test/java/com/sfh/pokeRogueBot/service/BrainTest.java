@@ -4,6 +4,7 @@ import com.sfh.pokeRogueBot.model.dto.SaveSlotDto;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.phase.ScreenshotClient;
+import com.sfh.pokeRogueBot.service.neurons.CapturePokemonNeuron;
 import com.sfh.pokeRogueBot.service.neurons.ChooseModifierNeuron;
 import com.sfh.pokeRogueBot.service.neurons.CombatNeuron;
 import com.sfh.pokeRogueBot.service.neurons.SwitchPokemonNeuron;
@@ -22,6 +23,8 @@ class BrainTest {
     ChooseModifierNeuron chooseModifierNeuron;
     CombatNeuron combatNeuron;
     SwitchPokemonNeuron switchPokemonNeuron;
+    CapturePokemonNeuron capturePokemonNeuron;
+
     ScreenshotClient screenshotClient;
     SaveSlotDto[] saveSlots;
 
@@ -35,7 +38,8 @@ class BrainTest {
         combatNeuron = mock(CombatNeuron.class);
         switchPokemonNeuron = mock(SwitchPokemonNeuron.class);
         screenshotClient = mock(ScreenshotClient.class);
-        Brain objToSpy = new Brain(jsService, shortTermMemory, chooseModifierNeuron, combatNeuron, switchPokemonNeuron, screenshotClient);
+        capturePokemonNeuron = mock(CapturePokemonNeuron.class);
+        Brain objToSpy = new Brain(jsService, shortTermMemory, chooseModifierNeuron, combatNeuron, switchPokemonNeuron, capturePokemonNeuron, screenshotClient);
         brain = spy(objToSpy);
 
         runProperty = new RunProperty(1);

@@ -16,6 +16,8 @@ Only refactor, when it's really necessary.
 - [x] if an exception is thrown, save and go back to title screen
 - [x] load the first save game 
 - [ ] add handle if an enemy move forces the player to switch pokemon
+- [ ] when no pp are left, the attack can't be used
+- [ ] hyper healer is not used as a revive item
 - [ ] make attack decision not in the attack menu
 - [ ] don't buy revive items before waveDto 10
 - [ ] getting the attack move from the summary ui handler

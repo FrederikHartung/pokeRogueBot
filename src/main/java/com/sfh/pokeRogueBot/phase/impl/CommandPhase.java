@@ -150,10 +150,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
             int pokeballIndex = brain.selectStrongestPokeball();
             log.debug("Selected pokeball index: " + pokeballIndex);
             if(pokeballIndex == -1){
-                brain.informAboutMissingPokeballs();
-                return new PhaseAction[]{
-                        this.pressBackspace, //go back to command menu and fight
-                };
+                throw new IllegalStateException("No pokeballs left");
             }
 
             boolean success = jsService.setPokeBallCursor(pokeballIndex);

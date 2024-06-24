@@ -1,6 +1,7 @@
 package com.sfh.pokeRogueBot.service;
 
 import com.sfh.pokeRogueBot.model.decisions.AttackDecision;
+import com.sfh.pokeRogueBot.model.decisions.AttackDecisionForDoubleFight;
 import com.sfh.pokeRogueBot.model.decisions.ChooseModifierDecision;
 import com.sfh.pokeRogueBot.model.decisions.SwitchDecision;
 import com.sfh.pokeRogueBot.model.dto.SaveSlotDto;
@@ -35,7 +36,6 @@ public class Brain {
 
     private RunProperty runProperty = null;
     private WaveDto waveDto;
-    private boolean waveHasShiny = false;
     private ChooseModifierDecision chooseModifierDecision;
     @Getter
     private SaveSlotDto[] saveSlots;
@@ -84,109 +84,68 @@ public class Brain {
 
     public AttackDecision getAttackDecision() {
 
-        if(!waveDto.isDoubleFight()){
-            Pokemon wildPokemon = waveDto.getWavePokemon().getEnemyParty()[0];
-            if(wildPokemon.isBoss()){
-                boolean isBossCatchable = wildPokemon.getHp() <= ((wildPokemon.getStats().getHp() / wildPokemon.getBossSegments()) - 1);
-                log.debug("fighting boss, last boss segments is reached and boss is catchable: " + isBossCatchable);
-                if(!isBossCatchable){
-                    return combatNeuron.getAttackDecisionForSingleFight(
-                            waveDto.getWavePokemon().getPlayerParty()[0],
-                            waveDto.getWavePokemon().getEnemyParty()[0],
-                            false
-                    );
-                }
-                else {
-                    log.debug("trying to catch boss: " + wildPokemon.getName());
+        if(waveDto.isDoubleFight()){
+
+            Pokemon[] playerParty = waveDto.getWavePokemon().getPlayerParty();
+            Pokemon[] enemyParty = waveDto.getWavePokemon().getEnemyParty();
+
+            int playerPartySize = 0;
+            for(Pokemon pokemon : playerParty){
+                if(pokemon.getHp() > 0){
+                    playerPartySize++;
                 }
             }
-            log.debug("trying to find attack decision: isTrainer: "
-                    + waveDto.isTrainerFight() + ", capture pokemon: " + tryToCatchPokemon());
+            int enemyPartySize = 0;
+            for(Pokemon pokemon : enemyParty){
+                if(pokemon.getHp() > 0){
+                    enemyPartySize++;
+                }
+            }
+
+            Pokemon playerPokemon1 = playerParty[0];
+            Pokemon playerPokemon2 = playerPartySize > 0 ? playerParty[1] : null;
+
+            Pokemon enemyPokemon1 = enemyParty[0];
+            Pokemon enemyPokemon2 = enemyPartySize > 0 ? enemyParty[1] : null;
+
+            AttackDecisionForDoubleFight forDoubleFight = combatNeuron.getAttackDecisionForDoubleFight(
+                    playerPokemon1,
+                    playerPokemon2,
+                    enemyPokemon1,
+                    enemyPokemon2
+            );
+            forDoubleFight.setCatchable(capturePokemonNeuron.shouldCapturePokemon(waveDto, enemyPokemon1));
+            return forDoubleFight;
+        }
+        else{
+            //single fight
+            Pokemon wildPokemon = waveDto.getWavePokemon().getEnemyParty()[0];
             return combatNeuron.getAttackDecisionForSingleFight(
                     waveDto.getWavePokemon().getPlayerParty()[0],
-                    waveDto.getWavePokemon().getEnemyParty()[0],
-                    tryToCatchPokemon()
+                    wildPokemon,
+                    capturePokemonNeuron.shouldCapturePokemon(waveDto, wildPokemon)
             );
         }
-
-        //=> wave is a double fight
-
-        Pokemon[] playerParty = waveDto.getWavePokemon().getPlayerParty();
-        Pokemon[] enemyParty = waveDto.getWavePokemon().getEnemyParty();
-
-        int playerPartySize = 0;
-        for(Pokemon pokemon : playerParty){
-            if(pokemon.getHp() > 0){
-                playerPartySize++;
-            }
-        }
-        int enemyPartySize = 0;
-        for(Pokemon pokemon : enemyParty){
-            if(pokemon.getHp() > 0){
-                enemyPartySize++;
-            }
-        }
-
-        Pokemon playerPokemon1 = playerParty[0];
-        Pokemon playerPokemon2 = playerPartySize > 0 ? playerParty[1] : null;
-
-        Pokemon enemyPokemon1 = enemyParty[0];
-        Pokemon enemyPokemon2 = enemyPartySize > 0 ? enemyParty[1] : null;
-
-        return combatNeuron.getAttackDecisionForDoubleFight(
-                playerPokemon1,
-                playerPokemon2,
-                enemyPokemon1,
-                enemyPokemon2
-        );
     }
 
     public int selectStrongestPokeball() {
-        int[] pokeballs = waveDto.getPokeballCount();
-        for(int i = pokeballs.length - 1; i >= 0; i--){
-            if(pokeballs[i] > 0){
-                pokeballs[i]--;
-                log.debug("Selected pokeball: " + i + " for wild pokemon: " + waveDto.getWavePokemon().getEnemyParty()[0].getName());
-                return i;
-            }
-        }
-
-        capturePokemon = false; // when no pokeballs are left, we should not try to capture
-        return -1;
+        return capturePokemonNeuron.selectStrongestPokeball(waveDto);
     }
 
     public void informWaveEnded(int newWaveIndex) {
         this.waveDto = jsService.getWaveDto();
-        this.waveHasShiny = false;
-        this.capturePokemon = false;
         this.chooseModifierDecision = null;
         runProperty.setWaveIndex(newWaveIndex);
         log.debug("new wave: Waveindex: " + waveDto.getWaveIndex() + ", is trainer fight: " + waveDto.isTrainerFight());
 
-
         if (null != waveDto && waveDto.isWildPokemonFight()) {
             for(Pokemon wildPokemon : waveDto.getWavePokemon().getEnemyParty()) {
-                if (wildPokemon.isShiny() && !waveHasShiny) {
+                if (wildPokemon.isShiny()) {
                     log.info("Shiny pokemon detected: " + wildPokemon.getName());
-                    waveHasShiny = true;
-                    screenshotClient.takeTempScreenshot("shiny_pokemon_detected");
+                    screenshotClient.persistScreenshot("shiny_pokemon_detected");
                 }
             }
-
-            if(waveDto.hasPokeBalls()){
-                //if wave is wild pokemon fight and there are pokeballs present, try to capture
-                this.capturePokemon = true;
-            }
         }
-    }
-
-    public boolean tryToCatchPokemon(){
-        return capturePokemon && waveDto.isWildPokemonFight();
-    }
-
-    public void informAboutMissingPokeballs() {
-        log.debug("setting capturePokemon to false because no pokeballs are available");
-        this.capturePokemon = false;
     }
 
     public void memorizePhase(String phase) {
@@ -289,5 +248,9 @@ public class Brain {
             default:
                 throw new IllegalStateException("RunProperty has unknown status: " + runProperty.getStatus());
         }
+    }
+
+    public boolean tryToCatchPokemon() {
+        return capturePokemonNeuron.shouldCapturePokemon(waveDto, waveDto.getWavePokemon().getEnemyParty()[0]);
     }
 }

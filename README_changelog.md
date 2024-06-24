@@ -4,9 +4,10 @@ Work in Progress:
 
 ## 1.2
 - added log persistence to file system
-- fixed a IndexOutOfBoundsException when an error occurres before a run is started
+- fixed a IndexOutOfBoundsException when an error occurred before a run is started
 - added more phases
 - if save and quit didn't work the page is reloaded
+- added CapturePokemonNeuron
 
 ## 1.1
 - removed connection to a database

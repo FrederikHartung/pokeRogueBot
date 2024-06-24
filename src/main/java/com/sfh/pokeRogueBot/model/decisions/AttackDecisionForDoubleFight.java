@@ -7,4 +7,5 @@ public class AttackDecisionForDoubleFight implements AttackDecision {
 
     private final AttackDecisionForPokemon pokemon1;
     private final AttackDecisionForPokemon pokemon2;
+    private boolean catchable;
 }
