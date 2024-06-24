@@ -1,7 +1,7 @@
 package com.sfh.pokeRogueBot.service.neurons;
 
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
-import com.sfh.pokeRogueBot.model.run.SwitchDecision;
+import com.sfh.pokeRogueBot.model.decisions.SwitchDecision;
 import com.sfh.pokeRogueBot.model.run.WavePokemon;
 import com.sfh.pokeRogueBot.service.JsService;
 import lombok.extern.slf4j.Slf4j;
@@ -38,5 +38,14 @@ public class SwitchPokemonNeuron {
         }
 
         throw new IllegalStateException("No pokemon to switch to");
+    }
+
+    public SwitchDecision getSwitchDecision() {
+
+        WavePokemon wave = jsService.getWavePokemon();
+        Pokemon[] playerParty = wave.getPlayerParty();
+        Pokemon[] enemyParty = wave.getEnemyParty();
+
+        return null;
     }
 }

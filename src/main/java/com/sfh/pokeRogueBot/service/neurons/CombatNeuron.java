@@ -1,8 +1,8 @@
 package com.sfh.pokeRogueBot.service.neurons;
 
+import com.sfh.pokeRogueBot.model.decisions.*;
 import com.sfh.pokeRogueBot.model.enums.*;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
-import com.sfh.pokeRogueBot.model.run.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 

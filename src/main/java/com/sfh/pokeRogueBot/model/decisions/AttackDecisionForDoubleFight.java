@@ -1,4 +1,4 @@
-package com.sfh.pokeRogueBot.model.run;
+package com.sfh.pokeRogueBot.model.decisions;
 
 import lombok.Data;
 

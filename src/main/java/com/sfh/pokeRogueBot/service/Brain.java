@@ -1,5 +1,8 @@
 package com.sfh.pokeRogueBot.service;
 
+import com.sfh.pokeRogueBot.model.decisions.AttackDecision;
+import com.sfh.pokeRogueBot.model.decisions.ChooseModifierDecision;
+import com.sfh.pokeRogueBot.model.decisions.SwitchDecision;
 import com.sfh.pokeRogueBot.model.dto.SaveSlotDto;
 import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision;
@@ -8,11 +11,11 @@ import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.run.*;
 import com.sfh.pokeRogueBot.phase.ScreenshotClient;
+import com.sfh.pokeRogueBot.service.neurons.CapturePokemonNeuron;
 import com.sfh.pokeRogueBot.service.neurons.ChooseModifierNeuron;
 import com.sfh.pokeRogueBot.service.neurons.CombatNeuron;
 import com.sfh.pokeRogueBot.service.neurons.SwitchPokemonNeuron;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -26,13 +29,13 @@ public class Brain {
     private final ChooseModifierNeuron chooseModifierNeuron;
     private final CombatNeuron combatNeuron;
     private final SwitchPokemonNeuron switchPokemonNeuron;
+    private final CapturePokemonNeuron capturePokemonNeuron;
 
     private final ScreenshotClient screenshotClient;
 
     private RunProperty runProperty = null;
     private WaveDto waveDto;
     private boolean waveHasShiny = false;
-    private boolean capturePokemon = false;
     private ChooseModifierDecision chooseModifierDecision;
     @Getter
     private SaveSlotDto[] saveSlots;
@@ -40,10 +43,11 @@ public class Brain {
     public Brain(
             JsService jsService, ShortTermMemory shortTermMemory, ChooseModifierNeuron chooseModifierNeuron,
             CombatNeuron combatNeuron,
-            SwitchPokemonNeuron switchPokemonNeuron, ScreenshotClient screenshotClient
+            SwitchPokemonNeuron switchPokemonNeuron, CapturePokemonNeuron capturePokemonNeuron, ScreenshotClient screenshotClient
     ) {
         this.jsService = jsService;
         this.shortTermMemory = shortTermMemory;
+        this.capturePokemonNeuron = capturePokemonNeuron;
         this.screenshotClient = screenshotClient;
 
         this.chooseModifierNeuron = chooseModifierNeuron;

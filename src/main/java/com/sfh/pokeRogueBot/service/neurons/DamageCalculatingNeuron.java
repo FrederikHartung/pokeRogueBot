@@ -4,7 +4,7 @@ import com.sfh.pokeRogueBot.model.browser.pokemonjson.Move;
 import com.sfh.pokeRogueBot.model.enums.MoveCategory;
 import com.sfh.pokeRogueBot.model.enums.PokeType;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
-import com.sfh.pokeRogueBot.model.run.PossibleAttackMove;
+import com.sfh.pokeRogueBot.model.decisions.PossibleAttackMove;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
