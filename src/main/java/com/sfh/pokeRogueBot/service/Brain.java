@@ -251,11 +251,13 @@ public class Brain {
 
     public RunProperty getRunProperty() {
         if(runProperty == null){
+            log.debug("runProperty is null, creating new one");
             runProperty = new RunProperty(1);
             return runProperty;
         }
 
         if(runProperty.getStatus() == RunStatus.OK){
+            log.debug("runProperty is OK, returning runProperty");
             return runProperty;
         }
 
@@ -265,10 +267,12 @@ public class Brain {
 
         switch (runProperty.getStatus()){
             case ERROR:
+                log.debug("Error occurred, setting error to save slot: " + runProperty.getSaveSlotIndex());
                 saveSlots[runProperty.getSaveSlotIndex()].setErrorOccurred(true);
                 runProperty = new RunProperty(runProperty.getRunNumber() + 1);
                 return runProperty;
             case LOST:
+                log.debug("Lost battle, setting data present to false for save slot: " + runProperty.getSaveSlotIndex());
                 saveSlots[runProperty.getSaveSlotIndex()].setErrorOccurred(false);
                 saveSlots[runProperty.getSaveSlotIndex()].setDataPresent(false);
                 runProperty = new RunProperty(runProperty.getRunNumber() + 1);

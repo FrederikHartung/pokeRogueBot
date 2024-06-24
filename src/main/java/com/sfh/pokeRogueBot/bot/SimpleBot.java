@@ -86,15 +86,15 @@ public class SimpleBot implements Bot {
         }
 
         if (runProperty.getStatus() == RunStatus.LOST) {
-            log.info("Run ended: Lost battle in Wave: " + runProperty.getWaveIndex());
+            log.info("Run {}, save game index: {} ended: Lost battle in Wave: " + runProperty.getWaveIndex(), runProperty.getRunNumber(), runProperty.getSaveSlotIndex());
             return;
         }
         else if(runProperty.getStatus() == RunStatus.ERROR) {
-            log.warn("Run ended: Error in Wave: " + runProperty.getWaveIndex());
+            log.warn("Run {}, save game index: {} ended: Error in Wave: " + runProperty.getWaveIndex(), runProperty.getRunNumber(), runProperty.getSaveSlotIndex());
             return;
         }
         else if(runProperty.getStatus() == RunStatus.EXIT_APP) {
-            log.warn("Run ended: No available save slot, stopping bot.");
+            log.warn("Run {}, save game index: {} ended: No available save slot, stopping bot.", runProperty.getRunNumber(), runProperty.getSaveSlotIndex());
             exitApp();
         }
 
