@@ -113,11 +113,11 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
             js.executeScript(jsCode);
         }
         catch (NoSuchWindowException e){
-            log.error("browser window not found", e);
+            log.error("Browser window not found.");
             throw e;
         }
         catch (UnreachableBrowserException e){
-            log.error("browser unreachable", e);
+            log.error("Browser unreachable.");
             throw e;
         }
         catch (Exception e) {
