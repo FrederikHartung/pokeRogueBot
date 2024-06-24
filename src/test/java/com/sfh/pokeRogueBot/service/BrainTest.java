@@ -109,6 +109,20 @@ class BrainTest {
     }
 
     /**
+     * Same handling like ERROR, only that the page has been reloaded
+     */
+    @Test
+    void a_run_property_is_present_with_status_reload_app(){
+        runProperty.setStatus(RunStatus.RELOAD_APP);
+        runProperty.setSaveSlotIndex(1);
+
+        RunProperty newRunProperty = brain.getRunProperty();
+        assertNotSame(newRunProperty, runProperty);
+        assertTrue(saveSlots[1].isErrorOccurred());
+        assertEquals(2, newRunProperty.getRunNumber());
+    }
+
+    /**
      * When a RunProperty is requested and one is present with status LOST, a new one is created with status LOST and higher run number.
      * The save slot where the run failed is set to not having an error.
      * The save slot where the run failed is set to not having data.

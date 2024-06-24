@@ -31,4 +31,10 @@ public class MoveEffectPhase extends AbstractPhase implements Phase {
 
         throw new NotSupportedException("GameMode not supported for MoveEffectPhase: " + gameMode);
     }
+
+    @Override
+    public int getWaitAfterStage2x() {
+        return 100;
+    }
+
 }

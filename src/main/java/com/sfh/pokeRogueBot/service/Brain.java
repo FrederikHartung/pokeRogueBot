@@ -266,7 +266,7 @@ public class Brain {
         }
 
         switch (runProperty.getStatus()){
-            case ERROR:
+            case ERROR, RELOAD_APP:
                 if(runProperty.getSaveSlotIndex() != -1){
                     log.debug("Error occurred, setting error to save slot: " + runProperty.getSaveSlotIndex());
                     saveSlots[runProperty.getSaveSlotIndex()].setErrorOccurred(true);
