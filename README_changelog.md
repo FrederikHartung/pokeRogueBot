@@ -6,6 +6,7 @@ Work in Progress:
 - added log persistence to file system
 - fixed a IndexOutOfBoundsException when an error occurres before a run is started
 - added more phases
+- if save and quit didn't work the page is reloaded
 
 ## 1.1
 - removed connection to a database
