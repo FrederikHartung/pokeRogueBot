@@ -8,6 +8,7 @@ Work in Progress:
 - added more phases
 - if save and quit didn't work the page is reloaded
 - added CapturePokemonNeuron
+- made all Neurons static
 
 ## 1.1
 - removed connection to a database

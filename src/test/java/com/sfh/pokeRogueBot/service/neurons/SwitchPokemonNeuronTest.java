@@ -6,13 +6,10 @@ import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import com.sfh.pokeRogueBot.model.enums.PokeType;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.run.WavePokemon;
-import com.sfh.pokeRogueBot.service.JsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 
 class SwitchPokemonNeuronTest {
 
@@ -68,27 +65,34 @@ class SwitchPokemonNeuronTest {
 
     @Test
     void in_single_fight_the_index_of_the_first_pokemon_is_ignored(){
-        int indexToSwitchTo = SwitchPokemonNeuron.getSwitchDecision(waveDto).getIndex();
+        SwitchDecision switchDecision = SwitchPokemonNeuron.getSwitchDecision(waveDto);
+        assertNotNull(switchDecision);
+        int indexToSwitchTo = switchDecision.getIndex();
         assertTrue(indexToSwitchTo >= 1 && indexToSwitchTo < 6);
     }
 
     @Test
     void fainted_pokemons_are_skipped(){
         playerPokemon2.setHp(0);
-        int indexToSwitchTo = SwitchPokemonNeuron.getSwitchDecision(waveDto).getIndex();
+        SwitchDecision switchDecision = SwitchPokemonNeuron.getSwitchDecision(waveDto);
+        assertNotNull(switchDecision);
+        int indexToSwitchTo = switchDecision.getIndex();
         assertEquals(2, indexToSwitchTo);
     }
 
     @Test
     void in_double_fight_the_first_two_pokemons_are_skipped(){
         waveDto.setDoubleFight(true);
-        int indexToSwitchTo = SwitchPokemonNeuron.getSwitchDecision(waveDto).getIndex();
+        SwitchDecision switchDecision = SwitchPokemonNeuron.getSwitchDecision(waveDto);
+        assertNotNull(switchDecision);
+        int indexToSwitchTo = switchDecision.getIndex();
         assertEquals(2, indexToSwitchTo);
     }
 
     @Test
     void a_pokemon_with_good_type_advantage_is_chosen(){
         SwitchDecision switchDecision = SwitchPokemonNeuron.getSwitchDecision(waveDto);
+        assertNotNull(switchDecision);
         assertEquals(2, switchDecision.getIndex());
     }
 }

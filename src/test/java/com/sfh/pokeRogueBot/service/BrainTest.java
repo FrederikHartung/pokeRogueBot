@@ -39,7 +39,7 @@ class BrainTest {
         switchPokemonNeuron = mock(SwitchPokemonNeuron.class);
         screenshotClient = mock(ScreenshotClient.class);
         capturePokemonNeuron = mock(CapturePokemonNeuron.class);
-        Brain objToSpy = new Brain(jsService, shortTermMemory, chooseModifierNeuron, combatNeuron, switchPokemonNeuron, capturePokemonNeuron, screenshotClient);
+        Brain objToSpy = new Brain(jsService, shortTermMemory, screenshotClient);
         brain = spy(objToSpy);
 
         runProperty = new RunProperty(1);
