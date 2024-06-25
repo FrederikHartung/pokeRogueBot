@@ -80,8 +80,22 @@ public class SwitchPokemonNeuron {
     public static SwitchDecision getSwitchDecisionForIndex(int index, Pokemon playerPokemon, Pokemon enemyPokemon){
         DamageMultiplier damageMultiplier = DamageCalculatingNeuron.getTypeBasedDamageMultiplier(playerPokemon, enemyPokemon);
 
-        float playerDamageMultiplier = Math.max(damageMultiplier.getPlayerDamageMultiplier1(), damageMultiplier.getPlayerDamageMultiplier2());
-        float enemyDamageMultiplier = Math.max(damageMultiplier.getEnemyDamageMultiplier1(), damageMultiplier.getEnemyDamageMultiplier2());
+        float playerDamageMultiplier;
+        if(damageMultiplier.getEnemyDamageMultiplier2() != null){
+            playerDamageMultiplier = Math.max(damageMultiplier.getPlayerDamageMultiplier1(), damageMultiplier.getPlayerDamageMultiplier2());
+        }
+        else{
+            playerDamageMultiplier = damageMultiplier.getPlayerDamageMultiplier1();
+        }
+
+        float enemyDamageMultiplier;
+        if(damageMultiplier.getEnemyDamageMultiplier2() != null){
+            enemyDamageMultiplier = Math.max(damageMultiplier.getEnemyDamageMultiplier1(), damageMultiplier.getEnemyDamageMultiplier2());
+        }
+        else{
+            enemyDamageMultiplier = damageMultiplier.getEnemyDamageMultiplier1();
+        }
+
         return new SwitchDecision(index, playerPokemon.getName(), playerDamageMultiplier, enemyDamageMultiplier);
     }
 }

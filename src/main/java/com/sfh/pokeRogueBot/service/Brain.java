@@ -246,7 +246,12 @@ public class Brain {
         return CapturePokemonNeuron.shouldCapturePokemon(waveDto, waveDto.getWavePokemon().getEnemyParty()[0]);
     }
 
-    public SwitchDecision getSwitchDecision() {
+    public SwitchDecision getBestSwitchDecision() {
+        SwitchDecision switchDecision = SwitchPokemonNeuron.getBestSwitchDecision(waveDto);
+        if(switchDecision == null){
+            throw new IllegalStateException("No switch decision found");
+        }
+        log.debug("Switching to pokemon: " + switchDecision.getPokeName() + " on index: " + switchDecision.getIndex());
         return SwitchPokemonNeuron.getBestSwitchDecision(waveDto);
     }
 }
