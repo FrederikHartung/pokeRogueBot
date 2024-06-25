@@ -69,7 +69,10 @@ public class DamageCalculatingNeuron {
 
     public static float calcDamageMultiplier(PokeType attackTyp, PokeType defTyp1, PokeType defTyp2){
         double typeEffectiveness1 = PokeType.getTypeDamageMultiplier(attackTyp, defTyp1);
-        double typeEffectiveness2 = PokeType.getTypeDamageMultiplier(attackTyp, defTyp2);
+        double typeEffectiveness2 = 1;
+        if(defTyp2 != null){
+            typeEffectiveness2 = PokeType.getTypeDamageMultiplier(attackTyp, defTyp2);
+        }
         return (float) (typeEffectiveness1 * typeEffectiveness2);
     }
 

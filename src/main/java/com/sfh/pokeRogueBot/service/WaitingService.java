@@ -39,7 +39,7 @@ public class WaitingService {
         try {
             Thread.sleep(waitTime);
         } catch (InterruptedException e) {
-            log.error("Error while waiting", e);
+            log.error("Error while waiting, error: " + e.getMessage());
         }
     }
 

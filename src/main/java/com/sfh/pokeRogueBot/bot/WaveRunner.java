@@ -63,7 +63,7 @@ public class WaveRunner {
             }
         }
         catch (Exception e){
-            log.error("Error in WaveRunner, trying to save and quit to title", e);
+            log.error("Error in WaveRunner, trying to save and quit to title, error: " + e.getMessage());
             runProperty.setStatus(RunStatus.ERROR);
             saveAndQuit(runProperty, e.getClass().getSimpleName());
         }

@@ -66,7 +66,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
         try {
             Thread.sleep(waitTimeForRenderAfterNavigation);
         } catch (InterruptedException e) {
-            log.error("Error while waiting", e);
+            log.error("Error while waiting, error: " + e.getMessage());
         }
     }
 
@@ -121,7 +121,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
             throw e;
         }
         catch (Exception e) {
-            log.error("Error while adding script to window: " + jsFilePath, e);
+            log.error("Error while adding script to window: " + jsFilePath + ", error: " + e.getMessage());
         }
     }
 
@@ -132,19 +132,19 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
             return js.executeScript(jsCommand);
         }
         catch (NoSuchWindowException e){
-            log.error("browser window not found", e);
+            log.error("browser window not found, error: " + e.getMessage());
             throw e;
         }
         catch (UnreachableBrowserException e){
-            log.error("browser unreachable", e);
+            log.error("browser unreachable, error: " + e.getMessage());
             throw e;
         }
         catch (JavascriptException e){
-            log.error("JavaScript Exception occured", e);
+            log.error("JavaScript Exception occured, error: " + e.getMessage());
             throw e;
         }
         catch (Exception e) {
-            log.error("Error while executing JS command: " + jsCommand, e);
+            log.error("Error while executing JS command: " + jsCommand + ", error: " + e.getMessage());
             return null;
         }
     }
