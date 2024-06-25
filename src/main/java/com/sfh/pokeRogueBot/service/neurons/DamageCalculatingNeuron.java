@@ -5,6 +5,7 @@ import com.sfh.pokeRogueBot.model.enums.MoveCategory;
 import com.sfh.pokeRogueBot.model.enums.PokeType;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.decisions.PossibleAttackMove;
+import com.sfh.pokeRogueBot.model.results.DamageMultiplier;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
@@ -64,5 +65,53 @@ public class DamageCalculatingNeuron {
         double damage = baseDamage * stab * typeEffectiveness1 * typeEffectiveness2;
 
         return (int) Math.round(damage);
+    }
+
+    public static float calcDamageMultiplier(PokeType attackTyp, PokeType defTyp1, PokeType defTyp2){
+        double typeEffectiveness1 = PokeType.getTypeDamageMultiplier(attackTyp, defTyp1);
+        double typeEffectiveness2 = PokeType.getTypeDamageMultiplier(attackTyp, defTyp2);
+        return (float) (typeEffectiveness1 * typeEffectiveness2);
+    }
+
+    public static DamageMultiplier getTypeBasedDamageMultiplier(Pokemon playerPokemon, Pokemon enemyPokemon) {
+
+        float playerDamageMultiplier1 = DamageCalculatingNeuron.calcDamageMultiplier(
+                playerPokemon.getSpecies().getType1(),
+                enemyPokemon.getSpecies().getType1(),
+                enemyPokemon.getSpecies().getType2()
+        );
+
+        PokeType playerType2 = playerPokemon.getSpecies().getType2();
+        float playerDamageMultiplier2 = -1;
+        if(playerType2 != null) {
+            playerDamageMultiplier2 = DamageCalculatingNeuron.calcDamageMultiplier(
+                    playerPokemon.getSpecies().getType2(),
+                    enemyPokemon.getSpecies().getType1(),
+                    enemyPokemon.getSpecies().getType2()
+            );
+        }
+
+        float enemyDamageMultiplier1 = DamageCalculatingNeuron.calcDamageMultiplier(
+                enemyPokemon.getSpecies().getType1(),
+                playerPokemon.getSpecies().getType1(),
+                playerPokemon.getSpecies().getType2()
+        );
+
+        float enemyDamageMultiplier2 = -1;
+        if(null != playerType2) {
+            enemyDamageMultiplier2 = DamageCalculatingNeuron.calcDamageMultiplier(
+                    enemyPokemon.getSpecies().getType2(),
+                    playerPokemon.getSpecies().getType1(),
+                    playerPokemon.getSpecies().getType2()
+
+            );
+        }
+
+        return new DamageMultiplier(
+                playerDamageMultiplier1,
+                playerDamageMultiplier2 != -1 ? playerDamageMultiplier2 : null,
+                enemyDamageMultiplier1,
+                enemyDamageMultiplier2 != -1 ? enemyDamageMultiplier2 : null
+        );
     }
 }

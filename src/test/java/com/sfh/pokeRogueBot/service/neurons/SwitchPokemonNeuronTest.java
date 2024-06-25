@@ -65,7 +65,7 @@ class SwitchPokemonNeuronTest {
 
     @Test
     void in_single_fight_the_index_of_the_first_pokemon_is_ignored(){
-        SwitchDecision switchDecision = SwitchPokemonNeuron.getSwitchDecision(waveDto);
+        SwitchDecision switchDecision = SwitchPokemonNeuron.getBestSwitchDecision(waveDto);
         assertNotNull(switchDecision);
         int indexToSwitchTo = switchDecision.getIndex();
         assertTrue(indexToSwitchTo >= 1 && indexToSwitchTo < 6);
@@ -74,7 +74,7 @@ class SwitchPokemonNeuronTest {
     @Test
     void fainted_pokemons_are_skipped(){
         playerPokemon2.setHp(0);
-        SwitchDecision switchDecision = SwitchPokemonNeuron.getSwitchDecision(waveDto);
+        SwitchDecision switchDecision = SwitchPokemonNeuron.getBestSwitchDecision(waveDto);
         assertNotNull(switchDecision);
         int indexToSwitchTo = switchDecision.getIndex();
         assertEquals(2, indexToSwitchTo);
@@ -83,7 +83,7 @@ class SwitchPokemonNeuronTest {
     @Test
     void in_double_fight_the_first_two_pokemons_are_skipped(){
         waveDto.setDoubleFight(true);
-        SwitchDecision switchDecision = SwitchPokemonNeuron.getSwitchDecision(waveDto);
+        SwitchDecision switchDecision = SwitchPokemonNeuron.getBestSwitchDecision(waveDto);
         assertNotNull(switchDecision);
         int indexToSwitchTo = switchDecision.getIndex();
         assertEquals(2, indexToSwitchTo);
@@ -91,7 +91,7 @@ class SwitchPokemonNeuronTest {
 
     @Test
     void a_pokemon_with_good_type_advantage_is_chosen(){
-        SwitchDecision switchDecision = SwitchPokemonNeuron.getSwitchDecision(waveDto);
+        SwitchDecision switchDecision = SwitchPokemonNeuron.getBestSwitchDecision(waveDto);
         assertNotNull(switchDecision);
         assertEquals(2, switchDecision.getIndex());
     }

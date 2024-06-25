@@ -4,7 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
-@AllArgsConstructor
 public class SwitchDecision {
 
     private final int index;
@@ -12,4 +11,13 @@ public class SwitchDecision {
 
     private final float playerDamageMultiplier;
     private final float enemyDamageMultiplier;
+    private final float combinedDamageMultiplier;
+
+    public SwitchDecision(int index, String pokeName, float playerDamageMultiplier, float enemyDamageMultiplier) {
+        this.index = index;
+        this.pokeName = pokeName;
+        this.playerDamageMultiplier = playerDamageMultiplier;
+        this.enemyDamageMultiplier = enemyDamageMultiplier;
+        this.combinedDamageMultiplier = playerDamageMultiplier - enemyDamageMultiplier;
+    }
 }

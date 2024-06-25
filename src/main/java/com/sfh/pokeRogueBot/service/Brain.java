@@ -247,6 +247,6 @@ public class Brain {
     }
 
     public SwitchDecision getSwitchDecision() {
-        return SwitchPokemonNeuron.getSwitchDecision(waveDto);
+        return SwitchPokemonNeuron.getBestSwitchDecision(waveDto);
     }
 }

@@ -31,8 +31,8 @@ public enum PokeType {
     };
 
     public static float getTypeDamageMultiplier(PokeType attackType, PokeType defType) {
-        if (attackType == UNKNOWN || defType == UNKNOWN) {
-            return 1;
+        if (attackType == null || attackType == UNKNOWN || defType == null || defType == UNKNOWN) {
+            throw new IllegalArgumentException("Unknown or null type");
         }
 
         switch (defType) {

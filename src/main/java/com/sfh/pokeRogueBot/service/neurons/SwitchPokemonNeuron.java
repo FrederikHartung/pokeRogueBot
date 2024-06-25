@@ -1,12 +1,12 @@
 package com.sfh.pokeRogueBot.service.neurons;
 
 import com.sfh.pokeRogueBot.model.dto.WaveDto;
+import com.sfh.pokeRogueBot.model.enums.PokeType;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.decisions.SwitchDecision;
+import com.sfh.pokeRogueBot.model.results.DamageMultiplier;
 import com.sfh.pokeRogueBot.model.run.WavePokemon;
-import com.sfh.pokeRogueBot.service.JsService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -43,7 +43,7 @@ public class SwitchPokemonNeuron {
      * This method returns the index of the pokemon with the best type advantage against the enemy pokemon
      * @return the index of the pokemon with the best type advantage against the enemy pokemon
      */
-    public static SwitchDecision getSwitchDecision(WaveDto waveDto) {
+    public static SwitchDecision getBestSwitchDecision(WaveDto waveDto) {
 
         WavePokemon wave = waveDto.getWavePokemon();
         Pokemon[] playerParty = wave.getPlayerParty();
@@ -54,20 +54,34 @@ public class SwitchPokemonNeuron {
         List<SwitchDecision> switchDecisions = new LinkedList<>();
         for(int i = startIndexOfPartyPokemons; i < playerParty.length; i++){
             Pokemon playerPokemon = playerParty[i];
+            boolean enemy1Fainted = wave.getEnemyParty()[0].getHp() == 0;
+            Pokemon enemyPokemon = enemy1Fainted ? wave.getEnemyParty()[1] : wave.getEnemyParty()[0];
 
             if(null == playerPokemon){
                 continue;
             }
 
             if(playerParty[i].getHp() > 0){
-                switchDecisions.add(new SwitchDecision(i, playerPokemon.getName(), 0, 0));
+                switchDecisions.add(getSwitchDecisionForIndex(i, playerPokemon, enemyPokemon));
             }
         }
 
         if(!switchDecisions.isEmpty()){
-            return switchDecisions.get(0);
+            //return the decision with max combinedDamageMultiplier
+            return switchDecisions
+                    .stream()
+                    .max((sd1, sd2) -> Float.compare(sd1.getCombinedDamageMultiplier(), sd2.getCombinedDamageMultiplier()))
+                    .get();
         }
 
         return null;
+    }
+
+    public static SwitchDecision getSwitchDecisionForIndex(int index, Pokemon playerPokemon, Pokemon enemyPokemon){
+        DamageMultiplier damageMultiplier = DamageCalculatingNeuron.getTypeBasedDamageMultiplier(playerPokemon, enemyPokemon);
+
+        float playerDamageMultiplier = Math.max(playerDamageMultiplier1, playerDamageMultiplier2);
+        float enemyDamageMultiplier = Math.max(enemyDamageMultiplier1, enemyDamageMultiplier2);
+        return new SwitchDecision(index, playerPokemon.getName(), playerDamageMultiplier, enemyDamageMultiplier);
     }
 }
