@@ -5,7 +5,6 @@ import lombok.Getter;
 
 @Getter
 public enum PokeType {
-    UNKNOWN,
     NORMAL,
     FIGHTING,
     FLYING,
@@ -31,7 +30,7 @@ public enum PokeType {
     };
 
     public static float getTypeDamageMultiplier(PokeType attackType, PokeType defType) {
-        if (attackType == null || attackType == UNKNOWN || defType == null || defType == UNKNOWN) {
+        if (attackType == null || defType == null) {
             throw new IllegalArgumentException("Unknown or null type");
         }
 

@@ -81,7 +81,7 @@ public class SwitchPokemonNeuron {
         DamageMultiplier damageMultiplier = DamageCalculatingNeuron.getTypeBasedDamageMultiplier(playerPokemon, enemyPokemon);
 
         float playerDamageMultiplier;
-        if(damageMultiplier.getEnemyDamageMultiplier2() != null){
+        if(damageMultiplier.getPlayerDamageMultiplier2() != null){
             playerDamageMultiplier = Math.max(damageMultiplier.getPlayerDamageMultiplier1(), damageMultiplier.getPlayerDamageMultiplier2());
         }
         else{

@@ -47,7 +47,8 @@ public class Brain {
     }
 
     public SwitchDecision getFaintedPokemonSwitchDecision() {
-        return SwitchPokemonNeuron.getFaintedPokemonSwitchDecision(waveDto);
+        waveDto = jsService.getWaveDto(); //always update current state
+        return SwitchPokemonNeuron.getBestSwitchDecision(waveDto);
     }
 
     public MoveToModifierResult getModifierToPick() {

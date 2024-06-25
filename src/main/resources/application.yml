@@ -34,7 +34,7 @@ wait-time:
 
 brain:
   shortTermMemory:
-    memorySize: 25
+    memorySize: 30
     minPhasesForLoop: 3
 
 bot:

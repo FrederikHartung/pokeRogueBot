@@ -78,6 +78,11 @@ public class DamageCalculatingNeuron {
 
     public static DamageMultiplier getTypeBasedDamageMultiplier(Pokemon playerPokemon, Pokemon enemyPokemon) {
 
+        PokeType p1 = playerPokemon.getSpecies().getType1();
+        PokeType p2 = playerPokemon.getSpecies().getType2();
+        PokeType e1 = enemyPokemon.getSpecies().getType1();
+        PokeType e2 = enemyPokemon.getSpecies().getType2();
+
         float playerDamageMultiplier1 = DamageCalculatingNeuron.calcDamageMultiplier(
                 playerPokemon.getSpecies().getType1(),
                 enemyPokemon.getSpecies().getType1(),
@@ -88,7 +93,7 @@ public class DamageCalculatingNeuron {
         float playerDamageMultiplier2 = -1;
         if(playerType2 != null) {
             playerDamageMultiplier2 = DamageCalculatingNeuron.calcDamageMultiplier(
-                    playerPokemon.getSpecies().getType2(),
+                    playerType2,
                     enemyPokemon.getSpecies().getType1(),
                     enemyPokemon.getSpecies().getType2()
             );
@@ -100,8 +105,9 @@ public class DamageCalculatingNeuron {
                 playerPokemon.getSpecies().getType2()
         );
 
+        PokeType enemyType2 = enemyPokemon.getSpecies().getType2();
         float enemyDamageMultiplier2 = -1;
-        if(null != playerType2) {
+        if(null != enemyType2) {
             enemyDamageMultiplier2 = DamageCalculatingNeuron.calcDamageMultiplier(
                     enemyPokemon.getSpecies().getType2(),
                     playerPokemon.getSpecies().getType1(),
