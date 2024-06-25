@@ -10,14 +10,16 @@ import java.util.LinkedList;
 import java.util.List;
 
 @Slf4j
-@Component
 public class CapturePokemonNeuron {
+
+    private CapturePokemonNeuron() {
+    }
 
     /**
      *
      * @return if the pokemon should be captured
      */
-    public boolean shouldCapturePokemon(WaveDto waveDto, Pokemon wildPokemon) {
+    public static boolean shouldCapturePokemon(WaveDto waveDto, Pokemon wildPokemon) {
         if(waveDto.isTrainerFight()){
             log.debug("can't capture: trainer fight");
             return false;
@@ -46,7 +48,7 @@ public class CapturePokemonNeuron {
         return true;
     }
 
-    public int selectStrongestPokeball(WaveDto waveDto) {
+    public static int selectStrongestPokeball(WaveDto waveDto) {
         int[] pokeballs = waveDto.getPokeballCount();
         for(int i = pokeballs.length - 1; i >= 0; i--){
             if(pokeballs[i] > 0){

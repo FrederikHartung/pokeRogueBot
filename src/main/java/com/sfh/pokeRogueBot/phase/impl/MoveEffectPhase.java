@@ -6,6 +6,7 @@ import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
+import com.sfh.pokeRogueBot.service.Brain;
 import com.sfh.pokeRogueBot.service.neurons.SwitchPokemonNeuron;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -16,10 +17,10 @@ public class MoveEffectPhase extends AbstractPhase implements Phase {
 
     public static final String NAME = "MoveEffectPhase";
 
-    private final SwitchPokemonNeuron switchPokemonNeuron;
+    private final Brain brain;
 
-    public MoveEffectPhase(SwitchPokemonNeuron switchPokemonNeuron) {
-        this.switchPokemonNeuron = switchPokemonNeuron;
+    public MoveEffectPhase(Brain brain) {
+        this.brain = brain;
     }
 
     @Override
@@ -42,7 +43,7 @@ public class MoveEffectPhase extends AbstractPhase implements Phase {
 
     public PhaseAction[] handlePartyGameMode(){
 
-        SwitchDecision switchDecision = switchPokemonNeuron.getSwitchDecision();
+        SwitchDecision switchDecision = brain.getSwitchDecision();
 
         return new PhaseAction[]{
                 this.waitAction

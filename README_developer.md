@@ -27,6 +27,7 @@ Only refactor, when it's really necessary.
 - [ ] give the heal item in double fights the correct pokemon
 - [ ] learning of attacks
 - [ ] API for stopping the app or let it run again
+- [ ] ChooseRareModifierNeuron
 
 
 ## Open todo's with low priority:

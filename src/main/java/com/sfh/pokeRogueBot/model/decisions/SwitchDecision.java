@@ -9,4 +9,7 @@ public class SwitchDecision {
 
     private final int index;
     private final String pokeName;
+
+    private final float playerDamageMultiplier;
+    private final float enemyDamageMultiplier;
 }

@@ -11,10 +11,12 @@ import javax.annotation.Nonnull;
 import java.util.LinkedList;
 import java.util.List;
 
-@Component
 public class DamageCalculatingNeuron {
 
-    public List<PossibleAttackMove> getPossibleAttackMoves(@Nonnull Pokemon playerPokemon, @Nonnull Pokemon enemyPokemon) {
+    private DamageCalculatingNeuron() {
+    }
+
+    public static List<PossibleAttackMove> getPossibleAttackMoves(@Nonnull Pokemon playerPokemon, @Nonnull Pokemon enemyPokemon) {
         Move[] playerMoves = playerPokemon.getMoveset();
 
         List<PossibleAttackMove> possibleAttackMoves = new LinkedList<>();
@@ -38,7 +40,7 @@ public class DamageCalculatingNeuron {
         return possibleAttackMoves;
     }
 
-    private int calculateDamage(Pokemon attacker, Pokemon defender, Move move, double randomFactor) {
+    private static int calculateDamage(Pokemon attacker, Pokemon defender, Move move, double randomFactor) {
 
         if(move.getPower() < 0){
             return 0;

@@ -14,10 +14,12 @@ import java.util.Comparator;
 import java.util.List;
 
 @Slf4j
-@Component
 public class ChooseHealModifierNeuron {
 
-    public MoveToModifierResult buyPotionIfMoreThatOnePokemonIsHurt(ModifierShop shop, Pokemon[] playerParty) {
+    private ChooseHealModifierNeuron() {
+    }
+
+    public static MoveToModifierResult buyPotionIfMoreThatOnePokemonIsHurt(ModifierShop shop, Pokemon[] playerParty) {
         ModifierShopItem potion =  shop.getBuyableItems().stream()
                 .filter(item -> item.getItem().getTypeName().equals(PokemonHpRestoreModifierItem.TARGET))
                 .findFirst()
@@ -54,7 +56,7 @@ public class ChooseHealModifierNeuron {
         return null;
     }
 
-    public MoveToModifierResult buyPotionIfNoFreeIsAvailableOrPriorityExists(ModifierShop shop, Pokemon[] playerParty, boolean priorityItemExists) {
+    public static MoveToModifierResult buyPotionIfNoFreeIsAvailableOrPriorityExists(ModifierShop shop, Pokemon[] playerParty, boolean priorityItemExists) {
         if(!priorityItemExists){
             ModifierShopItem freeHealItem =  shop.getFreeItems().stream()
                     .filter(item -> item.getItem().getTypeName().equals(PokemonHpRestoreModifierItem.TARGET))
@@ -93,7 +95,7 @@ public class ChooseHealModifierNeuron {
         return null;
     }
 
-    public MoveToModifierResult pickFreePotionIfNeeded(ModifierShop shop, Pokemon[] playerParty) {
+    public static MoveToModifierResult pickFreePotionIfNeeded(ModifierShop shop, Pokemon[] playerParty) {
         ModifierShopItem freeHealItem =  shop.getFreeItems().stream()
                 .filter(item -> item.getItem().getTypeName().equals(PokemonHpRestoreModifierItem.TARGET))
                 .findFirst()
