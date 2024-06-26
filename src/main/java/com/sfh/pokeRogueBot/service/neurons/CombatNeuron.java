@@ -18,7 +18,10 @@ public class CombatNeuron {
     }
 
     public static AttackDecisionForPokemon getAttackDecisionForSingleFight(@Nonnull Pokemon playerPokemon, @Nonnull Pokemon enemyPokemon, boolean tryToCatch) {
-        log.debug("enemy pokemon health before attack: " + enemyPokemon.getHp() + ", try to catch: " + tryToCatch);
+        log.debug("enemy pokemon hp: " + enemyPokemon.getHp()
+                + ", typ 1: " + enemyPokemon.getSpecies().getType1()
+                + ", typ 2: " + enemyPokemon.getSpecies().getType2()
+                );
 
         List<PossibleAttackMove> possibleAttackMoves = DamageCalculatingNeuron.getPossibleAttackMoves(playerPokemon, enemyPokemon);
         for(PossibleAttackMove move : possibleAttackMoves){
