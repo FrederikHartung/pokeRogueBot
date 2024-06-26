@@ -23,7 +23,7 @@ public class DamageCalculatingNeuron {
         List<PossibleAttackMove> possibleAttackMoves = new LinkedList<>();
         for(int i = 0; i < playerMoves.length; i++) {
             Move move = playerMoves[i];
-            if(move == null || !move.isUsable()) {
+            if(move == null || !move.isUsable() || move.getPPLeft() == 0) {
                 continue;
             }
 

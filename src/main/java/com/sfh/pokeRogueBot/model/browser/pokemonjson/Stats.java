@@ -1,5 +1,6 @@
 package com.sfh.pokeRogueBot.model.browser.pokemonjson;
 
+import com.sfh.pokeRogueBot.model.enums.Stat;
 import lombok.Data;
 
 @Data
@@ -14,4 +15,5 @@ public class Stats {
     private Integer specialDefense;
 
     private Integer speed;
+
 }

@@ -2,7 +2,6 @@ package com.sfh.pokeRogueBot.file;
 
 import com.sfh.pokeRogueBot.model.browser.pokemonjson.Iv;
 import com.sfh.pokeRogueBot.model.browser.pokemonjson.Stats;
-import com.sfh.pokeRogueBot.model.enums.Stat;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

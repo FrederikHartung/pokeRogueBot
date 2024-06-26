@@ -10,6 +10,8 @@ Work in Progress:
 - added switching to a pokemon with better type matching at the beginn of a wild pokemon fight
 - changed egg id from int to long
 - deactivated capturing pokemons with over 90% health left
+- fixed the bug, that an attack without pp is tried to be executed
+- added unit tests for DamageCalculatingNeuron
 
 ## 1.2
 - added log persistence to file system
