@@ -5,25 +5,25 @@ import lombok.Getter;
 
 @Getter
 public enum PokeType {
-    NORMAL,
-    FIGHTING,
-    FLYING,
-    POISON,
-    GROUND,
-    ROCK,
-    BUG,
-    GHOST,
-    STEEL,
-    FIRE,
-    WATER,
-    GRASS,
-    ELECTRIC,
-    PSYCHIC,
-    ICE,
-    DRAGON,
-    DARK,
-    FAIRY,
-    STELLAR;
+    NORMAL, //0
+    FIGHTING, //1
+    FLYING, //2
+    POISON, //3
+    GROUND, //4
+    ROCK, //5
+    BUG, //6
+    GHOST, //7
+    STEEL, //8
+    FIRE, //9
+    WATER, //10
+    GRASS, //11
+    ELECTRIC, //12
+    PSYCHIC, //13
+    ICE, //14
+    DRAGON, //15
+    DARK, //16
+    FAIRY, //17
+    STELLAR; //18
 
     public static final float[] DAMAGE_MULTIPLIER = new float[]{
             0f, 0.125f, 0.25f, 0.5f, 1f, 2f, 4f, 8f
