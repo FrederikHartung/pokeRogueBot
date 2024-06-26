@@ -19,7 +19,7 @@ public class ModifierRewardPhase extends AbstractPhase implements Phase {
 
     @Override
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
-        if (gameMode == GameMode.MESSAGE) {
+        if (gameMode == GameMode.MESSAGE || gameMode == GameMode.EGG_HATCH_SCENE) {
             return new PhaseAction[]{
                     this.pressSpace
             };
