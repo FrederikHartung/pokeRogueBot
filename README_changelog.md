@@ -8,6 +8,8 @@ Work in Progress:
 - added more phases and reduced the default wait time between phases from 2000ms to 500ms
 - fixed a bug in the loop detection, when a fight takes to long
 - added switching to a pokemon with better type matching at the beginn of a wild pokemon fight
+- changed egg id from int to long
+- deactivated capturing pokemons with over 90% health left
 
 ## 1.2
 - added log persistence to file system

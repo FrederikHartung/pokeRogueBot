@@ -140,8 +140,8 @@ public class JsService {
         return GSON.fromJson(result, Pokemon.class);
     }
 
-    public int getEggId(){
-        return Integer.parseInt(jsClient.executeCommandAndGetResult("return window.poru.egg.getEggId();").toString());
+    public long getEggId(){
+        return Long.parseLong(jsClient.executeCommandAndGetResult("return window.poru.egg.getEggId();").toString());
     }
 
     public boolean saveAndQuit() {

@@ -28,7 +28,7 @@ public class EggHatchPhase extends AbstractPhase implements Phase {
     private final FileManager fileManager;
     private final Brain brain;
 
-    private final Set<Integer> eggIds = new HashSet<>();
+    private final Set<Long> eggIds = new HashSet<>();
 
     public EggHatchPhase(ScreenshotClient screenshotClient, JsService jsService, WaitingService waitingService, FileManager fileManager, Brain brain) {
         this.screenshotClient = screenshotClient;
@@ -52,7 +52,7 @@ public class EggHatchPhase extends AbstractPhase implements Phase {
         }
         else if (gameMode == GameMode.EGG_HATCH_SCENE) {
 
-            int eggId = jsService.getEggId();
+            long eggId = jsService.getEggId();
             if(!eggIds.contains(eggId)){
                 eggIds.add(eggId);
                 waitingService.waitEvenLonger();
