@@ -37,4 +37,9 @@ public class AttemptCapturePhase extends AbstractPhase implements Phase {
         throw new NotSupportedException("GameMode " + gameMode + " is not supported in " + NAME);
     }
 
+    @Override
+    public int getWaitAfterStage2x() {
+        return 1000;
+    }
+
 }

@@ -6,6 +6,7 @@ Work in Progress:
 - fixed bug, that a status heal item is tried to be used as a revive item
 - fixed a bug in the loop detection, when to many eggs are hatched in a row
 - added more phases and reduced the default wait time between phases from 2000ms to 500ms
+- fixed a bug in the loop detection, when a fight takes to long
 
 ## 1.2
 - added log persistence to file system
