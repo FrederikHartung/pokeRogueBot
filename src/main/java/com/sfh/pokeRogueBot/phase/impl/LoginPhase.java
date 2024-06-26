@@ -7,6 +7,7 @@ import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.JsService;
+import com.sfh.pokeRogueBot.service.WaitingService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -20,15 +21,17 @@ public class LoginPhase extends AbstractPhase implements Phase {
     private static final String NAME = "LoginPhase";
 
     private final BrowserClient browserClient;
+    private final WaitingService waitingService;
     private final JsService jsService;
     private final String userName;
     private final String password;
 
     public LoginPhase(
-            BrowserClient browserClient, JsService jsService, @Value("${browser.userName}") String userName,
+            BrowserClient browserClient, WaitingService waitingService, JsService jsService, @Value("${browser.userName}") String userName,
             @Value("${browser.password}") String password
     ) {
         this.browserClient = browserClient;
+        this.waitingService = waitingService;
         this.jsService = jsService;
         this.userName = userName;
         this.password = password;
@@ -47,6 +50,7 @@ public class LoginPhase extends AbstractPhase implements Phase {
             };
         }
         else if(gameMode == GameMode.LOGIN_FORM){
+            waitingService.waitLonger();
             boolean enterUserDataSuccess = browserClient.enterUserData(userName, password);
             if(enterUserDataSuccess){
                 log.debug("entered user data successfully");
