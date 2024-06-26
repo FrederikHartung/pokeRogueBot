@@ -7,6 +7,7 @@ Work in Progress:
 - fixed a bug in the loop detection, when to many eggs are hatched in a row
 - added more phases and reduced the default wait time between phases from 2000ms to 500ms
 - fixed a bug in the loop detection, when a fight takes to long
+- added switching to a pokemon with better type matching at the beginn of a wild pokemon fight
 
 ## 1.2
 - added log persistence to file system

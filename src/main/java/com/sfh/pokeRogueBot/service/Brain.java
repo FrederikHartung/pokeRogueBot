@@ -255,4 +255,9 @@ public class Brain {
         log.debug("Switching to pokemon: " + switchDecision.getPokeName() + " on index: " + switchDecision.getIndex());
         return SwitchPokemonNeuron.getBestSwitchDecision(waveDto);
     }
+
+    public boolean shouldSwitchPokemon() {
+        waveDto = jsService.getWaveDto(); //always update current state
+        return SwitchPokemonNeuron.shouldSwitchPokemon(waveDto);
+    }
 }

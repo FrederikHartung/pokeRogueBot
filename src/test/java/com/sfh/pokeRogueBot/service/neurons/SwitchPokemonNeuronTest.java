@@ -21,7 +21,13 @@ class SwitchPokemonNeuronTest {
     Pokemon playerPokemon2;
     Pokemon playerPokemon3;
 
+    Species player1Species;
+    Species player2Species;
+    Species player3Species;
+
     Pokemon enemyPokemon1;
+
+    Species enemy1Species;
 
     @BeforeEach
     void setUp() {
@@ -37,20 +43,20 @@ class SwitchPokemonNeuronTest {
 
         playerPokemon1 = new Pokemon();
         playerParty[0] = playerPokemon1;
-        Species player1Species = new Species();
+        player1Species = new Species();
         playerPokemon1.setSpecies(player1Species);
         player1Species.setType1(PokeType.GRASS);
 
         playerPokemon2 = new Pokemon();
         playerParty[1] = playerPokemon2;
-        Species player2Species = new Species();
+        player2Species = new Species();
         playerPokemon2.setSpecies(player2Species);
         player2Species.setType1(PokeType.ELECTRIC);
         playerPokemon2.setHp(20);
 
         playerPokemon3 = new Pokemon();
         playerParty[2] = playerPokemon3;
-        Species player3Species = new Species();
+        player3Species = new Species();
         playerPokemon3.setSpecies(player3Species);
         player3Species.setType1(PokeType.WATER);
         playerPokemon3.setHp(30);
@@ -58,7 +64,7 @@ class SwitchPokemonNeuronTest {
         enemyPokemon1 = new Pokemon();
         enemyParty[0] = enemyPokemon1;
         enemyPokemon1.setHp(40);
-        Species enemy1Species = new Species();
+        enemy1Species = new Species();
         enemy1Species.setType1(PokeType.FIRE);
         enemyPokemon1.setSpecies(enemy1Species);
     }
@@ -94,5 +100,32 @@ class SwitchPokemonNeuronTest {
         SwitchDecision switchDecision = SwitchPokemonNeuron.getBestSwitchDecision(waveDto);
         assertNotNull(switchDecision);
         assertEquals(2, switchDecision.getIndex());
+    }
+
+    @Test
+    void no_switch_in_double_fight(){
+        waveDto.setDoubleFight(true);
+
+        assertFalse(SwitchPokemonNeuron.shouldSwitchPokemon(waveDto));
+    }
+
+    @Test
+    void switch_player_pokemon_to_a_better_type_matching(){
+        player1Species.setType1(PokeType.GRASS);
+        enemy1Species.setType1(PokeType.FIRE);
+        player2Species.setType1(PokeType.ELECTRIC);
+        player3Species.setType1(PokeType.WATER);
+
+        assertTrue(SwitchPokemonNeuron.shouldSwitchPokemon(waveDto));
+    }
+
+    @Test
+    void dont_switch_player_pokemon_when_type_matching_is_good(){
+        player1Species.setType1(PokeType.FIRE);
+        enemy1Species.setType1(PokeType.GRASS);
+        player2Species.setType1(PokeType.ELECTRIC);
+        player3Species.setType1(PokeType.WATER);
+
+        assertFalse(SwitchPokemonNeuron.shouldSwitchPokemon(waveDto));
     }
 }
