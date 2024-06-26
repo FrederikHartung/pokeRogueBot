@@ -15,7 +15,7 @@ Only refactor, when it's really necessary.
 - [x] remove the db and spring data
 - [x] if an exception is thrown, save and go back to title screen
 - [x] load the first save game 
-- [ ] add handle if an enemy move forces the player to switch pokemon
+- [x] add handle if an enemy move forces the player to switch pokemon
 - [ ] when no pp are left, the attack can't be used
 - [ ] hyper healer is not used as a revive item
 - [ ] make attack decision not in the attack menu

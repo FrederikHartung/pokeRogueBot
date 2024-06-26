@@ -9,6 +9,8 @@ Work in Progress:
 - if save and quit didn't work the page is reloaded
 - added CapturePokemonNeuron
 - made all Neurons static
+- add handle if an enemy move forces the player to switch pokemon
+- if a switch decision is made, the bots chooses the best available pokemon
 
 ## 1.1
 - removed connection to a database
