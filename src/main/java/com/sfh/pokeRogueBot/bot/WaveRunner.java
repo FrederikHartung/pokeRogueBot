@@ -1,6 +1,5 @@
 package com.sfh.pokeRogueBot.bot;
 
-import com.sfh.pokeRogueBot.browser.BrowserClient;
 import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.exception.UnsupportedPhaseException;
@@ -15,7 +14,6 @@ import com.sfh.pokeRogueBot.service.Brain;
 import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.service.WaitingService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -52,11 +50,11 @@ public class WaveRunner {
             if (null != phase && gameMode != GameMode.UNKNOWN) {
                 log.debug("phase detected: " + phase.getPhaseName() + ", gameMode: " + gameMode);
                 phaseProcessor.handlePhase(phase, gameMode);
-                brain.memorizePhase(phase.getPhaseName());
+                brain.memorize(phase.getPhaseName());
             } else if (null == phase && gameMode == GameMode.MESSAGE) {
                 log.warn("no known phase detected, phaseAsString: " + phaseAsString + " , but gameMode is MESSAGE");
                 phaseProcessor.handlePhase(phaseProvider.fromString(MessagePhase.NAME), gameMode);
-                brain.memorizePhase(MessagePhase.NAME);
+                brain.memorize(MessagePhase.NAME);
             } else {
                 log.debug("no known phase detected, phaseAsString: " + phaseAsString + " , gameMode: " + gameMode);
                 throw new UnsupportedPhaseException(phaseAsString, gameMode);

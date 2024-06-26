@@ -141,7 +141,7 @@ public class Brain {
         }
     }
 
-    public void memorizePhase(String phase) {
+    public void memorize(String phase) {
         shortTermMemory.memorizePhase(phase);
     }
 

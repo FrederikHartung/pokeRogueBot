@@ -59,7 +59,7 @@ public class ChooseModifierNeuron {
         //if a pokemon is fainted and no free revive item is available, buy a revive item
         MoveToModifierResult reviveItem = buyReviveItemIfNeeded(shop, playerParty);
         if(null != reviveItem) {
-            log.debug("buying revive item for pokemon on index: " + reviveItem.getPokemonIndexToSwitchTo());
+            log.debug("buying revive item for pokemon on index: " + reviveItem.getPokemonIndexToSwitchTo() + ", row: " + reviveItem.getRowIndex() + ", column: " + reviveItem.getColumnIndex());
             itemsToBuy.add(reviveItem); //todo: buy more if more than one is needed
         }
 

@@ -15,7 +15,7 @@ public class ShortTermMemory {
     private final int memorySize;
     private final int minPhasesForLoop;
 
-    List<String> lastPhases = new LinkedList<>();
+    List<String> lastMemories = new LinkedList<>();
 
     public ShortTermMemory(
             @Value("${brain.shortTermMemory.memorySize}") int memorySize,
@@ -25,27 +25,27 @@ public class ShortTermMemory {
         this.minPhasesForLoop = minPhasesForLoop;
     }
 
-    public void memorizePhase(String phase) throws ActionLoopDetectedException {
-        if(lastPhases.size() < memorySize) {
-            lastPhases.add(phase);
+    public void memorizePhase(String memory) throws ActionLoopDetectedException {
+        if(lastMemories.size() < memorySize) {
+            lastMemories.add(memory);
         } else {
             checkForActionLoop();
-            lastPhases.remove(0);
-            lastPhases.add(phase);
+            lastMemories.remove(0);
+            lastMemories.add(memory);
         }
     }
 
     public void clearMemory() {
-        lastPhases.clear();
+        lastMemories.clear();
     }
 
     private void checkForActionLoop() throws ActionLoopDetectedException {
         Map<String, Integer> phaseCount = new java.util.HashMap<>();
         for(int i = 0; i < memorySize; i++) {
-            if(phaseCount.containsKey(lastPhases.get(i))) {
-                phaseCount.put(lastPhases.get(i), phaseCount.get(lastPhases.get(i)) + 1);
+            if(phaseCount.containsKey(lastMemories.get(i))) {
+                phaseCount.put(lastMemories.get(i), phaseCount.get(lastMemories.get(i)) + 1);
             } else {
-                phaseCount.put(lastPhases.get(i), 1);
+                phaseCount.put(lastMemories.get(i), 1);
             }
         }
 

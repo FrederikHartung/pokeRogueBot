@@ -19,14 +19,18 @@ window.poru.uihandler = {
         var modifierSelectUiHandler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[6];
         
         if(modifierSelectUiHandler && modifierSelectUiHandler.active){
+            console.log("setting modifierSelectUiHandler cursors...");
+
+            if(modifierSelectUiHandler.rowCursor !== cursorRow){
+                modifierSelectUiHandler.setRowCursor(cursorRow);
+            }
+            console.log("modifierSelectUiHandler.rowCursor: " + modifierSelectUiHandler.rowCursor);
+
             if(modifierSelectUiHandler.cursor !== cursorColumn){
                 modifierSelectUiHandler.setCursor(cursorColumn);
             }
-        
-            if(modifierSelectUiHandler.rowCursor !== cursorRow){
-                modifierSelectUiHandler.setRowCursor(cursorRow); 
-            }
-        
+            console.log("modifierSelectUiHandler.cursor: " + modifierSelectUiHandler.cursor);
+
             return true; //moved
         }
         
