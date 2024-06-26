@@ -18,7 +18,8 @@ public class CombatNeuron {
     }
 
     public static AttackDecisionForPokemon getAttackDecisionForSingleFight(@Nonnull Pokemon playerPokemon, @Nonnull Pokemon enemyPokemon, boolean tryToCatch) {
-        log.debug("enemy pokemon hp: " + enemyPokemon.getHp()
+        log.debug("enemy pokemon: " + enemyPokemon.getName()
+                + ", hp: " + enemyPokemon.getHp()
                 + ", typ 1: " + enemyPokemon.getSpecies().getType1()
                 + ", typ 2: " + enemyPokemon.getSpecies().getType2()
                 );
