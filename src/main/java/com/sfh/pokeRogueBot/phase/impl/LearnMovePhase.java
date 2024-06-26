@@ -44,4 +44,9 @@ public class LearnMovePhase extends AbstractPhase implements Phase {
         throw new NotSupportedException("GameMode not supported for LearnMovePhase: " + gameMode);
     }
 
+    @Override
+    public int getWaitAfterStage2x() {
+        return 1000;
+    }
+
 }
