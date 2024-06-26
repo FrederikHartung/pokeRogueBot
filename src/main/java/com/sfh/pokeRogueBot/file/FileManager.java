@@ -61,7 +61,7 @@ public class FileManager {
             fileIndex++;
             log.info("Temp Screenshot persisted: " + filePath);
         } catch (Exception e) {
-            log.error("Error while saving temp screenshot to: " + filePath, e);
+            log.error("Error while saving temp screenshot to: " + filePath + ", error: " + e.getMessage());
         }
     }
 
@@ -76,7 +76,7 @@ public class FileManager {
             fileIndex++;
             log.info("Screenshot persisted: " + filePath);
         } catch (Exception e) {
-            log.error("Error while saving screenshot to: " + filePath, e);
+            log.error("Error while saving screenshot to: " + filePath + ", error: " + e.getMessage());
         }
     }
 
@@ -153,7 +153,7 @@ public class FileManager {
             Files.writeString(FILE_HATCHED_POKEMON, message.toString() + System.lineSeparator(), java.nio.file.StandardOpenOption.APPEND);
         }
         catch (Exception e){
-            log.error("Error while saving hatched pokemon", e);
+            log.error("Error while saving hatched pokemon, error: " + e.getMessage());
         }
     }
 

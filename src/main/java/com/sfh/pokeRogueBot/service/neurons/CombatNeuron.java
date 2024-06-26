@@ -1,8 +1,8 @@
 package com.sfh.pokeRogueBot.service.neurons;
 
+import com.sfh.pokeRogueBot.model.decisions.*;
 import com.sfh.pokeRogueBot.model.enums.*;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
-import com.sfh.pokeRogueBot.model.run.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -12,19 +12,15 @@ import java.util.Comparator;
 import java.util.List;
 
 @Slf4j
-@Service
 public class CombatNeuron {
 
-    private final DamageCalculatingNeuron damageCalculatingNeuron;
-
-    public CombatNeuron(DamageCalculatingNeuron damageCalculatingNeuron) {
-        this.damageCalculatingNeuron = damageCalculatingNeuron;
+    private CombatNeuron() {
     }
 
-    public AttackDecisionForPokemon getAttackDecisionForSingleFight(@Nonnull Pokemon playerPokemon, @Nonnull Pokemon enemyPokemon, boolean tryToCatch) {
+    public static AttackDecisionForPokemon getAttackDecisionForSingleFight(@Nonnull Pokemon playerPokemon, @Nonnull Pokemon enemyPokemon, boolean tryToCatch) {
         log.debug("enemy pokemon health before attack: " + enemyPokemon.getHp() + ", try to catch: " + tryToCatch);
 
-        List<PossibleAttackMove> possibleAttackMoves = damageCalculatingNeuron.getPossibleAttackMoves(playerPokemon, enemyPokemon);
+        List<PossibleAttackMove> possibleAttackMoves = DamageCalculatingNeuron.getPossibleAttackMoves(playerPokemon, enemyPokemon);
         for(PossibleAttackMove move : possibleAttackMoves){
             log.debug("Move: " + move.getAttackName() + ", min damage: " + move.getMinDamage() + ", max damage: " + move.getMaxDamage() + ", priority: " + move.getAttackPriority() + ", player speed: " + move.getAttackerSpeed() + ", enemy speed: " + enemyPokemon.getStats().getSpeed());
         }
@@ -50,7 +46,7 @@ public class CombatNeuron {
         return null;
 }
 
-    private ChosenAttackMove getTryToWeakenMove(List<PossibleAttackMove> possibleAttackMoves, OwnPokemonIndex index, int enemyHealth) {
+    private static ChosenAttackMove getTryToWeakenMove(List<PossibleAttackMove> possibleAttackMoves, OwnPokemonIndex index, int enemyHealth) {
         PossibleAttackMove bestMove = null;
         float highestDamage = -1;
 
@@ -68,7 +64,7 @@ public class CombatNeuron {
         return null; // enemy pokemon can't be weakened more, so throw a ball now
     }
     
-    private ChosenAttackMove getMaxDmgMove(List<PossibleAttackMove> possibleAttackMoves, OwnPokemonIndex index) {
+    private static ChosenAttackMove getMaxDmgMove(List<PossibleAttackMove> possibleAttackMoves, OwnPokemonIndex index) {
         PossibleAttackMove bestMove = null;
         float highestAverageDamage = -1;
 
@@ -87,7 +83,7 @@ public class CombatNeuron {
         throw new IllegalStateException("No max dmg attack move found");
     }
 
-    private ChosenAttackMove getFinisherMove(List<PossibleAttackMove> possibleAttackMoves, int enemyHealth, OwnPokemonIndex index) {
+    private static ChosenAttackMove getFinisherMove(List<PossibleAttackMove> possibleAttackMoves, int enemyHealth, OwnPokemonIndex index) {
 
         //check for moves with priority first
         List<PossibleAttackMove> attacksWithPriority = possibleAttackMoves.stream()
@@ -104,7 +100,7 @@ public class CombatNeuron {
         return null;
     }
 
-    public AttackDecisionForDoubleFight getAttackDecisionForDoubleFight(
+    public static AttackDecisionForDoubleFight getAttackDecisionForDoubleFight(
             @Nullable Pokemon playerPokemon1,
             @Nullable Pokemon playerPokemon2,
             @Nullable Pokemon enemyPokemon1,
@@ -130,7 +126,7 @@ public class CombatNeuron {
         return new AttackDecisionForDoubleFight(pokemon1Decision, pokemon2Decision);
     }
 
-    private AttackDecisionForPokemon pickForDouble(@Nonnull Pokemon playerPokemon, PossibleAttackMovesForDoubleFight pokemonMoves) {
+    private static AttackDecisionForPokemon pickForDouble(@Nonnull Pokemon playerPokemon, PossibleAttackMovesForDoubleFight pokemonMoves) {
         AttackDecisionForPokemon pokemonDecision = null;
         if(null != pokemonMoves.getChosenFinisher1()){
             ChosenAttackMove ownPokemon1FinisherForEnemy1 = pokemonMoves.getChosenFinisher1();
@@ -165,7 +161,7 @@ public class CombatNeuron {
         return pokemonDecision;
     }
     
-    private PossibleAttackMovesForDoubleFight getMovesForDoubleFight(Pokemon playerPokemon, Pokemon enemyPokemon1, Pokemon enemyPokemon2) {
+    private static PossibleAttackMovesForDoubleFight getMovesForDoubleFight(Pokemon playerPokemon, Pokemon enemyPokemon1, Pokemon enemyPokemon2) {
         if(null == playerPokemon){
             return new PossibleAttackMovesForDoubleFight(null, null, null, null);
         }
@@ -173,7 +169,7 @@ public class CombatNeuron {
         ChosenAttackMove chosenFinisher1 = null;
         ChosenAttackMove chosenMaxDmg1 = null;
         if(null != enemyPokemon1){
-            List<PossibleAttackMove> possibleAttackMoves1 = damageCalculatingNeuron.getPossibleAttackMoves(playerPokemon, enemyPokemon1);
+            List<PossibleAttackMove> possibleAttackMoves1 = DamageCalculatingNeuron.getPossibleAttackMoves(playerPokemon, enemyPokemon1);
             chosenFinisher1 = getFinisherMove(possibleAttackMoves1, enemyPokemon1.getHp(), OwnPokemonIndex.FIRST);
             chosenMaxDmg1 = getMaxDmgMove(possibleAttackMoves1, OwnPokemonIndex.FIRST);
         }
@@ -181,7 +177,7 @@ public class CombatNeuron {
         ChosenAttackMove chosenFinisher2 = null;
         ChosenAttackMove chosenMaxDmg2 = null;
         if(null != enemyPokemon2){
-            List<PossibleAttackMove> possibleAttackMoves2 = damageCalculatingNeuron.getPossibleAttackMoves(playerPokemon, enemyPokemon2);
+            List<PossibleAttackMove> possibleAttackMoves2 = DamageCalculatingNeuron.getPossibleAttackMoves(playerPokemon, enemyPokemon2);
             chosenFinisher2 = getFinisherMove(possibleAttackMoves2, enemyPokemon2.getHp(), OwnPokemonIndex.SECOND);
             chosenMaxDmg2 = getMaxDmgMove(possibleAttackMoves2, OwnPokemonIndex.SECOND);
         }

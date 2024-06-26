@@ -58,7 +58,6 @@ public class SimpleBot implements Bot {
     public void start() {
         fileManager.deleteTempData();
         browserClient.navigateTo(targetUrl);
-        jsService.init();
 
         while (runNumber <= maxRunsTillShutdown || maxRunsTillShutdown == -1) {
             try{
@@ -78,6 +77,7 @@ public class SimpleBot implements Bot {
     private void startRun() throws IllegalStateException {
 
         brain.clearShortTermMemory();
+        jsService.init();
 
         RunProperty runProperty = brain.getRunProperty();
         log.debug("run " + runProperty.getRunNumber() + ", starting wave fighting mode");
@@ -86,15 +86,20 @@ public class SimpleBot implements Bot {
         }
 
         if (runProperty.getStatus() == RunStatus.LOST) {
-            log.info("Run ended: Lost battle in Wave: " + runProperty.getWaveIndex());
+            log.info("Run {}, save game index: {} ended: Lost battle in Wave: " + runProperty.getWaveIndex(), runProperty.getRunNumber(), runProperty.getSaveSlotIndex());
             return;
         }
         else if(runProperty.getStatus() == RunStatus.ERROR) {
-            log.warn("Run ended: Error in Wave: " + runProperty.getWaveIndex());
+            log.warn("Run {}, save game index: {} ended: Error in Wave: " + runProperty.getWaveIndex(), runProperty.getRunNumber(), runProperty.getSaveSlotIndex());
+            return;
+        }
+        else if(runProperty.getStatus() == RunStatus.RELOAD_APP) {
+            log.warn("Run {}, save game index: {} ended: Reload app, starting new run", runProperty.getRunNumber(), runProperty.getSaveSlotIndex());
+            browserClient.navigateTo(targetUrl);
             return;
         }
         else if(runProperty.getStatus() == RunStatus.EXIT_APP) {
-            log.warn("Run ended: No available save slot, stopping bot.");
+            log.warn("Run {}, save game index: {} ended: No available save slot, stopping bot.", runProperty.getRunNumber(), runProperty.getSaveSlotIndex());
             exitApp();
         }
 

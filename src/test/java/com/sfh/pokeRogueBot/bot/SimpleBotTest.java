@@ -98,9 +98,9 @@ class SimpleBotTest {
         doReturn(RunStatus.LOST).when(runProperty).getStatus();
 
         localBot.start();
-        verify(brain, times(3)).getRunProperty();
-        verify(brain, times(3)).clearShortTermMemory();
-        verify(jsService).init();
+        verify(brain, times(maxRunsTillShutdown)).getRunProperty();
+        verify(brain, times(maxRunsTillShutdown)).clearShortTermMemory();
+        verify(jsService, times(maxRunsTillShutdown)).init();
         verify(browserClient).navigateTo(targetUrl);
         verify(fileManager).deleteTempData();
     }
@@ -155,6 +155,26 @@ class SimpleBotTest {
         verify(browserClient).navigateTo(targetUrl);
         verify(fileManager).deleteTempData();
         verify(localBot).exitApp();
+    }
+
+    /**
+     * If save and quit didn't work, the bot should refresh the page
+     * deleteTempData should be called only once at the bot start
+     * clearShortTermMemory and init should be called on every run
+     */
+    @Test
+    void a_run_property_with_status_reload_app_is_handled(){
+        maxRunsTillShutdown = 3;
+        SimpleBot localBot = spy(getBot());
+        doReturn(RunStatus.RELOAD_APP).when(runProperty).getStatus();
+
+        localBot.start();
+        verify(brain, times(maxRunsTillShutdown)).getRunProperty();
+        verify(brain, times(maxRunsTillShutdown)).clearShortTermMemory();
+        verify(jsService, times(maxRunsTillShutdown)).init();
+        //one initial on start and one for every time where RELOAD_APP is returned
+        verify(browserClient, times(maxRunsTillShutdown + 1)).navigateTo(targetUrl);
+        verify(fileManager).deleteTempData();
     }
 
     private SimpleBot getBot(){

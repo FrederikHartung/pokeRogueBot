@@ -1,5 +1,17 @@
 #Changelog
 
+Work in Progress:
+
+## 1.2
+- added log persistence to file system
+- fixed a IndexOutOfBoundsException when an error occurred before a run is started
+- added more phases
+- if save and quit didn't work the page is reloaded
+- added CapturePokemonNeuron
+- made all Neurons static
+- add handle if an enemy move forces the player to switch pokemon
+- if a switch decision is made, the bots chooses the best available pokemon
+
 ## 1.1
 - removed connection to a database
 - refactored SimpleBot and moved some of its logic to a WaveRunner class
@@ -11,9 +23,6 @@
 - If no save games are available, the bot starts a new game
 - If an exception is thrown, the bot saves and goes back to the title screen to load/start a new game
 - Save games where an error occurred are retried when the bot is started the next time
-
-Work in Progress:
-
 
 ## 1.0
 - added first implementation of the bot

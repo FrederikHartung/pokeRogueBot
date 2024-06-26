@@ -17,7 +17,7 @@ public class Application {
             Bot bot = context.getBean(SimpleBot.class);
             bot.start();
         } catch (Exception e) {
-            log.error("Error starting the bot: " + e.getMessage(), e);
+            log.error("Error starting the bot: " + e.getMessage());
         }
     }
 }

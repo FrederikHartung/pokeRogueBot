@@ -3,9 +3,9 @@ package com.sfh.pokeRogueBot.phase.impl;
 import com.sfh.pokeRogueBot.model.dto.WaveAndTurnDto;
 import com.sfh.pokeRogueBot.model.enums.*;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
-import com.sfh.pokeRogueBot.model.run.AttackDecision;
-import com.sfh.pokeRogueBot.model.run.AttackDecisionForDoubleFight;
-import com.sfh.pokeRogueBot.model.run.AttackDecisionForPokemon;
+import com.sfh.pokeRogueBot.model.decisions.AttackDecision;
+import com.sfh.pokeRogueBot.model.decisions.AttackDecisionForDoubleFight;
+import com.sfh.pokeRogueBot.model.decisions.AttackDecisionForPokemon;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
@@ -150,10 +150,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
             int pokeballIndex = brain.selectStrongestPokeball();
             log.debug("Selected pokeball index: " + pokeballIndex);
             if(pokeballIndex == -1){
-                brain.informAboutMissingPokeballs();
-                return new PhaseAction[]{
-                        this.pressBackspace, //go back to command menu and fight
-                };
+                throw new IllegalStateException("No pokeballs left");
             }
 
             boolean success = jsService.setPokeBallCursor(pokeballIndex);

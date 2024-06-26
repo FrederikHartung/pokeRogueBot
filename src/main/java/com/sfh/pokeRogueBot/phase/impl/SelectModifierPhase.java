@@ -73,7 +73,7 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
                 throw new IllegalStateException("Could not set cursor to party pokemon");
             }
 
-            actionList.add(this.waitForTextRenderAction);
+            actionList.add(this.waitAction);
             actionList.add(this.pressSpace); //open confirm menu
             actionList.add(this.waitAction); //wait for confirm menu to render
             actionList.add(this.pressSpace); //confirm the application of the modifier

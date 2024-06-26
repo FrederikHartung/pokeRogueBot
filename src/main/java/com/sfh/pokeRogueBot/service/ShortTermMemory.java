@@ -1,7 +1,6 @@
 package com.sfh.pokeRogueBot.service;
 
 import com.sfh.pokeRogueBot.model.exception.ActionLoopDetectedException;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -14,16 +13,16 @@ import java.util.StringJoiner;
 public class ShortTermMemory {
 
     private final int memorySize;
-    private final int uniquePhasesThreshold;
+    private final int minPhasesForLoop;
 
     List<String> lastPhases = new LinkedList<>();
 
     public ShortTermMemory(
             @Value("${brain.shortTermMemory.memorySize}") int memorySize,
-            @Value("${brain.shortTermMemory.uniquePhasesThreshold}") int uniquePhasesThreshold
+            @Value("${brain.shortTermMemory.minPhasesForLoop}") int minPhasesForLoop
     ) {
         this.memorySize = memorySize;
-        this.uniquePhasesThreshold = uniquePhasesThreshold;
+        this.minPhasesForLoop = minPhasesForLoop;
     }
 
     public void memorizePhase(String phase) throws ActionLoopDetectedException {
@@ -50,7 +49,7 @@ public class ShortTermMemory {
             }
         }
 
-        if(phaseCount.size() < uniquePhasesThreshold) {
+        if(phaseCount.size() < minPhasesForLoop) {
             StringJoiner sj = new StringJoiner(", ");
             phaseCount.forEach((k, v) -> sj.add(k + ": " + v));
             throw new ActionLoopDetectedException("Action loop detected: " + sj);

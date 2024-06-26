@@ -15,18 +15,19 @@ Only refactor, when it's really necessary.
 - [x] remove the db and spring data
 - [x] if an exception is thrown, save and go back to title screen
 - [x] load the first save game 
+- [x] add handle if an enemy move forces the player to switch pokemon
+- [ ] when no pp are left, the attack can't be used
+- [ ] hyper healer is not used as a revive item
 - [ ] make attack decision not in the attack menu
 - [ ] don't buy revive items before waveDto 10
 - [ ] getting the attack move from the summary ui handler
 - [ ] modifier shop refactoring
 - [ ] learn attack decision
 - [ ] adding the savegame index to a runpropterty
-- [ ] load savegame instead of continue
 - [ ] give the heal item in double fights the correct pokemon
-- [ ] add error handling for loop detection
 - [ ] learning of attacks
 - [ ] API for stopping the app or let it run again
-- 
+- [ ] ChooseRareModifierNeuron
 
 
 ## Open todo's with low priority:

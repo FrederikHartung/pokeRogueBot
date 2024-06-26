@@ -1,4 +1,4 @@
-package com.sfh.pokeRogueBot.model.run;
+package com.sfh.pokeRogueBot.model.decisions;
 
 import com.sfh.pokeRogueBot.model.enums.MoveTargetAreaType;
 import lombok.AllArgsConstructor;

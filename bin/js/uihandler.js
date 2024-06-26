@@ -174,4 +174,14 @@ window.poru.uihandler = {
         }
         return false;
     },
+
+    pressLoginButton: () => {
+        var handler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[29];
+        if(handler && handler.active){
+            handler.submitAction();
+            return true;
+        }
+
+        return false;
+    }
 }

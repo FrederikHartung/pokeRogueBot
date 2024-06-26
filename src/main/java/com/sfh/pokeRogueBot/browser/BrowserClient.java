@@ -10,4 +10,6 @@ public interface BrowserClient {
     WebElement getElementByXpath(String xpath);
 
     void pressKey(KeyToPress keyToPress);
+
+    boolean enterUserData(String userName, String password);
 }

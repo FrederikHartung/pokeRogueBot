@@ -2,16 +2,15 @@ package com.sfh.pokeRogueBot.bot;
 
 import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
+import com.sfh.pokeRogueBot.model.exception.ActionLoopDetectedException;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.PhaseProcessor;
 import com.sfh.pokeRogueBot.phase.PhaseProvider;
-import com.sfh.pokeRogueBot.phase.impl.CommandPhase;
-import com.sfh.pokeRogueBot.phase.impl.MessagePhase;
-import com.sfh.pokeRogueBot.phase.impl.ReturnToTitlePhase;
-import com.sfh.pokeRogueBot.phase.impl.TitlePhase;
+import com.sfh.pokeRogueBot.phase.impl.*;
 import com.sfh.pokeRogueBot.service.Brain;
 import com.sfh.pokeRogueBot.service.JsService;
+import com.sfh.pokeRogueBot.service.WaitingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -25,9 +24,11 @@ class WaveRunnerTest {
     PhaseProcessor phaseProcessor;
     Brain brain;
     PhaseProvider phaseProvider;
+    WaitingService waitingService;
 
     RunProperty runProperty;
     TitlePhase titlePhase;
+    DamagePhase damagePhase;
     CommandPhase commandPhase;
     ReturnToTitlePhase returnToTitlePhase;
     MessagePhase messagePhase;
@@ -38,24 +39,29 @@ class WaveRunnerTest {
         phaseProcessor = mock(PhaseProcessor.class);
         phaseProvider = mock(PhaseProvider.class);
         brain = mock(Brain.class);
-        WaveRunner objToSpy = new WaveRunner(jsService, phaseProcessor, brain, phaseProvider);
+        waitingService = mock(WaitingService.class);
+        WaveRunner objToSpy = new WaveRunner(jsService, phaseProcessor, brain, phaseProvider, waitingService);
         waveRunner = spy(objToSpy);
 
         runProperty = new RunProperty(1);
         titlePhase = mock(TitlePhase.class);
+        damagePhase = mock(DamagePhase.class);
         commandPhase = mock(CommandPhase.class);
         returnToTitlePhase = mock(ReturnToTitlePhase.class);
         messagePhase = mock(MessagePhase.class);
 
         doReturn(TitlePhase.NAME).when(titlePhase).getPhaseName();
         doReturn(CommandPhase.NAME).when(commandPhase).getPhaseName();
+        doReturn(DamagePhase.NAME).when(damagePhase).getPhaseName();
         doReturn(ReturnToTitlePhase.NAME).when(returnToTitlePhase).getPhaseName();
         doReturn(MessagePhase.NAME).when(messagePhase).getPhaseName();
 
         doReturn(titlePhase).when(phaseProvider).fromString(TitlePhase.NAME);
         doReturn(commandPhase).when(phaseProvider).fromString(CommandPhase.NAME);
+        doReturn(damagePhase).when(phaseProvider).fromString(DamagePhase.NAME);
         doReturn(returnToTitlePhase).when(phaseProvider).fromString(ReturnToTitlePhase.NAME);
         doReturn(messagePhase).when(phaseProvider).fromString(MessagePhase.NAME);
+        doReturn(titlePhase).when(phaseProvider).fromString(TitlePhase.NAME);
     }
 
     /**
@@ -80,12 +86,13 @@ class WaveRunnerTest {
     @Test
     void if_an_exception_is_caught_the_runner_saves_and_quits() throws Exception {
         String unsupportedPhase = "unsupportedPhase";
-        doReturn(unsupportedPhase).when(jsService).getCurrentPhaseAsString();
+        doReturn(unsupportedPhase).doReturn(TitlePhase.NAME).when(jsService).getCurrentPhaseAsString();
         doReturn(null).when(phaseProvider).fromString(unsupportedPhase);
+        doReturn(returnToTitlePhase).when(phaseProvider).fromString(ReturnToTitlePhase.NAME);
 
         waveRunner.handlePhaseInWave(runProperty);
 
-        verify(phaseProcessor).handlePhase(any(Phase.class), any());
+        verify(phaseProcessor).handlePhase(any(ReturnToTitlePhase.class), any());
         verify(phaseProvider).fromString(unsupportedPhase);
         verify(phaseProvider).fromString(ReturnToTitlePhase.NAME);
         assertEquals(RunStatus.ERROR, runProperty.getStatus());
@@ -97,7 +104,8 @@ class WaveRunnerTest {
      */
     @Test
     void if_an_unhandled_phase_occurs_but_the_game_mode_is_message_a_message_phase_is_handled() throws Exception {
-
+        doReturn("dummyPhase").when(jsService).getCurrentPhaseAsString();
+        doReturn(null).when(phaseProvider).fromString("dummyPhase");
         doReturn(GameMode.MESSAGE).when(jsService).getGameMode();
         waveRunner.handlePhaseInWave(runProperty);
 
@@ -119,5 +127,32 @@ class WaveRunnerTest {
 
         assertDoesNotThrow(() -> waveRunner.handlePhaseInWave(runProperty));
 
+    }
+
+    @Test
+    void the_title_menu_is_present_after_save_and_quit() throws Exception{
+        runProperty.setStatus(RunStatus.ERROR);
+        doReturn(TitlePhase.NAME).when(jsService).getCurrentPhaseAsString();
+
+        waveRunner.saveAndQuit(runProperty, ActionLoopDetectedException.class.getSimpleName());
+
+        verify(phaseProcessor).handlePhase(any(ReturnToTitlePhase.class), any());
+        verify(waitingService).waitEvenLonger();
+        verify(jsService).getCurrentPhaseAsString();
+        assertEquals(RunStatus.ERROR, runProperty.getStatus());
+    }
+
+    @Test
+    void the_title_menu_is_not_present_after_save_and_quit() throws Exception{
+        runProperty.setStatus(RunStatus.ERROR);
+        doReturn(DamagePhase.NAME).when(jsService).getCurrentPhaseAsString();
+        doReturn(damagePhase).when(phaseProvider).fromString(DamagePhase.NAME);
+
+        waveRunner.saveAndQuit(runProperty, ActionLoopDetectedException.class.getSimpleName());
+
+        verify(phaseProcessor).handlePhase(any(ReturnToTitlePhase.class), any());
+        verify(waitingService).waitEvenLonger();
+        verify(jsService).getCurrentPhaseAsString();
+        assertEquals(RunStatus.RELOAD_APP, runProperty.getStatus());
     }
 }

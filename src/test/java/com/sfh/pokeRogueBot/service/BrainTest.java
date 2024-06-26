@@ -4,6 +4,7 @@ import com.sfh.pokeRogueBot.model.dto.SaveSlotDto;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.phase.ScreenshotClient;
+import com.sfh.pokeRogueBot.service.neurons.CapturePokemonNeuron;
 import com.sfh.pokeRogueBot.service.neurons.ChooseModifierNeuron;
 import com.sfh.pokeRogueBot.service.neurons.CombatNeuron;
 import com.sfh.pokeRogueBot.service.neurons.SwitchPokemonNeuron;
@@ -22,6 +23,8 @@ class BrainTest {
     ChooseModifierNeuron chooseModifierNeuron;
     CombatNeuron combatNeuron;
     SwitchPokemonNeuron switchPokemonNeuron;
+    CapturePokemonNeuron capturePokemonNeuron;
+
     ScreenshotClient screenshotClient;
     SaveSlotDto[] saveSlots;
 
@@ -35,7 +38,8 @@ class BrainTest {
         combatNeuron = mock(CombatNeuron.class);
         switchPokemonNeuron = mock(SwitchPokemonNeuron.class);
         screenshotClient = mock(ScreenshotClient.class);
-        Brain objToSpy = new Brain(jsService, shortTermMemory, chooseModifierNeuron, combatNeuron, switchPokemonNeuron, screenshotClient);
+        capturePokemonNeuron = mock(CapturePokemonNeuron.class);
+        Brain objToSpy = new Brain(jsService, shortTermMemory, screenshotClient);
         brain = spy(objToSpy);
 
         runProperty = new RunProperty(1);
@@ -109,6 +113,20 @@ class BrainTest {
     }
 
     /**
+     * Same handling like ERROR, only that the page has been reloaded
+     */
+    @Test
+    void a_run_property_is_present_with_status_reload_app(){
+        runProperty.setStatus(RunStatus.RELOAD_APP);
+        runProperty.setSaveSlotIndex(1);
+
+        RunProperty newRunProperty = brain.getRunProperty();
+        assertNotSame(newRunProperty, runProperty);
+        assertTrue(saveSlots[1].isErrorOccurred());
+        assertEquals(2, newRunProperty.getRunNumber());
+    }
+
+    /**
      * When a RunProperty is requested and one is present with status LOST, a new one is created with status LOST and higher run number.
      * The save slot where the run failed is set to not having an error.
      * The save slot where the run failed is set to not having data.
@@ -147,5 +165,16 @@ class BrainTest {
             saveSlot.setDataPresent(true);
         }
         assertEquals(-1, brain.getSaveSlotIndexToSave());
+    }
+
+    @Test
+    void a_run_property_with_error_and_save_slot_index_minus_one_is_processed(){
+        runProperty.setSaveSlotIndex(-1);
+        runProperty.setStatus(RunStatus.ERROR);
+
+        RunProperty newRunProperty = assertDoesNotThrow(() -> brain.getRunProperty());
+        assertNotSame(newRunProperty, runProperty);
+        assertEquals(runProperty.getRunNumber() + 1, newRunProperty.getRunNumber());
+        assertEquals(RunStatus.OK, newRunProperty.getStatus());
     }
 }

@@ -29,6 +29,11 @@ public class EncounterPhase extends AbstractPhase implements Phase {
                     this.pressSpace
             };
         }
+        else if(gameMode == GameMode.TITLE){
+            return new PhaseAction[]{
+                    this.waitAction
+            };
+        }
 
         throw new NotSupportedException("GameMode not supported in EncounterPhase: " + gameMode);
     }

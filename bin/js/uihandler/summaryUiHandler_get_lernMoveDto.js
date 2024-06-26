@@ -80,10 +80,6 @@ function getMovesetDto(pokemon) {
     return movesetDto;
 }
 
-function getPokemonDto(pokemon){
-
-}
-
 if(summaryUiHandler && summaryUiHandler.active){
     var newMove =  summaryUiHandler.newMove;
     var newMoveDto = {

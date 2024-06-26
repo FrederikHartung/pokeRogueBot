@@ -8,6 +8,8 @@ browser:
   waitTimeForRenderAfterNavigation: 5000
   pathChromeUserDir:
   chromeProfile: "Default"
+  userName:
+  password:
 
 wait-time:
   defaultWaitTime: 2000
@@ -32,8 +34,8 @@ wait-time:
 
 brain:
   shortTermMemory:
-    memorySize: 50
-    uniquePhasesThreshold: 3
+    memorySize: 30
+    minPhasesForLoop: 3
 
 bot:
   maxRetriesPerRun: 2

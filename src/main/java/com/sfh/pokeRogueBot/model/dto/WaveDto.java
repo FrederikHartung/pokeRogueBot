@@ -36,6 +36,10 @@ public class WaveDto {
     }
 
     public boolean isOnlyOneEnemyLeft(){
+        if(!isDoubleFight()){
+            return true;
+        }
+
         Pokemon[] enemies = this.getWavePokemon().getEnemyParty();
         int alivePokemons = 0;
         for(Pokemon enemy : enemies){
@@ -46,7 +50,6 @@ public class WaveDto {
 
         return alivePokemons == 1;
     }
-
 
     public boolean hasPokeBalls() {
         for(int ballCount:pokeballCount){

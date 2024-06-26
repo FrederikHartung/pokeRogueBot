@@ -164,4 +164,8 @@ public class JsService {
         String result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.getSaveSlotsJson();").toString();
         return GSON.fromJson(result, SaveSlotDto[].class);
     }
+
+    public boolean submitUserData() {
+        return Boolean.parseBoolean(jsClient.executeCommandAndGetResult("return window.poru.uihandler.pressLoginButton();").toString());
+    }
 }

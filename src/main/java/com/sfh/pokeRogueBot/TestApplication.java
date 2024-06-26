@@ -21,7 +21,7 @@ public class TestApplication {
             log.info("wavePokemon: " + wavePokemon);
 
         } catch (Exception e) {
-            log.error("Error starting the bot: " + e.getMessage(), e);
+            log.error("Error starting the bot: " + e.getMessage());
         }
     }
 }
