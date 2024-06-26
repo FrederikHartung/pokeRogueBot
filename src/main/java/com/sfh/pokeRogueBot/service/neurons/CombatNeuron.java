@@ -22,7 +22,7 @@ public class CombatNeuron {
 
         List<PossibleAttackMove> possibleAttackMoves = DamageCalculatingNeuron.getPossibleAttackMoves(playerPokemon, enemyPokemon);
         for(PossibleAttackMove move : possibleAttackMoves){
-            log.debug("Move: " + move.getAttackName() + ", min damage: " + move.getMinDamage() + ", max damage: " + move.getMaxDamage() + ", priority: " + move.getAttackPriority() + ", player speed: " + move.getAttackerSpeed() + ", enemy speed: " + enemyPokemon.getStats().getSpeed());
+            log.debug("Move: " + move.getAttackName() + ", Type:" + move.getAttackType() + ", min damage: " + move.getMinDamage() + ", max damage: " + move.getMaxDamage() + ", priority: " + move.getAttackPriority() + ", player speed: " + move.getAttackerSpeed() + ", enemy speed: " + enemyPokemon.getStats().getSpeed());
         }
 
         if (!tryToCatch) {

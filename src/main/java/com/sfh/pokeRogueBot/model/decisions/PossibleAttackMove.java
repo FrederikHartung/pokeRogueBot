@@ -1,6 +1,7 @@
 package com.sfh.pokeRogueBot.model.decisions;
 
 import com.sfh.pokeRogueBot.model.enums.MoveTargetAreaType;
+import com.sfh.pokeRogueBot.model.enums.PokeType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -15,4 +16,5 @@ public class PossibleAttackMove {
     private final int attackerSpeed;
     private final String attackName;
     private final MoveTargetAreaType targetAreaType;
+    private final PokeType attackType;
 }
