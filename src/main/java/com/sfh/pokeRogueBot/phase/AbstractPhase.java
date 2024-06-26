@@ -24,6 +24,6 @@ public abstract class AbstractPhase implements Phase {
 
     @Override
     public int getWaitAfterStage2x() {
-        return 500;
+        return 1000;
     }
 }
