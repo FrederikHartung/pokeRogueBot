@@ -10,8 +10,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.spy;
 
 class SwitchPokemonNeuronTest {
+
+    SwitchPokemonNeuron switchPokemonNeuron;
+    DamageCalculatingNeuron damageCalculatingNeuron;
 
     WaveDto waveDto;
     Pokemon[] playerParty;
@@ -31,6 +35,10 @@ class SwitchPokemonNeuronTest {
 
     @BeforeEach
     void setUp() {
+
+        damageCalculatingNeuron = new DamageCalculatingNeuron();
+        SwitchPokemonNeuron objToSpy = new SwitchPokemonNeuron(damageCalculatingNeuron);
+        switchPokemonNeuron = spy(objToSpy);
 
         waveDto = new WaveDto();
         waveDto.setDoubleFight(false);
@@ -71,7 +79,7 @@ class SwitchPokemonNeuronTest {
 
     @Test
     void in_single_fight_the_index_of_the_first_pokemon_is_ignored(){
-        SwitchDecision switchDecision = SwitchPokemonNeuron.getBestSwitchDecision(waveDto);
+        SwitchDecision switchDecision = switchPokemonNeuron.getBestSwitchDecision(waveDto);
         assertNotNull(switchDecision);
         int indexToSwitchTo = switchDecision.getIndex();
         assertTrue(indexToSwitchTo >= 1 && indexToSwitchTo < 6);
@@ -80,7 +88,7 @@ class SwitchPokemonNeuronTest {
     @Test
     void fainted_pokemons_are_skipped(){
         playerPokemon2.setHp(0);
-        SwitchDecision switchDecision = SwitchPokemonNeuron.getBestSwitchDecision(waveDto);
+        SwitchDecision switchDecision = switchPokemonNeuron.getBestSwitchDecision(waveDto);
         assertNotNull(switchDecision);
         int indexToSwitchTo = switchDecision.getIndex();
         assertEquals(2, indexToSwitchTo);
@@ -89,7 +97,7 @@ class SwitchPokemonNeuronTest {
     @Test
     void in_double_fight_the_first_two_pokemons_are_skipped(){
         waveDto.setDoubleFight(true);
-        SwitchDecision switchDecision = SwitchPokemonNeuron.getBestSwitchDecision(waveDto);
+        SwitchDecision switchDecision = switchPokemonNeuron.getBestSwitchDecision(waveDto);
         assertNotNull(switchDecision);
         int indexToSwitchTo = switchDecision.getIndex();
         assertEquals(2, indexToSwitchTo);
@@ -97,7 +105,7 @@ class SwitchPokemonNeuronTest {
 
     @Test
     void a_pokemon_with_good_type_advantage_is_chosen(){
-        SwitchDecision switchDecision = SwitchPokemonNeuron.getBestSwitchDecision(waveDto);
+        SwitchDecision switchDecision = switchPokemonNeuron.getBestSwitchDecision(waveDto);
         assertNotNull(switchDecision);
         assertEquals(2, switchDecision.getIndex());
     }
@@ -106,7 +114,7 @@ class SwitchPokemonNeuronTest {
     void no_switch_in_double_fight(){
         waveDto.setDoubleFight(true);
 
-        assertFalse(SwitchPokemonNeuron.shouldSwitchPokemon(waveDto));
+        assertFalse(switchPokemonNeuron.shouldSwitchPokemon(waveDto));
     }
 
     @Test
@@ -116,7 +124,7 @@ class SwitchPokemonNeuronTest {
         player2Species.setType1(PokeType.ELECTRIC);
         player3Species.setType1(PokeType.WATER);
 
-        assertTrue(SwitchPokemonNeuron.shouldSwitchPokemon(waveDto));
+        assertTrue(switchPokemonNeuron.shouldSwitchPokemon(waveDto));
     }
 
     @Test
@@ -126,6 +134,6 @@ class SwitchPokemonNeuronTest {
         player2Species.setType1(PokeType.ELECTRIC);
         player3Species.setType1(PokeType.WATER);
 
-        assertFalse(SwitchPokemonNeuron.shouldSwitchPokemon(waveDto));
+        assertFalse(switchPokemonNeuron.shouldSwitchPokemon(waveDto));
     }
 }

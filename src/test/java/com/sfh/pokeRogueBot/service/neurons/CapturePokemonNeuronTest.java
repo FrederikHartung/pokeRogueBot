@@ -11,14 +11,26 @@ import static org.mockito.Mockito.*;
 
 class CapturePokemonNeuronTest {
 
+    CapturePokemonNeuron capturePokemonNeuron;
+
     WaveDto waveDto;
     Pokemon wildPokemon;
+    Stats wildPokemonStats;
     int[] pokeballs;
 
     @BeforeEach
     void setUp() {
+
+        CapturePokemonNeuron objToSpy = new CapturePokemonNeuron();
+        capturePokemonNeuron = spy(objToSpy);
+
         waveDto = mock(WaveDto.class);
         wildPokemon = new Pokemon();
+
+        wildPokemonStats = new Stats();
+        wildPokemon.setStats(wildPokemonStats);
+        wildPokemonStats.setHp(100);
+        wildPokemon.setHp(50);
 
         pokeballs = new int[]{
                 5,
@@ -37,25 +49,25 @@ class CapturePokemonNeuronTest {
 
     @Test
     void a_catchable_pokemon_should_be_captured() {
-        assertTrue(CapturePokemonNeuron.shouldCapturePokemon(waveDto, wildPokemon));
+        assertTrue(capturePokemonNeuron.shouldCapturePokemon(waveDto, wildPokemon));
     }
 
     @Test
     void a_trainer_pokemon_should_not_be_captured() {
         doReturn(true).when(waveDto).isTrainerFight();
-        assertFalse(CapturePokemonNeuron.shouldCapturePokemon(waveDto, wildPokemon));
+        assertFalse(capturePokemonNeuron.shouldCapturePokemon(waveDto, wildPokemon));
     }
 
     @Test
     void pokemon_should_not_be_captured_if_balls_are_empty() {
         doReturn(false).when(waveDto).hasPokeBalls();
-        assertFalse(CapturePokemonNeuron.shouldCapturePokemon(waveDto, wildPokemon));
+        assertFalse(capturePokemonNeuron.shouldCapturePokemon(waveDto, wildPokemon));
     }
 
     @Test
     void pokemon_should_not_be_captured_if_a_second_enemy_is_present() {
         doReturn(false).when(waveDto).isOnlyOneEnemyLeft();
-        assertFalse(CapturePokemonNeuron.shouldCapturePokemon(waveDto, wildPokemon));
+        assertFalse(capturePokemonNeuron.shouldCapturePokemon(waveDto, wildPokemon));
     }
 
     @Test
@@ -67,24 +79,36 @@ class CapturePokemonNeuronTest {
         wildPokemon.setStats(stats);
         wildPokemon.setBossSegments(3);
 
-        assertFalse(CapturePokemonNeuron.shouldCapturePokemon(waveDto, wildPokemon));
+        assertFalse(capturePokemonNeuron.shouldCapturePokemon(waveDto, wildPokemon));
     }
 
     @Test
     void a_pokeball_should_be_selected() {
-        assertEquals(0, CapturePokemonNeuron.selectStrongestPokeball(waveDto));
+        assertEquals(0, capturePokemonNeuron.selectStrongestPokeball(waveDto));
     }
 
     @Test
     void no_pokeball_should_be_selected_if_no_balls_are_left() {
         pokeballs[0] = 0;
-        assertEquals(-1, CapturePokemonNeuron.selectStrongestPokeball(waveDto));
+        assertEquals(-1, capturePokemonNeuron.selectStrongestPokeball(waveDto));
     }
 
     @Test
     void a_rogue_ball_should_be_selected() {
         pokeballs[0] = 0;
         pokeballs[3] = 5;
-        assertEquals(3, CapturePokemonNeuron.selectStrongestPokeball(waveDto));
+        assertEquals(3, capturePokemonNeuron.selectStrongestPokeball(waveDto));
+    }
+
+    @Test
+    void a_pokemon_with_full_hp_should_not_be_catched(){
+        wildPokemon.setHp(100);
+        assertFalse(capturePokemonNeuron.shouldCapturePokemon(waveDto, wildPokemon));
+    }
+
+    @Test
+    void a_pokemon_with_missing_hp_should_be_catched(){
+        wildPokemon.setHp(50);
+        assertTrue(capturePokemonNeuron.shouldCapturePokemon(waveDto, wildPokemon));
     }
 }

@@ -28,6 +28,7 @@ class BrainTest {
     ScreenshotClient screenshotClient;
     SaveSlotDto[] saveSlots;
 
+
     RunProperty runProperty;
 
     @BeforeEach
@@ -39,7 +40,7 @@ class BrainTest {
         switchPokemonNeuron = mock(SwitchPokemonNeuron.class);
         screenshotClient = mock(ScreenshotClient.class);
         capturePokemonNeuron = mock(CapturePokemonNeuron.class);
-        Brain objToSpy = new Brain(jsService, shortTermMemory, screenshotClient);
+        Brain objToSpy = new Brain(jsService, shortTermMemory, screenshotClient, switchPokemonNeuron, chooseModifierNeuron, combatNeuron, capturePokemonNeuron);
         brain = spy(objToSpy);
 
         runProperty = new RunProperty(1);

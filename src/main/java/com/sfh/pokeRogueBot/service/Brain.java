@@ -27,8 +27,12 @@ public class Brain {
 
     private final JsService jsService;
     private final ShortTermMemory shortTermMemory;
-
     private final ScreenshotClient screenshotClient;
+
+    private final SwitchPokemonNeuron switchPokemonNeuron;
+    private final ChooseModifierNeuron chooseModifierNeuron;
+    private final CombatNeuron combatNeuron;
+    private final CapturePokemonNeuron capturePokemonNeuron;
 
     private RunProperty runProperty = null;
     private WaveDto waveDto;
@@ -39,23 +43,28 @@ public class Brain {
     public Brain(
             JsService jsService,
             ShortTermMemory shortTermMemory,
-            ScreenshotClient screenshotClient
+            ScreenshotClient screenshotClient,
+            SwitchPokemonNeuron switchPokemonNeuron, ChooseModifierNeuron chooseModifierNeuron, CombatNeuron combatNeuron, CapturePokemonNeuron capturePokemonNeuron
     ) {
         this.jsService = jsService;
         this.shortTermMemory = shortTermMemory;
         this.screenshotClient = screenshotClient;
+        this.switchPokemonNeuron = switchPokemonNeuron;
+        this.chooseModifierNeuron = chooseModifierNeuron;
+        this.combatNeuron = combatNeuron;
+        this.capturePokemonNeuron = capturePokemonNeuron;
     }
 
     public SwitchDecision getFaintedPokemonSwitchDecision() {
         waveDto = jsService.getWaveDto(); //always update current state
-        return SwitchPokemonNeuron.getBestSwitchDecision(waveDto);
+        return switchPokemonNeuron.getBestSwitchDecision(waveDto);
     }
 
     public MoveToModifierResult getModifierToPick() {
         if(null == chooseModifierDecision){ //get new decision
             this.waveDto = jsService.getWaveDto(); //always refresh money and pokemons before choosing the modifiers
             ModifierShop shop = jsService.getModifierShop();
-            this.chooseModifierDecision = ChooseModifierNeuron.getModifierToPick(waveDto.getWavePokemon().getPlayerParty(), waveDto, shop);
+            this.chooseModifierDecision = chooseModifierNeuron.getModifierToPick(waveDto.getWavePokemon().getPlayerParty(), waveDto, shop);
         }
 
         if(!chooseModifierDecision.getItemsToBuy().isEmpty()){ //buy items first
@@ -101,28 +110,28 @@ public class Brain {
             Pokemon enemyPokemon1 = enemyParty[0];
             Pokemon enemyPokemon2 = enemyPartySize > 0 ? enemyParty[1] : null;
 
-            AttackDecisionForDoubleFight forDoubleFight = CombatNeuron.getAttackDecisionForDoubleFight(
+            AttackDecisionForDoubleFight forDoubleFight = combatNeuron.getAttackDecisionForDoubleFight(
                     playerPokemon1,
                     playerPokemon2,
                     enemyPokemon1,
                     enemyPokemon2
             );
-            forDoubleFight.setCatchable(CapturePokemonNeuron.shouldCapturePokemon(waveDto, enemyPokemon1));
+            forDoubleFight.setCatchable(capturePokemonNeuron.shouldCapturePokemon(waveDto, enemyPokemon1));
             return forDoubleFight;
         }
         else{
             //single fight
             Pokemon wildPokemon = waveDto.getWavePokemon().getEnemyParty()[0];
-            return CombatNeuron.getAttackDecisionForSingleFight(
+            return combatNeuron.getAttackDecisionForSingleFight(
                     waveDto.getWavePokemon().getPlayerParty()[0],
                     wildPokemon,
-                    CapturePokemonNeuron.shouldCapturePokemon(waveDto, wildPokemon)
+                    capturePokemonNeuron.shouldCapturePokemon(waveDto, wildPokemon)
             );
         }
     }
 
     public int selectStrongestPokeball() {
-        return CapturePokemonNeuron.selectStrongestPokeball(waveDto);
+        return capturePokemonNeuron.selectStrongestPokeball(waveDto);
     }
 
     public void informWaveEnded(int newWaveIndex) {
@@ -244,20 +253,20 @@ public class Brain {
     }
 
     public boolean tryToCatchPokemon() {
-        return CapturePokemonNeuron.shouldCapturePokemon(waveDto, waveDto.getWavePokemon().getEnemyParty()[0]);
+        return capturePokemonNeuron.shouldCapturePokemon(waveDto, waveDto.getWavePokemon().getEnemyParty()[0]);
     }
 
     public SwitchDecision getBestSwitchDecision() {
-        SwitchDecision switchDecision = SwitchPokemonNeuron.getBestSwitchDecision(waveDto);
+        SwitchDecision switchDecision = switchPokemonNeuron.getBestSwitchDecision(waveDto);
         if(switchDecision == null){
             throw new IllegalStateException("No switch decision found");
         }
         log.debug("Switching to pokemon: " + switchDecision.getPokeName() + " on index: " + switchDecision.getIndex());
-        return SwitchPokemonNeuron.getBestSwitchDecision(waveDto);
+        return switchPokemonNeuron.getBestSwitchDecision(waveDto);
     }
 
     public boolean shouldSwitchPokemon() {
         waveDto = jsService.getWaveDto(); //always update current state
-        return SwitchPokemonNeuron.shouldSwitchPokemon(waveDto);
+        return switchPokemonNeuron.shouldSwitchPokemon(waveDto);
     }
 }

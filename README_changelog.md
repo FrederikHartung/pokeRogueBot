@@ -12,6 +12,8 @@ Work in Progress:
 - deactivated capturing pokemons with over 90% health left
 - fixed the bug, that an attack without pp is tried to be executed
 - added unit tests for DamageCalculatingNeuron
+- made all Neurons non static and to components
+- added logback config for unit tests
 
 ## 1.2
 - added log persistence to file system

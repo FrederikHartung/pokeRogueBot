@@ -25,7 +25,7 @@ class EggHatchPhaseTest {
     FileManager fileManager;
     Brain brain;
 
-    final int eggId = 12345;
+    final long eggId = 12345;
 
     Pokemon hatchedPokemon;
 

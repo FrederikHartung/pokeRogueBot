@@ -13,8 +13,11 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.spy;
 
 class DamageCalculatingNeuronTest {
+
+    DamageCalculatingNeuron damageCalculatingNeuron;
 
     Pokemon playerPokemon;
     Species player1Species;
@@ -32,6 +35,10 @@ class DamageCalculatingNeuronTest {
 
     @BeforeEach
     void setUp() {
+
+        DamageCalculatingNeuron objToSpy = new DamageCalculatingNeuron();
+        damageCalculatingNeuron = spy(objToSpy);
+
         playerPokemon = new Pokemon();
         player1Species = new Species();
         playerPokemon.setSpecies(player1Species);
@@ -103,7 +110,7 @@ class DamageCalculatingNeuronTest {
         playerPokemon.getSpecies().setType1(PokeType.GRASS);
         enemy1Species.setType1(PokeType.FIRE);
         enemy1Species.setType2(null);
-        DamageMultiplier damageMultiplier = DamageCalculatingNeuron.getTypeBasedDamageMultiplier(playerPokemon, enemyPokemon);
+        DamageMultiplier damageMultiplier = damageCalculatingNeuron.getTypeBasedDamageMultiplier(playerPokemon, enemyPokemon);
         assertNotNull(damageMultiplier);
         assertEquals(0.5f, damageMultiplier.getPlayerDamageMultiplier1());
         assertNull(damageMultiplier.getPlayerDamageMultiplier2());
@@ -118,7 +125,7 @@ class DamageCalculatingNeuronTest {
         playerPokemon.getSpecies().setType2(PokeType.DRAGON);
         enemyPokemon.getSpecies().setType1(PokeType.GRASS);
         enemyPokemon.getSpecies().setType2(PokeType.POISON);
-        DamageMultiplier damageMultiplier = DamageCalculatingNeuron.getTypeBasedDamageMultiplier(playerPokemon, enemyPokemon);
+        DamageMultiplier damageMultiplier = damageCalculatingNeuron.getTypeBasedDamageMultiplier(playerPokemon, enemyPokemon);
         assertNotNull(damageMultiplier);
         assertEquals(1, damageMultiplier.getPlayerDamageMultiplier1());
         assertEquals(1, damageMultiplier.getPlayerDamageMultiplier2());
@@ -129,7 +136,7 @@ class DamageCalculatingNeuronTest {
     @Test
     void a_move_which_is_null_is_not_processed(){
         playerMoves[0] = null;
-        List<PossibleAttackMove> possibleAttackMoves = DamageCalculatingNeuron.getPossibleAttackMoves(playerPokemon, enemyPokemon);
+        List<PossibleAttackMove> possibleAttackMoves = damageCalculatingNeuron.getPossibleAttackMoves(playerPokemon, enemyPokemon);
         assertNotNull(possibleAttackMoves);
         assertEquals(3, possibleAttackMoves.size());
         assertEquals("Attack2", possibleAttackMoves.get(0).getAttackName());
@@ -140,7 +147,7 @@ class DamageCalculatingNeuronTest {
     @Test
     void a_move_which_is_not_usable_is_not_processed(){
         playerMove2.setUsable(false);
-        List<PossibleAttackMove> possibleAttackMoves = DamageCalculatingNeuron.getPossibleAttackMoves(playerPokemon, enemyPokemon);
+        List<PossibleAttackMove> possibleAttackMoves = damageCalculatingNeuron.getPossibleAttackMoves(playerPokemon, enemyPokemon);
         assertNotNull(possibleAttackMoves);
         assertEquals(3, possibleAttackMoves.size());
         assertEquals("Attack1", possibleAttackMoves.get(0).getAttackName());
@@ -151,7 +158,7 @@ class DamageCalculatingNeuronTest {
     @Test
     void a_move_which_has_no_pp_left_is_not_processed(){
         playerMove3.setPPLeft(0);
-        List<PossibleAttackMove> possibleAttackMoves = DamageCalculatingNeuron.getPossibleAttackMoves(playerPokemon, enemyPokemon);
+        List<PossibleAttackMove> possibleAttackMoves = damageCalculatingNeuron.getPossibleAttackMoves(playerPokemon, enemyPokemon);
         assertNotNull(possibleAttackMoves);
         assertEquals(3, possibleAttackMoves.size());
         assertEquals("Attack1", possibleAttackMoves.get(0).getAttackName());
@@ -162,7 +169,7 @@ class DamageCalculatingNeuronTest {
     @Test
     void a_move_with_power_less_than_zero_does_no_damage(){
         playerMove1.setPower(-1);
-        List<PossibleAttackMove> possibleAttackMoves = DamageCalculatingNeuron.getPossibleAttackMoves(playerPokemon, enemyPokemon);
+        List<PossibleAttackMove> possibleAttackMoves = damageCalculatingNeuron.getPossibleAttackMoves(playerPokemon, enemyPokemon);
         assertNotNull(possibleAttackMoves);
         assertEquals(4, possibleAttackMoves.size());
         assertEquals(0, possibleAttackMoves.get(0).getMinDamage());

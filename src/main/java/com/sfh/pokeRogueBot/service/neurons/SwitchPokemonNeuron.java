@@ -8,43 +8,26 @@ import com.sfh.pokeRogueBot.model.results.DamageMultiplier;
 import com.sfh.pokeRogueBot.model.run.WavePokemon;
 import com.sfh.pokeRogueBot.service.Brain;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 import java.util.LinkedList;
 import java.util.List;
 
 @Slf4j
+@Component
 public class SwitchPokemonNeuron {
 
-    private SwitchPokemonNeuron() {
-    }
+    private final DamageCalculatingNeuron damageCalculatingNeuron;
 
-    public static SwitchDecision getFaintedPokemonSwitchDecision(WaveDto waveDto) {
-        Pokemon[] team = waveDto.getWavePokemon().getPlayerParty();
-        if(!waveDto.isDoubleFight()) {
-            for (int i = 0; i < team.length; i++) {
-                if (team[i].getHp() != 0) {
-                    log.info("Switching to pokemon: " + team[i].getName() + " on index: " + i + " with name: " + team[i].getName());
-                    return new SwitchDecision(i, team[i].getName(), 0, 0);
-                }
-            }
-        }
-        else if(team.length >= 3){
-            for (int i = 2; i < team.length; i++) {
-                if (team[i].getHp() != 0) {
-                    log.info("Switching to pokemon: " + team[i].getName() + " on index: " + i + " with name: " + team[i].getName());
-                    return new SwitchDecision(i, team[i].getName(), 0, 0);
-                }
-            }
-        }
-
-        throw new IllegalStateException("No pokemon to switch to");
+    public SwitchPokemonNeuron(DamageCalculatingNeuron damageCalculatingNeuron) {
+        this.damageCalculatingNeuron = damageCalculatingNeuron;
     }
 
     /**
      * This method returns the index of the pokemon with the best type advantage against the enemy pokemon
      * @return the index of the pokemon with the best type advantage against the enemy pokemon
      */
-    public static SwitchDecision getBestSwitchDecision(WaveDto waveDto) {
+    public SwitchDecision getBestSwitchDecision(WaveDto waveDto) {
 
         WavePokemon wave = waveDto.getWavePokemon();
         Pokemon[] playerParty = wave.getPlayerParty();
@@ -80,13 +63,13 @@ public class SwitchPokemonNeuron {
         return null;
     }
 
-    public static SwitchDecision getSwitchDecisionForIndex(int index, Pokemon playerPokemon, Pokemon enemyPokemon){
-        DamageMultiplier damageMultiplier = DamageCalculatingNeuron.getTypeBasedDamageMultiplier(playerPokemon, enemyPokemon);
+    public SwitchDecision getSwitchDecisionForIndex(int index, Pokemon playerPokemon, Pokemon enemyPokemon){
+        DamageMultiplier damageMultiplier = damageCalculatingNeuron.getTypeBasedDamageMultiplier(playerPokemon, enemyPokemon);
 
         return toSwitchDecision(index, playerPokemon.getName(), damageMultiplier);
     }
 
-    public static SwitchDecision toSwitchDecision(int index, String name, DamageMultiplier damageMultiplier){
+    public SwitchDecision toSwitchDecision(int index, String name, DamageMultiplier damageMultiplier){
         float playerDamageMultiplier;
         if(damageMultiplier.getPlayerDamageMultiplier2() != null){
             playerDamageMultiplier = Math.max(damageMultiplier.getPlayerDamageMultiplier1(), damageMultiplier.getPlayerDamageMultiplier2());
@@ -106,13 +89,13 @@ public class SwitchPokemonNeuron {
         return new SwitchDecision(index, name, playerDamageMultiplier, enemyDamageMultiplier);
     }
 
-    public static boolean shouldSwitchPokemon(WaveDto waveDto) {
+    public boolean shouldSwitchPokemon(WaveDto waveDto) {
         if(waveDto.isDoubleFight()){
             return false; //todo: not implemented yet
         }
 
         WavePokemon wavePokemon = waveDto.getWavePokemon();
-        DamageMultiplier playerPoke1 = DamageCalculatingNeuron.getTypeBasedDamageMultiplier(wavePokemon.getPlayerParty()[0], wavePokemon.getEnemyParty()[0]);
+        DamageMultiplier playerPoke1 = damageCalculatingNeuron.getTypeBasedDamageMultiplier(wavePokemon.getPlayerParty()[0], wavePokemon.getEnemyParty()[0]);
         SwitchDecision playerPoke1Switch = toSwitchDecision(0, wavePokemon.getPlayerParty()[0].getName(), playerPoke1);
         SwitchDecision otherSwitch = getBestSwitchDecision(waveDto);
 

@@ -9,12 +9,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 @Slf4j
+@Component
 public class ChosePokeBallModifierNeuron {
 
-    private ChosePokeBallModifierNeuron() {
-    }
-
-    public static boolean priorityItemExists(ModifierShop shop, WaveDto waveDto){
+    public boolean priorityItemExists(ModifierShop shop, WaveDto waveDto){
         //if a special pokeball is available, pick it
         ModifierShopItem pokeBallModifier = shop.getFreeItems().stream()
                 .filter(item -> item.getItem().getTypeName().equals(AddPokeballModifierItem.TARGET))

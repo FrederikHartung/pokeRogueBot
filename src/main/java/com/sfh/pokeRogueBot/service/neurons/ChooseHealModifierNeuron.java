@@ -4,7 +4,6 @@ import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
 import com.sfh.pokeRogueBot.model.modifier.ModifierShopItem;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.model.modifier.impl.PokemonHpRestoreModifierItem;
-import com.sfh.pokeRogueBot.model.modifier.impl.PokemonReviveModifierItem;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -14,12 +13,10 @@ import java.util.Comparator;
 import java.util.List;
 
 @Slf4j
+@Component
 public class ChooseHealModifierNeuron {
 
-    private ChooseHealModifierNeuron() {
-    }
-
-    public static MoveToModifierResult buyPotionIfMoreThatOnePokemonIsHurt(ModifierShop shop, Pokemon[] playerParty) {
+    public MoveToModifierResult buyPotionIfMoreThatOnePokemonIsHurt(ModifierShop shop, Pokemon[] playerParty) {
         ModifierShopItem potion =  shop.getBuyableItems().stream()
                 .filter(item -> item.getItem().getTypeName().equals(PokemonHpRestoreModifierItem.TARGET))
                 .findFirst()
@@ -56,7 +53,7 @@ public class ChooseHealModifierNeuron {
         return null;
     }
 
-    public static MoveToModifierResult buyPotionIfNoFreeIsAvailableOrPriorityExists(ModifierShop shop, Pokemon[] playerParty, boolean priorityItemExists) {
+    public MoveToModifierResult buyPotionIfNoFreeIsAvailableOrPriorityExists(ModifierShop shop, Pokemon[] playerParty, boolean priorityItemExists) {
         if(!priorityItemExists){
             ModifierShopItem freeHealItem =  shop.getFreeItems().stream()
                     .filter(item -> item.getItem().getTypeName().equals(PokemonHpRestoreModifierItem.TARGET))
@@ -95,7 +92,7 @@ public class ChooseHealModifierNeuron {
         return null;
     }
 
-    public static MoveToModifierResult pickFreePotionIfNeeded(ModifierShop shop, Pokemon[] playerParty) {
+    public MoveToModifierResult pickFreePotionIfNeeded(ModifierShop shop, Pokemon[] playerParty) {
         ModifierShopItem freeHealItem =  shop.getFreeItems().stream()
                 .filter(item -> item.getItem().getTypeName().equals(PokemonHpRestoreModifierItem.TARGET))
                 .findFirst()
