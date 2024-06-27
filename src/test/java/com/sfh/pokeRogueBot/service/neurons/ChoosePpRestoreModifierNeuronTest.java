@@ -36,6 +36,10 @@ class ChoosePpRestoreModifierNeuronTest {
     Move[] moveset1 = new Move[4];
     Move move1 = new Move();
 
+    Pokemon pokemon2 = new Pokemon();
+    Move[] moveset2 = new Move[4];
+    Move move2 = new Move();
+
     @BeforeEach
     void setUp() {
         choosePpRestoreModifierNeuron = new ChoosePpRestoreModifierNeuron();
@@ -63,6 +67,12 @@ class ChoosePpRestoreModifierNeuronTest {
         moveset1[0] = move1;
         move1.setPPLeft(10);
 
+        playerParty[1] = pokemon2;
+        pokemon2.setMoveset(moveset2);
+        pokemon2.setHp(100);
+        moveset2[0] = move2;
+        move2.setPPLeft(10);
+
         doReturn(1000).when(shop).getMoney();
         doReturn(buyableItems).when(shop).getBuyableItems();
     }
@@ -73,14 +83,14 @@ class ChoosePpRestoreModifierNeuronTest {
      */
     @Test
     void a_pp_restore_item_is_bought_if_needed(){
-        move1.setPPLeft(0);
+        move2.setPPLeft(0);
 
         MoveToModifierResult result = choosePpRestoreModifierNeuron.buyPpRestoreItemIfMoveIsOutOfPp(shop, playerParty);
         assertNotNull(result);
         verify(shop).setMoney(anyInt());
         assertEquals(ppRestorePosition.getRow(), result.getRowIndex());
         assertEquals(ppRestorePosition.getColumn(), result.getColumnIndex());
-        assertEquals(0, result.getPokemonIndexToSwitchTo());
+        assertEquals(1, result.getPokemonIndexToSwitchTo());
     }
 
     /**
@@ -88,7 +98,7 @@ class ChoosePpRestoreModifierNeuronTest {
      */
     @Test
     void no_item_is_bought_for_a_fainted_pokemon(){
-        pokemon1.setHp(0);
+        pokemon2.setHp(0);
 
         MoveToModifierResult result = choosePpRestoreModifierNeuron.buyPpRestoreItemIfMoveIsOutOfPp(shop, playerParty);
         assertNull(result);
@@ -97,7 +107,7 @@ class ChoosePpRestoreModifierNeuronTest {
 
     @Test
     void no_item_is_bought_for_a_pokemon_with_move_pp_left(){
-        move1.setPPLeft(5);
+        move2.setPPLeft(5);
 
         MoveToModifierResult result = choosePpRestoreModifierNeuron.buyPpRestoreItemIfMoveIsOutOfPp(shop, playerParty);
         assertNull(result);
