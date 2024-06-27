@@ -15,6 +15,7 @@ Work in Progress:
 - made all Neurons non static and to components
 - added logback config for unit tests
 - added buying of pp restore items if a move ran out of pp
+- added handling for different pokemon forms with different poketypes
 
 ## 1.2
 - added log persistence to file system

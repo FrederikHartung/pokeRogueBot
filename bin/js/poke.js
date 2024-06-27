@@ -268,6 +268,43 @@ window.poru.poke = {
         return null;
     },
 
+    overridePokemonSpeciesWithForm: (pokemon) => {
+        if(!pokemon){
+            console.log("pokemon is null in overridePokemonWithForm");
+            return;
+        }
+
+        if(pokemon.formIndex === 0){
+            console.log("pokemon has default form in overridePokemonWithForm");
+            return;
+        }
+        else{
+            var pokemonSpecies = pokemon.species;
+            var speciesForms = pokemonSpecies.forms;
+            var formIndex = pokemon.formIndex;
+
+            console.log("pokemon: ", pokemon);
+            console.log("pokemonSpecies: ", pokemonSpecies);
+            console.log("speciesForms: ", speciesForms);
+            console.log("formIndex: ", formIndex);
+
+            if(!speciesForms){
+                console.log("speciesForms is null in overridePokemonWithForm");
+                return;
+            }
+
+            if(formIndex >= speciesForms.length){
+                console.log("formIndex is out of bounds in overridePokemonWithForm");
+                return;
+            }
+
+            console.log(pokemon.name + ": available forms: " + speciesForms.length + ", formIndex: " + formIndex)
+            console.log(speciesForms)
+            var form = speciesForms[formIndex];
+            pokemon.species = window.poru.poke.getSpeciesDto(form);
+        }
+    },
+
     getPokemonDto: (pokemon) => {
     
         let dto = {
@@ -319,6 +356,8 @@ window.poru.poke = {
             bossSegments: pokemon.battleInfo.bossSegments, //integer
             player: pokemon.battleInfo.player, //boolean
         }
+
+        window.poru.poke.overridePokemonSpeciesWithForm(dto);
     
         if(pokemon.compatibleTms){
             dto.compatibleTms = pokemon.compatibleTms; //array of integers

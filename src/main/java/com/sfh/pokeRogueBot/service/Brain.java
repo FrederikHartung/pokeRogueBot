@@ -86,6 +86,8 @@ public class Brain {
 
     public AttackDecision getAttackDecision() {
 
+        waveDto = jsService.getWaveDto(); //always update current state
+
         if(waveDto.isDoubleFight()){
 
             Pokemon[] playerParty = waveDto.getWavePokemon().getPlayerParty();
@@ -145,6 +147,9 @@ public class Brain {
                 if (wildPokemon.isShiny()) {
                     log.info("Shiny pokemon detected: " + wildPokemon.getName());
                     screenshotClient.persistScreenshot("shiny_pokemon_detected");
+                }
+                if(wildPokemon.getFormIndex() != 0){
+                    log.debug("Pokemon {} has form index: {} with t1 {} and t2 {}", wildPokemon.getName(), wildPokemon.getFormIndex(), wildPokemon.getSpecies().getType1(), wildPokemon.getSpecies().getType2());
                 }
             }
         }
@@ -253,6 +258,7 @@ public class Brain {
     }
 
     public boolean tryToCatchPokemon() {
+        waveDto = jsService.getWaveDto(); //always update current state
         return capturePokemonNeuron.shouldCapturePokemon(waveDto, waveDto.getWavePokemon().getEnemyParty()[0]);
     }
 
