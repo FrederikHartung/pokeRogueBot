@@ -2,6 +2,21 @@
 
 Work in Progress:
 
+## 1.3
+- fixed bug, that a status heal item is tried to be used as a revive item
+- fixed a bug in the loop detection, when to many eggs are hatched in a row
+- added more phases and reduced the default wait time between phases from 2000ms to 500ms
+- fixed a bug in the loop detection, when a fight takes to long
+- added switching to a pokemon with better type matching at the beginn of a wild pokemon fight
+- changed egg id from int to long
+- deactivated capturing pokemons with over 90% health left
+- fixed the bug, that an attack without pp is tried to be executed
+- added unit tests for DamageCalculatingNeuron
+- made all Neurons non static and to components
+- added logback config for unit tests
+- added buying of pp restore items if a move ran out of pp
+- added handling for different pokemon forms with different poketypes
+
 ## 1.2
 - added log persistence to file system
 - fixed a IndexOutOfBoundsException when an error occurred before a run is started

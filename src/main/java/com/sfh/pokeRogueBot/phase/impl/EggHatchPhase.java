@@ -8,6 +8,7 @@ import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.ScreenshotClient;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
+import com.sfh.pokeRogueBot.service.Brain;
 import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.service.WaitingService;
 import lombok.extern.slf4j.Slf4j;
@@ -25,14 +26,16 @@ public class EggHatchPhase extends AbstractPhase implements Phase {
     private final JsService jsService;
     private final WaitingService waitingService;
     private final FileManager fileManager;
+    private final Brain brain;
 
-    private final Set<Integer> eggIds = new HashSet<>();
+    private final Set<Long> eggIds = new HashSet<>();
 
-    public EggHatchPhase(ScreenshotClient screenshotClient, JsService jsService, WaitingService waitingService, FileManager fileManager) {
+    public EggHatchPhase(ScreenshotClient screenshotClient, JsService jsService, WaitingService waitingService, FileManager fileManager, Brain brain) {
         this.screenshotClient = screenshotClient;
         this.jsService = jsService;
         this.waitingService = waitingService;
         this.fileManager = fileManager;
+        this.brain = brain;
     }
 
     @Override
@@ -49,7 +52,7 @@ public class EggHatchPhase extends AbstractPhase implements Phase {
         }
         else if (gameMode == GameMode.EGG_HATCH_SCENE) {
 
-            int eggId = jsService.getEggId();
+            long eggId = jsService.getEggId();
             if(!eggIds.contains(eggId)){
                 eggIds.add(eggId);
                 waitingService.waitEvenLonger();
@@ -62,7 +65,9 @@ public class EggHatchPhase extends AbstractPhase implements Phase {
                 waitingService.waitEvenLonger();
                 waitingService.waitEvenLonger();
                 screenshotClient.persistScreenshot(hatchedPokemon.getName() + "_hatched");
-                log.info(hatchedPokemon.getName() + " hatched");
+                String message = hatchedPokemon.getName() + " hatched";
+                brain.memorize(message);
+                log.info(message);
                 fileManager.persistHatchedPokemon(hatchedPokemon);
             }
 
@@ -72,5 +77,10 @@ public class EggHatchPhase extends AbstractPhase implements Phase {
         }
 
         throw new NotSupportedException("GameMode " + gameMode + " is not supported in " + NAME);
+    }
+
+    @Override
+    public int getWaitAfterStage2x() {
+        return 2000;
     }
 }

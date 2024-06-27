@@ -12,18 +12,16 @@ import javax.annotation.Nonnull;
 import java.util.LinkedList;
 import java.util.List;
 
+@Component
 public class DamageCalculatingNeuron {
 
-    private DamageCalculatingNeuron() {
-    }
-
-    public static List<PossibleAttackMove> getPossibleAttackMoves(@Nonnull Pokemon playerPokemon, @Nonnull Pokemon enemyPokemon) {
+    public List<PossibleAttackMove> getPossibleAttackMoves(@Nonnull Pokemon playerPokemon, @Nonnull Pokemon enemyPokemon) {
         Move[] playerMoves = playerPokemon.getMoveset();
 
         List<PossibleAttackMove> possibleAttackMoves = new LinkedList<>();
         for(int i = 0; i < playerMoves.length; i++) {
             Move move = playerMoves[i];
-            if(move == null || !move.isUsable()) {
+            if(move == null || !move.isUsable() || move.getPPLeft() == 0) {
                 continue;
             }
 
@@ -34,14 +32,14 @@ public class DamageCalculatingNeuron {
             int expectedMinDamage = Math.round(minDamage * accuracy);
             int expectedMaxDamage = Math.round(maxDamage * accuracy);
 
-            PossibleAttackMove attackMove = new PossibleAttackMove(i, expectedMinDamage, expectedMaxDamage, move.getPriority(), playerPokemon.getStats().getSpeed(), move.getName(), move.getMoveTarget());
+            PossibleAttackMove attackMove = new PossibleAttackMove(i, expectedMinDamage, expectedMaxDamage, move.getPriority(), playerPokemon.getStats().getSpeed(), move.getName(), move.getMoveTarget(), move.getType());
             possibleAttackMoves.add(attackMove);
         }
 
         return possibleAttackMoves;
     }
 
-    private static int calculateDamage(Pokemon attacker, Pokemon defender, Move move, double randomFactor) {
+    private int calculateDamage(Pokemon attacker, Pokemon defender, Move move, double randomFactor) {
 
         if(move.getPower() < 0){
             return 0;
@@ -67,7 +65,7 @@ public class DamageCalculatingNeuron {
         return (int) Math.round(damage);
     }
 
-    public static float calcDamageMultiplier(PokeType attackTyp, PokeType defTyp1, PokeType defTyp2){
+    public float calcDamageMultiplier(PokeType attackTyp, PokeType defTyp1, PokeType defTyp2){
         double typeEffectiveness1 = PokeType.getTypeDamageMultiplier(attackTyp, defTyp1);
         double typeEffectiveness2 = 1;
         if(defTyp2 != null){
@@ -76,9 +74,9 @@ public class DamageCalculatingNeuron {
         return (float) (typeEffectiveness1 * typeEffectiveness2);
     }
 
-    public static DamageMultiplier getTypeBasedDamageMultiplier(Pokemon playerPokemon, Pokemon enemyPokemon) {
+    public DamageMultiplier getTypeBasedDamageMultiplier(Pokemon playerPokemon, Pokemon enemyPokemon) {
 
-        float playerDamageMultiplier1 = DamageCalculatingNeuron.calcDamageMultiplier(
+        float playerDamageMultiplier1 = calcDamageMultiplier(
                 playerPokemon.getSpecies().getType1(),
                 enemyPokemon.getSpecies().getType1(),
                 enemyPokemon.getSpecies().getType2()
@@ -87,14 +85,14 @@ public class DamageCalculatingNeuron {
         PokeType playerType2 = playerPokemon.getSpecies().getType2();
         float playerDamageMultiplier2 = -1;
         if(playerType2 != null) {
-            playerDamageMultiplier2 = DamageCalculatingNeuron.calcDamageMultiplier(
+            playerDamageMultiplier2 = calcDamageMultiplier(
                     playerType2,
                     enemyPokemon.getSpecies().getType1(),
                     enemyPokemon.getSpecies().getType2()
             );
         }
 
-        float enemyDamageMultiplier1 = DamageCalculatingNeuron.calcDamageMultiplier(
+        float enemyDamageMultiplier1 = calcDamageMultiplier(
                 enemyPokemon.getSpecies().getType1(),
                 playerPokemon.getSpecies().getType1(),
                 playerPokemon.getSpecies().getType2()
@@ -103,7 +101,7 @@ public class DamageCalculatingNeuron {
         PokeType enemyType2 = enemyPokemon.getSpecies().getType2();
         float enemyDamageMultiplier2 = -1;
         if(null != enemyType2) {
-            enemyDamageMultiplier2 = DamageCalculatingNeuron.calcDamageMultiplier(
+            enemyDamageMultiplier2 = calcDamageMultiplier(
                     enemyPokemon.getSpecies().getType2(),
                     playerPokemon.getSpecies().getType1(),
                     playerPokemon.getSpecies().getType2()

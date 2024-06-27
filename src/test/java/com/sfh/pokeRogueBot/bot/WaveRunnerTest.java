@@ -77,7 +77,7 @@ class WaveRunnerTest {
         waveRunner.handlePhaseInWave(runProperty);
 
         verify(phaseProcessor).handlePhase(any(), any());
-        verify(brain).memorizePhase(TitlePhase.NAME);
+        verify(brain).memorize(TitlePhase.NAME);
     }
 
     /**
@@ -111,7 +111,7 @@ class WaveRunnerTest {
 
         verify(phaseProcessor).handlePhase(any(Phase.class), any());
         verify(phaseProvider).fromString(MessagePhase.NAME);
-        verify(brain).memorizePhase(MessagePhase.NAME);
+        verify(brain).memorize(MessagePhase.NAME);
     }
 
     /**

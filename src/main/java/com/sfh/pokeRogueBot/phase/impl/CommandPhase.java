@@ -42,17 +42,23 @@ public class CommandPhase extends AbstractPhase implements Phase {
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
 
         WaveAndTurnDto waveAndTurnDto = this.jsService.getWaveAndTurnIndex();
-        if(null != waveAndTurnDto) {
 
-            //if the wave has ended, inform the brain
-            if (waveAndTurnDto.getWaveIndex() > lastWaveIndex) {
-                brain.informWaveEnded(waveAndTurnDto.getWaveIndex());
-                this.lastWaveIndex = waveAndTurnDto.getWaveIndex();
-            }
+        if(null == waveAndTurnDto){
+            throw new IllegalStateException("waveAndTurnDto is null");
+        }
+
+
+        //if the wave has ended, inform the brain
+        if (waveAndTurnDto.getWaveIndex() > lastWaveIndex) {
+            brain.informWaveEnded(waveAndTurnDto.getWaveIndex());
+            this.lastWaveIndex = waveAndTurnDto.getWaveIndex();
         }
 
         if (gameMode == GameMode.COMMAND) { //fight, ball, pokemon, run
             CommandPhaseDecision commandPhaseDecision = brain.getCommandDecision();
+            String memory = "wave: " + waveAndTurnDto.getWaveIndex() + ", turn: " + waveAndTurnDto.getTurnIndex() + ", decision: " + commandPhaseDecision;
+            brain.memorize(memory);
+
             if (commandPhaseDecision == CommandPhaseDecision.ATTACK) {
                 log.debug("GameMode.COMMAND, Attack decision chosen");
                 return new PhaseAction[]{

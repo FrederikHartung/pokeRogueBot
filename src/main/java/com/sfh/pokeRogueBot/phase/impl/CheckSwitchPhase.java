@@ -1,5 +1,6 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
+import com.sfh.pokeRogueBot.model.decisions.SwitchDecision;
 import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
@@ -27,11 +28,22 @@ public class CheckSwitchPhase extends AbstractPhase implements Phase {
     @Override
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
         if (gameMode == GameMode.CONFIRM) {
-            return new PhaseAction[]{
-                    this.pressArrowDown, //todo: dont switch pokemon
-                    this.waitAction,
-                    this.pressSpace
-            };
+
+            boolean shouldSwitchPokemon = brain.shouldSwitchPokemon();
+
+            if(shouldSwitchPokemon) {
+                return new PhaseAction[]{
+                        this.pressSpace
+                };
+            }
+            else {
+                return new PhaseAction[]{
+                        this.pressArrowDown,
+                        this.waitAction,
+                        this.pressSpace
+                };
+            }
+
         } else if (gameMode == GameMode.MESSAGE) {
             return new PhaseAction[]{
                     this.waitForTextRenderAction

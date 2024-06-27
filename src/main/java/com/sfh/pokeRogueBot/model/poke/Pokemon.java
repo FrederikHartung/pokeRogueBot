@@ -13,7 +13,7 @@ public class Pokemon {
     //private Integer aiType;
     //private boolean exclusive;
     //private int fieldPosition;
-    //private Integer formIndex;
+    private Integer formIndex;
     private int friendship;
     private Gender gender;
     private int hp;

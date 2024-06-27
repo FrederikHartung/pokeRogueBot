@@ -46,9 +46,10 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
         if (gameMode == GameMode.MODIFIER_SELECT) {
 
             waitService.waitEvenLonger(); //wait for the modifier shop to render
+            waitService.waitLonger();
             MoveToModifierResult result = brain.getModifierToPick();
             if(null == result){
-                //cant choose item, so dont pick any
+                //cant choose item, so don't pick any
                 return new PhaseAction[]{
                         this.pressBackspace,
                         this.waitForTextRenderAction,
