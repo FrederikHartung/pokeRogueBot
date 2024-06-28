@@ -8,9 +8,9 @@ import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import org.springframework.stereotype.Component;
 
 @Component
-public class PartyHealPhase extends AbstractPhase implements Phase {
+public class SwitchBiomePhase extends AbstractPhase implements Phase {
 
-    public static final String NAME = "PartyHealPhase";
+    public static final String NAME = "SwitchBiomePhase";
 
     @Override
     public String getPhaseName() {
@@ -19,24 +19,13 @@ public class PartyHealPhase extends AbstractPhase implements Phase {
 
     @Override
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
-        if (gameMode == GameMode.MESSAGE) {
-            return new PhaseAction[]{
-                    this.pressSpace
-            };
-        }
-        else if(gameMode == GameMode.EGG_HATCH_SCENE) {
+        if(gameMode == GameMode.EGG_HATCH_SCENE || gameMode == GameMode.MESSAGE){
             return new PhaseAction[]{
                     this.pressSpace,
                     this.waitForTextRenderAction
-
             };
         }
 
-        throw new NotSupportedException("GameMode not supported for PartyHealPhase: " + gameMode);
-    }
-
-    @Override
-    public int getWaitAfterStage2x() {
-        return 500;
+        throw new NotSupportedException("SwitchBiomePhase does not support GameMode: " + gameMode);
     }
 }

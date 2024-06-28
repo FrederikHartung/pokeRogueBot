@@ -181,16 +181,28 @@ public class CombatNeuron {
                 + ", typ 1: " + playerPokemon.getSpecies().getType1()
                 + ", typ 2: " + playerPokemon.getSpecies().getType2()
         );
-        log.debug("enemy pokemon1 in double fight: " + enemyPokemon1.getName()
-                + ", hp: " + enemyPokemon1.getHp()
-                + ", typ 1: " + enemyPokemon1.getSpecies().getType1()
-                + ", typ 2: " + enemyPokemon1.getSpecies().getType2()
-        );
-        log.debug("enemy pokemon2 in double fight: " + enemyPokemon2.getName()
-                + ", hp: " + enemyPokemon2.getHp()
-                + ", typ 1: " + enemyPokemon2.getSpecies().getType1()
-                + ", typ 2: " + enemyPokemon2.getSpecies().getType2()
-        );
+        if(null != enemyPokemon1){
+            log.debug("enemy pokemon1 in double fight: " + enemyPokemon1.getName()
+                    + ", hp: " + enemyPokemon1.getHp()
+                    + ", typ 1: " + enemyPokemon1.getSpecies().getType1()
+                    + ", typ 2: " + enemyPokemon1.getSpecies().getType2()
+            );
+        }
+        else{
+            log.debug("enemy pokemon1 is null");
+        }
+
+        if(null != enemyPokemon2){
+            log.debug("enemy pokemon2 in double fight: " + enemyPokemon2.getName()
+                    + ", hp: " + enemyPokemon2.getHp()
+                    + ", typ 1: " + enemyPokemon2.getSpecies().getType1()
+                    + ", typ 2: " + enemyPokemon2.getSpecies().getType2()
+            );
+        }
+        else {
+            log.debug("enemy pokemon2 is null");
+        }
+
 
         ChosenAttackMove chosenFinisher1 = null;
         ChosenAttackMove chosenMaxDmg1 = null;

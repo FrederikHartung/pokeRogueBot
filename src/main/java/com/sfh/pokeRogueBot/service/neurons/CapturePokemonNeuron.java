@@ -18,6 +18,11 @@ public class CapturePokemonNeuron {
      * @return if the pokemon should be captured
      */
     public boolean shouldCapturePokemon(WaveDto waveDto, Pokemon wildPokemon) {
+
+        if(wildPokemon == null){
+            return false;
+        }
+
         if(waveDto.isTrainerFight()){
             log.debug("can't capture: trainer fight");
             return false;

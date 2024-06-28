@@ -106,11 +106,11 @@ public class Brain {
                 }
             }
 
-            Pokemon playerPokemon1 = playerParty[0];
-            Pokemon playerPokemon2 = playerPartySize > 0 ? playerParty[1] : null;
+            Pokemon playerPokemon1 = playerParty[0].isAlive() ? playerParty[0] : null;
+            Pokemon playerPokemon2 = playerPartySize > 0 && playerParty[1].isAlive() ? playerParty[1] : null;
 
-            Pokemon enemyPokemon1 = enemyParty[0];
-            Pokemon enemyPokemon2 = enemyPartySize > 0 ? enemyParty[1] : null;
+            Pokemon enemyPokemon1 = enemyParty[0].isAlive() ? enemyParty[0] : null;
+            Pokemon enemyPokemon2 = enemyPartySize > 0 && enemyParty[1].isAlive() ? enemyParty[1] : null;
 
             AttackDecisionForDoubleFight forDoubleFight = combatNeuron.getAttackDecisionForDoubleFight(
                     playerPokemon1,
