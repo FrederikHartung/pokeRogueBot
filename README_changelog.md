@@ -5,6 +5,7 @@ Work in Progress:
 ## 2.1
 - added handling for different pokemon forms with different poketypes (now really working (hopefully...))
 - added stop run, screenshot and logging for shiny, mysstical, legendary and sub legendary pokemon
+- fixed bug in target selection in double fight
 
 ## 2.0
 - deactivated buying of pp restore items if a move ran out of pp because it's not currently working
