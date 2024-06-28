@@ -29,7 +29,7 @@ public class MessagePhase extends AbstractPhase implements Phase {
                     this.pressSpace,
                     this.waitAction
             };
-        } else if (gameMode == GameMode.COMMAND || gameMode == GameMode.EGG_HATCH_SCENE) {
+        } else if (gameMode == GameMode.COMMAND || gameMode == GameMode.EGG_HATCH_SCENE || gameMode == GameMode.MODIFIER_SELECT) {
             return new PhaseAction[]{
                     this.waitForTextRenderAction
             };
