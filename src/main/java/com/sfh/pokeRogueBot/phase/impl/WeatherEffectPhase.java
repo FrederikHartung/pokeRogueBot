@@ -24,6 +24,11 @@ public class WeatherEffectPhase extends AbstractPhase implements Phase {
                     waitAction
             };
         }
+        else if(gameMode == GameMode.MESSAGE){
+            return new PhaseAction[]{
+                    pressSpace
+            };
+        }
 
         throw new NotSupportedException("WeatherEffectPhase does not support GameMode: " + gameMode);
     }
