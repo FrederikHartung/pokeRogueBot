@@ -2,6 +2,11 @@
 
 Work in Progress:
 
+## 2.0
+- deactivated buying of pp restore items if a move ran out of pp because it's not currently working
+- added missing phases and game modes
+- fixed a bug in the attack decision-making that the bot tries to attack an already fainted pokemon
+
 ## 1.3
 - fixed bug, that a status heal item is tried to be used as a revive item
 - fixed a bug in the loop detection, when to many eggs are hatched in a row
