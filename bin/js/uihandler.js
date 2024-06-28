@@ -187,5 +187,24 @@ window.poru.uihandler = {
         }
 
         return false;
+    },
+
+    setPartyOptionsCursor: (cursor) => {
+        var handler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[8];
+        if(handler && handler.active){
+
+            if(handler.optionsMode === false){
+                return false;
+            }
+            
+            if(handler.optionsCursor === cursor){
+                return true;
+            }
+            var result = handler.setCursor(cursor);
+
+            return result;
+        }
+
+        return false;
     }
 }
