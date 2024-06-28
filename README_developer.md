@@ -30,7 +30,6 @@ Only refactor, when it's really necessary.
 - [ ] API for stopping the app or let it run again
 - [ ] ChooseRareModifierNeuron
 
-
 ## Open todo's with low priority:
 - [x] make the h2 database as default
 - [x] PokemonNatureChangeModifierItem: Add Nature
