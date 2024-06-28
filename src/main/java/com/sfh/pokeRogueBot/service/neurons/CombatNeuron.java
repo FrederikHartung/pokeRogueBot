@@ -143,8 +143,8 @@ public class CombatNeuron {
             pokemonDecision = new AttackDecisionForPokemon(ownPokemon1FinisherForEnemy1.getIndex(), SelectedTarget.LEFT_ENEMY, ownPokemon1FinisherForEnemy1.getDamage(), ownPokemon1FinisherForEnemy1.getAttackPriority(), ownPokemon1FinisherForEnemy1.getAttackerSpeed(), ownPokemon1FinisherForEnemy1.getMoveTargetAreaType());
         }
         else if(null != pokemonMoves.getChosenFinisher2()){
-            ChosenAttackMove ownPokemon1FinisherForEnemy2 = pokemonMoves.getChosenFinisher2();
-            pokemonDecision = new AttackDecisionForPokemon(ownPokemon1FinisherForEnemy2.getIndex(), SelectedTarget.LEFT_ENEMY, ownPokemon1FinisherForEnemy2.getDamage(), ownPokemon1FinisherForEnemy2.getAttackPriority(), ownPokemon1FinisherForEnemy2.getAttackerSpeed(), ownPokemon1FinisherForEnemy2.getMoveTargetAreaType());
+                ChosenAttackMove ownPokemon1FinisherForEnemy2 = pokemonMoves.getChosenFinisher2();
+            pokemonDecision = new AttackDecisionForPokemon(ownPokemon1FinisherForEnemy2.getIndex(), SelectedTarget.RIGHT_ENEMY, ownPokemon1FinisherForEnemy2.getDamage(), ownPokemon1FinisherForEnemy2.getAttackPriority(), ownPokemon1FinisherForEnemy2.getAttackerSpeed(), ownPokemon1FinisherForEnemy2.getMoveTargetAreaType());
         }
         else{
             ChosenAttackMove ownPokemon1maxDmgForEnemy1 = pokemonMoves.getMaxDmgMove1();
