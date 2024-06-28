@@ -18,7 +18,7 @@ Only refactor, when it's really necessary.
 - [x] add handle if an enemy move forces the player to switch pokemon
 - [x] when no pp are left, the attack can't be used
 - [x] hyper healer is not used as a revive item
-- [ ] get in js the current form index and apply its data to the pokemon
+- [x] get in js the current form index and apply its data to the pokemon
 - [ ] make attack decision not in the attack menu
 - [ ] don't buy revive items before waveDto 10
 - [ ] getting the attack move from the summary ui handler

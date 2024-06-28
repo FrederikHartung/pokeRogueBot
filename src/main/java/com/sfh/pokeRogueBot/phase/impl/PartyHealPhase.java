@@ -24,6 +24,13 @@ public class PartyHealPhase extends AbstractPhase implements Phase {
                     this.pressSpace
             };
         }
+        else if(gameMode == GameMode.EGG_HATCH_SCENE) {
+            return new PhaseAction[]{
+                    this.pressSpace,
+                    this.waitForTextRenderAction
+
+            };
+        }
 
         throw new NotSupportedException("GameMode not supported for PartyHealPhase: " + gameMode);
     }

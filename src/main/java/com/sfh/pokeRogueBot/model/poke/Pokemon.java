@@ -37,4 +37,8 @@ public class Pokemon {
     private boolean boss;
     private int bossSegments;
     private boolean player;
+
+    public boolean isAlive(){
+        return hp > 0;
+    }
 }
