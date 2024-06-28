@@ -89,7 +89,7 @@ public class ChooseModifierNeuron {
         MoveToModifierResult ppRestoreItem = choosePpRestoreModifierNeuron.buyPpRestoreItemIfMoveIsOutOfPp(shop, playerParty);
         if(null != ppRestoreItem) {
             log.debug("buying pp restore item for pokemon on index: " + ppRestoreItem.getPokemonIndexToSwitchTo());
-            itemsToBuy.add(ppRestoreItem);
+            //itemsToBuy.add(ppRestoreItem); //todo: currenty deactivated, because its crashes the run
         }
 
         return itemsToBuy;
