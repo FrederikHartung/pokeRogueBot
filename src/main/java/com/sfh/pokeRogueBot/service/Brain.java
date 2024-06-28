@@ -8,6 +8,7 @@ import com.sfh.pokeRogueBot.model.dto.SaveSlotDto;
 import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
+import com.sfh.pokeRogueBot.model.exception.StopRunException;
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
@@ -145,11 +146,28 @@ public class Brain {
         if (null != waveDto && waveDto.isWildPokemonFight()) {
             for(Pokemon wildPokemon : waveDto.getWavePokemon().getEnemyParty()) {
                 if (wildPokemon.isShiny()) {
-                    log.info("Shiny pokemon detected: " + wildPokemon.getName());
+                    String message = "Shiny pokemon detected: " + wildPokemon.getName();
+                    log.info(message);
                     screenshotClient.persistScreenshot("shiny_pokemon_detected");
+                    throw new StopRunException(message);
                 }
-                if(wildPokemon.getFormIndex() != 0){
-                    log.debug("Pokemon {} has form index: {} with t1 {} and t2 {}", wildPokemon.getName(), wildPokemon.getFormIndex(), wildPokemon.getSpecies().getType1(), wildPokemon.getSpecies().getType2());
+                if(wildPokemon.getSpecies().isMythical()){
+                    String message = "Mythical pokemon detected: " + wildPokemon.getName();
+                    log.info(message);
+                    screenshotClient.persistScreenshot("mythical_pokemon_detected");
+                    throw new StopRunException(message);
+                }
+                if(wildPokemon.getSpecies().isLegendary()){
+                    String message = "Legendary pokemon detected: " + wildPokemon.getName();
+                    log.info(message);
+                    screenshotClient.persistScreenshot("legendary_pokemon_detected");
+                    throw new StopRunException(message);
+                }
+                if(wildPokemon.getSpecies().isSubLegendary()){
+                    String message = "Sub Legendary pokemon detected: " + wildPokemon.getName();
+                    log.info(message);
+                    screenshotClient.persistScreenshot("sub_legendary_pokemon_detected");
+                    throw new StopRunException(message);
                 }
             }
         }
