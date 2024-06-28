@@ -197,7 +197,7 @@ public class CombatNeuron {
         if(null != enemyPokemon1){
             List<PossibleAttackMove> possibleAttackMoves1 = damageCalculatingNeuron.getPossibleAttackMoves(playerPokemon, enemyPokemon1);
             for(PossibleAttackMove move : possibleAttackMoves1){
-                log.debug("Move for enemy 1: " + move.getAttackName() + ", Type:" + move.getAttackType() + ", min damage: " + move.getMinDamage() + ", max damage: " + move.getMaxDamage() + ", priority: " + move.getAttackPriority() + ", player speed: " + move.getAttackerSpeed() + ", enemy speed: " + enemyPokemon.getStats().getSpeed());
+                log.debug("Move for enemy 1: " + move.getAttackName() + ", Type:" + move.getAttackType() + ", min damage: " + move.getMinDamage() + ", max damage: " + move.getMaxDamage() + ", priority: " + move.getAttackPriority() + ", player speed: " + move.getAttackerSpeed() + ", enemy speed: " + enemyPokemon1.getStats().getSpeed());
             }
 
             chosenFinisher1 = getFinisherMove(possibleAttackMoves1, enemyPokemon1.getHp(), OwnPokemonIndex.FIRST);
@@ -209,9 +209,9 @@ public class CombatNeuron {
         if(null != enemyPokemon2){
             List<PossibleAttackMove> possibleAttackMoves2 = damageCalculatingNeuron.getPossibleAttackMoves(playerPokemon, enemyPokemon2);
             for(PossibleAttackMove move : possibleAttackMoves2){
-                log.debug("Move for enemy 2: " + move.getAttackName() + ", Type:" + move.getAttackType() + ", min damage: " + move.getMinDamage() + ", max damage: " + move.getMaxDamage() + ", priority: " + move.getAttackPriority() + ", player speed: " + move.getAttackerSpeed() + ", enemy speed: " + enemyPokemon.getStats().getSpeed());
+                log.debug("Move for enemy 2: " + move.getAttackName() + ", Type:" + move.getAttackType() + ", min damage: " + move.getMinDamage() + ", max damage: " + move.getMaxDamage() + ", priority: " + move.getAttackPriority() + ", player speed: " + move.getAttackerSpeed() + ", enemy speed: " + enemyPokemon2.getStats().getSpeed());
             }
-            
+
             chosenFinisher2 = getFinisherMove(possibleAttackMoves2, enemyPokemon2.getHp(), OwnPokemonIndex.SECOND);
             chosenMaxDmg2 = getMaxDmgMove(possibleAttackMoves2, OwnPokemonIndex.SECOND);
         }
