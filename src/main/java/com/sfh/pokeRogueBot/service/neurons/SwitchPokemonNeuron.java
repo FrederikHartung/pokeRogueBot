@@ -39,7 +39,8 @@ public class SwitchPokemonNeuron {
         for(int i = startIndexOfPartyPokemons; i < playerParty.length; i++){
             Pokemon playerPokemon = playerParty[i];
             boolean enemy1Fainted = wave.getEnemyParty()[0].getHp() == 0;
-            Pokemon enemyPokemon = enemy1Fainted ? wave.getEnemyParty()[1] : wave.getEnemyParty()[0];
+
+            Pokemon enemyPokemon = enemy1Fainted && wave.getEnemyParty().length >= 2 ? wave.getEnemyParty()[1] : wave.getEnemyParty()[0];
 
             if(null == playerPokemon){
                 continue;
