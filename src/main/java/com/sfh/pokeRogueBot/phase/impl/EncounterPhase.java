@@ -29,7 +29,7 @@ public class EncounterPhase extends AbstractPhase implements Phase {
                     this.pressSpace
             };
         }
-        else if(gameMode == GameMode.TITLE){
+        else if(gameMode == GameMode.TITLE || gameMode == GameMode.STARTER_SELECT){
             return new PhaseAction[]{
                     this.waitAction
             };
