@@ -221,4 +221,8 @@ window.poru.uihandler = {
 
         return null;
     },
+
+    getPokemonInLearnMovePhaseJson: () => {
+        return JSON.stringify(window.poru.uihandler.getPokemonInLearnMovePhase());
+    }
 }

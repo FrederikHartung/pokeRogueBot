@@ -168,4 +168,9 @@ public class JsService {
     public boolean submitUserData() {
         return Boolean.parseBoolean(jsClient.executeCommandAndGetResult("return window.poru.uihandler.pressLoginButton();").toString());
     }
+
+    public Pokemon getPokemonInLearnMove() {
+        String result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.getPokemonInLearnMovePhaseJson();").toString();
+        return GSON.fromJson(result, Pokemon.class);
+    }
 }
