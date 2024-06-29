@@ -33,13 +33,16 @@ public class LearnMoveFilterNeuron {
         return null;
     }
 
+    /**
+     * find moves, which are not of pokemon type1 or type2 and replace them
+     * @param pokemon
+     * @return
+     */
     public int getIndexOfNonPokemonTypeMoveToReplace(Pokemon pokemon) {
         Species species = pokemon.getSpecies();
         PokeType type1 = species.getType1();
         PokeType type2 = species.getType2();
-        PokeType newAttackType = pokemon.getMoveset()[pokemon.getMoveset().length - 1].getType();
 
-        //find moves, which are not of pokemon type1 or type2 and replace them
         for(int i = 0; i < pokemon.getMoveset().length - 1; i++){
             Move move = pokemon.getMoveset()[i];
             if(null != move && !move.getType().equals(type1) && !move.getType().equals(type2)){
@@ -64,6 +67,15 @@ public class LearnMoveFilterNeuron {
             }
         }
 
+        return -1;
+    }
+
+    public int getIndexOfStatusAttackMove(Move[] existingMoves) {
+        for(int i = 0; i < existingMoves.length; i++){
+            if(null !=existingMoves[i] && existingMoves[i].getCategory().equals(MoveCategory.STATUS)){
+                return i;
+            }
+        }
         return -1;
     }
 }

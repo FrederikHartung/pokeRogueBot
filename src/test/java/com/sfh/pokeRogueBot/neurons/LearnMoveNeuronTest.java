@@ -11,8 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.*;
 
 class LearnMoveNeuronTest {
 
@@ -79,6 +78,10 @@ class LearnMoveNeuronTest {
         newMove.setCategory(MoveCategory.PHYSICAL);
         newMove.setType(PokeType.ELECTRIC);
         moveSet[4] = newMove;
+
+        doReturn(-1).when(learnMoveFilterNeuron).getIndexOfStatusAttackMove(any());
+        doReturn(-1).when(learnMoveFilterNeuron).getIndexOfNonPokemonTypeMoveToReplace(pokemon);
+        doReturn(-1).when(learnMoveFilterNeuron).replaceWeakerAttacks(pokemon);
     }
 
     @Test
@@ -94,71 +97,52 @@ class LearnMoveNeuronTest {
     }
 
     @Test
-    void a_status_attack_move_should_be_replaced_by_a_new_move() {
-        move3.setCategory(MoveCategory.STATUS);
-        LearnMoveDecision decision = learnMoveNeuron.getLearnMoveDecision(pokemon);
-        assertTrue(decision.isNewMoveBetter());
-        assertEquals(2, decision.getMoveIndexToReplace());
-        assertEquals(LearnMoveReasonType.FORGET_STATUS_ATTACK, decision.getReason());
+    void if_filterUnwantedMoves_returns_a_value_return_the_decision() {
+        LearnMoveDecision decision = new LearnMoveDecision(false, -1, LearnMoveReasonType.NO_FIVE_PP_MOVES);
+        doReturn(decision).when(learnMoveFilterNeuron).filterUnwantedMoves(pokemon, newMove);
+
+        LearnMoveDecision result = learnMoveNeuron.getLearnMoveDecision(pokemon);
+
+        assertEquals(decision, result);
     }
 
     @Test
-    void if_the_present_moves_are_better_than_the_new_move_then_the_new_move_should_not_be_learned() {
-        move3.setCategory(MoveCategory.PHYSICAL);
-        LearnMoveDecision decision = learnMoveNeuron.getLearnMoveDecision(pokemon);
-        assertFalse(decision.isNewMoveBetter());
-        assertEquals(-1, decision.getMoveIndexToReplace());
-        assertEquals(LearnMoveReasonType.MOVE_IS_NOT_BETTER, decision.getReason());
-    }
+    void if_getIndexOfStatusAttackMove_returns_a_value_return_the_decision() {
+        doReturn(0).when(learnMoveFilterNeuron).getIndexOfStatusAttackMove(any());
+        LearnMoveDecision result = learnMoveNeuron.getLearnMoveDecision(pokemon);
 
-    /**
-     * If a pokemon has two types, it should have 2 times an attack of each type
-     */
-    @Test
-    void a_non_pokemon_type_attack_is_replaced(){
-        species.setType1(PokeType.NORMAL);
-        species.setType2(PokeType.FLYING);
-
-        move1.setType(PokeType.NORMAL);
-        move2.setType(PokeType.FLYING);
-        move3.setType(PokeType.NORMAL);
-        move4.setType(PokeType.WATER);
-        newMove.setType(PokeType.FLYING);
-
-        fail();
-    }
-
-    /**
-     * If a pokemon has two types, it should have 2 times an attack of each type
-     */
-    @Test
-    void no_pokemon_moves_are_replaced_if_less_than_2_attacks_with_the_same_type_are_present(){
-        species.setType1(PokeType.NORMAL);
-        species.setType2(PokeType.FLYING);
-
-        move1.setType(PokeType.NORMAL);
-        move2.setType(PokeType.FLYING);
-        move3.setType(PokeType.NORMAL);
-        move4.setType(PokeType.FLYING);
-        newMove.setType(PokeType.FLYING);
-
-        fail();
+        assertNotNull(result);
+        assertEquals(0, result.getMoveIndexToReplace());
+        assertEquals(LearnMoveReasonType.FORGET_STATUS_ATTACK, result.getReason());
     }
 
     @Test
-    void a_pokemon_type_attack_is_replaced_with_a_stronger_one(){
-        species.setType1(PokeType.NORMAL);
-        species.setType2(PokeType.FLYING);
+    void if_getIndexOfNonPokemonTypeMoveToReplace_returns_a_value_return_the_decision() {
+        doReturn(1).when(learnMoveFilterNeuron).getIndexOfNonPokemonTypeMoveToReplace(pokemon);
+        LearnMoveDecision result = learnMoveNeuron.getLearnMoveDecision(pokemon);
 
-        move1.setType(PokeType.NORMAL);
-        move2.setType(PokeType.FLYING);
-        move2.setPower(50);
-        move3.setType(PokeType.NORMAL);
-        move4.setType(PokeType.FLYING);
-        move4.setPower(60);
-        newMove.setType(PokeType.FLYING);
-        newMove.setPower(70);
+        assertNotNull(result);
+        assertEquals(1, result.getMoveIndexToReplace());
+        assertEquals(LearnMoveReasonType.FORGET_NON_POKEMON_TYPE_MOVE, result.getReason());
+    }
 
-        fail();
+    @Test
+    void if_replaceWeakerAttacks_returns_a_value_return_the_decision() {
+        doReturn(2).when(learnMoveFilterNeuron).replaceWeakerAttacks(pokemon);
+        LearnMoveDecision result = learnMoveNeuron.getLearnMoveDecision(pokemon);
+
+        assertNotNull(result);
+        assertEquals(2, result.getMoveIndexToReplace());
+        assertEquals(LearnMoveReasonType.FORGET_WEAKER_ATTACK, result.getReason());
+    }
+
+    @Test
+    void if_no_decision_is_returned_return_a_decision_with_reason_MOVE_IS_NOT_BETTER() {
+        LearnMoveDecision result = learnMoveNeuron.getLearnMoveDecision(pokemon);
+
+        assertNotNull(result);
+        assertFalse(result.isNewMoveBetter());
+        assertEquals(-1, result.getMoveIndexToReplace());
+        assertEquals(LearnMoveReasonType.MOVE_IS_NOT_BETTER, result.getReason());
     }
 }

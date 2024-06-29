@@ -131,4 +131,67 @@ class LearnMoveFilterNeuronTest {
         assertNull(decision);
     }
 
+    /**
+     * Replace non pokemon type moves
+     */
+    @Test
+    void a_non_pokemon_type_attack_is_replaced() {
+        species.setType1(PokeType.NORMAL);
+        species.setType2(PokeType.FLYING);
+
+        move1.setType(PokeType.NORMAL);
+        move2.setType(PokeType.FLYING);
+        move3.setType(PokeType.NORMAL);
+        move4.setType(PokeType.WATER);
+        newMove.setType(PokeType.FLYING);
+
+        int index = learnMoveFilterNeuron.getIndexOfNonPokemonTypeMoveToReplace(pokemon);
+        assertEquals(3, index);
+    }
+
+    @Test
+    void no_non_pokemon_types_moves_are_present_and_no_attack_is_replaced(){
+        species.setType1(PokeType.NORMAL);
+        species.setType2(PokeType.FLYING);
+
+        move1.setType(PokeType.NORMAL);
+        move2.setType(PokeType.NORMAL);
+        move3.setType(PokeType.NORMAL);
+        move4.setType(PokeType.NORMAL);
+        newMove.setType(PokeType.FLYING);
+
+        int index = learnMoveFilterNeuron.getIndexOfNonPokemonTypeMoveToReplace(pokemon);
+        assertEquals(-1, index);
+    }
+
+    @Test
+    void a_status_attack_move_should_be_replaced_by_a_new_move() {
+        move3.setCategory(MoveCategory.STATUS);
+        int index = learnMoveFilterNeuron.getIndexOfStatusAttackMove(pokemon.getMoveset());
+        assertEquals(2, index);
+   }
+
+    @Test
+    void no_attack_move_should_be_replaced_by_a_new_move_if_no_status_move_exists() {
+        int index = learnMoveFilterNeuron.getIndexOfStatusAttackMove(pokemon.getMoveset());
+        assertEquals(-1, index);
+    }
+
+    @Test
+    void a_pokemon_type_attack_is_replaced_with_a_stronger_one(){
+        species.setType1(PokeType.NORMAL);
+        species.setType2(PokeType.FLYING);
+
+        move1.setType(PokeType.NORMAL);
+        move2.setType(PokeType.FLYING);
+        move2.setPower(50);
+        move3.setType(PokeType.NORMAL);
+        move4.setType(PokeType.FLYING);
+        move4.setPower(60);
+        newMove.setType(PokeType.FLYING);
+        newMove.setPower(70);
+
+        fail();
+    }
+
 }

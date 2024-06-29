@@ -1,11 +1,8 @@
 package com.sfh.pokeRogueBot.neurons;
 
 import com.sfh.pokeRogueBot.model.browser.pokemonjson.Move;
-import com.sfh.pokeRogueBot.model.browser.pokemonjson.Species;
 import com.sfh.pokeRogueBot.model.decisions.LearnMoveDecision;
 import com.sfh.pokeRogueBot.model.enums.LearnMoveReasonType;
-import com.sfh.pokeRogueBot.model.enums.MoveCategory;
-import com.sfh.pokeRogueBot.model.enums.PokeType;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -42,7 +39,7 @@ public class LearnMoveNeuron {
         System.arraycopy(allMoves, 0, existingMoves, 0, allMoves.length - 1);
 
         //replace existing status attack moves first
-        int indexOfStatusAttackMove = getIndexOfStatusAttackMove(existingMoves);
+        int indexOfStatusAttackMove = learnMoveFilterNeuron.getIndexOfStatusAttackMove(existingMoves);
         if(indexOfStatusAttackMove != -1){
             log.debug("Forgetting status attack move: %s for new move: %s".formatted(existingMoves[indexOfStatusAttackMove].getName(), newMove.getName()));
             return new LearnMoveDecision(true, indexOfStatusAttackMove, LearnMoveReasonType.FORGET_STATUS_ATTACK);
@@ -62,22 +59,13 @@ public class LearnMoveNeuron {
             return new LearnMoveDecision(true, indexOfTypeMoveToReplace, LearnMoveReasonType.FORGET_NON_POKEMON_TYPE_MOVE);
         }
 
-        return new LearnMoveDecision(false, -1, LearnMoveReasonType.MOVE_IS_NOT_BETTER);
-    }
-
-
-
-    /**
-     * Always forget status attack moves first
-     * @param existingMoves
-     * @return
-     */
-    private int getIndexOfStatusAttackMove(Move[] existingMoves) {
-        for(int i = 0; i < existingMoves.length; i++){
-            if(null !=existingMoves[i] && existingMoves[i].getCategory().equals(MoveCategory.STATUS)){
-                return i;
-            }
+        //replace weaker attacks
+        int indexOfWeakerAttackToReplace = learnMoveFilterNeuron.replaceWeakerAttacks(pokemon);
+        if(indexOfWeakerAttackToReplace != -1){
+            log.debug("Forgetting weaker attack: %s for new move: %s".formatted(existingMoves[indexOfWeakerAttackToReplace].getName(), newMove.getName()));
+            return new LearnMoveDecision(true, indexOfWeakerAttackToReplace, LearnMoveReasonType.FORGET_WEAKER_ATTACK);
         }
-        return -1;
+
+        return new LearnMoveDecision(false, -1, LearnMoveReasonType.MOVE_IS_NOT_BETTER);
     }
 }
