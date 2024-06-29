@@ -55,7 +55,9 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
                 StringJoiner joiner = new StringJoiner(", ");
                 starters.forEach(starter -> joiner.add(starter.getSpecies().getSpeciesString()));
                 log.debug("Selected starters: {}", joiner.toString());
-                return new PhaseAction[]{this.waitLonger};
+                return new PhaseAction[]{
+                        this.waitLonger
+                };
             }
             else if(!starters.isEmpty()){
                 waitingService.waitLonger(); //always wait for render
@@ -63,7 +65,7 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
                 int starterId = starters.get(lastPokemonIndex).getSpeciesId();
                 boolean success = jsService.setPokemonSelectCursor(starterId);
 
-                brain.memorize("selectedStarterId: " + starterId);
+                //brain.memorize("selectedStarterId: " + starterId); //todo: fix the loop in the starter select menu
 
                 if(!success){
                     throw new IllegalStateException("Failed to set cursor to starter: " + starterId);
@@ -71,6 +73,9 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
                 starters.remove(lastPokemonIndex);
 
                 return new PhaseAction[]{
+                        this.pressArrowDown, //to activate the space bar??
+                        this.waitLonger,
+                        this.pressArrowUp, //to activate the space bar??
                         this.waitLonger,
                         this.pressSpace, // select the starter
                         this.waitLonger,

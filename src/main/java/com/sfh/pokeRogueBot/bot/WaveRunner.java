@@ -63,9 +63,9 @@ public class WaveRunner {
                 throw new UnsupportedPhaseException(phaseAsString, gameMode);
             }
         }
-        catch (JavascriptException | NoSuchWindowException | UnreachableBrowserException e){
-            log.error("Unexpected error, quitting app: " + e.getMessage());
-            System.exit(1);
+        catch (NoSuchWindowException | UnreachableBrowserException e){
+            log.error("Chrome closed, quitting app: " + e.getMessage());
+            runProperty.setStatus(RunStatus.EXIT_APP);
         }
         catch (Exception e){
             log.error("Error in WaveRunner, trying to save and quit to title, error: " + e.getMessage(), e);
