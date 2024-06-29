@@ -38,7 +38,6 @@ public class LearnMovePhase extends AbstractPhase implements Phase {
         if (gameMode == GameMode.MESSAGE){
             return new PhaseAction[]{
                     this.pressSpace,
-                    this.waitLonger
             };
         }
         else if(gameMode == GameMode.CONFIRM){
@@ -62,7 +61,7 @@ public class LearnMovePhase extends AbstractPhase implements Phase {
 
     @Override
     public int getWaitAfterStage2x() {
-        return 1000;
+        return 500;
     }
 
     public PhaseAction[] handleLearnMove() throws NotSupportedException {
