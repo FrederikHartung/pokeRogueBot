@@ -1,12 +1,10 @@
 <configuration>
-    <!-- Console Appender spezifisch für Tests -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
 
-    <!-- Root logger konfiguriert nur den Console Appender -->
     <root level="debug">
         <appender-ref ref="CONSOLE" />
     </root>
