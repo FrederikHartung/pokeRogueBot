@@ -5,6 +5,7 @@ import com.sfh.pokeRogueBot.model.modifier.*;
 import com.sfh.pokeRogueBot.model.modifier.impl.PokemonHpRestoreModifierItem;
 import com.sfh.pokeRogueBot.model.modifier.impl.PokemonPpRestoreModifierItem;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
+import com.sfh.pokeRogueBot.neurons.ChoosePpRestoreModifierNeuron;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

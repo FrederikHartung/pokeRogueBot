@@ -224,5 +224,17 @@ window.poru.uihandler = {
 
     getPokemonInLearnMovePhaseJson: () => {
         return JSON.stringify(window.poru.uihandler.getPokemonInLearnMovePhase());
+    },
+
+    setLearnMoveCursor: (cursor) => {
+        var handler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[9];
+        if(handler && handler.active){
+            if(handler.moveCursor === cursor){
+                return true;
+            }
+            return handler.setCursor(cursor);
+        }
+
+        return false;
     }
 }

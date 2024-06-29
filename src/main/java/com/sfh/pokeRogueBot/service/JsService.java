@@ -173,4 +173,8 @@ public class JsService {
         String result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.getPokemonInLearnMovePhaseJson();").toString();
         return GSON.fromJson(result, Pokemon.class);
     }
+
+    public boolean setLearnMoveCursor(int moveIndexToReplace) {
+        return Boolean.parseBoolean(jsClient.executeCommandAndGetResult("return window.poru.uihandler.setLearnMoveCursor(%s);".formatted(moveIndexToReplace)).toString());
+    }
 }

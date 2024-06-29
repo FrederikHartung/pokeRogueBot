@@ -1,9 +1,9 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
 import com.sfh.pokeRogueBot.model.browser.pokemonjson.Move;
+import com.sfh.pokeRogueBot.model.decisions.LearnMoveDecision;
 import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
-import com.sfh.pokeRogueBot.model.exception.StopRunException;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
@@ -67,7 +67,7 @@ public class LearnMovePhase extends AbstractPhase implements Phase {
 
     public PhaseAction[] handleLearnMove() throws NotSupportedException {
         Pokemon pokemon = jsService.getPokemonInLearnMove();
-        
+
         if(pokemon == null){
             throw new IllegalStateException("No pokemon in learn move screen");
         }
@@ -77,8 +77,30 @@ public class LearnMovePhase extends AbstractPhase implements Phase {
         log.debug(message);
         brain.memorize(message);
 
-        return new PhaseAction[]{
-        };
+        LearnMoveDecision learnMoveDecision = brain.getLearnMoveDecision(pokemon);
+
+        if(null == learnMoveDecision){
+            throw new IllegalStateException("No learn move decision found for pokemon: " + pokemon.getName());
+        }
+
+        if(learnMoveDecision.isNewMoveBetter()){
+
+            boolean cursorMoved = jsService.setLearnMoveCursor(learnMoveDecision.getMoveIndexToReplace());
+            if(!cursorMoved){
+                throw new IllegalStateException("Failed to move cursor to learn move");
+            }
+
+            return new PhaseAction[]{
+                    this.pressSpace
+            };
+        }
+        else{
+            return new PhaseAction[]{
+                    this.pressBackspace, //don't learn move
+                    this.waitLonger,
+                    this.pressSpace //confirm
+            };
+        }
     }
 
 }

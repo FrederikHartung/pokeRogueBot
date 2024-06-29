@@ -1,4 +1,4 @@
-package com.sfh.pokeRogueBot.service.neurons;
+package com.sfh.pokeRogueBot.neurons;
 
 import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
