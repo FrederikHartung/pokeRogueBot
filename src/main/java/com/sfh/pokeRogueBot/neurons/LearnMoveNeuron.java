@@ -1,11 +1,15 @@
 package com.sfh.pokeRogueBot.neurons;
 
 import com.sfh.pokeRogueBot.model.browser.pokemonjson.Move;
+import com.sfh.pokeRogueBot.model.browser.pokemonjson.Species;
 import com.sfh.pokeRogueBot.model.decisions.LearnMoveDecision;
 import com.sfh.pokeRogueBot.model.enums.LearnMoveReasonType;
+import com.sfh.pokeRogueBot.model.enums.PokeType;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.Arrays;
 
 @Slf4j
 @Component
@@ -59,13 +63,50 @@ public class LearnMoveNeuron {
             return new LearnMoveDecision(true, indexOfTypeMoveToReplace, LearnMoveReasonType.FORGET_NON_POKEMON_TYPE_MOVE);
         }
 
+        /*
+         * A pokemon with only one type should have 2 attacks of his type.
+         * The other two types should be of a other types for counters.
+         * If a new move with the same type is learned, replace a weaker attack of the same type.
+         * If a new move with a different type is learned, replace a weaker attack of a different type.
+         * @param pokemonTyp Typ 1 of the pokemon
+         */
+        if(pokemon.getSpecies().getType2() == null){
+            return getLearnMoveDecisionForOneType(pokemon, existingMoves, newMove);
+        }
+        else{
+            return getLearnMoveDecisionForTwoTypes(pokemon, existingMoves, newMove);
+        }
+
+        //todo: refactor this
         //replace weaker attacks
-        int indexOfWeakerAttackToReplace = learnMoveFilterNeuron.replaceWeakerAttacks(pokemon);
+        Species species = pokemon.getSpecies();
+        int indexOfWeakerAttackToReplace = learnMoveFilterNeuron.replaceWeakerAttacks(species.getType1(), species.getType2(), existingMoves, newMove);
         if(indexOfWeakerAttackToReplace != -1){
             log.debug("Forgetting weaker attack: %s for new move: %s".formatted(existingMoves[indexOfWeakerAttackToReplace].getName(), newMove.getName()));
             return new LearnMoveDecision(true, indexOfWeakerAttackToReplace, LearnMoveReasonType.FORGET_WEAKER_ATTACK);
         }
 
         return new LearnMoveDecision(false, -1, LearnMoveReasonType.MOVE_IS_NOT_BETTER);
+    }
+
+    private LearnMoveDecision getLearnMoveDecisionForTwoTypes(Pokemon pokemon, Move[] existingMoves, Move newMove) {
+        return null;
+    }
+
+    private LearnMoveDecision getLearnMoveDecisionForOneType(Pokemon pokemon, Move[] existingMoves) {
+        PokeType type = pokemon.getSpecies().getType1();
+        int countOfMovesWithSameTypeAsPokemon = getNumberOfAttacksWithType(existingMoves, type);
+        if(countOfMovesWithSameTypeAsPokemon < 2){
+            int index = learnMoveFilterNeuron.replaceWeakestAttackOfTypeNot(existingMoves, type);
+            return new LearnMoveDecision(true, index, LearnMoveReasonType.FORGET_OTHER_TYPE);
+        }
+        else{
+            int index = learnMoveFilterNeuron.replaceWeakestAttackOfType(existingMoves, type);
+            return new LearnMoveDecision(true, index, LearnMoveReasonType.FORGET_WEAKER_ATTACK);
+        }
+    }
+
+    public int getNumberOfAttacksWithType(Move[] existingMoves, PokeType type){
+        return (int) Arrays.stream(existingMoves).filter(move -> move != null && move.getType().equals(type)).count();
     }
 }

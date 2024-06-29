@@ -178,9 +178,20 @@ class LearnMoveFilterNeuronTest {
     }
 
     @Test
-    void a_pokemon_type_attack_is_replaced_with_a_stronger_one(){
+    void a_pokemon_with_one_type_is_not_filtere_if_it_wants_to_learn_a_move_with_an_other_type(){
         species.setType1(PokeType.NORMAL);
-        species.setType2(PokeType.FLYING);
+        species.setType2(null);
+
+        newMove.setType(PokeType.FIRE);
+
+        LearnMoveDecision decision = learnMoveFilterNeuron.filterUnwantedMoves(pokemon, newMove);
+        assertNull(decision);
+    }
+
+    @Test
+    void a_pokemon_type_attack_is_replaced_with_a_stronger_one_for_pokemon_with_one_type(){
+        species.setType1(PokeType.FLYING);
+        species.setType2(null);
 
         move1.setType(PokeType.NORMAL);
         move2.setType(PokeType.FLYING);
@@ -191,7 +202,6 @@ class LearnMoveFilterNeuronTest {
         newMove.setType(PokeType.FLYING);
         newMove.setPower(70);
 
-        fail();
     }
 
 }

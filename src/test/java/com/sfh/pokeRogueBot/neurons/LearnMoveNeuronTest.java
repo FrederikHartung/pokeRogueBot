@@ -48,7 +48,7 @@ class LearnMoveNeuronTest {
 
         doReturn(-1).when(learnMoveFilterNeuron).getIndexOfStatusAttackMove(any());
         doReturn(-1).when(learnMoveFilterNeuron).getIndexOfNonPokemonTypeMoveToReplace(pokemon);
-        doReturn(-1).when(learnMoveFilterNeuron).replaceWeakerAttacks(pokemon);
+        doReturn(-1).when(learnMoveFilterNeuron).replaceWeakerAttacks(any(), any(), any(), any());
     }
 
     @Test
@@ -95,7 +95,7 @@ class LearnMoveNeuronTest {
 
     @Test
     void if_replaceWeakerAttacks_returns_a_value_return_the_decision() {
-        doReturn(2).when(learnMoveFilterNeuron).replaceWeakerAttacks(pokemon);
+        doReturn(2).when(learnMoveFilterNeuron).replaceWeakerAttacks(any(), any(), any(), any());
         LearnMoveDecision result = learnMoveNeuron.getLearnMoveDecision(pokemon);
 
         assertNotNull(result);
@@ -111,5 +111,29 @@ class LearnMoveNeuronTest {
         assertFalse(result.isNewMoveBetter());
         assertEquals(-1, result.getMoveIndexToReplace());
         assertEquals(LearnMoveReasonType.MOVE_IS_NOT_BETTER, result.getReason());
+    }
+
+    @Test
+    void getNumberOfAttacksWithType_returns_the_correct_number_of_attacks_with_the_given_type(){
+        Move[] moves = new Move[4];
+        Move move1 = new Move();
+        moves[0] = move1;
+        Move move2 = new Move();
+        moves[1] = move2;
+
+        move1.setType(PokeType.NORMAL);
+        move2.setType(PokeType.FIRE);
+        int count = learnMoveNeuron.getNumberOfAttacksWithType(moves, PokeType.NORMAL);
+        assertEquals(1, count);
+
+        move1.setType(PokeType.NORMAL);
+        move2.setType(PokeType.NORMAL);
+        count = learnMoveNeuron.getNumberOfAttacksWithType(moves, PokeType.NORMAL);
+        assertEquals(2, count);
+
+        move1.setType(PokeType.FIRE);
+        move2.setType(PokeType.FIRE);
+        count = learnMoveNeuron.getNumberOfAttacksWithType(moves, PokeType.FIRE);
+        assertEquals(2, count);
     }
 }
