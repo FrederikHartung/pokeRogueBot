@@ -51,6 +51,7 @@ window.poru.uihandler = {
     },
 
     setStarterSelectUiHandlerCursor: (speciesId) => {
+        console.log("setStarterSelectUiHandlerCursor");
         var starterSelectUiHandler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[10];
         var starter = window.poru.starter.getPossibleStarter();
         var speciesIndex = -1;
@@ -59,7 +60,6 @@ window.poru.uihandler = {
             if(starter[i].speciesId === speciesId){
                 speciesIndex = starter[i].cursorToSelect;
                 targetGeneration = starter[i].generation;
-                console.log("Species found at index: " + speciesIndex + " in generation: " + targetGeneration);
                 break;
             }
         }
