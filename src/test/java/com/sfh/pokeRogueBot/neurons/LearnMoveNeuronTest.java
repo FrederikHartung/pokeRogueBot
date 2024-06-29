@@ -21,11 +21,6 @@ class LearnMoveNeuronTest {
     Pokemon pokemon;
     Species species;
     Move[] moveSet;
-
-    Move move1;
-    Move move2;
-    Move move3;
-    Move move4;
     Move newMove;
 
     @BeforeEach
@@ -43,34 +38,6 @@ class LearnMoveNeuronTest {
 
         moveSet = new Move[5];
         pokemon.setMoveset(moveSet);
-
-        move1 = new Move();
-        move1.setName("move1");
-        move1.setPower(40);
-        move1.setCategory(MoveCategory.PHYSICAL);
-        move1.setType(PokeType.NORMAL);
-        moveSet[0] = move1;
-
-        move2 = new Move();
-        move2.setName("move2");
-        move2.setPower(40);
-        move2.setCategory(MoveCategory.PHYSICAL);
-        move2.setType(PokeType.FIRE);
-        moveSet[1] = move2;
-
-        move3 = new Move();
-        move3.setName("move3");
-        move3.setPower(40);
-        move3.setCategory(MoveCategory.SPECIAL);
-        move3.setType(PokeType.FLYING);
-        moveSet[2] = move3;
-
-        move4 = new Move();
-        move4.setName("move4");
-        move4.setPower(40);
-        move4.setCategory(MoveCategory.SPECIAL);
-        move4.setType(PokeType.WATER);
-        moveSet[3] = move4;
 
         newMove = new Move();
         newMove.setName("newMove");
