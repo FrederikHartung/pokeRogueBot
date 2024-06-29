@@ -9,6 +9,8 @@ Work in Progress:
 - when a JavascriptException, NoSuchWindowException or UnreachableBrowserException occurs, the bot quits the app and doesn't log the error stacktrace
 - fixed a bug, that the logback config was overridden with the test config
 - added handling for the case that the wild enemy pokemon and the player pokemon faints on the same time
+- deactivated picking lure modifier, because double fights are king of buggy and for the bot and not well implemented
+- added picking of pokeball items in the shop in available and no other free item is interesting
 
 ## 2.0
 - deactivated buying of pp restore items if a move ran out of pp because it's not currently working

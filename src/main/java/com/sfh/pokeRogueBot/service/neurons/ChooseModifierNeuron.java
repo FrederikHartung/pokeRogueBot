@@ -119,10 +119,10 @@ public class ChooseModifierNeuron {
             return allLevelIncrement;
         }
 
-        //pick pokeball item
-        MoveToModifierResult pokeballModifierItem = pickItem(shop, AddPokeballModifierItem.TARGET);
-        if (null != pokeballModifierItem && modifierPriorityResult.isBall()) {
-            return pokeballModifierItem;
+        //pick pokeball item if priority exists
+        MoveToModifierResult priorityPokeballModifierItem = pickItem(shop, AddPokeballModifierItem.TARGET);
+        if (null != priorityPokeballModifierItem && modifierPriorityResult.isBall()) {
+            return priorityPokeballModifierItem;
         }
 
         //pick free heal item
@@ -155,11 +155,12 @@ public class ChooseModifierNeuron {
             return moneyRewardModifierItem;
         }
 
-        //pick Lure
-        MoveToModifierResult lureItem = pickItem(shop, DoubleBattleChanceBoosterModifierItem.TARGET);
-        if (null != lureItem) {
-            return lureItem;
+        //pick pokeball item
+        MoveToModifierResult pokeballModifierItem = pickItem(shop, AddPokeballModifierItem.TARGET);
+        if (null != priorityPokeballModifierItem) {
+            return priorityPokeballModifierItem;
         }
+
 
         return null;
     }
