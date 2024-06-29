@@ -173,40 +173,53 @@ window.poru.poke = {
         };
     },
 
+    getMoveDto: (move, disabledId, ppUsed) => {
+        if (!move) {
+            return;
+        }
+
+        var isMoveDisabled = disabledId === move.id;
+        var isMoveUsable = !isMoveDisabled && ((move.pp - ppUsed) > 0);
+        var moveDto = {
+            name: move.name,
+            id: move.id,
+            accuracy: move.accuracy,
+            category: window.poru.poke.getCategoryAsString(move.category),
+            chance: move.chance,
+            defaultType: window.poru.poke.getTypeAsString(move.defaultType),
+            moveTarget: window.poru.poke.getMoveTargetAsString(move.moveTarget),
+            power: move.power,
+            priority: move.priority,
+            type: window.poru.poke.getTypeAsString(move.type),
+            movePp: move.pp,
+            pPUsed: ppUsed,
+            pPLeft: move.pp - ppUsed,
+            isUsable: isMoveUsable,
+        };
+
+        return moveDto;
+    },
+
     getMovesetDto: (pokemon) => {
-        if (!pokemon || !pokemon.moveset || !pokemon.summonData) {
+        if (!pokemon || !pokemon.moveset) {
             return [];
         }
     
         var moveSet = pokemon.moveset;
-        var disabledId = pokemon.summonData.disabledMove;
+        if(pokemon.summonData){
+            var disabledId = pokemon.summonData.disabledMove;
+        }
+        else if(pokemon.summonDataPrimer){        
+            var disabledId = pokemon.summonDataPrimer.disabledMove;
+        }
+        else{
+            var disabledId = -1;
+        }
+
         var movesetDto = [];
     
         moveSet.forEach(moveSetItem => {
-            var move = moveSetItem.getMove();
-            if (!move) {
-                return;
-            }
-    
-            var isMoveDisabled = disabledId === moveSetItem.moveId;
-            var isMoveUsable = !isMoveDisabled && ((moveSetItem.getMovePp() - moveSetItem.ppUsed) > 0);
-            var moveDto = {
-                name: moveSetItem.getName(),
-                id: moveSetItem.moveId,
-                accuracy: move.accuracy,
-                category: window.poru.poke.getCategoryAsString(move.category),
-                chance: move.chance,
-                defaultType: window.poru.poke.getTypeAsString(move.defaultType),
-                moveTarget: window.poru.poke.getMoveTargetAsString(move.moveTarget),
-                power: move.power,
-                priority: move.priority,
-                type: window.poru.poke.getTypeAsString(move.type),
-                movePp: moveSetItem.getMovePp(),
-                pPUsed: moveSetItem.ppUsed,
-                pPLeft: moveSetItem.getMovePp() - moveSetItem.ppUsed,
-                isUsable: isMoveUsable,
-            };
-            movesetDto.push(moveDto);
+            movesetDto.push(window.poru.poke.getMoveDto(moveSetItem.getMove(), disabledId, moveSetItem.ppUsed));
         });
     
         return movesetDto;

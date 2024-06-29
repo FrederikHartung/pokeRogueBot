@@ -206,5 +206,19 @@ window.poru.uihandler = {
         }
 
         return false;
-    }
+    },
+
+    getPokemonInLearnMovePhase: () => {
+        var handler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[9];
+        if(handler && handler.active){
+            var pokemonDto = window.poru.poke.getPokemonDto(handler.pokemon);
+            var newMove = handler.newMove;
+            var newMoveDto = window.poru.poke.getMoveDto(newMove, -1, 0);
+            pokemonDto.moveset.push(newMoveDto);
+
+            return pokemonDto;
+        }
+
+        return null;
+    },
 }
