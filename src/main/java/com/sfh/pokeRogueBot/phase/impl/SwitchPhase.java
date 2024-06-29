@@ -20,6 +20,8 @@ public class SwitchPhase extends AbstractPhase implements Phase {
     private final Brain brain;
     private final JsService jsService;
 
+    private boolean ignoreFirstPokemon = false;
+
     public SwitchPhase(Brain brain, JsService jsService) {
         this.brain = brain;
         this.jsService = jsService;
@@ -34,7 +36,8 @@ public class SwitchPhase extends AbstractPhase implements Phase {
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
 
         if (gameMode == GameMode.PARTY) { // maybe an own pokemon fainted
-            SwitchDecision switchDecision = brain.getFaintedPokemonSwitchDecision();
+            SwitchDecision switchDecision = brain.getFaintedPokemonSwitchDecision(ignoreFirstPokemon);
+            ignoreFirstPokemon = false;
             boolean switchSuccessful = jsService.setPartyCursor(switchDecision.getIndex());
 
             if (switchSuccessful) {
@@ -49,9 +52,16 @@ public class SwitchPhase extends AbstractPhase implements Phase {
                 throw new IllegalStateException("Could not set cursor to party pokemon");
             }
         }
-        else if(gameMode == GameMode.MESSAGE || gameMode == GameMode.SUMMARY){
+        else if(gameMode == GameMode.MESSAGE){
             return new PhaseAction[]{
                     this.waitBriefly
+            };
+        }
+        else if(gameMode == GameMode.SUMMARY){
+            ignoreFirstPokemon = true;
+            return new PhaseAction[]{
+                    this.waitBriefly,
+                    this.pressBackspace,
             };
         }
 

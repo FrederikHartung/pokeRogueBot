@@ -52,9 +52,9 @@ public class Brain {
         this.learnMoveNeuron = learnMoveNeuron;
     }
 
-    public SwitchDecision getFaintedPokemonSwitchDecision() {
+    public SwitchDecision getFaintedPokemonSwitchDecision(boolean ignoreFirstPokemon) {
         waveDto = jsService.getWaveDto(); //always update current state
-        return switchPokemonNeuron.getBestSwitchDecision(waveDto);
+        return switchPokemonNeuron.getBestSwitchDecision(waveDto, ignoreFirstPokemon);
     }
 
     public MoveToModifierResult getModifierToPick() {
@@ -277,12 +277,12 @@ public class Brain {
     }
 
     public SwitchDecision getBestSwitchDecision() {
-        SwitchDecision switchDecision = switchPokemonNeuron.getBestSwitchDecision(waveDto);
+        SwitchDecision switchDecision = switchPokemonNeuron.getBestSwitchDecision(waveDto, false);
         if(switchDecision == null){
             throw new IllegalStateException("No switch decision found");
         }
         log.debug("Switching to pokemon: " + switchDecision.getPokeName() + " on index: " + switchDecision.getIndex());
-        return switchPokemonNeuron.getBestSwitchDecision(waveDto);
+        return switchDecision;
     }
 
     public boolean shouldSwitchPokemon() {
