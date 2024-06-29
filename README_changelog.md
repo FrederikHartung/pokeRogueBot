@@ -11,6 +11,7 @@ Work in Progress:
 - added handling for the case that the wild enemy pokemon and the player pokemon faints on the same time
 - deactivated picking lure modifier, because double fights are king of buggy and for the bot and not well implemented
 - added picking of pokeball items in the shop in available and no other free item is interesting
+- fixed dead pokemon revive bug
 
 ## 2.0
 - deactivated buying of pp restore items if a move ran out of pp because it's not currently working
