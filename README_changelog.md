@@ -2,10 +2,12 @@
 
 Work in Progress:
 
-## 2.1
+## 2.1 WIP
 - added handling for different pokemon forms with different poketypes (now really working (hopefully...))
 - added stop run, screenshot and logging for shiny, mystical, legendary and sub legendary pokemon
 - fixed bug in target selection in double fight
+- when a JavascriptException, NoSuchWindowException or UnreachableBrowserException occurs, the bot quits the app and doesn't log the error stacktrace
+- fixed a bug, that the logback config was overriden with the test config
 
 ## 2.0
 - deactivated buying of pp restore items if a move ran out of pp because it's not currently working
