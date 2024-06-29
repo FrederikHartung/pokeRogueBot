@@ -2,6 +2,7 @@ package com.sfh.pokeRogueBot.phase.impl;
 
 import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
+import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.model.run.Starter;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
@@ -56,17 +57,20 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
             }
             else if(!starters.isEmpty()){
                 int lastPokemonIndex = starters.size() - 1;
-                boolean success = jsService.setPokemonSelectCursor(starters.get(lastPokemonIndex).getSpeciesId());
+                int starterId = starters.get(lastPokemonIndex).getSpeciesId();
+                boolean success = jsService.setPokemonSelectCursor(starterId);
+
+                brain.memorize("selectedStarterId: " + starterId);
 
                 if(!success){
-                    throw new IllegalStateException("Failed to set cursor to starter: " + starters.get(lastPokemonIndex).getSpeciesId());
+                    throw new IllegalStateException("Failed to set cursor to starter: " + starterId);
                 }
                 starters.remove(lastPokemonIndex);
 
                 return new PhaseAction[]{
-                        this.waitAction,
+                        this.waitForTextRenderAction,
                         this.pressSpace, // select the starter
-                        this.waitAction,
+                        this.waitForTextRenderAction,
                         this.pressSpace // confirm the selection
                 };
             }

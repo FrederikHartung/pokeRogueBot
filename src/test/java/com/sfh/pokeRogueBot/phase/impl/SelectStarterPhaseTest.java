@@ -6,7 +6,6 @@ import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.phase.actions.PressKeyPhaseAction;
-import com.sfh.pokeRogueBot.phase.actions.WaitPhaseAction;
 import com.sfh.pokeRogueBot.service.Brain;
 import com.sfh.pokeRogueBot.service.JsService;
 import org.junit.jupiter.api.BeforeEach;
