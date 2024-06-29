@@ -9,6 +9,7 @@ import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.Brain;
 import com.sfh.pokeRogueBot.service.JsService;
+import com.sfh.pokeRogueBot.service.WaitingService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -22,6 +23,7 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
     public static final String NAME = "SelectStarterPhase";
 
     private final JsService jsService;
+    private final WaitingService waitingService;
     private final Brain brain;
     private final List<Integer>  starterIds;
     private final List<Starter> starters = new LinkedList<>();
@@ -29,10 +31,11 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
     private boolean selectedStarters = false;
 
     public SelectStarterPhase(
-            JsService jsService, Brain brain,
+            JsService jsService, WaitingService waitingService, Brain brain,
             @Value("${starter.ids}") List<Integer> starterIds
     ) {
         this.jsService = jsService;
+        this.waitingService = waitingService;
         this.brain = brain;
         this.starterIds = starterIds;
     }
@@ -55,6 +58,7 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
                 return new PhaseAction[]{this.waitLonger};
             }
             else if(!starters.isEmpty()){
+                waitingService.waitLonger(); //always wait for render
                 int lastPokemonIndex = starters.size() - 1;
                 int starterId = starters.get(lastPokemonIndex).getSpeciesId();
                 boolean success = jsService.setPokemonSelectCursor(starterId);
