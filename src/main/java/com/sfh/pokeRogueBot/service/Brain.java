@@ -1,9 +1,6 @@
 package com.sfh.pokeRogueBot.service;
 
-import com.sfh.pokeRogueBot.model.decisions.AttackDecision;
-import com.sfh.pokeRogueBot.model.decisions.AttackDecisionForDoubleFight;
-import com.sfh.pokeRogueBot.model.decisions.ChooseModifierDecision;
-import com.sfh.pokeRogueBot.model.decisions.SwitchDecision;
+import com.sfh.pokeRogueBot.model.decisions.*;
 import com.sfh.pokeRogueBot.model.dto.SaveSlotDto;
 import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision;
@@ -13,11 +10,8 @@ import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.run.*;
+import com.sfh.pokeRogueBot.neurons.*;
 import com.sfh.pokeRogueBot.phase.ScreenshotClient;
-import com.sfh.pokeRogueBot.service.neurons.CapturePokemonNeuron;
-import com.sfh.pokeRogueBot.service.neurons.ChooseModifierNeuron;
-import com.sfh.pokeRogueBot.service.neurons.CombatNeuron;
-import com.sfh.pokeRogueBot.service.neurons.SwitchPokemonNeuron;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -34,6 +28,7 @@ public class Brain {
     private final ChooseModifierNeuron chooseModifierNeuron;
     private final CombatNeuron combatNeuron;
     private final CapturePokemonNeuron capturePokemonNeuron;
+    private final LearnMoveNeuron learnMoveNeuron;
 
     private RunProperty runProperty = null;
     private WaveDto waveDto;
@@ -45,7 +40,7 @@ public class Brain {
             JsService jsService,
             ShortTermMemory shortTermMemory,
             ScreenshotClient screenshotClient,
-            SwitchPokemonNeuron switchPokemonNeuron, ChooseModifierNeuron chooseModifierNeuron, CombatNeuron combatNeuron, CapturePokemonNeuron capturePokemonNeuron
+            SwitchPokemonNeuron switchPokemonNeuron, ChooseModifierNeuron chooseModifierNeuron, CombatNeuron combatNeuron, CapturePokemonNeuron capturePokemonNeuron, LearnMoveNeuron learnMoveNeuron
     ) {
         this.jsService = jsService;
         this.shortTermMemory = shortTermMemory;
@@ -54,6 +49,7 @@ public class Brain {
         this.chooseModifierNeuron = chooseModifierNeuron;
         this.combatNeuron = combatNeuron;
         this.capturePokemonNeuron = capturePokemonNeuron;
+        this.learnMoveNeuron = learnMoveNeuron;
     }
 
     public SwitchDecision getFaintedPokemonSwitchDecision() {
@@ -292,5 +288,9 @@ public class Brain {
     public boolean shouldSwitchPokemon() {
         waveDto = jsService.getWaveDto(); //always update current state
         return switchPokemonNeuron.shouldSwitchPokemon(waveDto);
+    }
+
+    public LearnMoveDecision getLearnMoveDecision(Pokemon pokemon) {
+        return learnMoveNeuron.getLearnMoveDecision(pokemon);
     }
 }

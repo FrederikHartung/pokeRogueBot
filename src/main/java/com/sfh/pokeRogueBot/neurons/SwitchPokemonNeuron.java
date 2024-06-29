@@ -1,12 +1,10 @@
-package com.sfh.pokeRogueBot.service.neurons;
+package com.sfh.pokeRogueBot.neurons;
 
 import com.sfh.pokeRogueBot.model.dto.WaveDto;
-import com.sfh.pokeRogueBot.model.enums.PokeType;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.decisions.SwitchDecision;
 import com.sfh.pokeRogueBot.model.results.DamageMultiplier;
 import com.sfh.pokeRogueBot.model.run.WavePokemon;
-import com.sfh.pokeRogueBot.service.Brain;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 

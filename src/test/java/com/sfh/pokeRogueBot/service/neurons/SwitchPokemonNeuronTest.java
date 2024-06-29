@@ -6,6 +6,8 @@ import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import com.sfh.pokeRogueBot.model.enums.PokeType;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.run.WavePokemon;
+import com.sfh.pokeRogueBot.neurons.DamageCalculatingNeuron;
+import com.sfh.pokeRogueBot.neurons.SwitchPokemonNeuron;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
