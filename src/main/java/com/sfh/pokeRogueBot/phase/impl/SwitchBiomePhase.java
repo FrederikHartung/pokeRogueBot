@@ -22,7 +22,7 @@ public class SwitchBiomePhase extends AbstractPhase implements Phase {
         if(gameMode == GameMode.EGG_HATCH_SCENE || gameMode == GameMode.MESSAGE){
             return new PhaseAction[]{
                     this.pressSpace,
-                    this.waitForTextRenderAction
+                    this.waitLonger
             };
         }
 

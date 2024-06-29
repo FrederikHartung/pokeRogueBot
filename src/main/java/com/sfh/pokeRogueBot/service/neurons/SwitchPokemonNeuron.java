@@ -32,6 +32,11 @@ public class SwitchPokemonNeuron {
         WavePokemon wave = waveDto.getWavePokemon();
         Pokemon[] playerParty = wave.getPlayerParty();
 
+        //if the wild pokeon and the player pokemon fainted at the same time
+        if(wave.getEnemyParty().length == 0){
+            return getNextPokemon(playerParty);
+        }
+
         //in single fight, skipp first, in double fight, skip first two
         int startIndexOfPartyPokemons = waveDto.isDoubleFight() ? 2 : 1;
 
@@ -113,5 +118,19 @@ public class SwitchPokemonNeuron {
         }
 
         return shouldSwitch;
+    }
+
+    /**
+     * If the enemy pokemon was a wild pokemon and both the player pokemon and the wild pokemon fainted, the enemy party is empty and the next pokemon of the player has to be selected
+     * @return
+     */
+    public SwitchDecision getNextPokemon(Pokemon[] playerParty){
+        for(int i = 0; i < playerParty.length; i++){
+            if(playerParty[i].getHp() > 0){
+                return new SwitchDecision(i, playerParty[i].getName(), 1, 1);
+            }
+        }
+
+        return null;
     }
 }

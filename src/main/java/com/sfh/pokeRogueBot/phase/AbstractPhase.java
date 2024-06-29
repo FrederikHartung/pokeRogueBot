@@ -12,9 +12,9 @@ public abstract class AbstractPhase implements Phase {
     protected final PressKeyPhaseAction pressArrowRight = new PressKeyPhaseAction(KeyToPress.ARROW_RIGHT);
     protected final PressKeyPhaseAction pressArrowDown = new PressKeyPhaseAction(KeyToPress.ARROW_DOWN);
     protected final PressKeyPhaseAction pressArrowLeft = new PressKeyPhaseAction(KeyToPress.ARROW_LEFT);
-    protected final WaitPhaseAction waitAction = new WaitPhaseAction();
-    protected final WaitForTextRenderPhaseAction waitForTextRenderAction = new WaitForTextRenderPhaseAction();
-    protected final WaitForStageRenderPhaseAction waitForStageRenderPhaseAction = new WaitForStageRenderPhaseAction();
+    protected final WaitPhaseAction waitBriefly = new WaitPhaseAction();
+    protected final WaitForTextRenderPhaseAction waitLonger = new WaitForTextRenderPhaseAction();
+    protected final WaitForStageRenderPhaseAction waitEvenLonger = new WaitForStageRenderPhaseAction();
     protected final QuitRunAction quitRunAction = new QuitRunAction();
 
     @Override

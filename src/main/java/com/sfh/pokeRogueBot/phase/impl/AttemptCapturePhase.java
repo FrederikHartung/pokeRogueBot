@@ -22,9 +22,9 @@ public class AttemptCapturePhase extends AbstractPhase implements Phase {
         if (gameMode == GameMode.CONFIRM) { //todo: release the pokemon with the lowest level
 
             return new PhaseAction[]{ //don't take captured wild pokemons
-                    this.waitAction,
+                    this.waitBriefly,
                     this.pressArrowDown,
-                    this.waitAction,
+                    this.waitBriefly,
                     this.pressSpace
             };
         }

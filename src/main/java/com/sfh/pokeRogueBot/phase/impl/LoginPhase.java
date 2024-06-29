@@ -12,8 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import javax.print.attribute.standard.MediaSize;
-
 @Slf4j
 @Component
 public class LoginPhase extends AbstractPhase implements Phase {
@@ -46,7 +44,7 @@ public class LoginPhase extends AbstractPhase implements Phase {
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
         if(gameMode == GameMode.LOADING){
             return new PhaseAction[]{
-                    this.waitForTextRenderAction
+                    this.waitLonger
             };
         }
         else if(gameMode == GameMode.LOGIN_FORM){
@@ -58,7 +56,7 @@ public class LoginPhase extends AbstractPhase implements Phase {
                 if (userDataSubmitted) {
                     log.debug("submitted user data successfully");
                     return new PhaseAction[]{
-                            this.waitAction
+                            this.waitBriefly
                     };
                 }
                 else {

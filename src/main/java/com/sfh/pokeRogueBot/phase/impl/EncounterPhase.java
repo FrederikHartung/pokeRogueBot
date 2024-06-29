@@ -31,7 +31,7 @@ public class EncounterPhase extends AbstractPhase implements Phase {
         }
         else if(gameMode == GameMode.TITLE || gameMode == GameMode.STARTER_SELECT){
             return new PhaseAction[]{
-                    this.waitAction
+                    this.waitBriefly
             };
         }
 

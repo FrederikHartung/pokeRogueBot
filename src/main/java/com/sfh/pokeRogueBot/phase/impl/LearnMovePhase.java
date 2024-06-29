@@ -28,15 +28,15 @@ public class LearnMovePhase extends AbstractPhase implements Phase {
             //should pokemon learn message
             return new PhaseAction[]{ //currently don't learn new moves
                     this.pressArrowDown,
-                    this.waitAction,
+                    this.waitBriefly,
                     this.pressSpace, //no,
-                    this.waitForTextRenderAction,
+                    this.waitLonger,
                     this.pressSpace, //confirm
             };
         }
         else if(gameMode == GameMode.EVOLUTION_SCENE){
             return new PhaseAction[]{
-                    this.waitAction,
+                    this.waitBriefly,
                     this.pressSpace
             };
         }

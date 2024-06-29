@@ -1,7 +1,6 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
 import com.sfh.pokeRogueBot.model.enums.GameMode;
-import com.sfh.pokeRogueBot.model.exception.ActionLoopDetectedException;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
@@ -52,7 +51,7 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
                 //cant choose item, so don't pick any
                 return new PhaseAction[]{
                         this.pressBackspace,
-                        this.waitForTextRenderAction,
+                        this.waitLonger,
                         this.pressSpace
                 };
             }
@@ -74,15 +73,15 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
                 throw new IllegalStateException("Could not set cursor to party pokemon");
             }
 
-            actionList.add(this.waitAction);
+            actionList.add(this.waitBriefly);
             actionList.add(this.pressSpace); //open confirm menu
-            actionList.add(this.waitAction); //wait for confirm menu to render
+            actionList.add(this.waitBriefly); //wait for confirm menu to render
             actionList.add(this.pressSpace); //confirm the application of the modifier
         } else if (gameMode == GameMode.MESSAGE) {
             actionList.add(this.pressSpace);
         } else if (gameMode == GameMode.SUMMARY) {
             actionList.add(this.pressBackspace); //go back to team
-            actionList.add(waitForTextRenderAction);
+            actionList.add(waitLonger);
             actionList.add(this.pressBackspace); //go back to modifier shop
         } else {
             throw new NotSupportedException("GameMode not supported for SelectModifierPhase: " + gameMode);

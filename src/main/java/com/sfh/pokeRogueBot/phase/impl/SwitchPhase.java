@@ -39,9 +39,9 @@ public class SwitchPhase extends AbstractPhase implements Phase {
 
             if (switchSuccessful) {
                 return new PhaseAction[]{
-                        this.waitAction,
+                        this.waitBriefly,
                         this.pressSpace, //choose the pokemon
-                        this.waitAction, //render confirm button
+                        this.waitBriefly, //render confirm button
                         this.pressSpace, //confirm the switch
                 };
             }
@@ -51,7 +51,7 @@ public class SwitchPhase extends AbstractPhase implements Phase {
         }
         else if(gameMode == GameMode.MESSAGE){
             return new PhaseAction[]{
-                    this.waitAction
+                    this.waitBriefly
             };
         }
 

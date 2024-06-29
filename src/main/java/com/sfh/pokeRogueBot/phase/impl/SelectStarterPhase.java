@@ -2,7 +2,6 @@ package com.sfh.pokeRogueBot.phase.impl;
 
 import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
-import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.model.run.Starter;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
@@ -53,7 +52,7 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
                 StringJoiner joiner = new StringJoiner(", ");
                 starters.forEach(starter -> joiner.add(starter.getSpecies().getSpeciesString()));
                 log.debug("Selected starters: {}", joiner.toString());
-                return new PhaseAction[]{this.waitAction};
+                return new PhaseAction[]{this.waitLonger};
             }
             else if(!starters.isEmpty()){
                 int lastPokemonIndex = starters.size() - 1;
@@ -68,9 +67,9 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
                 starters.remove(lastPokemonIndex);
 
                 return new PhaseAction[]{
-                        this.waitForTextRenderAction,
+                        this.waitLonger,
                         this.pressSpace, // select the starter
-                        this.waitForTextRenderAction,
+                        this.waitLonger,
                         this.pressSpace // confirm the selection
                 };
             }
@@ -83,7 +82,7 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
                 selectedStarters = false; //set to false for next run
 
                 return new PhaseAction[]{
-                        this.waitForTextRenderAction,
+                        this.waitLonger,
                         this.pressSpace
                 };
             }
@@ -101,7 +100,7 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
             if(setSaveSlotCursorSuccess){
                 return new PhaseAction[]{
                         this.pressSpace, //choose
-                        this.waitAction,
+                        this.waitBriefly,
                         this.pressSpace //confirm
                 };
             }

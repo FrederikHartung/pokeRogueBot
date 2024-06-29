@@ -46,12 +46,12 @@ public class ReturnToTitlePhase extends AbstractPhase implements Phase {
             boolean saveAndQuitSuccessful = jsService.saveAndQuit();
             if(saveAndQuitSuccessful) {
                 return new PhaseAction[]{ //wait for render
-                        waitForStageRenderPhaseAction
+                        waitEvenLonger
                 };
             }
             else {
                 return new PhaseAction[]{ //fallback, so no loop happens
-                        waitAction
+                        waitBriefly
                 };
             }
         }

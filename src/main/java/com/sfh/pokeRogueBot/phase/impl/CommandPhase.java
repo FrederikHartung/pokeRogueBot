@@ -63,9 +63,9 @@ public class CommandPhase extends AbstractPhase implements Phase {
                 log.debug("GameMode.COMMAND, Attack decision chosen");
                 return new PhaseAction[]{
                         this.pressArrowUp,
-                        this.waitAction,
+                        this.waitBriefly,
                         this.pressArrowLeft,
-                        this.waitAction,
+                        this.waitBriefly,
                         this.pressSpace,
                 };
             }
@@ -73,7 +73,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
                 log.debug("GameMode.COMMAND, Ball decision chosen");
                 return new PhaseAction[]{
                         this.pressArrowRight,
-                        this.waitAction,
+                        this.waitBriefly,
                         this.pressSpace,
                 };
             }
@@ -81,7 +81,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
                 log.debug("GameMode.COMMAND, Switch decision chosen");
                 return new PhaseAction[]{
                         this.pressArrowDown,
-                        this.waitAction,
+                        this.waitBriefly,
                         this.pressSpace,
                 };
             }
@@ -89,9 +89,9 @@ public class CommandPhase extends AbstractPhase implements Phase {
                 log.debug("GameMode.COMMAND, Run decision chosen");
                 return new PhaseAction[]{
                         this.pressArrowRight,
-                        this.waitAction,
+                        this.waitBriefly,
                         this.pressArrowDown,
-                        this.waitAction,
+                        this.waitBriefly,
                         this.pressSpace,
                 };
             }
@@ -105,9 +105,9 @@ public class CommandPhase extends AbstractPhase implements Phase {
                 log.debug("CapturePokemon decision chosen because attackDecision is null and is capture pokemon");
                 return new PhaseAction[]{
                         this.pressBackspace, //go back to command menu
-                        this.waitAction,
+                        this.waitBriefly,
                         this.pressArrowRight, //go to ball menu
-                        this.waitAction,
+                        this.waitBriefly,
                         this.pressSpace, //open menu
                 };
             }
@@ -120,7 +120,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
             if(attackDecision instanceof AttackDecisionForPokemon forSingleFight){
                 log.debug("found attackDecision for single fight");
                 actionList.add(this.pressArrowUp); //to go back to top left
-                actionList.add(this.waitAction); //to go back to top left
+                actionList.add(this.waitBriefly); //to go back to top left
                 actionList.add(this.pressArrowLeft); //to go back to top left
 
                 addActionsToList(forSingleFight.getOwnAttackIndex(), forSingleFight.getSelectedTarget(), actionList, forSingleFight.getMoveTargetAreaType());
@@ -130,17 +130,17 @@ public class CommandPhase extends AbstractPhase implements Phase {
             else if(attackDecision instanceof AttackDecisionForDoubleFight forDoubleFight){
                 log.debug("found attackDecision for double fight");
                 actionList.add(this.pressArrowUp); //to go back to top left
-                actionList.add(this.waitAction); //to go back to top left
+                actionList.add(this.waitBriefly); //to go back to top left
                 actionList.add(this.pressArrowLeft); //to go back to top left
 
                 addActionsToList(forDoubleFight.getPokemon1().getOwnAttackIndex(), forDoubleFight.getPokemon1().getSelectedTarget(), actionList, forDoubleFight.getPokemon1().getMoveTargetAreaType()); //add the decisions for the first pokemon
 
                 if(null != forDoubleFight.getPokemon1() && null != forDoubleFight.getPokemon2()){ //only when two player pokemon are available
-                    actionList.add(this.waitForTextRenderAction); //second pokemon is active now and the phase is back to command phase
+                    actionList.add(this.waitLonger); //second pokemon is active now and the phase is back to command phase
                     actionList.add(this.pressSpace); //enter fight game mode again for the second pokemon
 
                     actionList.add(this.pressArrowUp);
-                    actionList.add(this.waitAction);
+                    actionList.add(this.waitBriefly);
                     actionList.add(this.pressArrowLeft); //to go back to top left
 
                     addActionsToList(forDoubleFight.getPokemon2().getOwnAttackIndex(), forDoubleFight.getPokemon2().getSelectedTarget(), actionList, forDoubleFight.getPokemon2().getMoveTargetAreaType()); //add the decisions for the second pokemon
@@ -171,7 +171,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
             log.warn("GameMode.MESSAGE detected in CommandPhase. Expecting error...");
             return new PhaseAction[]{
                     this.pressSpace,
-                    this.waitForStageRenderPhaseAction
+                    this.waitEvenLonger
             };
         }
 
@@ -179,26 +179,26 @@ public class CommandPhase extends AbstractPhase implements Phase {
     }
 
     private void addActionsToList(OwnAttackIndex ownAttackIndex, SelectedTarget selectedTarget, List<PhaseAction> actionList, MoveTargetAreaType moveTarget) {
-        actionList.add(this.waitAction);
+        actionList.add(this.waitBriefly);
         switch (ownAttackIndex) {
             case TOP_LEFT:
                 actionList.add(this.pressSpace);
                 break;
             case TOP_RIGHT:
                 actionList.add(this.pressArrowRight);
-                actionList.add(this.waitAction);
+                actionList.add(this.waitBriefly);
                 actionList.add(this.pressSpace);
                 break;
             case BOTTOM_LEFT:
                 actionList.add(this.pressArrowDown);
-                actionList.add(this.waitAction);
+                actionList.add(this.waitBriefly);
                 actionList.add(this.pressSpace);
                 break;
             case BOTTOM_RIGHT:
                 actionList.add(this.pressArrowRight);
-                actionList.add(this.waitAction);
+                actionList.add(this.waitBriefly);
                 actionList.add(this.pressArrowDown);
-                actionList.add(this.waitAction);
+                actionList.add(this.waitBriefly);
                 actionList.add(this.pressSpace);
                 break;
         }
@@ -210,7 +210,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
             log.warn("unchecked MoveTargetAreaType found: " + moveTarget);
         }
 
-        actionList.add(this.waitAction); //now choose the target
+        actionList.add(this.waitBriefly); //now choose the target
 
         switch (selectedTarget) {
             case ENEMY:
@@ -218,16 +218,16 @@ public class CommandPhase extends AbstractPhase implements Phase {
                 break;
             case LEFT_ENEMY:
                 log.debug("Left enemy target selected");
-                actionList.add(this.waitAction);
+                actionList.add(this.waitBriefly);
                 actionList.add(this.pressArrowLeft);
-                actionList.add(this.waitAction);
+                actionList.add(this.waitBriefly);
                 actionList.add(this.pressSpace);
                 break;
             case RIGHT_ENEMY:
                 log.debug("Right enemy target selected");
-                actionList.add(this.waitAction);
+                actionList.add(this.waitBriefly);
                 actionList.add(this.pressArrowRight);
-                actionList.add(this.waitAction);
+                actionList.add(this.waitBriefly);
                 actionList.add(this.pressSpace);
                 break;
         }

@@ -1,6 +1,5 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
-import com.sfh.pokeRogueBot.model.dto.SaveSlotDto;
 import com.sfh.pokeRogueBot.model.enums.GameMode;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
@@ -47,7 +46,7 @@ public class TitlePhase extends AbstractPhase implements Phase {
                 log.debug("found run property with a save slot index, so the current run is lost.");
                 runProperty.setStatus(RunStatus.LOST);//run ended because of player fainted
                 return new PhaseAction[]{
-                        this.waitAction
+                        this.waitBriefly
                 };
             }
 
@@ -70,7 +69,7 @@ public class TitlePhase extends AbstractPhase implements Phase {
                 log.warn("No available save slot, closing app.");
                 runProperty.setStatus(RunStatus.EXIT_APP);
                 return new PhaseAction[]{
-                        this.waitAction
+                        this.waitBriefly
                 };
             }
 

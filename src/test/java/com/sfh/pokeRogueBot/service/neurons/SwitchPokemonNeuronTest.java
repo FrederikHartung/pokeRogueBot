@@ -10,7 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.*;
 
 class SwitchPokemonNeuronTest {
 
@@ -18,6 +18,7 @@ class SwitchPokemonNeuronTest {
     DamageCalculatingNeuron damageCalculatingNeuron;
 
     WaveDto waveDto;
+    WavePokemon wavePokemon;
     Pokemon[] playerParty;
     Pokemon[] enemyParty;
 
@@ -44,7 +45,7 @@ class SwitchPokemonNeuronTest {
         waveDto.setDoubleFight(false);
         playerParty = new Pokemon[6];
         enemyParty = new Pokemon[6];
-        WavePokemon wavePokemon = new WavePokemon();
+        wavePokemon = new WavePokemon();
         wavePokemon.setEnemyParty(enemyParty);
         wavePokemon.setPlayerParty(playerParty);
         waveDto.setWavePokemon(wavePokemon);
@@ -135,5 +136,14 @@ class SwitchPokemonNeuronTest {
         player3Species.setType1(PokeType.WATER);
 
         assertFalse(switchPokemonNeuron.shouldSwitchPokemon(waveDto));
+    }
+
+    @Test
+    void if_the_enemy_party_is_empty_the_next_player_pokemon_is_switched_in(){
+        wavePokemon.setEnemyParty(new Pokemon[0]);
+        SwitchDecision switchDecision = switchPokemonNeuron.getBestSwitchDecision(waveDto);
+        assertNotNull(switchDecision);
+        verify(switchPokemonNeuron, times(1)).getNextPokemon(playerParty);
+        assertEquals(1, switchDecision.getIndex());
     }
 }
