@@ -8,6 +8,7 @@ import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.phase.actions.PressKeyPhaseAction;
 import com.sfh.pokeRogueBot.service.Brain;
 import com.sfh.pokeRogueBot.service.JsService;
+import com.sfh.pokeRogueBot.service.WaitingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -19,6 +20,7 @@ import static org.mockito.Mockito.*;
 class SelectStarterPhaseTest {
 
     SelectStarterPhase selectStarterPhase;
+    WaitingService waitingService;
     JsService jsService;
     Brain brain;
 
@@ -31,7 +33,8 @@ class SelectStarterPhaseTest {
     void setUp() {
         jsService = mock(JsService.class);
         brain = mock(Brain.class);
-        SelectStarterPhase objToSpy = new SelectStarterPhase(jsService, brain, starterIds);
+        waitingService = mock(WaitingService.class);
+        SelectStarterPhase objToSpy = new SelectStarterPhase(jsService, waitingService, brain, starterIds);
         selectStarterPhase = spy(objToSpy);
 
         runProperty = new RunProperty(1);

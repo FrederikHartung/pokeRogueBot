@@ -31,6 +31,7 @@ public class Brain {
     private final LearnMoveNeuron learnMoveNeuron;
 
     private RunProperty runProperty = null;
+    private boolean waveIndexReset = false;
     private WaveDto waveDto;
     private ChooseModifierDecision chooseModifierDecision;
     @Getter
@@ -237,6 +238,7 @@ public class Brain {
         if(runProperty == null){
             log.debug("runProperty is null, creating new one");
             runProperty = new RunProperty(1);
+            waveIndexReset = true;
             return runProperty;
         }
 
@@ -259,12 +261,14 @@ public class Brain {
                     log.debug("Save slot index is -1, so error occurred before starting a run.");
                 }
                 runProperty = new RunProperty(runProperty.getRunNumber() + 1);
+                waveIndexReset = true;
                 return runProperty;
             case LOST:
                 log.debug("Lost battle, setting data present to false for save slot: " + runProperty.getSaveSlotIndex());
                 saveSlots[runProperty.getSaveSlotIndex()].setErrorOccurred(false);
                 saveSlots[runProperty.getSaveSlotIndex()].setDataPresent(false);
                 runProperty = new RunProperty(runProperty.getRunNumber() + 1);
+                waveIndexReset = true;
                 return runProperty;
             default:
                 throw new IllegalStateException("RunProperty has unknown status: " + runProperty.getStatus());
@@ -292,5 +296,13 @@ public class Brain {
 
     public LearnMoveDecision getLearnMoveDecision(Pokemon pokemon) {
         return learnMoveNeuron.getLearnMoveDecision(pokemon);
+    }
+
+    public boolean shouldResetWaveIndex() {
+        if(waveIndexReset){
+            waveIndexReset = false;
+            return true;
+        }
+        return false;
     }
 }

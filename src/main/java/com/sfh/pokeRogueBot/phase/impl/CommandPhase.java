@@ -47,6 +47,11 @@ public class CommandPhase extends AbstractPhase implements Phase {
             throw new IllegalStateException("waveAndTurnDto is null");
         }
 
+        //when a new run started
+        if(brain.shouldResetWaveIndex()){
+            log.debug("Resetting wave index");
+            this.lastWaveIndex = -1;
+        }
 
         //if the wave has ended, inform the brain
         if (waveAndTurnDto.getWaveIndex() > lastWaveIndex) {

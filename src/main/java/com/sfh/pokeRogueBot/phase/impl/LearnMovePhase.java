@@ -38,6 +38,7 @@ public class LearnMovePhase extends AbstractPhase implements Phase {
         if (gameMode == GameMode.MESSAGE){
             return new PhaseAction[]{
                     this.pressSpace,
+                    this.waitBriefly
             };
         }
         else if(gameMode == GameMode.CONFIRM){

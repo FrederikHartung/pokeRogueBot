@@ -82,7 +82,7 @@ class SwitchPokemonNeuronTest {
 
     @Test
     void in_single_fight_the_index_of_the_first_pokemon_is_ignored(){
-        SwitchDecision switchDecision = switchPokemonNeuron.getBestSwitchDecision(waveDto);
+        SwitchDecision switchDecision = switchPokemonNeuron.getBestSwitchDecision(waveDto, false);
         assertNotNull(switchDecision);
         int indexToSwitchTo = switchDecision.getIndex();
         assertTrue(indexToSwitchTo >= 1 && indexToSwitchTo < 6);
@@ -91,7 +91,7 @@ class SwitchPokemonNeuronTest {
     @Test
     void fainted_pokemons_are_skipped(){
         playerPokemon2.setHp(0);
-        SwitchDecision switchDecision = switchPokemonNeuron.getBestSwitchDecision(waveDto);
+        SwitchDecision switchDecision = switchPokemonNeuron.getBestSwitchDecision(waveDto, false);
         assertNotNull(switchDecision);
         int indexToSwitchTo = switchDecision.getIndex();
         assertEquals(2, indexToSwitchTo);
@@ -100,7 +100,7 @@ class SwitchPokemonNeuronTest {
     @Test
     void in_double_fight_the_first_two_pokemons_are_skipped(){
         waveDto.setDoubleFight(true);
-        SwitchDecision switchDecision = switchPokemonNeuron.getBestSwitchDecision(waveDto);
+        SwitchDecision switchDecision = switchPokemonNeuron.getBestSwitchDecision(waveDto, false);
         assertNotNull(switchDecision);
         int indexToSwitchTo = switchDecision.getIndex();
         assertEquals(2, indexToSwitchTo);
@@ -108,7 +108,7 @@ class SwitchPokemonNeuronTest {
 
     @Test
     void a_pokemon_with_good_type_advantage_is_chosen(){
-        SwitchDecision switchDecision = switchPokemonNeuron.getBestSwitchDecision(waveDto);
+        SwitchDecision switchDecision = switchPokemonNeuron.getBestSwitchDecision(waveDto, false);
         assertNotNull(switchDecision);
         assertEquals(2, switchDecision.getIndex());
     }
@@ -143,9 +143,9 @@ class SwitchPokemonNeuronTest {
     @Test
     void if_the_enemy_party_is_empty_the_next_player_pokemon_is_switched_in(){
         wavePokemon.setEnemyParty(new Pokemon[0]);
-        SwitchDecision switchDecision = switchPokemonNeuron.getBestSwitchDecision(waveDto);
+        SwitchDecision switchDecision = switchPokemonNeuron.getBestSwitchDecision(waveDto, false);
         assertNotNull(switchDecision);
-        verify(switchPokemonNeuron, times(1)).getNextPokemon(playerParty);
+        verify(switchPokemonNeuron, times(1)).getNextPokemon(playerParty, false);
         assertEquals(1, switchDecision.getIndex());
     }
 }
