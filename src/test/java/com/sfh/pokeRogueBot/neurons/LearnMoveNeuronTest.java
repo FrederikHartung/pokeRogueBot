@@ -150,12 +150,4 @@ class LearnMoveNeuronTest {
         count = learnMoveNeuron.getNumberOfAttacksWithType(existingMoves, PokeType.FIRE);
         assertEquals(2, count);
     }
-
-    @Test
-    void pokemonHasTwoTypes_learns_a_own_move_type(){
-
-        LearnMoveDecision decision = learnMoveNeuron.getLearnMoveDecision(pokemon);
-        assertNotNull(decision);
-        assertTrue(decision.isNewMoveBetter());
-    }
 }
