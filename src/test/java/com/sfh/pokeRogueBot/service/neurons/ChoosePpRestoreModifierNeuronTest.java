@@ -21,15 +21,11 @@ class ChoosePpRestoreModifierNeuronTest {
 
     ModifierShop shop;
 
-    List<ModifierShopItem> buyableItems;
+    List<ChooseModifierItem> buyableItems;
 
-    ModifierShopItem potion;
-    PokemonHpRestoreModifierItem potionItem;
-    ModifierPosition potionPosition;
+    PokemonHpRestoreModifierItem potion;
 
-    ModifierShopItem ppRestoreItem;
-    PokemonPpRestoreModifierItem ppRestoreModifierItem;
-    ModifierPosition ppRestorePosition;
+    PokemonPpRestoreModifierItem ppRestoreItem;
 
     Pokemon[] playerParty = new Pokemon[6];
 
@@ -48,18 +44,19 @@ class ChoosePpRestoreModifierNeuronTest {
         shop = mock(ModifierShop.class);
         buyableItems = new LinkedList<>();
 
-        potionItem = new PokemonHpRestoreModifierItem();
-        potionItem.setTypeName(PokemonHpRestoreModifierItem.TARGET);
-        potionPosition = new ModifierPosition(2, 0);
-        potion = new ModifierShopItem(potionItem, potionPosition);
+        potion = new PokemonHpRestoreModifierItem();
+        potion.setTypeName(PokemonHpRestoreModifierItem.TARGET);
+        potion.setY(2);
+        potion.setX(0);
+
         buyableItems.add(potion);
 
-        ppRestoreModifierItem = new PokemonPpRestoreModifierItem();
-        ppRestoreModifierItem.setTypeName(PokemonPpRestoreModifierItem.TARGET);
-        ppRestoreModifierItem.setRestorePoints(10);
-        ppRestoreModifierItem.setCost(150);
-        ppRestorePosition = new ModifierPosition(2, 1);
-        ppRestoreItem = new ModifierShopItem(ppRestoreModifierItem, ppRestorePosition);
+        ppRestoreItem = new PokemonPpRestoreModifierItem();
+        ppRestoreItem.setTypeName(PokemonPpRestoreModifierItem.TARGET);
+        ppRestoreItem.setRestorePoints(10);
+        ppRestoreItem.setCost(150);
+        ppRestoreItem.setY(2);
+        ppRestoreItem.setX(1);
         buyableItems.add(ppRestoreItem);
 
         playerParty[0] = pokemon1;
@@ -75,7 +72,7 @@ class ChoosePpRestoreModifierNeuronTest {
         move2.setPPLeft(10);
 
         doReturn(1000).when(shop).getMoney();
-        doReturn(buyableItems).when(shop).getBuyableItems();
+        doReturn(buyableItems).when(shop).getShopItems();
     }
 
     /**
@@ -85,12 +82,13 @@ class ChoosePpRestoreModifierNeuronTest {
     @Test
     void a_pp_restore_item_is_bought_if_needed(){
         move2.setPPLeft(0);
+        ppRestoreItem.setY(2);
+        ppRestoreItem.setX(1);
 
         MoveToModifierResult result = choosePpRestoreModifierNeuron.buyPpRestoreItemIfMoveIsOutOfPp(shop, playerParty);
         assertNotNull(result);
-        verify(shop).setMoney(anyInt());
-        assertEquals(ppRestorePosition.getRow(), result.getRowIndex());
-        assertEquals(ppRestorePosition.getColumn(), result.getColumnIndex());
+        assertEquals(2, result.getRowIndex());
+        assertEquals(1, result.getColumnIndex());
         assertEquals(1, result.getPokemonIndexToSwitchTo());
     }
 
@@ -103,7 +101,6 @@ class ChoosePpRestoreModifierNeuronTest {
 
         MoveToModifierResult result = choosePpRestoreModifierNeuron.buyPpRestoreItemIfMoveIsOutOfPp(shop, playerParty);
         assertNull(result);
-        verify(shop, never()).setMoney(anyInt());
     }
 
     @Test
@@ -112,7 +109,6 @@ class ChoosePpRestoreModifierNeuronTest {
 
         MoveToModifierResult result = choosePpRestoreModifierNeuron.buyPpRestoreItemIfMoveIsOutOfPp(shop, playerParty);
         assertNull(result);
-        verify(shop, never()).setMoney(anyInt());
     }
 
 }

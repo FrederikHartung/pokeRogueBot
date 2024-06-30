@@ -241,18 +241,46 @@ window.poru.uihandler = {
     getModifierShopItems: () => {
         var modifierSelectUiHandler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[6];
         if(modifierSelectUiHandler && modifierSelectUiHandler.active){
-            var shopOptionsDtoArrayArray = [];
             var freeItemsDtoArray = this.poru.modifier.getModifierItemDtoArray(modifierSelectUiHandler.options);
-            shopOptionsDtoArrayArray.push(freeItemsDtoArray);
             var shopOptionsRows = modifierSelectUiHandler.shopOptionsRows;
+
+            var shopOptionsDtoArrayArray = [];
             for(let i = shopOptionsRows.length -1; i >= 0; i--){
                 var row = shopOptionsRows[i];
                 var rowDto = this.poru.modifier.getModifierItemDtoArray(row);
                 shopOptionsDtoArrayArray.push(rowDto);
             }
 
-            return shopOptionsDtoArrayArray;
+            for(let colIndex = 0; colIndex < freeItemsDtoArray.length; colIndex++){
+                var freeItem = freeItemsDtoArray[colIndex];
+                freeItem.x = colIndex;
+                freeItem.y = 1; //skip button row
+            }
+
+            for(let rowIndex = 0; rowIndex < shopOptionsDtoArrayArray.length; rowIndex++){
+                var row = shopOptionsDtoArrayArray[rowIndex];
+                for(let colIndex = 0; colIndex < row.length; colIndex++){
+                    var item = row[colIndex];
+                    item.x = colIndex;
+                    item.y = rowIndex + 2; //skip button row and free items row
+                }
+            }
+
+            shopOptions = [];
+            for(let i = 0; i < shopOptionsDtoArrayArray.length; i++){
+                shopOptions = shopOptions.concat(shopOptionsDtoArrayArray[i]);
+            }
+
+            return {
+                freeItems: freeItemsDtoArray,
+                shopItems: shopOptions,
+                money: modifierSelectUiHandler.scene.money
+            };
         }
         return null;
     },
+
+    getModifierShopItemsJson: () => {
+        return JSON.stringify(window.poru.uihandler.getModifierShopItems());
+    }
 }

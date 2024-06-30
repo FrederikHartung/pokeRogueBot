@@ -18,4 +18,9 @@ public class ModifierItem implements ChooseModifierItem {
 
     private int cost;
     private int upgradeCount;
+
+    @Override
+    public String toString() {
+        return tier.name() + ": " + name + ", Type: " + typeName;
+    }
 }

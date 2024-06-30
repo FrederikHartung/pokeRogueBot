@@ -30,7 +30,7 @@ public class JsService {
             .registerTypeAdapter(ChooseModifierItem.class, new ChooseModifierItemDeserializer())
             .create();
     private static final Type TYPE = new TypeToken<List<ChooseModifierItem>>() {
-    }.getType();
+    }.getType(); //todo: delete if not needed
 
     public static final Path UTIL = Paths.get(".", "bin", "js", "util.js");
     public static final Path UI_HANDLER = Paths.get(".", "bin", "js", "uihandler.js");
@@ -69,12 +69,9 @@ public class JsService {
     }
 
     public ModifierShop getModifierShop() {
-        String json = jsClient.executeCommandAndGetResult("return window.poru.modifier.getSelectModifiersJson();").toString();
-        List<ChooseModifierItem> options = GSON.fromJson(json, TYPE);
-        if (options == null || options.isEmpty()) {
-            throw new IllegalStateException("Modifier options are empty");
-        }
-        return new ModifierShop(options);
+        String json = jsClient.executeCommandAndGetResult("return window.poru.uihandler.getModifierShopItemsJson();").toString();
+        ModifierShop modifierShop = GSON.fromJson(json, ModifierShop.class);
+        return modifierShop;
     }
 
     public WaveDto getWaveDto() {
