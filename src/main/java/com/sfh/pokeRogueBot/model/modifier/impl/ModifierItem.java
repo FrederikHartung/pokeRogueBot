@@ -21,6 +21,6 @@ public class ModifierItem implements ChooseModifierItem {
 
     @Override
     public String toString() {
-        return tier.name() + ": " + name + ", Type: " + typeName;
+        return (tier != null ? tier.name() : ModifierTier.COMMON.name()) + ": " + name + ", Type: " + typeName;
     }
 }
