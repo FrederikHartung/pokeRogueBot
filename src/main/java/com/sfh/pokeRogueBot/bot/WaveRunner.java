@@ -14,6 +14,9 @@ import com.sfh.pokeRogueBot.service.Brain;
 import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.service.WaitingService;
 import lombok.extern.slf4j.Slf4j;
+import org.openqa.selenium.JavascriptException;
+import org.openqa.selenium.NoSuchWindowException;
+import org.openqa.selenium.remote.UnreachableBrowserException;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -59,6 +62,10 @@ public class WaveRunner {
                 log.debug("no known phase detected, phaseAsString: " + phaseAsString + " , gameMode: " + gameMode);
                 throw new UnsupportedPhaseException(phaseAsString, gameMode);
             }
+        }
+        catch (JavascriptException | NoSuchWindowException | UnreachableBrowserException e){
+            log.error("Unexpected error, quitting app: " + e.getMessage());
+            System.exit(1);
         }
         catch (Exception e){
             log.error("Error in WaveRunner, trying to save and quit to title, error: " + e.getMessage(), e);

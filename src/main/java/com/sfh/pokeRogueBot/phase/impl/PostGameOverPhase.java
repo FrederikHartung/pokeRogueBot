@@ -20,7 +20,7 @@ public class PostGameOverPhase extends AbstractPhase implements Phase {
     @Override
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
         return new PhaseAction[]{
-                waitAction
+                waitBriefly
         };
     }
 }

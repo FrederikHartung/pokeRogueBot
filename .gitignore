@@ -36,3 +36,4 @@ replay_pid*
 src/main/resources/users.txt
 src/main/resources/application-default.yml
 /data/save
+*.png

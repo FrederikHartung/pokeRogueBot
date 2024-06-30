@@ -1,22 +1,17 @@
 package com.sfh.pokeRogueBot.service;
 
-import com.sfh.pokeRogueBot.model.decisions.AttackDecision;
-import com.sfh.pokeRogueBot.model.decisions.AttackDecisionForDoubleFight;
-import com.sfh.pokeRogueBot.model.decisions.ChooseModifierDecision;
-import com.sfh.pokeRogueBot.model.decisions.SwitchDecision;
+import com.sfh.pokeRogueBot.model.decisions.*;
 import com.sfh.pokeRogueBot.model.dto.SaveSlotDto;
 import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
+import com.sfh.pokeRogueBot.model.exception.StopRunException;
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.run.*;
+import com.sfh.pokeRogueBot.neurons.*;
 import com.sfh.pokeRogueBot.phase.ScreenshotClient;
-import com.sfh.pokeRogueBot.service.neurons.CapturePokemonNeuron;
-import com.sfh.pokeRogueBot.service.neurons.ChooseModifierNeuron;
-import com.sfh.pokeRogueBot.service.neurons.CombatNeuron;
-import com.sfh.pokeRogueBot.service.neurons.SwitchPokemonNeuron;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,8 +28,10 @@ public class Brain {
     private final ChooseModifierNeuron chooseModifierNeuron;
     private final CombatNeuron combatNeuron;
     private final CapturePokemonNeuron capturePokemonNeuron;
+    private final LearnMoveNeuron learnMoveNeuron;
 
     private RunProperty runProperty = null;
+    private boolean waveIndexReset = false;
     private WaveDto waveDto;
     private ChooseModifierDecision chooseModifierDecision;
     @Getter
@@ -44,7 +41,7 @@ public class Brain {
             JsService jsService,
             ShortTermMemory shortTermMemory,
             ScreenshotClient screenshotClient,
-            SwitchPokemonNeuron switchPokemonNeuron, ChooseModifierNeuron chooseModifierNeuron, CombatNeuron combatNeuron, CapturePokemonNeuron capturePokemonNeuron
+            SwitchPokemonNeuron switchPokemonNeuron, ChooseModifierNeuron chooseModifierNeuron, CombatNeuron combatNeuron, CapturePokemonNeuron capturePokemonNeuron, LearnMoveNeuron learnMoveNeuron
     ) {
         this.jsService = jsService;
         this.shortTermMemory = shortTermMemory;
@@ -53,11 +50,12 @@ public class Brain {
         this.chooseModifierNeuron = chooseModifierNeuron;
         this.combatNeuron = combatNeuron;
         this.capturePokemonNeuron = capturePokemonNeuron;
+        this.learnMoveNeuron = learnMoveNeuron;
     }
 
-    public SwitchDecision getFaintedPokemonSwitchDecision() {
+    public SwitchDecision getFaintedPokemonSwitchDecision(boolean ignoreFirstPokemon) {
         waveDto = jsService.getWaveDto(); //always update current state
-        return switchPokemonNeuron.getBestSwitchDecision(waveDto);
+        return switchPokemonNeuron.getBestSwitchDecision(waveDto, ignoreFirstPokemon);
     }
 
     public MoveToModifierResult getModifierToPick() {
@@ -145,11 +143,28 @@ public class Brain {
         if (null != waveDto && waveDto.isWildPokemonFight()) {
             for(Pokemon wildPokemon : waveDto.getWavePokemon().getEnemyParty()) {
                 if (wildPokemon.isShiny()) {
-                    log.info("Shiny pokemon detected: " + wildPokemon.getName());
+                    String message = "Shiny pokemon detected: " + wildPokemon.getName();
+                    log.info(message);
                     screenshotClient.persistScreenshot("shiny_pokemon_detected");
+                    throw new StopRunException(message);
                 }
-                if(wildPokemon.getFormIndex() != 0){
-                    log.debug("Pokemon {} has form index: {} with t1 {} and t2 {}", wildPokemon.getName(), wildPokemon.getFormIndex(), wildPokemon.getSpecies().getType1(), wildPokemon.getSpecies().getType2());
+                if(wildPokemon.getSpecies().isMythical()){
+                    String message = "Mythical pokemon detected: " + wildPokemon.getName();
+                    log.info(message);
+                    screenshotClient.persistScreenshot("mythical_pokemon_detected");
+                    throw new StopRunException(message);
+                }
+                if(wildPokemon.getSpecies().isLegendary()){
+                    String message = "Legendary pokemon detected: " + wildPokemon.getName();
+                    log.info(message);
+                    screenshotClient.persistScreenshot("legendary_pokemon_detected");
+                    throw new StopRunException(message);
+                }
+                if(wildPokemon.getSpecies().isSubLegendary()){
+                    String message = "Sub Legendary pokemon detected: " + wildPokemon.getName();
+                    log.info(message);
+                    screenshotClient.persistScreenshot("sub_legendary_pokemon_detected");
+                    throw new StopRunException(message);
                 }
             }
         }
@@ -223,6 +238,7 @@ public class Brain {
         if(runProperty == null){
             log.debug("runProperty is null, creating new one");
             runProperty = new RunProperty(1);
+            waveIndexReset = true;
             return runProperty;
         }
 
@@ -245,12 +261,14 @@ public class Brain {
                     log.debug("Save slot index is -1, so error occurred before starting a run.");
                 }
                 runProperty = new RunProperty(runProperty.getRunNumber() + 1);
+                waveIndexReset = true;
                 return runProperty;
             case LOST:
                 log.debug("Lost battle, setting data present to false for save slot: " + runProperty.getSaveSlotIndex());
                 saveSlots[runProperty.getSaveSlotIndex()].setErrorOccurred(false);
                 saveSlots[runProperty.getSaveSlotIndex()].setDataPresent(false);
                 runProperty = new RunProperty(runProperty.getRunNumber() + 1);
+                waveIndexReset = true;
                 return runProperty;
             default:
                 throw new IllegalStateException("RunProperty has unknown status: " + runProperty.getStatus());
@@ -263,16 +281,28 @@ public class Brain {
     }
 
     public SwitchDecision getBestSwitchDecision() {
-        SwitchDecision switchDecision = switchPokemonNeuron.getBestSwitchDecision(waveDto);
+        SwitchDecision switchDecision = switchPokemonNeuron.getBestSwitchDecision(waveDto, false);
         if(switchDecision == null){
             throw new IllegalStateException("No switch decision found");
         }
         log.debug("Switching to pokemon: " + switchDecision.getPokeName() + " on index: " + switchDecision.getIndex());
-        return switchPokemonNeuron.getBestSwitchDecision(waveDto);
+        return switchDecision;
     }
 
     public boolean shouldSwitchPokemon() {
         waveDto = jsService.getWaveDto(); //always update current state
         return switchPokemonNeuron.shouldSwitchPokemon(waveDto);
+    }
+
+    public LearnMoveDecision getLearnMoveDecision(Pokemon pokemon) {
+        return learnMoveNeuron.getLearnMoveDecision(pokemon);
+    }
+
+    public boolean shouldResetWaveIndex() {
+        if(waveIndexReset){
+            waveIndexReset = false;
+            return true;
+        }
+        return false;
     }
 }

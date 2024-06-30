@@ -7,6 +7,7 @@ import com.sfh.pokeRogueBot.model.decisions.PossibleAttackMove;
 import com.sfh.pokeRogueBot.model.enums.PokeType;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.results.DamageMultiplier;
+import com.sfh.pokeRogueBot.neurons.DamageCalculatingNeuron;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

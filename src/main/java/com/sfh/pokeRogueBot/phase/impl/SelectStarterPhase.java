@@ -9,6 +9,7 @@ import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.Brain;
 import com.sfh.pokeRogueBot.service.JsService;
+import com.sfh.pokeRogueBot.service.WaitingService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -22,6 +23,7 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
     public static final String NAME = "SelectStarterPhase";
 
     private final JsService jsService;
+    private final WaitingService waitingService;
     private final Brain brain;
     private final List<Integer>  starterIds;
     private final List<Starter> starters = new LinkedList<>();
@@ -29,10 +31,11 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
     private boolean selectedStarters = false;
 
     public SelectStarterPhase(
-            JsService jsService, Brain brain,
+            JsService jsService, WaitingService waitingService, Brain brain,
             @Value("${starter.ids}") List<Integer> starterIds
     ) {
         this.jsService = jsService;
+        this.waitingService = waitingService;
         this.brain = brain;
         this.starterIds = starterIds;
     }
@@ -52,21 +55,25 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
                 StringJoiner joiner = new StringJoiner(", ");
                 starters.forEach(starter -> joiner.add(starter.getSpecies().getSpeciesString()));
                 log.debug("Selected starters: {}", joiner.toString());
-                return new PhaseAction[]{this.waitAction};
+                return new PhaseAction[]{this.waitLonger};
             }
             else if(!starters.isEmpty()){
+                waitingService.waitLonger(); //always wait for render
                 int lastPokemonIndex = starters.size() - 1;
-                boolean success = jsService.setPokemonSelectCursor(starters.get(lastPokemonIndex).getSpeciesId());
+                int starterId = starters.get(lastPokemonIndex).getSpeciesId();
+                boolean success = jsService.setPokemonSelectCursor(starterId);
+
+                brain.memorize("selectedStarterId: " + starterId);
 
                 if(!success){
-                    throw new IllegalStateException("Failed to set cursor to starter: " + starters.get(lastPokemonIndex).getSpeciesId());
+                    throw new IllegalStateException("Failed to set cursor to starter: " + starterId);
                 }
                 starters.remove(lastPokemonIndex);
 
                 return new PhaseAction[]{
-                        this.waitAction,
+                        this.waitLonger,
                         this.pressSpace, // select the starter
-                        this.waitAction,
+                        this.waitLonger,
                         this.pressSpace // confirm the selection
                 };
             }
@@ -79,7 +86,7 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
                 selectedStarters = false; //set to false for next run
 
                 return new PhaseAction[]{
-                        this.waitForTextRenderAction,
+                        this.waitLonger,
                         this.pressSpace
                 };
             }
@@ -97,7 +104,7 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
             if(setSaveSlotCursorSuccess){
                 return new PhaseAction[]{
                         this.pressSpace, //choose
-                        this.waitAction,
+                        this.waitBriefly,
                         this.pressSpace //confirm
                 };
             }

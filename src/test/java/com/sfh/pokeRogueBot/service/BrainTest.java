@@ -3,11 +3,8 @@ package com.sfh.pokeRogueBot.service;
 import com.sfh.pokeRogueBot.model.dto.SaveSlotDto;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
+import com.sfh.pokeRogueBot.neurons.*;
 import com.sfh.pokeRogueBot.phase.ScreenshotClient;
-import com.sfh.pokeRogueBot.service.neurons.CapturePokemonNeuron;
-import com.sfh.pokeRogueBot.service.neurons.ChooseModifierNeuron;
-import com.sfh.pokeRogueBot.service.neurons.CombatNeuron;
-import com.sfh.pokeRogueBot.service.neurons.SwitchPokemonNeuron;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -24,6 +21,7 @@ class BrainTest {
     CombatNeuron combatNeuron;
     SwitchPokemonNeuron switchPokemonNeuron;
     CapturePokemonNeuron capturePokemonNeuron;
+    LearnMoveNeuron learnMoveNeuron;
 
     ScreenshotClient screenshotClient;
     SaveSlotDto[] saveSlots;
@@ -40,7 +38,17 @@ class BrainTest {
         switchPokemonNeuron = mock(SwitchPokemonNeuron.class);
         screenshotClient = mock(ScreenshotClient.class);
         capturePokemonNeuron = mock(CapturePokemonNeuron.class);
-        Brain objToSpy = new Brain(jsService, shortTermMemory, screenshotClient, switchPokemonNeuron, chooseModifierNeuron, combatNeuron, capturePokemonNeuron);
+        learnMoveNeuron = mock(LearnMoveNeuron.class);
+        Brain objToSpy = new Brain(
+                jsService,
+                shortTermMemory,
+                screenshotClient,
+                switchPokemonNeuron,
+                chooseModifierNeuron,
+                combatNeuron,
+                capturePokemonNeuron,
+                learnMoveNeuron
+        );
         brain = spy(objToSpy);
 
         runProperty = new RunProperty(1);

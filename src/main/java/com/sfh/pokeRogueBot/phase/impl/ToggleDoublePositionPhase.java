@@ -21,7 +21,7 @@ public class ToggleDoublePositionPhase extends AbstractPhase implements Phase {
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
         if (gameMode == GameMode.MESSAGE)
             return new PhaseAction[]{
-                    this.waitAction
+                    this.waitBriefly
             };
 
         throw new NotSupportedException("GameMode not supported for ToggleDoublePositionPhase: " + gameMode);

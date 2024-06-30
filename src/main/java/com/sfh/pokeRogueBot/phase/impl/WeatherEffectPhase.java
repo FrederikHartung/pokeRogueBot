@@ -21,7 +21,7 @@ public class WeatherEffectPhase extends AbstractPhase implements Phase {
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
         if(gameMode == GameMode.COMMAND){
             return new PhaseAction[]{
-                    waitAction
+                    waitBriefly
             };
         }
         else if(gameMode == GameMode.MESSAGE){

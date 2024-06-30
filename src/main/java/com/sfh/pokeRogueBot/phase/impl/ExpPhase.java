@@ -25,7 +25,7 @@ public class ExpPhase extends AbstractPhase implements Phase {
             };
         else if (gameMode == GameMode.MODIFIER_SELECT){
             return new PhaseAction[]{
-                    this.waitAction
+                    this.waitBriefly
             };
         }
 

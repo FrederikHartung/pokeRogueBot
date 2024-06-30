@@ -1,12 +1,10 @@
-package com.sfh.pokeRogueBot.service.neurons;
+package com.sfh.pokeRogueBot.neurons;
 
 import com.sfh.pokeRogueBot.model.dto.WaveDto;
-import com.sfh.pokeRogueBot.model.enums.PokeType;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.decisions.SwitchDecision;
 import com.sfh.pokeRogueBot.model.results.DamageMultiplier;
 import com.sfh.pokeRogueBot.model.run.WavePokemon;
-import com.sfh.pokeRogueBot.service.Brain;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -27,10 +25,15 @@ public class SwitchPokemonNeuron {
      * This method returns the index of the pokemon with the best type advantage against the enemy pokemon
      * @return the index of the pokemon with the best type advantage against the enemy pokemon
      */
-    public SwitchDecision getBestSwitchDecision(WaveDto waveDto) {
+    public SwitchDecision getBestSwitchDecision(WaveDto waveDto, boolean ignoreFirstPokemon) {
 
         WavePokemon wave = waveDto.getWavePokemon();
         Pokemon[] playerParty = wave.getPlayerParty();
+
+        //if the wild pokeon and the player pokemon fainted at the same time
+        if(wave.getEnemyParty().length == 0){
+            return getNextPokemon(playerParty, ignoreFirstPokemon);
+        }
 
         //in single fight, skipp first, in double fight, skip first two
         int startIndexOfPartyPokemons = waveDto.isDoubleFight() ? 2 : 1;
@@ -98,7 +101,7 @@ public class SwitchPokemonNeuron {
         WavePokemon wavePokemon = waveDto.getWavePokemon();
         DamageMultiplier playerPoke1 = damageCalculatingNeuron.getTypeBasedDamageMultiplier(wavePokemon.getPlayerParty()[0], wavePokemon.getEnemyParty()[0]);
         SwitchDecision playerPoke1Switch = toSwitchDecision(0, wavePokemon.getPlayerParty()[0].getName(), playerPoke1);
-        SwitchDecision otherSwitch = getBestSwitchDecision(waveDto);
+        SwitchDecision otherSwitch = getBestSwitchDecision(waveDto, false);
 
         if(otherSwitch == null){
             return false;
@@ -113,5 +116,20 @@ public class SwitchPokemonNeuron {
         }
 
         return shouldSwitch;
+    }
+
+    /**
+     * If the enemy pokemon was a wild pokemon and both the player pokemon and the wild pokemon fainted, the enemy party is empty and the next pokemon of the player has to be selected
+     * @return
+     */
+    public SwitchDecision getNextPokemon(Pokemon[] playerParty, boolean ignoreFirstPokemon){
+        int startIndex = ignoreFirstPokemon ? 1 : 0;
+        for(int i = startIndex; i < playerParty.length; i++){
+            if(playerParty[i].getHp() > 0){
+                return new SwitchDecision(i, playerParty[i].getName(), 1, 1);
+            }
+        }
+
+        return null;
     }
 }

@@ -21,7 +21,7 @@ public class BattleEndPhase extends AbstractPhase implements Phase {
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
         if (gameMode == GameMode.MODIFIER_SELECT || gameMode == GameMode.MESSAGE) {
             return new PhaseAction[]{
-                    this.waitAction
+                    this.waitBriefly
             };
         }
 

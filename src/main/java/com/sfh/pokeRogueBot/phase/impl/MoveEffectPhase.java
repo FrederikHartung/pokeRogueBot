@@ -34,7 +34,7 @@ public class MoveEffectPhase extends AbstractPhase implements Phase {
     public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
         if (gameMode == GameMode.MESSAGE) {
             return new PhaseAction[]{
-                    waitAction //todo: check if this is correct or if space needs to be pressed
+                    waitBriefly //todo: check if this is correct or if space needs to be pressed
             };
         } else if (gameMode == GameMode.PARTY) {
             return handlePartyGameMode();

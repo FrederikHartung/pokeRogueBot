@@ -173,48 +173,100 @@ window.poru.poke = {
         };
     },
 
+    getMoveDto: (move, disabledId, ppUsed) => {
+        if (!move) {
+            return;
+        }
+
+        var isMoveDisabled = disabledId === move.id;
+        var isMoveUsable = !isMoveDisabled && ((move.pp - ppUsed) > 0);
+        var moveDto = {
+            name: move.name,
+            id: move.id,
+            accuracy: move.accuracy,
+            category: window.poru.poke.getCategoryAsString(move.category),
+            chance: move.chance,
+            defaultType: window.poru.poke.getTypeAsString(move.defaultType),
+            moveTarget: window.poru.poke.getMoveTargetAsString(move.moveTarget),
+            power: move.power,
+            priority: move.priority,
+            type: window.poru.poke.getTypeAsString(move.type),
+            movePp: move.pp,
+            pPUsed: ppUsed,
+            pPLeft: move.pp - ppUsed,
+            isUsable: isMoveUsable,
+        };
+
+        return moveDto;
+    },
+
     getMovesetDto: (pokemon) => {
-        if (!pokemon || !pokemon.moveset || !pokemon.summonData) {
+        if (!pokemon || !pokemon.moveset) {
             return [];
         }
     
         var moveSet = pokemon.moveset;
-        var disabledId = pokemon.summonData.disabledMove;
+        if(pokemon.summonData){
+            var disabledId = pokemon.summonData.disabledMove;
+        }
+        else if(pokemon.summonDataPrimer){        
+            var disabledId = pokemon.summonDataPrimer.disabledMove;
+        }
+        else{
+            var disabledId = -1;
+        }
+
         var movesetDto = [];
     
         moveSet.forEach(moveSetItem => {
-            var move = moveSetItem.getMove();
-            if (!move) {
-                return;
-            }
-    
-            var isMoveDisabled = disabledId === moveSetItem.moveId;
-            var isMoveUsable = !isMoveDisabled && ((moveSetItem.getMovePp() - moveSetItem.ppUsed) > 0);
-            var moveDto = {
-                name: moveSetItem.getName(),
-                id: moveSetItem.moveId,
-                accuracy: move.accuracy,
-                category: window.poru.poke.getCategoryAsString(move.category),
-                chance: move.chance,
-                defaultType: window.poru.poke.getTypeAsString(move.defaultType),
-                moveTarget: window.poru.poke.getMoveTargetAsString(move.moveTarget),
-                power: move.power,
-                priority: move.priority,
-                type: window.poru.poke.getTypeAsString(move.type),
-                movePp: moveSetItem.getMovePp(),
-                pPUsed: moveSetItem.ppUsed,
-                pPLeft: moveSetItem.getMovePp() - moveSetItem.ppUsed,
-                isUsable: isMoveUsable,
-            };
-            movesetDto.push(moveDto);
+            movesetDto.push(window.poru.poke.getMoveDto(moveSetItem.getMove(), disabledId, moveSetItem.ppUsed));
         });
     
         return movesetDto;
     },
 
-    getSpeciesDto: (species) => {
-        if(species){
+    getFormDto: (form) => {
+        if(form){
             return {
+                baseStats: {
+                    hp: form.baseStats[0], //integer
+                    attack: form.baseStats[1], //integer
+                    defense: form.baseStats[2], //integer
+                    specialAttack: form.baseStats[3], //integer
+                    specialDefense: form.baseStats[4], //integer
+                    speed: form.baseStats[5], //integer
+                },
+                baseTotal: form.baseTotal, //integer
+                catchRate: form.catchRate, //integer
+                formIndex: form.formIndex, //integer
+                generation: form.generation, //integer
+                height: form.height, //integer
+                isStarterSelectable: form.isStarterSelectable, //boolean
+                speciesId: form.speciesId, //integer
+                type1: window.poru.poke.getTypeAsString(form.type1), //integer
+                type2: window.poru.poke.getTypeAsString(form.type2), //integer
+                weight: form.weight, //integer
+            };
+        }
+
+        return null;
+    },
+
+    getFormsDto: (forms) => {
+        if(forms){
+            var formsDto = [];
+            forms.forEach(form => {
+                formsDto.push(window.poru.poke.getFormDto(form));
+            });
+            return formsDto;
+        }
+
+        return null;
+    },
+
+    getSpeciesDto: (species, formIndex) => {
+        if(species){
+            var speciesDto = {
                 ability1: species.ability1, //integer
                 ability2: species.ability2, //integer
                 abilityHidden: species.abilityHidden, //integer
@@ -245,6 +297,35 @@ window.poru.poke = {
                 type2: window.poru.poke.getTypeAsString(species.type2), //integer
                 weight: species.weight, //integer
             }
+
+            if(formIndex !== undefined && formIndex !== null && formIndex !== 0){
+                var forms = window.poru.poke.getFormsDto(species.forms);
+                if(forms){
+                    if(formIndex >= forms.length){
+                        console.log("formIndex is out of bounds in getSpeciesDto");
+                        return speciesDto;
+                    }
+
+                    console.log("overriding species with form: " + formIndex + " of " + forms.length)
+                    console.log("old types: " + speciesDto.type1 + ", " + speciesDto.type2)
+                    var form = forms[formIndex];
+                    speciesDto.baseStats = form.baseStats;
+                    speciesDto.baseTotal = form.baseTotal;
+                    speciesDto.catchRate = form.catchRate;
+                    speciesDto.formIndex = form.formIndex;
+                    speciesDto.generation = form.generation;
+                    speciesDto.height = form.height;
+                    speciesDto.isStarterSelectable = form.isStarterSelectable;
+                    speciesDto.speciesId = form.speciesId;
+                    speciesDto.type1 = form.type1;
+                    speciesDto.type2 = form.type2;
+                    speciesDto.weight = form.weight;
+                    console.log("new types: " + speciesDto.type1 + ", " + speciesDto.type2)
+                }
+            }
+
+
+            return speciesDto;
         }
         return null;
     },
@@ -266,43 +347,6 @@ window.poru.poke = {
             };
         }
         return null;
-    },
-
-    overridePokemonSpeciesWithForm: (pokemon) => {
-        if(!pokemon){
-            console.log("pokemon is null in overridePokemonWithForm");
-            return;
-        }
-
-        if(pokemon.formIndex === 0){
-            console.log("pokemon has default form in overridePokemonWithForm");
-            return;
-        }
-        else{
-            var pokemonSpecies = pokemon.species;
-            var speciesForms = pokemonSpecies.forms;
-            var formIndex = pokemon.formIndex;
-
-            console.log("pokemon: ", pokemon);
-            console.log("pokemonSpecies: ", pokemonSpecies);
-            console.log("speciesForms: ", speciesForms);
-            console.log("formIndex: ", formIndex);
-
-            if(!speciesForms){
-                console.log("speciesForms is null in overridePokemonWithForm");
-                return;
-            }
-
-            if(formIndex >= speciesForms.length){
-                console.log("formIndex is out of bounds in overridePokemonWithForm");
-                return;
-            }
-
-            console.log(pokemon.name + ": available forms: " + speciesForms.length + ", formIndex: " + formIndex)
-            console.log(speciesForms)
-            var form = speciesForms[formIndex];
-            pokemon.species = window.poru.poke.getSpeciesDto(form);
-        }
     },
 
     getPokemonDto: (pokemon) => {
@@ -337,7 +381,7 @@ window.poru.poke = {
             pokerus: pokemon.pokerus, //boolean
             position: pokemon.position, //integer
             shiny: pokemon.shiny, //boolean
-            species: window.poru.poke.getSpeciesDto(pokemon.species), //object
+            species: window.poru.poke.getSpeciesDto(pokemon.species, pokemon.formIndex), //object
             stats: {
                 hp: pokemon.stats[0], //integer
                 attack: pokemon.stats[1], //integer
@@ -356,8 +400,6 @@ window.poru.poke = {
             bossSegments: pokemon.battleInfo.bossSegments, //integer
             player: pokemon.battleInfo.player, //boolean
         }
-
-        window.poru.poke.overridePokemonSpeciesWithForm(dto);
     
         if(pokemon.compatibleTms){
             dto.compatibleTms = pokemon.compatibleTms; //array of integers

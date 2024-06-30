@@ -114,4 +114,53 @@ window.poru.modifier = {
     getSelectModifiersJson: () => {
         return JSON.stringify(window.poru.modifier.getSelectModifiers());
     },
+
+    getModifierItemDtoArray: (modifierItemArray) => {
+        var modifierItemDtoArray = [];
+        for(let i = 0; i < modifierItemArray.length; i++){
+            var modifierTypeOption = modifierItemArray[i].modifierTypeOption;
+            option = {
+                group: modifierTypeOption.type.group,
+                id: modifierTypeOption.type.id,
+                tier: modifierTypeOption.type.tier,
+                name: modifierTypeOption.type.name,
+
+                typeName: modifierTypeOption.type.constructor.name,
+                
+                cost: modifierTypeOption.cost,
+                upgradeCount: modifierTypeOption.upgradeCount,
+            };
+
+        if (option.typeName === "AddPokeballModifierType"){
+            option.count = modifierTypeOption.type.count;
+            option.pokeballType = window.poru.modifier.getPokeBallTypeEnumString(modifierTypeOption.type.pokeballType);
+        }
+        else if (option.typeName === "AddVoucherModifierType"){
+            option.vouchertype = modifierTypeOption.type.vouchertype;
+            option.count = modifierTypeOption.type.count;
+        }
+        else if (option.typeName === "PokemonHpRestoreModifierType"){
+            option.healStatus = modifierTypeOption.type.healStatus;
+            option.restorePercent = modifierTypeOption.type.restorePercent;
+            option.restorePoints = modifierTypeOption.type.restorePoints;
+        }
+        else if (option.typeName === "PokemonReviveModifierType"){
+            option.restorePoints = modifierTypeOption.type.restorePoints;
+            option.restorePercent = modifierTypeOption.type.restorePercent;
+        }
+        else if (option.typeName === "TmModifierType"){
+            option.moveId = modifierTypeOption.type.moveId;
+        }
+        else if (option.typeName === "PokemonPpRestoreModifierType"){
+            option.restorePoints = modifierTypeOption.type.restorePoints;
+        }
+        else if (option.typeName === "TempBattleStatBoosterModifierType"){
+            option.tempBattleStat = modifierTypeOption.type.tempBattleStat;
+        }
+
+            modifierItemDtoArray.push(option);
+        };
+
+        return modifierItemDtoArray;
+    }
 }

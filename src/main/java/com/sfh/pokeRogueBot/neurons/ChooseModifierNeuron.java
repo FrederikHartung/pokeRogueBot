@@ -1,4 +1,4 @@
-package com.sfh.pokeRogueBot.service.neurons;
+package com.sfh.pokeRogueBot.neurons;
 
 import com.sfh.pokeRogueBot.model.modifier.ModifierPriorityResult;
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
@@ -8,7 +8,6 @@ import com.sfh.pokeRogueBot.model.modifier.impl.*;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import com.sfh.pokeRogueBot.model.decisions.ChooseModifierDecision;
-import com.sfh.pokeRogueBot.service.JsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -119,10 +118,10 @@ public class ChooseModifierNeuron {
             return allLevelIncrement;
         }
 
-        //pick pokeball item
-        MoveToModifierResult pokeballModifierItem = pickItem(shop, AddPokeballModifierItem.TARGET);
-        if (null != pokeballModifierItem && modifierPriorityResult.isBall()) {
-            return pokeballModifierItem;
+        //pick pokeball item if priority exists
+        MoveToModifierResult priorityPokeballModifierItem = pickItem(shop, AddPokeballModifierItem.TARGET);
+        if (null != priorityPokeballModifierItem && modifierPriorityResult.isBall()) {
+            return priorityPokeballModifierItem;
         }
 
         //pick free heal item
@@ -155,11 +154,12 @@ public class ChooseModifierNeuron {
             return moneyRewardModifierItem;
         }
 
-        //pick Lure
-        MoveToModifierResult lureItem = pickItem(shop, DoubleBattleChanceBoosterModifierItem.TARGET);
-        if (null != lureItem) {
-            return lureItem;
+        //pick pokeball item
+        MoveToModifierResult pokeballModifierItem = pickItem(shop, AddPokeballModifierItem.TARGET);
+        if (null != priorityPokeballModifierItem) {
+            return priorityPokeballModifierItem;
         }
+
 
         return null;
     }

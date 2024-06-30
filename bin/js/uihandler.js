@@ -51,6 +51,7 @@ window.poru.uihandler = {
     },
 
     setStarterSelectUiHandlerCursor: (speciesId) => {
+        console.log("setStarterSelectUiHandlerCursor");
         var starterSelectUiHandler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[10];
         var starter = window.poru.starter.getPossibleStarter();
         var speciesIndex = -1;
@@ -59,7 +60,6 @@ window.poru.uihandler = {
             if(starter[i].speciesId === speciesId){
                 speciesIndex = starter[i].cursorToSelect;
                 targetGeneration = starter[i].generation;
-                console.log("Species found at index: " + speciesIndex + " in generation: " + targetGeneration);
                 break;
             }
         }
@@ -206,5 +206,53 @@ window.poru.uihandler = {
         }
 
         return false;
-    }
+    },
+
+    getPokemonInLearnMovePhase: () => {
+        var handler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[9];
+        if(handler && handler.active){
+            var pokemonDto = window.poru.poke.getPokemonDto(handler.pokemon);
+            var newMove = handler.newMove;
+            var newMoveDto = window.poru.poke.getMoveDto(newMove, -1, 0);
+            pokemonDto.moveset.push(newMoveDto);
+
+            return pokemonDto;
+        }
+
+        return null;
+    },
+
+    getPokemonInLearnMovePhaseJson: () => {
+        return JSON.stringify(window.poru.uihandler.getPokemonInLearnMovePhase());
+    },
+
+    setLearnMoveCursor: (cursor) => {
+        var handler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[9];
+        if(handler && handler.active){
+            if(handler.moveCursor === cursor){
+                return true;
+            }
+            return handler.setCursor(cursor);
+        }
+
+        return false;
+    },
+
+    getModifierShopItems: () => {
+        var modifierSelectUiHandler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[6];
+        if(modifierSelectUiHandler && modifierSelectUiHandler.active){
+            var shopOptionsDtoArrayArray = [];
+            var freeItemsDtoArray = this.poru.modifier.getModifierItemDtoArray(modifierSelectUiHandler.options);
+            shopOptionsDtoArrayArray.push(freeItemsDtoArray);
+            var shopOptionsRows = modifierSelectUiHandler.shopOptionsRows;
+            for(let i = shopOptionsRows.length -1; i >= 0; i--){
+                var row = shopOptionsRows[i];
+                var rowDto = this.poru.modifier.getModifierItemDtoArray(row);
+                shopOptionsDtoArrayArray.push(rowDto);
+            }
+
+            return shopOptionsDtoArrayArray;
+        }
+        return null;
+    },
 }

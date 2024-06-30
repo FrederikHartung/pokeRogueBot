@@ -1,4 +1,4 @@
-package com.sfh.pokeRogueBot.service.neurons;
+package com.sfh.pokeRogueBot.neurons;
 
 import com.sfh.pokeRogueBot.model.browser.pokemonjson.Move;
 import com.sfh.pokeRogueBot.model.enums.MoveCategory;
