@@ -8,5 +8,5 @@ public class Starter {
 
     private int speciesId;
     private Species species;
-    private int cost;
+    private float cost;
 }
