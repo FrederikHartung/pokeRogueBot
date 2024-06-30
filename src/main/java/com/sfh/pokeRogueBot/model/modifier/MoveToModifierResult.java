@@ -1,5 +1,6 @@
 package com.sfh.pokeRogueBot.model.modifier;
 
+import com.sfh.pokeRogueBot.model.enums.ModifierApplyType;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -11,6 +12,7 @@ public class MoveToModifierResult {
     private int columnIndex;
     private int pokemonIndexToSwitchTo;
     private String itemName;
+    private ModifierApplyType modifierApplyType;
 
     @Override
     public String toString() {
