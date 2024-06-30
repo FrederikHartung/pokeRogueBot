@@ -47,8 +47,8 @@ class LearnMoveNeuronTest {
         moveSet[4] = newMove;
 
         doReturn(-1).when(learnMoveFilterNeuron).getIndexOfStatusAttackMove(any());
-        doReturn(-1).when(learnMoveFilterNeuron).getIndexOfNonPokemonTypeMoveToReplace(pokemon);
-        doReturn(-1).when(learnMoveFilterNeuron).replaceWeakerAttacks(any(), any(), any(), any());
+        doReturn(-1).when(learnMoveFilterNeuron).replaceWeakestAttackOfTypeNot(any(), any());
+        doReturn(-1).when(learnMoveFilterNeuron).replaceWeakestAttackOfType(any(), any());
     }
 
     @Test
@@ -81,26 +81,6 @@ class LearnMoveNeuronTest {
         assertNotNull(result);
         assertEquals(0, result.getMoveIndexToReplace());
         assertEquals(LearnMoveReasonType.FORGET_STATUS_ATTACK, result.getReason());
-    }
-
-    @Test
-    void if_getIndexOfNonPokemonTypeMoveToReplace_returns_a_value_return_the_decision() {
-        doReturn(1).when(learnMoveFilterNeuron).getIndexOfNonPokemonTypeMoveToReplace(pokemon);
-        LearnMoveDecision result = learnMoveNeuron.getLearnMoveDecision(pokemon);
-
-        assertNotNull(result);
-        assertEquals(1, result.getMoveIndexToReplace());
-        assertEquals(LearnMoveReasonType.FORGET_NON_POKEMON_TYPE_MOVE, result.getReason());
-    }
-
-    @Test
-    void if_replaceWeakerAttacks_returns_a_value_return_the_decision() {
-        doReturn(2).when(learnMoveFilterNeuron).replaceWeakerAttacks(any(), any(), any(), any());
-        LearnMoveDecision result = learnMoveNeuron.getLearnMoveDecision(pokemon);
-
-        assertNotNull(result);
-        assertEquals(2, result.getMoveIndexToReplace());
-        assertEquals(LearnMoveReasonType.FORGET_WEAKER_ATTACK, result.getReason());
     }
 
     @Test

@@ -37,27 +37,11 @@ public class LearnMoveFilterNeuron {
         return null;
     }
 
-    /**
-     * find moves, which are not of pokemon type1 or type2 and replace them
-     * @param pokemon
-     * @return
-     */
-    public int getIndexOfNonPokemonTypeMoveToReplace(Pokemon pokemon) {
-        Species species = pokemon.getSpecies();
-        PokeType type1 = species.getType1();
-        PokeType type2 = species.getType2();
-
-        for(int i = 0; i < pokemon.getMoveset().length - 1; i++){
-            Move move = pokemon.getMoveset()[i];
-            if(null != move && !move.getType().equals(type1) && !move.getType().equals(type2)){
-                return i;
-            }
+    public int replaceWeakestAttackOfType(Move[] existingMoves, PokeType pokemonTyp) {
+        if(existingMoves.length >= 5){
+            throw new IllegalArgumentException("Moveset must have max 4 moves only.");
         }
 
-        return -1;
-    }
-
-    public int replaceWeakestAttackOfType(Move[] existingMoves, PokeType pokemonTyp) {
         int lowestPower = Integer.MAX_VALUE;
         int index = -1;
         for(int i = 0; i < existingMoves.length; i++){
@@ -74,6 +58,10 @@ public class LearnMoveFilterNeuron {
     }
 
     public int replaceWeakestAttackOfTypeNot(Move[] existingMoves, PokeType pokemonTyp) {
+        if(existingMoves.length >= 5){
+            throw new IllegalArgumentException("Moveset must have max 4 moves only.");
+        }
+
         int lowestPower = Integer.MAX_VALUE;
         int index = -1;
         for(int i = 0; i < existingMoves.length; i++){
@@ -90,6 +78,10 @@ public class LearnMoveFilterNeuron {
     }
 
     public int getIndexOfStatusAttackMove(Move[] existingMoves) {
+        if(existingMoves.length >= 5){
+            throw new IllegalArgumentException("Moveset must have max 4 moves only.");
+        }
+
         for(int i = 0; i < existingMoves.length; i++){
             if(null !=existingMoves[i] && existingMoves[i].getCategory().equals(MoveCategory.STATUS)){
                 return i;

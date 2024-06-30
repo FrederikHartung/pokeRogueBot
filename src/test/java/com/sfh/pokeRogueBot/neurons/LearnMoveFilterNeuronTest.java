@@ -22,6 +22,7 @@ class LearnMoveFilterNeuronTest {
     Pokemon pokemon;
     Species species;
     Move[] moveSet;
+    Move[] existingMoves;
 
     Move move1;
     Move move2;
@@ -43,12 +44,15 @@ class LearnMoveFilterNeuronTest {
         moveSet = new Move[5];
         pokemon.setMoveset(moveSet);
 
+        existingMoves = new Move[4];
+
         move1 = new Move();
         move1.setName("move1");
         move1.setPower(40);
         move1.setCategory(MoveCategory.PHYSICAL);
         move1.setType(PokeType.NORMAL);
         moveSet[0] = move1;
+        existingMoves[0] = move1;
 
         move2 = new Move();
         move2.setName("move2");
@@ -56,6 +60,7 @@ class LearnMoveFilterNeuronTest {
         move2.setCategory(MoveCategory.PHYSICAL);
         move2.setType(PokeType.FIRE);
         moveSet[1] = move2;
+        existingMoves[1] = move2;
 
         move3 = new Move();
         move3.setName("move3");
@@ -63,6 +68,7 @@ class LearnMoveFilterNeuronTest {
         move3.setCategory(MoveCategory.SPECIAL);
         move3.setType(PokeType.FLYING);
         moveSet[2] = move3;
+        existingMoves[2] = move3;
 
         move4 = new Move();
         move4.setName("move4");
@@ -70,6 +76,7 @@ class LearnMoveFilterNeuronTest {
         move4.setCategory(MoveCategory.SPECIAL);
         move4.setType(PokeType.WATER);
         moveSet[3] = move4;
+        existingMoves[3] = move4;
 
         newMove = new Move();
         newMove.setName("newMove");
@@ -112,7 +119,7 @@ class LearnMoveFilterNeuronTest {
      * Don't learn attacks, which type are not the pokemon types when it has two types
      */
     @Test
-    void a_non_pokemon_type_attack_is_filtered(){
+    void a_non_pokemon_type_attack_is_filtered_for_a_pokemon_with_two_types(){
         species.setType1(PokeType.NORMAL);
         species.setType2(PokeType.FLYING);
 
@@ -126,59 +133,7 @@ class LearnMoveFilterNeuronTest {
     }
 
     @Test
-    void null_is_returned_if_the_move_is_not_filtered(){
-        LearnMoveDecision decision = learnMoveFilterNeuron.filterUnwantedMoves(pokemon,newMove);
-        assertNull(decision);
-    }
-
-    /**
-     * Replace non pokemon type moves
-     */
-    @Test
-    void a_non_pokemon_type_attack_is_replaced() {
-        species.setType1(PokeType.NORMAL);
-        species.setType2(PokeType.FLYING);
-
-        move1.setType(PokeType.NORMAL);
-        move2.setType(PokeType.FLYING);
-        move3.setType(PokeType.NORMAL);
-        move4.setType(PokeType.WATER);
-        newMove.setType(PokeType.FLYING);
-
-        int index = learnMoveFilterNeuron.getIndexOfNonPokemonTypeMoveToReplace(pokemon);
-        assertEquals(3, index);
-    }
-
-    @Test
-    void no_non_pokemon_types_moves_are_present_and_no_attack_is_replaced(){
-        species.setType1(PokeType.NORMAL);
-        species.setType2(PokeType.FLYING);
-
-        move1.setType(PokeType.NORMAL);
-        move2.setType(PokeType.NORMAL);
-        move3.setType(PokeType.NORMAL);
-        move4.setType(PokeType.NORMAL);
-        newMove.setType(PokeType.FLYING);
-
-        int index = learnMoveFilterNeuron.getIndexOfNonPokemonTypeMoveToReplace(pokemon);
-        assertEquals(-1, index);
-    }
-
-    @Test
-    void a_status_attack_move_should_be_replaced_by_a_new_move() {
-        move3.setCategory(MoveCategory.STATUS);
-        int index = learnMoveFilterNeuron.getIndexOfStatusAttackMove(pokemon.getMoveset());
-        assertEquals(2, index);
-   }
-
-    @Test
-    void no_attack_move_should_be_replaced_by_a_new_move_if_no_status_move_exists() {
-        int index = learnMoveFilterNeuron.getIndexOfStatusAttackMove(pokemon.getMoveset());
-        assertEquals(-1, index);
-    }
-
-    @Test
-    void a_pokemon_with_one_type_is_not_filtere_if_it_wants_to_learn_a_move_with_an_other_type(){
+    void a_non_pokemon_type_attack_is_not_filtered_for_a_pokemon_with_one_type(){
         species.setType1(PokeType.NORMAL);
         species.setType2(null);
 
@@ -186,22 +141,111 @@ class LearnMoveFilterNeuronTest {
 
         LearnMoveDecision decision = learnMoveFilterNeuron.filterUnwantedMoves(pokemon, newMove);
         assertNull(decision);
+      }
+
+    @Test
+    void null_is_returned_if_the_move_is_not_filtered(){
+        LearnMoveDecision decision = learnMoveFilterNeuron.filterUnwantedMoves(pokemon,newMove);
+        assertNull(decision);
     }
 
     @Test
-    void a_pokemon_type_attack_is_replaced_with_a_stronger_one_for_pokemon_with_one_type(){
-        species.setType1(PokeType.FLYING);
-        species.setType2(null);
+    void a_status_attack_move_should_be_replaced_by_a_new_move() {
+        move3.setCategory(MoveCategory.STATUS);
+        int index = learnMoveFilterNeuron.getIndexOfStatusAttackMove(existingMoves);
+        assertEquals(2, index);
+   }
+
+    @Test
+    void no_attack_move_should_be_replaced_by_a_new_move_if_no_status_move_exists() {
+        int index = learnMoveFilterNeuron.getIndexOfStatusAttackMove(existingMoves);
+        assertEquals(-1, index);
+    }
+
+    @Test
+    void replaceWeakestAttackOfType_returns_a_value(){
 
         move1.setType(PokeType.NORMAL);
-        move2.setType(PokeType.FLYING);
-        move2.setPower(50);
-        move3.setType(PokeType.NORMAL);
-        move4.setType(PokeType.FLYING);
-        move4.setPower(60);
-        newMove.setType(PokeType.FLYING);
-        newMove.setPower(70);
+        move1.setPower(40);
+        move1.setAccuracy(100);
 
+        move2.setType(PokeType.FIRE);
+
+        move3.setType(PokeType.NORMAL);
+        move3.setPower(30);
+        move3.setAccuracy(100);
+
+        move4.setType(PokeType.FIRE);
+        int index = learnMoveFilterNeuron.replaceWeakestAttackOfType(existingMoves, PokeType.NORMAL);
+        assertEquals(2, index);
+    }
+
+    /**
+     * If there is no attack of the given type, -1 should be returned
+     */
+    @Test
+    void replaceWeakestAttackOfType_returns_minus_one(){
+
+        move1.setType(PokeType.FIRE);
+        move1.setPower(40);
+        move1.setAccuracy(100);
+
+        move2.setType(PokeType.WATER);
+
+        move3.setType(PokeType.ELECTRIC);
+        move3.setPower(30);
+        move3.setAccuracy(100);
+
+        move4.setType(PokeType.DRAGON);
+        int index = learnMoveFilterNeuron.replaceWeakestAttackOfType(existingMoves, PokeType.NORMAL);
+        assertEquals(-1, index);
+    }
+
+    @Test
+    void replaceWeakestAttackOfTypeNot_returns_a_value(){
+
+        move1.setType(PokeType.NORMAL);
+
+        move2.setType(PokeType.FIRE);
+        move2.setPower(100);
+        move2.setAccuracy(100);
+
+        move3.setType(PokeType.NORMAL);
+
+        move4.setType(PokeType.FIRE);
+        move4.setPower(30);
+        move4.setAccuracy(100);
+        int index = learnMoveFilterNeuron.replaceWeakestAttackOfTypeNot(existingMoves, PokeType.NORMAL);
+        assertEquals(3, index);
+    }
+
+    /**
+     * If there is no attack of the given type, -1 should be returned
+     */
+    @Test
+    void replaceWeakestAttackOfTypeNot_returns_minus_one(){
+
+        move1.setType(PokeType.NORMAL);
+        move2.setType(PokeType.NORMAL);
+        move3.setType(PokeType.NORMAL);
+        move4.setType(PokeType.NORMAL);
+        int index = learnMoveFilterNeuron.replaceWeakestAttackOfTypeNot(existingMoves, PokeType.NORMAL);
+        assertEquals(-1, index);
+    }
+
+    @Test
+    void test_for_correct_moveset_size_in_getIndexOfStatusAttackMove(){
+        assertThrows(IllegalArgumentException.class, () -> learnMoveFilterNeuron.getIndexOfStatusAttackMove(pokemon.getMoveset()));
+    }
+
+    @Test
+    void test_for_correct_moveset_size_in_replaceWeakestAttackOfType(){
+        assertThrows(IllegalArgumentException.class, () -> learnMoveFilterNeuron.replaceWeakestAttackOfType(pokemon.getMoveset(), PokeType.NORMAL));
+    }
+
+    @Test
+    void test_for_correct_moveset_size_in_replaceWeakestAttackOfTypeNot(){
+        assertThrows(IllegalArgumentException.class, () -> learnMoveFilterNeuron.replaceWeakestAttackOfTypeNot(pokemon.getMoveset(), PokeType.NORMAL));
     }
 
 }
