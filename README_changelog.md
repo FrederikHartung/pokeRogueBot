@@ -13,6 +13,7 @@ Work in Progress:
 - added picking of pokeball items in the shop in available and no other free item is interesting
 - fixed dead pokemon revive bug
 - added handling for new runs, that the lastWaveIndex is reset in the commandPhase component
+- added learning of new moves in the learnMovePhase
 
 ## 2.0
 - deactivated buying of pp restore items if a move ran out of pp because it's not currently working

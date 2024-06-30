@@ -236,5 +236,23 @@ window.poru.uihandler = {
         }
 
         return false;
-    }
+    },
+
+    getModifierShopItems: () => {
+        var modifierSelectUiHandler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[6];
+        if(modifierSelectUiHandler && modifierSelectUiHandler.active){
+            var shopOptionsDtoArrayArray = [];
+            var freeItemsDtoArray = this.poru.modifier.getModifierItemDtoArray(modifierSelectUiHandler.options);
+            shopOptionsDtoArrayArray.push(freeItemsDtoArray);
+            var shopOptionsRows = modifierSelectUiHandler.shopOptionsRows;
+            for(let i = shopOptionsRows.length -1; i >= 0; i--){
+                var row = shopOptionsRows[i];
+                var rowDto = this.poru.modifier.getModifierItemDtoArray(row);
+                shopOptionsDtoArrayArray.push(rowDto);
+            }
+
+            return shopOptionsDtoArrayArray;
+        }
+        return null;
+    },
 }
