@@ -17,8 +17,6 @@ class LearnMoveFilterNeuronTest {
 
     LearnMoveFilterNeuron learnMoveFilterNeuron;
 
-    Move newMove;
-
     Pokemon pokemon;
     Species species;
     Move[] moveSet;
@@ -28,6 +26,7 @@ class LearnMoveFilterNeuronTest {
     Move move2;
     Move move3;
     Move move4;
+    Move newMove;
 
     @BeforeEach
     void setUp() {

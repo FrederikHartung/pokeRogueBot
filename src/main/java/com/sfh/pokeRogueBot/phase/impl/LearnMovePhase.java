@@ -91,6 +91,7 @@ public class LearnMovePhase extends AbstractPhase implements Phase {
             }
 
             return new PhaseAction[]{
+                    this.waitLonger,
                     this.pressSpace
             };
         }

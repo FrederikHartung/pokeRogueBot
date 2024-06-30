@@ -4,6 +4,7 @@ import com.sfh.pokeRogueBot.model.browser.pokemonjson.Move;
 import com.sfh.pokeRogueBot.model.decisions.LearnMoveDecision;
 import com.sfh.pokeRogueBot.model.enums.LearnMoveReasonType;
 import com.sfh.pokeRogueBot.model.enums.PokeType;
+import com.sfh.pokeRogueBot.model.exception.StopRunException;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

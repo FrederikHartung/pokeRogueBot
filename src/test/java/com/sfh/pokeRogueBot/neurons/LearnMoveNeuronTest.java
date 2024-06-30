@@ -21,6 +21,12 @@ class LearnMoveNeuronTest {
     Pokemon pokemon;
     Species species;
     Move[] moveSet;
+    Move[] existingMoves;
+
+    Move move1;
+    Move move2;
+    Move move3;
+    Move move4;
     Move newMove;
 
     @BeforeEach
@@ -34,16 +40,50 @@ class LearnMoveNeuronTest {
         species = new Species();
         pokemon.setSpecies(species);
         species.setType1(PokeType.NORMAL);
-        species.setType2(PokeType.NORMAL);
+        species.setType2(PokeType.FLYING);
 
         moveSet = new Move[5];
         pokemon.setMoveset(moveSet);
 
+        existingMoves = new Move[4];
+
+        move1 = new Move();
+        move1.setName("move1");
+        move1.setPower(40);
+        move1.setCategory(MoveCategory.PHYSICAL);
+        move1.setType(PokeType.NORMAL);
+        moveSet[0] = move1;
+        existingMoves[0] = move1;
+
+        move2 = new Move();
+        move2.setName("move2");
+        move2.setPower(40);
+        move2.setCategory(MoveCategory.PHYSICAL);
+        move2.setType(PokeType.FIRE);
+        moveSet[1] = move2;
+        existingMoves[1] = move2;
+
+        move3 = new Move();
+        move3.setName("move3");
+        move3.setPower(40);
+        move3.setCategory(MoveCategory.SPECIAL);
+        move3.setType(PokeType.FLYING);
+        moveSet[2] = move3;
+        existingMoves[2] = move3;
+
+        move4 = new Move();
+        move4.setName("move4");
+        move4.setPower(40);
+        move4.setCategory(MoveCategory.SPECIAL);
+        move4.setType(PokeType.WATER);
+        moveSet[3] = move4;
+        existingMoves[3] = move4;
+
         newMove = new Move();
         newMove.setName("newMove");
-        newMove.setPower(50);
+        newMove.setPower(100);
         newMove.setCategory(MoveCategory.PHYSICAL);
-        newMove.setType(PokeType.ELECTRIC);
+        newMove.setType(PokeType.FLYING);
         moveSet[4] = newMove;
 
         doReturn(-1).when(learnMoveFilterNeuron).getIndexOfStatusAttackMove(any());
@@ -95,25 +135,27 @@ class LearnMoveNeuronTest {
 
     @Test
     void getNumberOfAttacksWithType_returns_the_correct_number_of_attacks_with_the_given_type(){
-        Move[] moves = new Move[4];
-        Move move1 = new Move();
-        moves[0] = move1;
-        Move move2 = new Move();
-        moves[1] = move2;
-
         move1.setType(PokeType.NORMAL);
         move2.setType(PokeType.FIRE);
-        int count = learnMoveNeuron.getNumberOfAttacksWithType(moves, PokeType.NORMAL);
+        int count = learnMoveNeuron.getNumberOfAttacksWithType(existingMoves, PokeType.NORMAL);
         assertEquals(1, count);
 
         move1.setType(PokeType.NORMAL);
         move2.setType(PokeType.NORMAL);
-        count = learnMoveNeuron.getNumberOfAttacksWithType(moves, PokeType.NORMAL);
+        count = learnMoveNeuron.getNumberOfAttacksWithType(existingMoves, PokeType.NORMAL);
         assertEquals(2, count);
 
         move1.setType(PokeType.FIRE);
         move2.setType(PokeType.FIRE);
-        count = learnMoveNeuron.getNumberOfAttacksWithType(moves, PokeType.FIRE);
+        count = learnMoveNeuron.getNumberOfAttacksWithType(existingMoves, PokeType.FIRE);
         assertEquals(2, count);
+    }
+
+    @Test
+    void pokemonHasTwoTypes_learns_a_own_move_type(){
+
+        LearnMoveDecision decision = learnMoveNeuron.getLearnMoveDecision(pokemon);
+        assertNotNull(decision);
+        assertTrue(decision.isNewMoveBetter());
     }
 }
