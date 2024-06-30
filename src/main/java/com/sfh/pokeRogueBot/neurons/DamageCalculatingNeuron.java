@@ -6,12 +6,14 @@ import com.sfh.pokeRogueBot.model.enums.PokeType;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.decisions.PossibleAttackMove;
 import com.sfh.pokeRogueBot.model.results.DamageMultiplier;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
 import java.util.LinkedList;
 import java.util.List;
 
+@Slf4j
 @Component
 public class DamageCalculatingNeuron {
 
@@ -22,6 +24,11 @@ public class DamageCalculatingNeuron {
         for(int i = 0; i < playerMoves.length; i++) {
             Move move = playerMoves[i];
             if(move == null || !move.isUsable() || move.getPPLeft() == 0) {
+                continue;
+            }
+
+            if(move.getType().equals(PokeType.GROUND) && enemyPokemon.getSpecies().isLevitating()){
+                log.debug("Enemy is levitating, can't use ground move");
                 continue;
             }
 

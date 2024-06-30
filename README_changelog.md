@@ -4,6 +4,7 @@ Work in Progress:
 
 ## 2.2 wip
 - updated reading of modifier shop items
+- added Abilities Enum
 
 ## 2.1
 - added handling for different pokemon forms with different poketypes (now really working (hopefully...))
