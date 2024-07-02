@@ -1,8 +1,6 @@
 #Changelog
 
-Work in Progress:
-
-## 2.2 wip
+## 2.2
 - updated reading of modifier shop items
 - added Abilities
 - added handling for levitating enemies
