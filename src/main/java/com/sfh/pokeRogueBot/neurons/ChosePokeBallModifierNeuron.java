@@ -25,26 +25,26 @@ public class ChosePokeBallModifierNeuron {
             int pokeBalls = waveDto.getPokeballCount()[PokeBallType.POKEBALL.ordinal()];
 
             switch (((AddPokeballModifierItem)pokeBallModifier).getPokeballType()){
-                case MASTER_BALL, LUXURY_BALL: //always pick these
+                case MASTER_BALL: //always pick
                     return true;
                 case ROGUE_BALL:
-                    if(rogueBalls <= 5){
+                    if(rogueBalls <= 10){
                         return true;
                     }
                     break;
                 case ULTRA_BALL:
 
-                    if((rogueBalls + ultraBalls) <= 5){
+                    if((rogueBalls + ultraBalls) <= 10){
                         return true;
                     }
                     break;
                 case GREAT_BALL:
-                    if((rogueBalls + ultraBalls + greatBalls) <= 5){
+                    if((rogueBalls + ultraBalls + greatBalls) <= 10){
                         return true;
                     }
                     break;
-                case POKEBALL:
-                    if((rogueBalls + ultraBalls + greatBalls + pokeBalls) <= 5){
+                case POKEBALL, LUXURY_BALL:
+                    if((rogueBalls + ultraBalls + greatBalls + pokeBalls) <= 10){
                         return true;
                     }
                     break;

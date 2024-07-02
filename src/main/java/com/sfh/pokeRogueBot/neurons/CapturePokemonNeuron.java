@@ -1,6 +1,8 @@
 package com.sfh.pokeRogueBot.neurons;
 
 import com.sfh.pokeRogueBot.model.dto.WaveDto;
+import com.sfh.pokeRogueBot.model.enums.PokeBallType;
+import com.sfh.pokeRogueBot.model.poke.PokeBallCatchRate;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.service.JsService;
 import lombok.extern.slf4j.Slf4j;
@@ -71,5 +73,25 @@ public class CapturePokemonNeuron {
 
         // when no poke balls are left, we should not try to capture
         return -1;
+    }
+
+    public int getCaptureChance(Pokemon wildPokemon, PokeBallType pokeBallType) {
+
+        float pokeBallCatchRate = PokeBallCatchRate.forBall(pokeBallType).getCatchRate();
+
+        float pokemonMaxHp = wildPokemon.getStats().getHp();
+        float currentHp = wildPokemon.getHp();
+        float hpFactor = (3f * pokemonMaxHp) - (2f * currentHp);
+        float speciesCatchRate = wildPokemon.getSpecies().getCatchRate();
+        float statusEffectModificator = wildPokemon.getStatus() != null ? wildPokemon.getStatus().getCatchRateModificatorForStatusEffect() : 1;
+        float catchValue = (hpFactor * speciesCatchRate * pokeBallCatchRate) / (3 * pokemonMaxHp) * statusEffectModificator;
+
+        if (catchValue > 255) {
+            catchValue = 255;
+        }
+
+        int captureChancePercentage = Math.round((catchValue / 255) * 100);
+        log.debug("capture chance: " + captureChancePercentage + "%");
+        return captureChancePercentage;
     }
 }
