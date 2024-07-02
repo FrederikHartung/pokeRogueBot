@@ -57,6 +57,7 @@ public class SimpleBot implements Bot {
     @Override
     public void start() {
         fileManager.deleteTempData();
+        brain.rememberItems();
         browserClient.navigateTo(targetUrl);
 
         while (runNumber <= maxRunsTillShutdown || maxRunsTillShutdown == -1) {

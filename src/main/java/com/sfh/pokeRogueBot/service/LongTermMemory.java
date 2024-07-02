@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.sfh.pokeRogueBot.file.FileManager;
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem;
+import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItemDeserializer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.DisposableBean;
@@ -19,7 +20,10 @@ import java.util.Map;
 @Component
 public class LongTermMemory implements DisposableBean {
 
-    private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    private static final Gson gson = new GsonBuilder()
+            .registerTypeAdapter(ChooseModifierItem.class, new ChooseModifierItemDeserializer())
+            .setPrettyPrinting()
+            .create();
     private static final Path ITEMS_PATH = Paths.get(".",  "data", "modifierItems.json");
 
     private final FileManager fileManager;
@@ -39,6 +43,8 @@ public class LongTermMemory implements DisposableBean {
 
         List<ChooseModifierItem> rememberedItems = gson.fromJson(json, ChooseModifierItem.LIST_TYPE);
         rememberedItems.forEach(item -> knownItems.put(item.getName(), item));
+
+        log.debug("Remembered {} items", knownItems.size());
     }
 
     public void memorizeItems(List<ChooseModifierItem> items){
@@ -58,7 +64,12 @@ public class LongTermMemory implements DisposableBean {
 
     @Override
     public void destroy() throws Exception {
-        log.debug("Writing known items to file");
-        fileManager.overwriteJsonFile(ITEMS_PATH, gson.toJson(knownItems.values()));
+        if(!knownItems.isEmpty()){
+            log.debug("Writing known items to file");
+            fileManager.overwriteJsonFile(ITEMS_PATH, gson.toJson(knownItems.values()));
+        }
+        else {
+            log.debug("No items to write to file");
+        }
     }
 }

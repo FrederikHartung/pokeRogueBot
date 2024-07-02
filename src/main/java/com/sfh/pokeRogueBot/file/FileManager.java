@@ -217,7 +217,6 @@ public class FileManager {
         //write the file
         try {
             Files.writeString(itemsPath, json);
-            log.debug("wrote: " + json + " to file: " + itemsPath);
         } catch (Exception e) {
             log.error("Could not write file: " + itemsPath);
         }

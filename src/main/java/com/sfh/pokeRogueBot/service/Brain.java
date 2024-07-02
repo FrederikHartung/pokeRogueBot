@@ -185,6 +185,10 @@ public class Brain {
         shortTermMemory.clearMemory();
     }
 
+    public void rememberItems() {
+        longTermMemory.rememberItems();
+    }
+
     /**
      * If the save slots are not loaded, open the save slots menu to get the save slots data
      * If the save slots are loaded, check if there is a save slot without an error

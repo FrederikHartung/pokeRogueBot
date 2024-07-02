@@ -17,6 +17,7 @@ class BrainTest {
     Brain brain;
     JsService jsService;
     ShortTermMemory shortTermMemory;
+    LongTermMemory longTermMemory;
     ChooseModifierNeuron chooseModifierNeuron;
     CombatNeuron combatNeuron;
     SwitchPokemonNeuron switchPokemonNeuron;
@@ -33,6 +34,7 @@ class BrainTest {
     void setUp() {
         jsService = mock(JsService.class);
         shortTermMemory = mock(ShortTermMemory.class);
+        longTermMemory = mock(LongTermMemory.class);
         chooseModifierNeuron = mock(ChooseModifierNeuron.class);
         combatNeuron = mock(CombatNeuron.class);
         switchPokemonNeuron = mock(SwitchPokemonNeuron.class);
@@ -42,6 +44,7 @@ class BrainTest {
         Brain objToSpy = new Brain(
                 jsService,
                 shortTermMemory,
+                longTermMemory,
                 screenshotClient,
                 switchPokemonNeuron,
                 chooseModifierNeuron,

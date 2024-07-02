@@ -88,7 +88,7 @@ class SimpleBotTest {
     /**
      * If only a specific number of runs should be executed, only this number of runs should be executed
      * The short term memory should be cleared on every run
-     * The JS Code, the navigation to the target and the deletion of temp data should only be executed once
+     * The JS Code, the brain remembering the items, the navigation to the target and the deletion of temp data should only be executed once
      */
     @Test
     void if_maxRunsTillShutdown_is_not_negativ_only_a_specific_number_of_runs_is_excecuted(){
@@ -103,6 +103,7 @@ class SimpleBotTest {
         verify(jsService, times(maxRunsTillShutdown)).init();
         verify(browserClient).navigateTo(targetUrl);
         verify(fileManager).deleteTempData();
+        verify(brain).rememberItems();
     }
 
     /**
