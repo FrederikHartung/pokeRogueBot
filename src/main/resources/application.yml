@@ -5,7 +5,7 @@ spring:
 browser:
   target-url: "http://localhost:8000/"
   closeOnExit: true
-  waitTimeForRenderAfterNavigation: 5000
+  waitTimeForRenderAfterNavigation: 8000
   pathChromeUserDir:
   chromeProfile: "Default"
   userName:
