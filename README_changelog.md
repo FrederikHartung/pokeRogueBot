@@ -1,5 +1,8 @@
 #Changelog
 
+## 2.3 Work in Progress
+-
+
 ## 2.2
 - updated reading of modifier shop items
 - added Abilities
