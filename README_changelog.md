@@ -2,6 +2,7 @@
 
 ## 2.3 Work in Progress
 - added persisting of all encountered items in the modifier shop
+- added calculation of pokemon catch rate
 
 ## 2.2
 - updated reading of modifier shop items
