@@ -41,7 +41,7 @@ public class CapturePokemonNeuron {
         }
 
         if(wildPokemon.isBoss()){
-            boolean isBossCatchable = wildPokemon.getHp() <= ((wildPokemon.getStats().getHp() / wildPokemon.getBossSegments()));
+            boolean isBossCatchable = wildPokemon.getHp() <= (wildPokemon.getStats().getHp() / wildPokemon.getBossSegments());
 
             if(!isBossCatchable){
                 log.debug("can't capture: boss is not hurt enough");
