@@ -1,7 +1,7 @@
 #Changelog
 
 ## 2.3 Work in Progress
--
+- added persisting of all encountered items in the modifier shop
 
 ## 2.2
 - updated reading of modifier shop items
