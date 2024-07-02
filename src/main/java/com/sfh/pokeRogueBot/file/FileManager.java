@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -159,5 +160,36 @@ public class FileManager {
     private String getDateTimestamp(){
         String datetimeFormat = "yyyy-MM-dd_HH-mm-ss";
         return LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern(datetimeFormat));
+    }
+
+    @Nullable
+    public String readJsonFile(Path itemsPath) {
+        //check if dir exists, if not create it
+        if (Files.notExists(itemsPath.getParent())) {
+            try {
+                Files.createDirectories(itemsPath.getParent());
+            } catch (Exception e) {
+                log.error("Could not create directory: " + itemsPath.getParent());
+                return null;
+            }
+        }
+
+        //check if file exists, if not create it
+        if (Files.notExists(itemsPath)) {
+            try {
+                Files.createFile(itemsPath);
+            } catch (Exception e) {
+                log.error("Could not create file: " + itemsPath);
+                return null;
+            }
+        }
+
+        //read the file
+        try {
+            return Files.readString(itemsPath);
+        } catch (Exception e) {
+            log.error("Could not read file: " + itemsPath);
+            return null;
+        }
     }
 }

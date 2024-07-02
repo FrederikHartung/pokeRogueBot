@@ -30,7 +30,7 @@ public class JsService {
             .registerTypeAdapter(ChooseModifierItem.class, new ChooseModifierItemDeserializer())
             .create();
     private static final Type TYPE = new TypeToken<List<ChooseModifierItem>>() {
-    }.getType(); //todo: delete if not needed
+    }.getType();
 
     public static final Path UTIL = Paths.get(".", "bin", "js", "util.js");
     public static final Path UI_HANDLER = Paths.get(".", "bin", "js", "uihandler.js");
