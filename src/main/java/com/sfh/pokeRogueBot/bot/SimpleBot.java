@@ -86,20 +86,20 @@ public class SimpleBot implements Bot {
         }
 
         if (runProperty.getStatus() == RunStatus.LOST) {
-            log.info("Run {}, save game index: {} ended: Lost battle in Wave: {}", runProperty.getRunNumber(), runProperty.getSaveSlotIndex(), runProperty.getWaveIndex());
+            log.info("Metric: Run {}, save game index: {} ended: Lost battle in Wave: {}", runProperty.getRunNumber(), runProperty.getSaveSlotIndex(), runProperty.getWaveIndex());
             return;
         }
         else if(runProperty.getStatus() == RunStatus.ERROR) {
-            log.warn("Run {}, save game index: {} ended: Error in Wave: {}", runProperty.getRunNumber(), runProperty.getSaveSlotIndex(), runProperty.getWaveIndex());
+            log.warn("Metric: Run {}, save game index: {} ended: Error in Wave: {}", runProperty.getRunNumber(), runProperty.getSaveSlotIndex(), runProperty.getWaveIndex());
             return;
         }
         else if(runProperty.getStatus() == RunStatus.RELOAD_APP) {
-            log.warn("Run {}, save game index: {} ended: Error in Wave: {}. Reloading app", runProperty.getRunNumber(), runProperty.getSaveSlotIndex(), runProperty.getWaveIndex());
+            log.warn("Metric: Run {}, save game index: {} ended: Error in Wave: {}. Reloading app", runProperty.getRunNumber(), runProperty.getSaveSlotIndex(), runProperty.getWaveIndex());
             browserClient.navigateTo(targetUrl);
             return;
         }
         else if(runProperty.getStatus() == RunStatus.EXIT_APP) {
-            log.warn("Run {}, save game index: {} ended: No available save slot, stopping bot.", runProperty.getRunNumber(), runProperty.getSaveSlotIndex());
+            log.warn("Metric: Run {}, save game index: {} ended: No available save slot, stopping bot.", runProperty.getRunNumber(), runProperty.getSaveSlotIndex());
             exitApp();
         }
 

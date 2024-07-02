@@ -1,7 +1,7 @@
 package com.sfh.pokeRogueBot.neurons;
 
+import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem;
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
-import com.sfh.pokeRogueBot.model.modifier.ModifierShopItem;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.model.modifier.impl.PokemonHpRestoreModifierItem;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
@@ -17,13 +17,13 @@ import java.util.List;
 public class ChooseHealModifierNeuron {
 
     public MoveToModifierResult buyPotionIfMoreThatOnePokemonIsHurt(ModifierShop shop, Pokemon[] playerParty) {
-        ModifierShopItem potion =  shop.getBuyableItems().stream()
-                .filter(item -> item.getItem().getTypeName().equals(PokemonHpRestoreModifierItem.TARGET))
+        ChooseModifierItem potion =  shop.getShopItems().stream()
+                .filter(item -> item.getTypeName().equals(PokemonHpRestoreModifierItem.TARGET))
                 .findFirst()
                 .orElse(null);
 
-        if(null != potion && potion.getItem().getCost() <= shop.getMoney()){
-            PokemonHpRestoreModifierItem potionItem = (PokemonHpRestoreModifierItem) potion.getItem();
+        if(null != potion && potion.getCost() <= shop.getMoney()){
+            PokemonHpRestoreModifierItem potionItem = (PokemonHpRestoreModifierItem) potion;
             List<Pokemon> filteredPokemon = Arrays.stream(playerParty) //get the pokemon, where the potion is at least half used
                     .filter(p -> p.getHp() > 0)
                     .filter(p -> {
@@ -42,8 +42,7 @@ public class ChooseHealModifierNeuron {
 
                 for(int i = 0; i < playerParty.length; i++){
                     if(playerParty[i].equals(mostAffectedPokemon)){
-                        shop.setMoney(shop.getMoney() - potion.getItem().getCost());
-                        return new MoveToModifierResult(potion.getPosition().getRow(), potion.getPosition().getColumn(), i, potionItem.getName());
+                        return new MoveToModifierResult(potion.getY(), potion.getX(), i, potionItem.getName());
                     }
                 }
             }
@@ -55,8 +54,8 @@ public class ChooseHealModifierNeuron {
 
     public MoveToModifierResult buyPotionIfNoFreeIsAvailableOrPriorityExists(ModifierShop shop, Pokemon[] playerParty, boolean priorityItemExists) {
         if(!priorityItemExists){
-            ModifierShopItem freeHealItem =  shop.getFreeItems().stream()
-                    .filter(item -> item.getItem().getTypeName().equals(PokemonHpRestoreModifierItem.TARGET))
+            ChooseModifierItem freeHealItem =  shop.getFreeItems().stream()
+                    .filter(item -> item.getTypeName().equals(PokemonHpRestoreModifierItem.TARGET))
                     .findFirst()
                     .orElse(null);
 
@@ -65,12 +64,12 @@ public class ChooseHealModifierNeuron {
             }
         }
 
-        ModifierShopItem healItemToBuy =  shop.getBuyableItems().stream()
-                .filter(item -> item.getItem().getTypeName().equals(PokemonHpRestoreModifierItem.TARGET))
+        ChooseModifierItem healItemToBuy =  shop.getShopItems().stream()
+                .filter(item -> item.getTypeName().equals(PokemonHpRestoreModifierItem.TARGET))
                 .findFirst()
                 .orElse(null);
 
-        if(healItemToBuy == null || healItemToBuy.getItem().getCost() > shop.getMoney()){ //if no item is found or the player can't afford it
+        if(healItemToBuy == null || healItemToBuy.getCost() > shop.getMoney()){ //if no item is found or the player can't afford it
             return null;
         }
 
@@ -83,8 +82,7 @@ public class ChooseHealModifierNeuron {
         if(mostHurtPokemon != null){
             for(int i = 0; i < playerParty.length; i++){
                 if(playerParty[i].equals(mostHurtPokemon)){
-                    shop.setMoney(shop.getMoney() - healItemToBuy.getItem().getCost());
-                    return new MoveToModifierResult(healItemToBuy.getPosition().getRow(), healItemToBuy.getPosition().getColumn(), i, healItemToBuy.getItem().getName());
+                    return new MoveToModifierResult(healItemToBuy.getY(), healItemToBuy.getX(), i, healItemToBuy.getName());
                 }
             }
         }
@@ -93,8 +91,8 @@ public class ChooseHealModifierNeuron {
     }
 
     public MoveToModifierResult pickFreePotionIfNeeded(ModifierShop shop, Pokemon[] playerParty) {
-        ModifierShopItem freeHealItem =  shop.getFreeItems().stream()
-                .filter(item -> item.getItem().getTypeName().equals(PokemonHpRestoreModifierItem.TARGET))
+        ChooseModifierItem freeHealItem =  shop.getFreeItems().stream()
+                .filter(item -> item.getTypeName().equals(PokemonHpRestoreModifierItem.TARGET))
                 .findFirst()
                 .orElse(null);
 
@@ -118,6 +116,6 @@ public class ChooseHealModifierNeuron {
             return null;
         }
 
-        return new MoveToModifierResult(freeHealItem.getPosition().getRow(), freeHealItem.getPosition().getColumn(), injuredPokemonWithMaxMissingHealtIndex, freeHealItem.getItem().getName());
+        return new MoveToModifierResult(freeHealItem.getY(), freeHealItem.getX(), injuredPokemonWithMaxMissingHealtIndex, freeHealItem.getName());
     }
 }

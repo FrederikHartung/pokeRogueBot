@@ -1,14 +1,15 @@
 package com.sfh.pokeRogueBot.model.browser.pokemonjson;
 
+import com.sfh.pokeRogueBot.model.enums.Abilities;
 import com.sfh.pokeRogueBot.model.enums.PokeType;
 import lombok.Data;
 
 @Data
 public class Species {
 
-    private Integer ability1;
-    private Integer ability2;
-    private Integer abilityHidden;
+    private Abilities ability1;
+    private Abilities ability2;
+    private Abilities abilityHidden;
     private int baseExp;
     private int baseFriendship;
     private Stats baseStats;
@@ -28,4 +29,8 @@ public class Species {
     private PokeType type1;
     private PokeType type2;
     private Float weight;
+
+    public boolean isLevitating(){
+        return ability1 == Abilities.LEVITATE || ability2 == Abilities.LEVITATE || abilityHidden == Abilities.LEVITATE;
+    }
 }

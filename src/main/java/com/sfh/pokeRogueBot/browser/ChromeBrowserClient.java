@@ -154,39 +154,32 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
         Actions actions = new Actions(driver);
         switch (keyToPress) {
             case SPACE:
-                log.debug("Pressing space");
                 WebElement canvasElement = getCanvas();
                 actions.moveToElement(canvasElement)
                         .sendKeys(Keys.SPACE)
                         .perform();
                 break;
             case ARROW_DOWN:
-                log.debug("Pressing arrow down");
                 actions.sendKeys(Keys.ARROW_DOWN)
                         .perform();
                 break;
             case ARROW_LEFT:
-                log.debug("Pressing arrow left");
                 actions.sendKeys(Keys.ARROW_LEFT)
                         .perform();
                 break;
             case ARROW_UP:
-                log.debug("Pressing arrow up");
                 actions.sendKeys(Keys.ARROW_UP)
                         .perform();
                 break;
             case ARROW_RIGHT:
-                log.debug("Pressing arrow right");
                 actions.sendKeys(Keys.ARROW_RIGHT)
                         .perform();
                 break;
             case BACK_SPACE:
-                log.debug("Pressing backspace");
                 actions.sendKeys(Keys.BACK_SPACE)
                         .perform();
                 break;
             case ESCAPE:
-                log.debug("Pressing escape");
                 actions.sendKeys(Keys.ESCAPE)
                         .perform();
                 break;

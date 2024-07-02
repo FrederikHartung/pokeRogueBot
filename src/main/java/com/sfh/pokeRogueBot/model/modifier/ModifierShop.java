@@ -1,90 +1,45 @@
 package com.sfh.pokeRogueBot.model.modifier;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
 import javax.annotation.Nonnull;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.stream.Collectors;
 
+@Getter
+@AllArgsConstructor
 public class ModifierShop {
 
-    private final int rowsForBuyableItems;
-    private final int colsForBuyableItems;
-    private final int rowsForFreeItems;
-    private final int colsForFreeItems;
+    private final List<ChooseModifierItem> freeItems;
+    private final List<ChooseModifierItem> shopItems;
+    private final int money;
 
-    private final List<ModifierShopItem> buyableItems;
-    private final List<ModifierShopItem> freeItems;
-
-    @Setter
-    @Getter
-    private int money;
-
-    public ModifierShop(@Nonnull List<ChooseModifierItem> items) {
-        Set<Integer> xSetBuyable = items.stream().filter(item -> item.getCost() > 0).map(ChooseModifierItem::getX).collect(Collectors.toCollection(TreeSet::new)); //automatically sorted and removes duplicates
-        Set<Integer> ySetBuyable = items.stream().filter(item -> item.getCost() > 0).map(ChooseModifierItem::getY).collect(Collectors.toCollection(TreeSet::new));
-        Set<Integer> xSetFree = items.stream().filter(item -> item.getCost() == 0).map(ChooseModifierItem::getX).collect(Collectors.toCollection(TreeSet::new));
-        Set<Integer> ySetFree = items.stream().filter(item -> item.getCost() == 0).map(ChooseModifierItem::getY).collect(Collectors.toCollection(TreeSet::new));
-
-        int[] xBuyableArray = xSetBuyable.stream().mapToInt(i -> i).toArray();
-        int[] yBuyableArray = ySetBuyable.stream().mapToInt(i -> i).toArray();
-        int[] xFreeArray = xSetFree.stream().mapToInt(i -> i).toArray();
-        int[] yFreeArray = ySetFree.stream().mapToInt(i -> i).toArray();
-
-        rowsForBuyableItems = ySetBuyable.size();
-        colsForBuyableItems = xSetBuyable.size();
-        rowsForFreeItems = ySetFree.size();
-        colsForFreeItems = xSetFree.size();
-
-        buyableItems = new LinkedList<>();
-        freeItems = new LinkedList<>();
-
-        //row zero is bottom left -> reroll button and co.
-        //then comes the free item row(s) and on the top the buyable items
-        items.forEach(item -> {
-            if (item.getCost() > 0) {
-                for (int i = 0; i < xBuyableArray.length; i++) {
-                    for (int j = 0; j < yBuyableArray.length; j++) {
-                        if (item.getX() == xBuyableArray[i] && item.getY() == yBuyableArray[j]) {
-                            ModifierShopItem shopItem = new ModifierShopItem(item, new ModifierPosition(j  + rowsForBuyableItems + 1, i)); // +1 for reroll row and + all free item rows
-                            buyableItems.add(shopItem);
-                        }
-                    }
-                }
-            } else {
-                for (int i = 0; i < xFreeArray.length; i++) {
-                    for (int j = 0; j < yFreeArray.length; j++) {
-                        if (item.getX() == xFreeArray[i] && item.getY() == yFreeArray[j]) {
-                            ModifierShopItem shopItem = new ModifierShopItem(item, new ModifierPosition(j + 1, i)); // +1 for reroll row
-                            freeItems.add(shopItem);
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    public List<ModifierShopItem> getBuyableItems() {
-        return buyableItems;
-    }
-
-    public List<ModifierShopItem> getFreeItems() {
-        return freeItems;
+    public ModifierShop(ChooseModifierItem[] freeItems, ChooseModifierItem[] shopItems, int money) {
+        this.freeItems = Arrays.asList(freeItems);
+        this.shopItems = Arrays.asList(shopItems);
+        this.money = money;
     }
 
     @Override
     public String toString() {
+        StringJoiner shopItemsSj = new StringJoiner(", ");
+        for (ChooseModifierItem shopItem : shopItems) {
+            shopItemsSj.add(shopItem.toString());
+        }
+        StringJoiner freeItemsSj = new StringJoiner(", ");
+        for (ChooseModifierItem freeItem : this.freeItems) {
+            freeItemsSj.add(freeItem.toString());
+        }
+
         return "ModifierShop{" +
-                "buyableItems=" + buyableItems +
-                ", freeItems=" + freeItems +
+                "buyableItems=" + shopItemsSj +
+                ", freeItems=" + freeItemsSj +
                 '}';
     }
 
     public boolean freeItemsContains(String modifierType){
-        return freeItems.stream().anyMatch(item -> item.getItem().getTypeName().equals(modifierType));
+        return freeItems.stream().anyMatch(item -> item.getTypeName().equals(modifierType));
     }
 }
