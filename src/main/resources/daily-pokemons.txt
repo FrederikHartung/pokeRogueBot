@@ -1,1 +1,1 @@
-ids: 371, 876, 810, 915 #Bagon 4 farming, Indeedee 2 blue star shiney, Grookey Pokerus 3, Ferkulini shiney 1
+ids: 829, 876, 239, 915, 163 # Gossifleur blue star shiney 2, Indeedee 2 blue star shiney, Elekid Pokerus 4, Ferkulini shiney 1, hoothoot

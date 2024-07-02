@@ -42,5 +42,42 @@ window.poru.util = {
     getWaveAndTurnJson: () => {
         return JSON.stringify(window.poru.util.getWaveAndTurn());
     },
+
+    addMasterBall: () => {
+        var scene = window.poru.util.getBattleScene();
+        if(scene){
+            scene.pokeballCounts[4] +=1
+        }
+    },
+
+    healPlayerPokemon: () => {
+        var scene = window.poru.util.getBattleScene();
+        if(scene){
+            var pokemon = scene.party[0];
+            if(pokemon){
+                pokemon.hp = pokemon.stats[0];
+            }
+        }
+    },
+
+    getPlayerPokemon: () => {
+        var scene = window.poru.util.getBattleScene();
+        if(scene){
+            return scene.party[0];
+        }
+        return null;
+    },
+
+    makePlayerPokemonMoreTanky: () => {
+        var scene = window.poru.util.getBattleScene();
+        if(scene){
+            var pokemon = scene.party[0];
+            if(pokemon){
+                pokemon.stats[0] += 100;
+                pokemon.stats[3] += 100;
+                pokemon.stats[4] += 100;
+            }
+        }
+    }
     
 }
