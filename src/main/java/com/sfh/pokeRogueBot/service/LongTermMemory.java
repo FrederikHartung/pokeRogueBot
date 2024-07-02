@@ -6,6 +6,7 @@ import com.sfh.pokeRogueBot.file.FileManager;
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
@@ -16,10 +17,10 @@ import java.util.Map;
 
 @Slf4j
 @Component
-public class LongTermMemory {
+public class LongTermMemory implements DisposableBean {
 
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
-    private static final Path ITEMS_PATH = Paths.get(".", "bin", "data", "modifierItems.json");
+    private static final Path ITEMS_PATH = Paths.get(".",  "data", "modifierItems.json");
 
     private final FileManager fileManager;
 
@@ -40,10 +41,24 @@ public class LongTermMemory {
         rememberedItems.forEach(item -> knownItems.put(item.getName(), item));
     }
 
-    public void memorizeItem(ChooseModifierItem item){
-        if(knownItems.containsKey(item.getName())){
-            return;
+    public void memorizeItems(List<ChooseModifierItem> items){
+        int counterNew = 0;
+        for(ChooseModifierItem item : items){
+            if(knownItems.containsKey(item.getName())){
+                continue;
+            }
+            knownItems.put(item.getName(), item);
+            counterNew++;
         }
-        knownItems.put(item.getName(), item);
+
+        if(counterNew > 0) {
+            log.debug("Memorized {} new items, now knowing {} items", counterNew, knownItems.size());
+        }
+    }
+
+    @Override
+    public void destroy() throws Exception {
+        log.debug("Writing known items to file");
+        fileManager.overwriteJsonFile(ITEMS_PATH, gson.toJson(knownItems.values()));
     }
 }

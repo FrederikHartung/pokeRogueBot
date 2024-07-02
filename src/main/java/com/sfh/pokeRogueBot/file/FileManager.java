@@ -192,4 +192,34 @@ public class FileManager {
             return null;
         }
     }
+
+    public void overwriteJsonFile(Path itemsPath, String json) {
+        //check if dir exists, if not create it
+        if (Files.notExists(itemsPath.getParent())) {
+            try {
+                Files.createDirectories(itemsPath.getParent());
+            } catch (Exception e) {
+                log.error("Could not create directory: " + itemsPath.getParent());
+                return;
+            }
+        }
+
+        //check if file exists, if not create it
+        if (Files.notExists(itemsPath)) {
+            try {
+                Files.createFile(itemsPath);
+            } catch (Exception e) {
+                log.error("Could not create file: " + itemsPath);
+                return;
+            }
+        }
+
+        //write the file
+        try {
+            Files.writeString(itemsPath, json);
+            log.debug("wrote: " + json + " to file: " + itemsPath);
+        } catch (Exception e) {
+            log.error("Could not write file: " + itemsPath);
+        }
+    }
 }

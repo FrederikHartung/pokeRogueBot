@@ -39,6 +39,12 @@ public class ModifierShop {
                 '}';
     }
 
+    public List<ChooseModifierItem> getAllItems(){
+        List<ChooseModifierItem> allItems = new LinkedList<>(freeItems);
+        allItems.addAll(shopItems);
+        return allItems;
+    }
+
     public boolean freeItemsContains(String modifierType){
         return freeItems.stream().anyMatch(item -> item.getTypeName().equals(modifierType));
     }

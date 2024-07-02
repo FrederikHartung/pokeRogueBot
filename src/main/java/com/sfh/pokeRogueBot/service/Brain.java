@@ -6,6 +6,7 @@ import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.exception.StopRunException;
+import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem;
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
@@ -16,12 +17,15 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Slf4j
 @Service
 public class Brain {
 
     private final JsService jsService;
     private final ShortTermMemory shortTermMemory;
+    private final LongTermMemory longTermMemory;
     private final ScreenshotClient screenshotClient;
 
     private final SwitchPokemonNeuron switchPokemonNeuron;
@@ -39,12 +43,13 @@ public class Brain {
 
     public Brain(
             JsService jsService,
-            ShortTermMemory shortTermMemory,
+            ShortTermMemory shortTermMemory, LongTermMemory longTermMemory,
             ScreenshotClient screenshotClient,
             SwitchPokemonNeuron switchPokemonNeuron, ChooseModifierNeuron chooseModifierNeuron, CombatNeuron combatNeuron, CapturePokemonNeuron capturePokemonNeuron, LearnMoveNeuron learnMoveNeuron
     ) {
         this.jsService = jsService;
         this.shortTermMemory = shortTermMemory;
+        this.longTermMemory = longTermMemory;
         this.screenshotClient = screenshotClient;
         this.switchPokemonNeuron = switchPokemonNeuron;
         this.chooseModifierNeuron = chooseModifierNeuron;
@@ -62,6 +67,8 @@ public class Brain {
         if(null == chooseModifierDecision){ //get new decision
             this.waveDto = jsService.getWaveDto(); //always refresh money and pokemons before choosing the modifiers
             ModifierShop shop = jsService.getModifierShop();
+            List<ChooseModifierItem> allItems = shop.getAllItems();
+            longTermMemory.memorizeItems(allItems);
             this.chooseModifierDecision = chooseModifierNeuron.getModifierToPick(waveDto.getWavePokemon().getPlayerParty(), waveDto, shop);
         }
 
