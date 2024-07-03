@@ -1,1 +1,3 @@
-ids: 829, 876, 239, 915, 163 # Gossifleur blue star shiney 2, Indeedee 2 blue star shiney, Elekid Pokerus 4, Ferkulini shiney 1, hoothoot
+
+ids: 885, 568, 876, 664, 163
+# duradolon 5, trubbish pokerus 3, Indeedee 1 blue star shiney, Scatterbug red star 0.5, hoothoot 0.25
