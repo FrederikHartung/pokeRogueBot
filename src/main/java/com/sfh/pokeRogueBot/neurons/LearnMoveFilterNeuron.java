@@ -33,6 +33,10 @@ public class LearnMoveFilterNeuron {
              //if the attack move is not type 1 or type 2 of the pokemon, don't learn it
             return new LearnMoveDecision(false, -1, LearnMoveReasonType.DONT_LEARN_NON_POKEMON_TYPE_MOVE);
         }
+        else if(newMove.getName().equals("Belch")){
+            //don't learn belch
+            return new LearnMoveDecision(false, -1, LearnMoveReasonType.ATTACK_NOT_IMPLEMENTED);
+        }
 
         return null;
     }
