@@ -110,7 +110,7 @@ public class TitlePhase extends AbstractPhase implements Phase {
         }
         else if(gameMode == GameMode.MESSAGE){
             return new PhaseAction[]{
-                    this.pressSpace
+                    this.waitBriefly
             };
         }
 
