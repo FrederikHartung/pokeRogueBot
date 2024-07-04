@@ -8,6 +8,7 @@
 - updated reading of modifier shop items
 - added Abilities
 - added handling for levitating enemies
+- added handling for pokemons with water absorb
 
 ## 2.1
 - added handling for different pokemon forms with different poketypes (now really working (hopefully...))
