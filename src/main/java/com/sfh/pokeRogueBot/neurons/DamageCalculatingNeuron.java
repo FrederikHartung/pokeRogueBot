@@ -32,6 +32,11 @@ public class DamageCalculatingNeuron {
                 continue;
             }
 
+            if(move.getType().equals(PokeType.WATER) && enemyPokemon.getSpecies().hasWaterAbsorb()){
+                log.debug("Enemy has water absorb, can't use water move");
+                continue;
+            }
+
             int minDamage = calculateDamage(playerPokemon, enemyPokemon, move, 0.85);
             int maxDamage = calculateDamage(playerPokemon, enemyPokemon, move, 1.0);
             float accuracy = move.getAccuracy() / 100f;
