@@ -124,10 +124,10 @@ public class ChooseModifierNeuron {
 //        }
 
         //pick free heal item
-        MoveToModifierResult healItem = chooseHealModifierNeuron.pickFreePotionIfNeeded(shop, playerParty);
-        if (null != healItem) {
-            return healItem;
-        }
+        //MoveToModifierResult healItem = chooseHealModifierNeuron.pickFreePotionIfNeeded(shop, playerParty);
+        //if (null != healItem) {
+         //   return healItem;
+        //}
 
         //pick tempStatBoost item
         MoveToModifierResult tempStatBoost = pickItem(shop, TempBattleStatBoosterModifierItem.TARGET);
@@ -141,7 +141,7 @@ public class ChooseModifierNeuron {
             return levelIncrement;
         }
 
-        //pick berry item
+        //pick berry item //todo: add only a berry to a pokemon, if it does not have to many
         MoveToModifierResult berryItem = pickItem(shop, BerryModifierItem.TARGET);
         if (null != berryItem) {
             return berryItem;
