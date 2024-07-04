@@ -174,4 +174,8 @@ public class JsService {
     public boolean setLearnMoveCursor(int moveIndexToReplace) {
         return Boolean.parseBoolean(jsClient.executeCommandAndGetResult("return window.poru.uihandler.setLearnMoveCursor(%s);".formatted(moveIndexToReplace)).toString());
     }
+
+    public void addBallToInventory() {
+        jsClient.executeCommandAndGetResult("window.poru.util.addBallToInventory();");
+    }
 }

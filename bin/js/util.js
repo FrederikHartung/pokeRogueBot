@@ -43,7 +43,7 @@ window.poru.util = {
         return JSON.stringify(window.poru.util.getWaveAndTurn());
     },
 
-    addMasterBall: () => {
+    addBallToInventory: () => {
         var scene = window.poru.util.getBattleScene();
         if(scene){
             scene.pokeballCounts[4] +=1
