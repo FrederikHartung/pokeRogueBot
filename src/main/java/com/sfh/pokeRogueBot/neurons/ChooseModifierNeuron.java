@@ -118,10 +118,10 @@ public class ChooseModifierNeuron {
         }
 
         //pick pokeball item if priority exists
-        MoveToModifierResult priorityPokeballModifierItem = pickItem(shop, AddPokeballModifierItem.TARGET);
-        if (null != priorityPokeballModifierItem && modifierPriorityResult.isBall()) {
-            return priorityPokeballModifierItem;
-        }
+//        MoveToModifierResult priorityPokeballModifierItem = pickItem(shop, AddPokeballModifierItem.TARGET);
+//        if (null != priorityPokeballModifierItem && modifierPriorityResult.isBall()) {
+//            return priorityPokeballModifierItem;
+//        }
 
         //pick free heal item
         MoveToModifierResult healItem = chooseHealModifierNeuron.pickFreePotionIfNeeded(shop, playerParty);
@@ -155,8 +155,8 @@ public class ChooseModifierNeuron {
 
         //pick pokeball item
         MoveToModifierResult pokeballModifierItem = pickItem(shop, AddPokeballModifierItem.TARGET);
-        if (null != priorityPokeballModifierItem) {
-            return priorityPokeballModifierItem;
+        if (null != pokeballModifierItem) {
+            return pokeballModifierItem;
         }
 
 
