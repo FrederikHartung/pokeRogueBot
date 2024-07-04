@@ -1,3 +1,3 @@
 
-ids: 568, 664, 163, 644
-# trubbish pokerus 2, Scatterbug red star 0.5, hoothoot 0.25, zekrom 7
+ids: 370, 664, 163, 644
+# luvdisc pokerus 2, Scatterbug red star 0.5, hoothoot 0.25, zekrom 7
