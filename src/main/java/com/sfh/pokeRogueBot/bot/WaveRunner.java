@@ -13,15 +13,19 @@ import com.sfh.pokeRogueBot.phase.impl.TitlePhase;
 import com.sfh.pokeRogueBot.service.Brain;
 import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.service.WaitingService;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.JavascriptException;
 import org.openqa.selenium.NoSuchWindowException;
 import org.openqa.selenium.remote.UnreachableBrowserException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
 public class WaveRunner {
+
+    public static final int WAIT_TIME_IF_WAVE_RUNNER_IS_NOT_ACTIVE = 10000;
 
     private final JsService jsService;
     private final PhaseProcessor phaseProcessor;
@@ -29,21 +33,32 @@ public class WaveRunner {
     private final PhaseProvider phaseProvider;
     private final WaitingService waitingService;
 
+    @Setter
+    private boolean active;
+
     public WaveRunner(
             JsService jsService,
             PhaseProcessor phaseProcessor,
             Brain brain,
             PhaseProvider phaseProvider,
-            WaitingService waitingService
+            WaitingService waitingService,
+            @Value("${bot.startBotOnStartup}") boolean startBotOnStartup
     ) {
         this.jsService = jsService;
         this.phaseProcessor = phaseProcessor;
         this.brain = brain;
         this.phaseProvider = phaseProvider;
         this.waitingService = waitingService;
+        this.active = startBotOnStartup;
     }
 
     public void handlePhaseInWave(RunProperty runProperty) {
+
+        if(!active){
+            log.debug("WaveRunner is not active, skipping phase handling");
+            waitingService.sleep(WAIT_TIME_IF_WAVE_RUNNER_IS_NOT_ACTIVE);
+            return;
+        }
 
         try{
             String phaseAsString = jsService.getCurrentPhaseAsString();

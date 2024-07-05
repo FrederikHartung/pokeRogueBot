@@ -3,6 +3,7 @@
 ## 2.3 Work in Progress
 - added persisting of all encountered items in the modifier shop
 - added calculation of pokemon catch rate
+- added api to activate or deactivate the bot
 
 ## 2.2
 - updated reading of modifier shop items

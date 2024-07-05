@@ -102,7 +102,8 @@ public class TitlePhase extends AbstractPhase implements Phase {
                 runProperty.setSaveSlotIndex(saveSlotIndexToLoad);
 
                 return new PhaseAction[]{
-                        this.pressSpace
+                        this.pressSpace,
+                        this.waitEvenLonger
                 };
             }
 

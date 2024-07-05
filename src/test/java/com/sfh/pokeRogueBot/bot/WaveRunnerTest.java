@@ -40,7 +40,7 @@ class WaveRunnerTest {
         phaseProvider = mock(PhaseProvider.class);
         brain = mock(Brain.class);
         waitingService = mock(WaitingService.class);
-        WaveRunner objToSpy = new WaveRunner(jsService, phaseProcessor, brain, phaseProvider, waitingService);
+        WaveRunner objToSpy = new WaveRunner(jsService, phaseProcessor, brain, phaseProvider, waitingService, true);
         waveRunner = spy(objToSpy);
 
         runProperty = new RunProperty(1);
