@@ -29,6 +29,7 @@ replay_pid*
 /bin/webdriver
 /target
 /data/temp
+/bin/js/pokerogue
 
 #files
 .DS_Store
