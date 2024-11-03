@@ -46,7 +46,7 @@ window.poru.util = {
     addBallToInventory: () => {
         var scene = window.poru.util.getBattleScene();
         if(scene){
-            scene.pokeballCounts[4] +=1
+            scene.pokeballCounts[4] +=30
         }
     },
 
@@ -58,6 +58,16 @@ window.poru.util = {
                 pokemon.hp = pokemon.stats[0];
             }
         }
+    },
+
+    makePlayerPokemonPokerus: () => {
+    var scene = window.poru.util.getBattleScene();
+    if(scene){
+        var pokemon = scene.party[0];
+        if(pokemon){
+            pokemon.pokerus = true;
+        }
+    }
     },
 
     getPlayerPokemon: () => {
@@ -74,8 +84,52 @@ window.poru.util = {
             var pokemon = scene.party[0];
             if(pokemon){
                 pokemon.stats[0] += 100;
+                pokemon.stats[1] += 100;
+                pokemon.stats[2] += 100;
                 pokemon.stats[3] += 100;
                 pokemon.stats[4] += 100;
+                pokemon.stats[5] += 100;
+
+                console.log(pokemon);
+            }
+        }
+    },
+
+    addVouchers: () => {
+        var scene = window.poru.util.getBattleScene();
+        if(scene){
+            scene.gameData.voucherCounts[0] = 100;
+            scene.gameData.voucherCounts[1] = 20;
+            scene.gameData.voucherCounts[2] = 40;
+            scene.gameData.voucherCounts[3] = 40;
+        }
+    },
+
+    addCandies: (id) => {
+        var scene = window.poru.util.getBattleScene();
+        if(scene){
+            scene.gameData.starterData[id].candyCount = 99;
+        }
+    },
+
+    getModifiers: () => {
+        var scene = window.poru.util.getBattleScene();
+        if(scene){
+            return scene.modifiers;
+        }
+    },
+
+    extendModifier: (index) => {
+        var scene = window.poru.util.getBattleScene();
+        if(scene){
+            var modifiers = scene.modifiers;
+            var modifier = modifiers[index];
+            if(modifier){
+                // if the modifier has a property "battlesLeft" and "stackCount"
+                if(modifier.battlesLeft && modifier.stackCount){
+                    modifier.battlesLeft = 200;
+                    modifier.stackCount = 6;
+                }
             }
         }
     }
