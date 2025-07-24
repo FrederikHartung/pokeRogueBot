@@ -39,3 +39,4 @@ src/main/resources/application-default.yml
 /data/save
 *.png
 data/modifierItems.json
+src/main/resources/application-default.yml.backupp

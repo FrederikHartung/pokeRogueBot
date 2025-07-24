@@ -2,11 +2,8 @@ package com.sfh.pokeRogueBot.model.modifier;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.Setter;
 
-import javax.annotation.Nonnull;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Getter
 @AllArgsConstructor

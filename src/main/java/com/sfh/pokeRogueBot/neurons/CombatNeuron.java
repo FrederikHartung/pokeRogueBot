@@ -3,11 +3,10 @@ package com.sfh.pokeRogueBot.neurons;
 import com.sfh.pokeRogueBot.model.decisions.*;
 import com.sfh.pokeRogueBot.model.enums.*;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
+import jakarta.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.Comparator;
 import java.util.List;
 
@@ -21,7 +20,7 @@ public class CombatNeuron {
         this.damageCalculatingNeuron = damageCalculatingNeuron;
     }
 
-    public AttackDecisionForPokemon getAttackDecisionForSingleFight(@Nonnull Pokemon playerPokemon, @Nonnull Pokemon enemyPokemon, boolean tryToCatch) {
+    public AttackDecisionForPokemon getAttackDecisionForSingleFight(Pokemon playerPokemon, Pokemon enemyPokemon, boolean tryToCatch) {
         log.debug("enemy pokemon: " + enemyPokemon.getName()
                 + ", hp: " + enemyPokemon.getHp()
                 + ", typ 1: " + enemyPokemon.getSpecies().getType1()
@@ -71,7 +70,7 @@ public class CombatNeuron {
 
         return null; // enemy pokemon can't be weakened more, so throw a ball now
     }
-    
+
     private ChosenAttackMove getMaxDmgMove(List<PossibleAttackMove> possibleAttackMoves, OwnPokemonIndex index) {
         PossibleAttackMove bestMove = null;
         float highestAverageDamage = -1;
@@ -109,10 +108,10 @@ public class CombatNeuron {
     }
 
     public AttackDecisionForDoubleFight getAttackDecisionForDoubleFight(
-            @Nullable Pokemon playerPokemon1,
-            @Nullable Pokemon playerPokemon2,
-            @Nullable Pokemon enemyPokemon1,
-            @Nullable Pokemon enemyPokemon2) {
+            Pokemon playerPokemon1,
+            Pokemon playerPokemon2,
+            Pokemon enemyPokemon1,
+            Pokemon enemyPokemon2) {
 
         PossibleAttackMovesForDoubleFight pokemon1Moves = getMovesForDoubleFight(playerPokemon1, enemyPokemon1, enemyPokemon2);
 
@@ -169,7 +168,7 @@ public class CombatNeuron {
 
         return pokemonDecision;
     }
-    
+
     private PossibleAttackMovesForDoubleFight getMovesForDoubleFight(Pokemon playerPokemon, Pokemon enemyPokemon1, Pokemon enemyPokemon2) {
         if(null == playerPokemon){
             return new PossibleAttackMovesForDoubleFight(null, null, null, null);

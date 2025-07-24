@@ -1,35 +1,31 @@
 if(!window.poru) window.poru = {};
+
+// Helper to get the current battle scene
+const getScene = () => window.poru.util.getBattleScene();
+
 window.poru.util = {
-    getPhaseName: () => {
-        return Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.constructor.name;
-    },
+    // --- Phase and Game Info ---
+    getPhaseName: () => getScene()?.currentPhase?.constructor?.name ?? null,
 
-    getGameMode: () => {
-        return Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.getMode();
-    },
+    getGameMode: () => getScene()?.currentPhase?.scene?.ui?.getMode?.() ?? null,
 
-    getPhase: () => {
-        return Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase;
-    },
+    getPhase: () => getScene()?.currentPhase ?? null,
 
-    getGameData: () => {
-        return Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].gameData;
-    },
+    getGameData: () => getScene()?.gameData ?? null,
 
-    getDexData: () => {
-        return Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].gameData.dexData;
-    },
+    getDexData: () => getScene()?.gameData?.dexData ?? null,
 
     getBattleScene: () => {
-        return Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1];
+        const scenes = Phaser?.Display?.Canvas?.CanvasPool?.pool?.[0]?.parent?.game?.scene?.scenes;
+        if (!scenes) return null;
+        return scenes.length > 1 ? scenes[1] : scenes[0];
     },
 
-    getCurrentBattle: () => {
-        return Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentBattle;
-    },
+    getCurrentBattle: () => getScene()?.currentBattle ?? null,
 
+    // --- Wave and Turn ---
     getWaveAndTurn: () => {
-        var currentBattle = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentBattle;
+        const currentBattle = getScene()?.currentBattle;
         if(currentBattle){
             return {
                 waveIndex: currentBattle.waveIndex,
@@ -40,98 +36,18 @@ window.poru.util = {
     },
 
     getWaveAndTurnJson: () => {
-        return JSON.stringify(window.poru.util.getWaveAndTurn());
-    },
-
-    addBallToInventory: () => {
-        var scene = window.poru.util.getBattleScene();
-        if(scene){
-            scene.pokeballCounts[4] +=30
-        }
-    },
-
-    healPlayerPokemon: () => {
-        var scene = window.poru.util.getBattleScene();
-        if(scene){
-            var pokemon = scene.party[0];
-            if(pokemon){
-                pokemon.hp = pokemon.stats[0];
-            }
-        }
-    },
-
-    makePlayerPokemonPokerus: () => {
-    var scene = window.poru.util.getBattleScene();
-    if(scene){
-        var pokemon = scene.party[0];
-        if(pokemon){
-            pokemon.pokerus = true;
-        }
-    }
+        const waveAndTurn = window.poru.util.getWaveAndTurn();
+        return waveAndTurn ? JSON.stringify(waveAndTurn) : null;
     },
 
     getPlayerPokemon: () => {
-        var scene = window.poru.util.getBattleScene();
-        if(scene){
-            return scene.party[0];
-        }
-        return null;
+        const scene = getScene();
+        return scene?.party?.[0] ?? null;
     },
 
-    makePlayerPokemonMoreTanky: () => {
-        var scene = window.poru.util.getBattleScene();
-        if(scene){
-            var pokemon = scene.party[0];
-            if(pokemon){
-                pokemon.stats[0] += 100;
-                pokemon.stats[1] += 100;
-                pokemon.stats[2] += 100;
-                pokemon.stats[3] += 100;
-                pokemon.stats[4] += 100;
-                pokemon.stats[5] += 100;
-
-                console.log(pokemon);
-            }
-        }
-    },
-
-    addVouchers: () => {
-        var scene = window.poru.util.getBattleScene();
-        if(scene){
-            scene.gameData.voucherCounts[0] = 100;
-            scene.gameData.voucherCounts[1] = 20;
-            scene.gameData.voucherCounts[2] = 40;
-            scene.gameData.voucherCounts[3] = 40;
-        }
-    },
-
-    addCandies: (id) => {
-        var scene = window.poru.util.getBattleScene();
-        if(scene){
-            scene.gameData.starterData[id].candyCount = 99;
-        }
-    },
-
+    // --- Modifiers ---
     getModifiers: () => {
-        var scene = window.poru.util.getBattleScene();
-        if(scene){
-            return scene.modifiers;
-        }
+        const scene = getScene();
+        return scene?.modifiers ?? null;
     },
-
-    extendModifier: (index) => {
-        var scene = window.poru.util.getBattleScene();
-        if(scene){
-            var modifiers = scene.modifiers;
-            var modifier = modifiers[index];
-            if(modifier){
-                // if the modifier has a property "battlesLeft" and "stackCount"
-                if(modifier.battlesLeft && modifier.stackCount){
-                    modifier.battlesLeft = 200;
-                    modifier.stackCount = 6;
-                }
-            }
-        }
-    }
-    
-}
+};

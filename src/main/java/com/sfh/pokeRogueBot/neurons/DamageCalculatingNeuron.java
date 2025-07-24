@@ -9,7 +9,6 @@ import com.sfh.pokeRogueBot.model.results.DamageMultiplier;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Nonnull;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -17,7 +16,7 @@ import java.util.List;
 @Component
 public class DamageCalculatingNeuron {
 
-    public List<PossibleAttackMove> getPossibleAttackMoves(@Nonnull Pokemon playerPokemon, @Nonnull Pokemon enemyPokemon) {
+    public List<PossibleAttackMove> getPossibleAttackMoves(Pokemon playerPokemon, Pokemon enemyPokemon) {
         Move[] playerMoves = playerPokemon.getMoveset();
 
         List<PossibleAttackMove> possibleAttackMoves = new LinkedList<>();

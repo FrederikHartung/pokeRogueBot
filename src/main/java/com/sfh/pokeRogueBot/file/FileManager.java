@@ -3,11 +3,10 @@ package com.sfh.pokeRogueBot.file;
 import com.sfh.pokeRogueBot.model.browser.pokemonjson.Iv;
 import com.sfh.pokeRogueBot.model.browser.pokemonjson.Stats;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
+import jakarta.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -110,7 +109,7 @@ public class FileManager {
         return Paths.get(DIR_SAVE + File.separator);
     }
 
-    public void persistHatchedPokemon(@Nonnull Pokemon pokemon){
+    public void persistHatchedPokemon(Pokemon pokemon){
         StringJoiner message = new StringJoiner(", ");
         message.add(getDateTimestamp());
         message.add(pokemon.getName());
@@ -162,7 +161,6 @@ public class FileManager {
         return LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern(datetimeFormat));
     }
 
-    @Nullable
     public String readJsonFile(Path itemsPath) {
         //check if dir exists, if not create it
         if (Files.notExists(itemsPath.getParent())) {
