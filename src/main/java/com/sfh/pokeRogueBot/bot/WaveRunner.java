@@ -1,25 +1,28 @@
 package com.sfh.pokeRogueBot.bot;
 
-import com.sfh.pokeRogueBot.model.enums.GameMode;
+import org.openqa.selenium.JavascriptException;
+import org.openqa.selenium.NoSuchWindowException;
+import org.openqa.selenium.remote.UnreachableBrowserException;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.exception.UnsupportedPhaseException;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.PhaseProcessor;
 import com.sfh.pokeRogueBot.phase.PhaseProvider;
+import com.sfh.pokeRogueBot.phase.impl.LoginPhase;
 import com.sfh.pokeRogueBot.phase.impl.MessagePhase;
 import com.sfh.pokeRogueBot.phase.impl.ReturnToTitlePhase;
 import com.sfh.pokeRogueBot.phase.impl.TitlePhase;
 import com.sfh.pokeRogueBot.service.Brain;
 import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.service.WaitingService;
+
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.openqa.selenium.JavascriptException;
-import org.openqa.selenium.NoSuchWindowException;
-import org.openqa.selenium.remote.UnreachableBrowserException;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
@@ -63,23 +66,24 @@ public class WaveRunner {
         try{
             String phaseAsString = jsService.getCurrentPhaseAsString();
             Phase phase = phaseProvider.fromString(phaseAsString);
-            GameMode gameMode = jsService.getGameMode();
+            UiMode uiMode = jsService.getUiMode();
 
-            if (null != phase && gameMode != GameMode.UNKNOWN) {
-                log.debug("phase detected: " + phase.getPhaseName() + ", gameMode: " + gameMode);
-                phaseProcessor.handlePhase(phase, gameMode);
+            if (null != phase && uiMode != UiMode.UNKNOWN) {
+                log.debug("phase detected: " + phase.getPhaseName() + ", gameMode: " + uiMode);
+                phaseProcessor.handlePhase(phase, uiMode);
                 brain.memorize(phase.getPhaseName());
-            } else if (null == phase && gameMode == GameMode.MESSAGE) {
+            } else if (null == phase && uiMode == UiMode.MESSAGE) {
                 log.warn("no known phase detected, phaseAsString: " + phaseAsString + " , but gameMode is MESSAGE");
-                phaseProcessor.handlePhase(phaseProvider.fromString(MessagePhase.NAME), gameMode);
+                phaseProcessor.handlePhase(phaseProvider.fromString(MessagePhase.NAME), uiMode);
                 brain.memorize(MessagePhase.NAME);
             } else {
-                log.debug("no known phase detected, phaseAsString: " + phaseAsString + " , gameMode: " + gameMode);
-                throw new UnsupportedPhaseException(phaseAsString, gameMode);
+                log.debug("no known phase detected, phaseAsString: " + phaseAsString + " , gameMode: " + uiMode);
+                throw new UnsupportedPhaseException(phaseAsString, uiMode);
             }
         }
         catch (JavascriptException | NoSuchWindowException | UnreachableBrowserException e){
             log.error("Unexpected error, quitting app: " + e.getMessage());
+            e.printStackTrace();
             System.exit(1);
         }
         catch (Exception e){
@@ -101,7 +105,7 @@ public class WaveRunner {
             if(phase instanceof ReturnToTitlePhase returnToTitlePhase) {
                 returnToTitlePhase.setLastExceptionType(lastExceptionType);
                 log.debug("handling ReturnToTitlePhase");
-                phaseProcessor.handlePhase(returnToTitlePhase, GameMode.TITLE);
+                phaseProcessor.handlePhase(returnToTitlePhase, UiMode.TITLE);
             }
             waitingService.waitEvenLonger(); // wait for render title
             String phaseAsString = jsService.getCurrentPhaseAsString();

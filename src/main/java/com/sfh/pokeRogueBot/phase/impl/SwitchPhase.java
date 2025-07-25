@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
-import com.sfh.pokeRogueBot.model.enums.GameMode;
+import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.decisions.SwitchDecision;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
@@ -33,9 +33,9 @@ public class SwitchPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
+    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
 
-        if (gameMode == GameMode.PARTY) { // maybe an own pokemon fainted
+        if (gameMode == UiMode.PARTY) { // maybe an own pokemon fainted
             SwitchDecision switchDecision = brain.getFaintedPokemonSwitchDecision(ignoreFirstPokemon);
             ignoreFirstPokemon = false;
             boolean switchSuccessful = jsService.setPartyCursor(switchDecision.getIndex());
@@ -52,12 +52,12 @@ public class SwitchPhase extends AbstractPhase implements Phase {
                 throw new IllegalStateException("Could not set cursor to party pokemon");
             }
         }
-        else if(gameMode == GameMode.MESSAGE){
+        else if(gameMode == UiMode.MESSAGE){
             return new PhaseAction[]{
                     this.waitBriefly
             };
         }
-        else if(gameMode == GameMode.SUMMARY){
+        else if(gameMode == UiMode.SUMMARY){
             ignoreFirstPokemon = true;
             return new PhaseAction[]{
                     this.waitBriefly,

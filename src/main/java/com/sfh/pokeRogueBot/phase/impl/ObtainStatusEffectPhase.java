@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
-import com.sfh.pokeRogueBot.model.enums.GameMode;
+import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
@@ -18,8 +18,8 @@ public class ObtainStatusEffectPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
-        if (gameMode == GameMode.MESSAGE) {
+    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
+        if (gameMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     pressSpace
             };

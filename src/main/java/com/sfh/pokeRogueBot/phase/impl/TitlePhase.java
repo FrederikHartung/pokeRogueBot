@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
-import com.sfh.pokeRogueBot.model.enums.GameMode;
+import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
@@ -32,7 +32,7 @@ public class TitlePhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
+    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
 
         RunProperty runProperty = brain.getRunProperty();
 
@@ -40,7 +40,7 @@ public class TitlePhase extends AbstractPhase implements Phase {
             throw new IllegalStateException("RunProperty is null in TitlePhase");
         }
 
-        if (gameMode == GameMode.TITLE) {
+        if (gameMode == UiMode.TITLE) {
 
             if(runProperty.getSaveSlotIndex() >= 0){
                 log.debug("found run property with a save slot index, so the current run is lost.");
@@ -86,7 +86,7 @@ public class TitlePhase extends AbstractPhase implements Phase {
 
             throw new IllegalStateException("Unable to set cursor to new game.");
         }
-        else if(gameMode == GameMode.SAVE_SLOT){
+        else if(gameMode == UiMode.SAVE_SLOT){
             int saveSlotIndexToLoad = brain.getSaveSlotIndexToLoad();
             if(saveSlotIndexToLoad == -1 ){
                 log.debug("No save slot to load, pressing backspace and returning to title.");
@@ -109,7 +109,7 @@ public class TitlePhase extends AbstractPhase implements Phase {
 
             throw new IllegalStateException("Unable to set cursor to save slot.");
         }
-        else if(gameMode == GameMode.MESSAGE){
+        else if(gameMode == UiMode.MESSAGE){
             return new PhaseAction[]{
                     this.waitBriefly
             };

@@ -1,7 +1,7 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
 import com.sfh.pokeRogueBot.model.decisions.SwitchDecision;
-import com.sfh.pokeRogueBot.model.enums.GameMode;
+import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
@@ -31,12 +31,12 @@ public class MoveEffectPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
-        if (gameMode == GameMode.MESSAGE) {
+    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
+        if (gameMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     waitBriefly //todo: check if this is correct or if space needs to be pressed
             };
-        } else if (gameMode == GameMode.PARTY) {
+        } else if (gameMode == UiMode.PARTY) {
             return handlePartyGameMode();
         }
 

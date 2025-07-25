@@ -2,7 +2,7 @@ package com.sfh.pokeRogueBot.phase.impl;
 
 import com.sfh.pokeRogueBot.model.browser.pokemonjson.Move;
 import com.sfh.pokeRogueBot.model.decisions.LearnMoveDecision;
-import com.sfh.pokeRogueBot.model.enums.GameMode;
+import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
@@ -33,27 +33,27 @@ public class LearnMovePhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
+    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
 
-        if (gameMode == GameMode.MESSAGE){
+        if (gameMode == UiMode.MESSAGE){
             return new PhaseAction[]{
                     this.pressSpace,
                     this.waitBriefly
             };
         }
-        else if(gameMode == GameMode.CONFIRM){
+        else if(gameMode == UiMode.CONFIRM){
             //should pokemon learn message
             return new PhaseAction[]{ //enter summary screen
                     this.pressSpace
             };
         }
-        else if(gameMode == GameMode.EVOLUTION_SCENE){
+        else if(gameMode == UiMode.EVOLUTION_SCENE){
             return new PhaseAction[]{
                     this.waitBriefly,
                     this.pressSpace
             };
         }
-        else if(gameMode == GameMode.SUMMARY){
+        else if(gameMode == UiMode.SUMMARY){
             return handleLearnMove();
         }
 

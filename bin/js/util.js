@@ -7,7 +7,7 @@ window.poru.util = {
     // --- Phase and Game Info ---
     getPhaseName: () => getScene()?.currentPhase?.constructor?.name ?? null,
 
-    getGameMode: () => getScene()?.currentPhase?.scene?.ui?.getMode?.() ?? null,
+    getUiMode: () => getScene()?.ui?.mode ?? null,
 
     getPhase: () => getScene()?.currentPhase ?? null,
 

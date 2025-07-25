@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
-import com.sfh.pokeRogueBot.model.enums.GameMode;
+import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
@@ -37,9 +37,9 @@ public class ReturnToTitlePhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
+    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
 
-        if(gameMode == GameMode.TITLE){
+        if(gameMode == UiMode.TITLE){
 
             screenshotClient.takeTempScreenshot("error_" + lastExceptionType); //take screenshot for debugging
             log.debug("Trying to save and quit");

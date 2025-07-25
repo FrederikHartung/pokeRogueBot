@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.bot;
 
-import com.sfh.pokeRogueBot.model.enums.GameMode;
+import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.exception.ActionLoopDetectedException;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
@@ -72,7 +72,7 @@ class WaveRunnerTest {
     void a_phase_is_processed() throws Exception {
         doReturn(titlePhase.getPhaseName()).when(jsService).getCurrentPhaseAsString();
         doReturn(titlePhase).when(phaseProvider).fromString(TitlePhase.NAME);
-        doReturn(GameMode.FIGHT).when(jsService).getGameMode();
+        doReturn(UiMode.FIGHT).when(jsService).getUiMode();
 
         waveRunner.handlePhaseInWave(runProperty);
 
@@ -106,7 +106,7 @@ class WaveRunnerTest {
     void if_an_unhandled_phase_occurs_but_the_game_mode_is_message_a_message_phase_is_handled() throws Exception {
         doReturn("dummyPhase").when(jsService).getCurrentPhaseAsString();
         doReturn(null).when(phaseProvider).fromString("dummyPhase");
-        doReturn(GameMode.MESSAGE).when(jsService).getGameMode();
+        doReturn(UiMode.MESSAGE).when(jsService).getUiMode();
         waveRunner.handlePhaseInWave(runProperty);
 
         verify(phaseProcessor).handlePhase(any(Phase.class), any());

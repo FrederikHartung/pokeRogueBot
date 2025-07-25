@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
-import com.sfh.pokeRogueBot.model.enums.GameMode;
+import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
@@ -18,8 +18,8 @@ import static org.mockito.Mockito.*;
 
 class TitlePhaseTest {
 
-    GameMode gameModeTitle = GameMode.TITLE;
-    GameMode gameModeSaveSlot = GameMode.SAVE_SLOT;
+    UiMode gameModeTitle = UiMode.TITLE;
+    UiMode gameModeSaveSlot = UiMode.SAVE_SLOT;
 
     TitlePhase titlePhase;
     Brain brain;
@@ -154,7 +154,7 @@ class TitlePhaseTest {
 
     @Test
     void if_the_game_mode_is_message_a_space_is_pressed() {
-        PhaseAction[] actions = titlePhase.getActionsForGameMode(GameMode.MESSAGE);
+        PhaseAction[] actions = titlePhase.getActionsForGameMode(UiMode.MESSAGE);
 
         assertEquals(1, actions.length);
         assertEquals(PressKeyPhaseAction.class, actions[0].getClass());
@@ -163,7 +163,7 @@ class TitlePhaseTest {
 
     @Test
     void if_the_game_mode_is_not_supported_an_exception_is_thrown() {
-        assertThrows(NotSupportedException.class, () -> titlePhase.getActionsForGameMode(GameMode.UNKNOWN));
+        assertThrows(NotSupportedException.class, () -> titlePhase.getActionsForGameMode(UiMode.UNKNOWN));
     }
 
     @Test

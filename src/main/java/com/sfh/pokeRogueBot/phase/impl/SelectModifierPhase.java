@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
-import com.sfh.pokeRogueBot.model.enums.GameMode;
+import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
@@ -39,10 +39,10 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
+    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
         List<PhaseAction> actionList = new LinkedList<>();
 
-        if (gameMode == GameMode.MODIFIER_SELECT) {
+        if (gameMode == UiMode.MODIFIER_SELECT) {
 
             waitService.waitEvenLonger(); //wait for the modifier shop to render
             waitService.waitLonger();
@@ -66,7 +66,7 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
             waitService.waitEvenLonger(); //wait for the cursor to be set
 
             actionList.add(this.pressSpace); //to confirm selection -> gamemode will change to party
-        } else if (gameMode == GameMode.PARTY) {
+        } else if (gameMode == UiMode.PARTY) {
 
             boolean isSettingCursorSuccessfull = jsService.setPartyCursor(pokemonIndexToSwitchTo);
             if(!isSettingCursorSuccessfull) {
@@ -77,9 +77,9 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
             actionList.add(this.pressSpace); //open confirm menu
             actionList.add(this.waitBriefly); //wait for confirm menu to render
             actionList.add(this.pressSpace); //confirm the application of the modifier
-        } else if (gameMode == GameMode.MESSAGE) {
+        } else if (gameMode == UiMode.MESSAGE) {
             actionList.add(this.pressSpace);
-        } else if (gameMode == GameMode.SUMMARY) {
+        } else if (gameMode == UiMode.SUMMARY) {
             actionList.add(this.pressBackspace); //go back to team
             actionList.add(waitLonger);
             actionList.add(this.pressBackspace); //go back to modifier shop

@@ -1,26 +1,28 @@
 package com.sfh.pokeRogueBot.service;
 
+import java.lang.reflect.Type;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.sfh.pokeRogueBot.browser.JsClient;
 import com.sfh.pokeRogueBot.model.dto.SaveSlotDto;
 import com.sfh.pokeRogueBot.model.dto.WaveAndTurnDto;
-import com.sfh.pokeRogueBot.model.enums.GameMode;
+import com.sfh.pokeRogueBot.model.dto.WaveDto;
+import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem;
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItemDeserializer;
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.run.Starter;
-import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import com.sfh.pokeRogueBot.model.run.WavePokemon;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 
-import java.lang.reflect.Type;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -60,12 +62,12 @@ public class JsService {
         return jsClient.executeCommandAndGetResult("return window.poru.util.getPhaseName();").toString();
     }
 
-    public GameMode getGameMode() {
-        Object result = jsClient.executeCommandAndGetResult("return window.poru.util.getGameMode();");
+    public UiMode getUiMode() {
+        Object result = jsClient.executeCommandAndGetResult("return window.poru.util.getUiMode();");
         if (result instanceof Long longValue) {
-            return GameMode.fromValue(longValue.intValue());
+            return UiMode.fromValue(longValue.intValue());
         }
-        return GameMode.UNKNOWN;
+        return UiMode.UNKNOWN;
     }
 
     public ModifierShop getModifierShop() {

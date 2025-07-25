@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
-import com.sfh.pokeRogueBot.model.enums.GameMode;
+import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
@@ -25,7 +25,7 @@ class SelectStarterPhaseTest {
     Brain brain;
 
     final List<Integer> starterIds = List.of(1, 4, 7);
-    final GameMode gameModeSaveSlot = GameMode.SAVE_SLOT;
+    final UiMode gameModeSaveSlot = UiMode.SAVE_SLOT;
 
     RunProperty runProperty;
 
@@ -64,6 +64,6 @@ class SelectStarterPhaseTest {
 
     @Test
     void an_unsupported_game_mode_is_passed() {
-        assertThrows(NotSupportedException.class, () -> selectStarterPhase.getActionsForGameMode(GameMode.UNKNOWN));
+        assertThrows(NotSupportedException.class, () -> selectStarterPhase.getActionsForGameMode(UiMode.UNKNOWN));
     }
 }

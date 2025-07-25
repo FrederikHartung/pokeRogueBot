@@ -2,7 +2,7 @@ package com.sfh.pokeRogueBot.phase;
 
 import com.sfh.pokeRogueBot.browser.BrowserClient;
 import com.sfh.pokeRogueBot.file.FileManager;
-import com.sfh.pokeRogueBot.model.enums.GameMode;
+import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.phase.actions.*;
 import com.sfh.pokeRogueBot.service.ImageService;
@@ -29,7 +29,7 @@ public class PhaseProcessor implements ScreenshotClient {
     /**
      * Handles the given phase by performing the actions in the phase and waits the configured time after the phase.
      */
-    public void handlePhase(Phase phase, GameMode gameMode) throws Exception {
+    public void handlePhase(Phase phase, UiMode gameMode) throws Exception {
         PhaseAction[] actionsToPerform = phase.getActionsForGameMode(gameMode);
         for (PhaseAction action : actionsToPerform) {
             handleAction(action);

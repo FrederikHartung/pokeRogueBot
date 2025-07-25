@@ -1,7 +1,7 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
 import com.sfh.pokeRogueBot.file.FileManager;
-import com.sfh.pokeRogueBot.model.enums.GameMode;
+import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
@@ -44,13 +44,13 @@ public class EggHatchPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
-        if (gameMode == GameMode.MESSAGE) {
+    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
+        if (gameMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     this.pressSpace
             };
         }
-        else if (gameMode == GameMode.EGG_HATCH_SCENE) {
+        else if (gameMode == UiMode.EGG_HATCH_SCENE) {
 
             long eggId = jsService.getEggId();
             if(!eggIds.contains(eggId)){

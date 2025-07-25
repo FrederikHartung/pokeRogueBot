@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
-import com.sfh.pokeRogueBot.model.enums.GameMode;
+import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
@@ -23,13 +23,13 @@ public class MessagePhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
-        if (gameMode == GameMode.MESSAGE) {
+    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
+        if (gameMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     this.pressSpace,
                     this.waitBriefly
             };
-        } else if (gameMode == GameMode.COMMAND || gameMode == GameMode.EGG_HATCH_SCENE || gameMode == GameMode.MODIFIER_SELECT) {
+        } else if (gameMode == UiMode.COMMAND || gameMode == UiMode.EGG_HATCH_SCENE || gameMode == UiMode.MODIFIER_SELECT) {
             return new PhaseAction[]{
                     this.waitLonger
             };

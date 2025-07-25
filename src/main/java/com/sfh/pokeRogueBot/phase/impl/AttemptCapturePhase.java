@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
-import com.sfh.pokeRogueBot.model.enums.GameMode;
+import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
@@ -18,8 +18,8 @@ public class AttemptCapturePhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
-        if (gameMode == GameMode.CONFIRM) { //todo: release the pokemon with the lowest level
+    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
+        if (gameMode == UiMode.CONFIRM) { //todo: release the pokemon with the lowest level
 
             return new PhaseAction[]{ //don't take captured wild pokemons
                     this.waitBriefly,
@@ -28,7 +28,7 @@ public class AttemptCapturePhase extends AbstractPhase implements Phase {
                     this.pressSpace
             };
         }
-        else if (gameMode == GameMode.MESSAGE) {
+        else if (gameMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     this.pressSpace
             };

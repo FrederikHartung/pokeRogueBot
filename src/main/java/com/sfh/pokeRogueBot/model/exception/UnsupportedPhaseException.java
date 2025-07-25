@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.model.exception;
 
-import com.sfh.pokeRogueBot.model.enums.GameMode;
+import com.sfh.pokeRogueBot.model.enums.UiMode;
 
 public class UnsupportedPhaseException extends RuntimeException {
 
@@ -8,7 +8,7 @@ public class UnsupportedPhaseException extends RuntimeException {
         super(message);
     }
 
-    public UnsupportedPhaseException(String phase, GameMode gameMode) {
+    public UnsupportedPhaseException(String phase, UiMode gameMode) {
         super("Phase " + phase + " with GameMode " + gameMode + " is not supported yet");
     }
 }

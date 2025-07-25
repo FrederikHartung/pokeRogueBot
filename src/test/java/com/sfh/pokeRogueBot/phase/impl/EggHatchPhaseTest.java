@@ -1,7 +1,7 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
 import com.sfh.pokeRogueBot.file.FileManager;
-import com.sfh.pokeRogueBot.model.enums.GameMode;
+import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.phase.ScreenshotClient;
@@ -48,7 +48,7 @@ class EggHatchPhaseTest {
     @Test
     void an_egg_is_hatched(){
 
-        PhaseAction[] actions = eggHatchPhase.getActionsForGameMode(GameMode.EGG_HATCH_SCENE);
+        PhaseAction[] actions = eggHatchPhase.getActionsForGameMode(UiMode.EGG_HATCH_SCENE);
         assertNotNull(actions);
         assertEquals(1, actions.length);
         assertEquals(KeyToPress.SPACE, ((PressKeyPhaseAction) actions[0]).getKeyToPress());

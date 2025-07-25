@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
-import com.sfh.pokeRogueBot.model.enums.GameMode;
+import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.model.run.Starter;
@@ -46,9 +46,9 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(GameMode gameMode) throws NotSupportedException {
+    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
 
-        if (gameMode == GameMode.STARTER_SELECT) {
+        if (gameMode == UiMode.STARTER_SELECT) {
             if(starters.isEmpty() && !selectedStarters){
                 selectStarter(jsService.getAvailableStarterPokemon());
                 selectedStarters = true;
@@ -92,12 +92,12 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
             }
 
         }
-        else if(gameMode == GameMode.CONFIRM){
+        else if(gameMode == UiMode.CONFIRM){
             return new PhaseAction[]{
                     this.pressSpace
             };
         }
-        else if(gameMode == GameMode.SAVE_SLOT){
+        else if(gameMode == UiMode.SAVE_SLOT){
             RunProperty runProperty = brain.getRunProperty();
             log.debug("Setting Cursor to saveSlotIndex: {}", runProperty.getSaveSlotIndex());
             boolean setSaveSlotCursorSuccess = jsService.setCursorToSaveSlot(runProperty.getSaveSlotIndex());
