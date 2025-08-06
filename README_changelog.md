@@ -1,5 +1,8 @@
 #Changelog
 
+## 3.1
+- fixed small bug in one Unit Test
+
 ## 3.0
 - migrated to Java 21
 - started to migrate some classes to Kotlin 2.1
