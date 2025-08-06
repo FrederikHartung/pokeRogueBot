@@ -43,12 +43,12 @@ public class MoveEffectPhase extends AbstractPhase implements Phase {
         throw new NotSupportedException("GameMode not supported for MoveEffectPhase: " + gameMode);
     }
 
-    public PhaseAction[] handlePartyGameMode(){
+    public PhaseAction[] handlePartyGameMode() {
 
         SwitchDecision switchDecision = brain.getBestSwitchDecision();
 
         boolean setCursorSuccess = jsService.setPartyCursor(switchDecision.getIndex());
-        if(!setCursorSuccess){
+        if (!setCursorSuccess) {
             throw new IllegalStateException("Could not set cursor to index: " + switchDecision.getIndex());
         }
 

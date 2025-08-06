@@ -28,8 +28,7 @@ public class ReturnPhase extends AbstractPhase implements Phase {
             return new PhaseAction[]{
                     this.pressSpace
             };
-        }
-        else if(gameMode == UiMode.EGG_HATCH_SCENE){
+        } else if (gameMode == UiMode.EGG_HATCH_SCENE) {
             return new PhaseAction[]{
                     this.waitBriefly
             };

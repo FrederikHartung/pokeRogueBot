@@ -2,7 +2,6 @@ package com.sfh.pokeRogueBot.browser;
 
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
-import com.sfh.pokeRogueBot.service.JsService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.*;
@@ -20,7 +19,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 @Slf4j
 @Component
@@ -41,7 +39,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
                                @Value("${browser.waitTimeForRenderAfterNavigation:5000}") int waitTimeForRenderAfterNavigation,
                                @Value("${browser.pathChromeUserDir}") String pathChromeUserDir,
                                @Value("${browser.chromeProfile}") String chromeProfile
-                               ) {
+    ) {
         this.closeOnExit = closeOnExit;
         this.waitTimeForRenderAfterNavigation = waitTimeForRenderAfterNavigation;
         this.pathChromeUserDir = pathChromeUserDir;
@@ -53,7 +51,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
         if (null == this.driver) {
             ChromeOptions options = new ChromeOptions();
 
-            if(!StringUtils.isEmpty(pathChromeUserDir)){
+            if (!StringUtils.isEmpty(pathChromeUserDir)) {
                 log.debug("Using Chrome user dir: " + pathChromeUserDir + " and profile: " + chromeProfile);
                 options.addArguments("user-data-dir=" + pathChromeUserDir);
                 options.addArguments("--profile-directory=" + chromeProfile);
@@ -111,39 +109,32 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
             JavascriptExecutor js = (JavascriptExecutor) driver;
             String jsCode = new String(Files.readAllBytes(jsFilePath));
             js.executeScript(jsCode);
-        }
-        catch (NoSuchWindowException e){
+        } catch (NoSuchWindowException e) {
             log.error("Browser window not found.");
             throw e;
-        }
-        catch (UnreachableBrowserException e){
+        } catch (UnreachableBrowserException e) {
             log.error("Browser unreachable.");
             throw e;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("Error while adding script to window: " + jsFilePath + ", error: " + e.getMessage());
         }
     }
 
     @Override
-    public Object executeCommandAndGetResult(String jsCommand){
+    public Object executeCommandAndGetResult(String jsCommand) {
         try {
             JavascriptExecutor js = (JavascriptExecutor) driver;
             return js.executeScript(jsCommand);
-        }
-        catch (NoSuchWindowException e){
+        } catch (NoSuchWindowException e) {
             log.error("browser window not found, error: " + e.getMessage());
             throw e;
-        }
-        catch (UnreachableBrowserException e){
+        } catch (UnreachableBrowserException e) {
             log.error("browser unreachable, error: " + e.getMessage());
             throw e;
-        }
-        catch (JavascriptException e){
+        } catch (JavascriptException e) {
             log.error("JavaScript Exception occured, error: " + e.getMessage());
             throw e;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("Error while executing JS command: " + jsCommand + ", error: " + e.getMessage());
             return null;
         }

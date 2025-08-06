@@ -24,7 +24,7 @@ public class LongTermMemory implements DisposableBean {
             .registerTypeAdapter(ChooseModifierItem.class, new ChooseModifierItemDeserializer())
             .setPrettyPrinting()
             .create();
-    private static final Path ITEMS_PATH = Paths.get(".",  "data", "modifierItems.json");
+    private static final Path ITEMS_PATH = Paths.get(".", "data", "modifierItems.json");
 
     private final FileManager fileManager;
 
@@ -34,9 +34,9 @@ public class LongTermMemory implements DisposableBean {
         this.fileManager = fileManager;
     }
 
-    public void rememberItems(){
+    public void rememberItems() {
         String json = fileManager.readJsonFile(ITEMS_PATH);
-        if(StringUtils.isBlank(json)){
+        if (StringUtils.isBlank(json)) {
             log.warn("No items found in memory");
             return;
         }
@@ -47,28 +47,27 @@ public class LongTermMemory implements DisposableBean {
         log.debug("Remembered {} items", knownItems.size());
     }
 
-    public void memorizeItems(List<ChooseModifierItem> items){
+    public void memorizeItems(List<ChooseModifierItem> items) {
         int counterNew = 0;
-        for(ChooseModifierItem item : items){
-            if(knownItems.containsKey(item.getName())){
+        for (ChooseModifierItem item : items) {
+            if (knownItems.containsKey(item.getName())) {
                 continue;
             }
             knownItems.put(item.getName(), item);
             counterNew++;
         }
 
-        if(counterNew > 0) {
+        if (counterNew > 0) {
             log.debug("Memorized {} new items, now knowing {} items", counterNew, knownItems.size());
         }
     }
 
     @Override
     public void destroy() throws Exception {
-        if(!knownItems.isEmpty()){
+        if (!knownItems.isEmpty()) {
             log.debug("Writing known items to file");
             fileManager.overwriteJsonFile(ITEMS_PATH, gson.toJson(knownItems.values()));
-        }
-        else {
+        } else {
             log.debug("No items to write to file");
         }
     }

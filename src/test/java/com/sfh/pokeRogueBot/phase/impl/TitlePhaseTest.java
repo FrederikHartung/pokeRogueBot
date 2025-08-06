@@ -138,7 +138,7 @@ class TitlePhaseTest {
         PhaseAction[] actions = titlePhase.getActionsForGameMode(gameModeSaveSlot);
 
         verify(jsService, times(1)).setCursorToSaveSlot(0);
-        assertEquals(1, actions.length);
+        assertEquals(2, actions.length);
         assertEquals(PressKeyPhaseAction.class, actions[0].getClass());
         assertEquals(KeyToPress.SPACE, ((PressKeyPhaseAction) actions[0]).getKeyToPress());
         verify(brain, times(1)).getRunProperty();
@@ -157,8 +157,7 @@ class TitlePhaseTest {
         PhaseAction[] actions = titlePhase.getActionsForGameMode(UiMode.MESSAGE);
 
         assertEquals(1, actions.length);
-        assertEquals(PressKeyPhaseAction.class, actions[0].getClass());
-        assertEquals(KeyToPress.SPACE, ((PressKeyPhaseAction) actions[0]).getKeyToPress());
+        assertEquals(WaitPhaseAction.class, actions[0].getClass());
     }
 
     @Test

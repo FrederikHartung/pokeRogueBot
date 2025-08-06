@@ -1,6 +1,5 @@
 package com.sfh.pokeRogueBot.model.browser.pokemonjson;
 
-import com.sfh.pokeRogueBot.model.enums.Stat;
 import lombok.Data;
 
 @Data

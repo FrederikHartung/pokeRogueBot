@@ -1,10 +1,10 @@
 package com.sfh.pokeRogueBot.neurons;
 
 import com.sfh.pokeRogueBot.model.browser.pokemonjson.Move;
+import com.sfh.pokeRogueBot.model.decisions.PossibleAttackMove;
 import com.sfh.pokeRogueBot.model.enums.MoveCategory;
 import com.sfh.pokeRogueBot.model.enums.PokeType;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
-import com.sfh.pokeRogueBot.model.decisions.PossibleAttackMove;
 import com.sfh.pokeRogueBot.model.results.DamageMultiplier;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -20,18 +20,18 @@ public class DamageCalculatingNeuron {
         Move[] playerMoves = playerPokemon.getMoveset();
 
         List<PossibleAttackMove> possibleAttackMoves = new LinkedList<>();
-        for(int i = 0; i < playerMoves.length; i++) {
+        for (int i = 0; i < playerMoves.length; i++) {
             Move move = playerMoves[i];
-            if(move == null || !move.isUsable() || move.getPPLeft() == 0) {
+            if (move == null || !move.isUsable() || move.getPPLeft() == 0) {
                 continue;
             }
 
-            if(move.getType().equals(PokeType.GROUND) && enemyPokemon.getSpecies().isLevitating()){
+            if (move.getType().equals(PokeType.GROUND) && enemyPokemon.getSpecies().isLevitating()) {
                 log.debug("Enemy is levitating, can't use ground move");
                 continue;
             }
 
-            if(move.getType().equals(PokeType.WATER) && enemyPokemon.getSpecies().hasWaterAbsorb()){
+            if (move.getType().equals(PokeType.WATER) && enemyPokemon.getSpecies().hasWaterAbsorb()) {
                 log.debug("Enemy has water absorb, can't use water move");
                 continue;
             }
@@ -52,7 +52,7 @@ public class DamageCalculatingNeuron {
 
     private int calculateDamage(Pokemon attacker, Pokemon defender, Move move, double randomFactor) {
 
-        if(move.getPower() < 0){
+        if (move.getPower() < 0) {
             return 0;
         }
 
@@ -76,10 +76,10 @@ public class DamageCalculatingNeuron {
         return (int) Math.round(damage);
     }
 
-    public float calcDamageMultiplier(PokeType attackTyp, PokeType defTyp1, PokeType defTyp2){
+    public float calcDamageMultiplier(PokeType attackTyp, PokeType defTyp1, PokeType defTyp2) {
         double typeEffectiveness1 = PokeType.getTypeDamageMultiplier(attackTyp, defTyp1);
         double typeEffectiveness2 = 1;
-        if(defTyp2 != null){
+        if (defTyp2 != null) {
             typeEffectiveness2 = PokeType.getTypeDamageMultiplier(attackTyp, defTyp2);
         }
         return (float) (typeEffectiveness1 * typeEffectiveness2);
@@ -95,7 +95,7 @@ public class DamageCalculatingNeuron {
 
         PokeType playerType2 = playerPokemon.getSpecies().getType2();
         float playerDamageMultiplier2 = -1;
-        if(playerType2 != null) {
+        if (playerType2 != null) {
             playerDamageMultiplier2 = calcDamageMultiplier(
                     playerType2,
                     enemyPokemon.getSpecies().getType1(),
@@ -111,7 +111,7 @@ public class DamageCalculatingNeuron {
 
         PokeType enemyType2 = enemyPokemon.getSpecies().getType2();
         float enemyDamageMultiplier2 = -1;
-        if(null != enemyType2) {
+        if (null != enemyType2) {
             enemyDamageMultiplier2 = calcDamageMultiplier(
                     enemyPokemon.getSpecies().getType2(),
                     playerPokemon.getSpecies().getType1(),

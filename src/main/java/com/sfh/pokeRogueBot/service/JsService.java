@@ -1,12 +1,5 @@
 package com.sfh.pokeRogueBot.service;
 
-import java.lang.reflect.Type;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.List;
-
-import org.springframework.stereotype.Service;
-
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -21,18 +14,17 @@ import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.run.Starter;
 import com.sfh.pokeRogueBot.model.run.WavePokemon;
-
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+import java.lang.reflect.Type;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
 
 @Slf4j
 @Service
 public class JsService {
-
-    private static final Gson GSON = new GsonBuilder()
-            .registerTypeAdapter(ChooseModifierItem.class, new ChooseModifierItemDeserializer())
-            .create();
-    private static final Type TYPE = new TypeToken<List<ChooseModifierItem>>() {
-    }.getType();
 
     public static final Path UTIL = Paths.get(".", "bin", "js", "util.js");
     public static final Path UI_HANDLER = Paths.get(".", "bin", "js", "uihandler.js");
@@ -41,14 +33,18 @@ public class JsService {
     public static final Path MODIFIER = Paths.get(".", "bin", "js", "modifier.js");
     public static final Path STARTER = Paths.get(".", "bin", "js", "starter.js");
     public static final Path EGG = Paths.get(".", "bin", "js", "egg.js");
-
+    private static final Gson GSON = new GsonBuilder()
+            .registerTypeAdapter(ChooseModifierItem.class, new ChooseModifierItemDeserializer())
+            .create();
+    private static final Type TYPE = new TypeToken<List<ChooseModifierItem>>() {
+    }.getType();
     private final JsClient jsClient;
 
     public JsService(JsClient jsClient) {
         this.jsClient = jsClient;
     }
 
-    public void init(){
+    public void init() {
         jsClient.addScriptToWindow(UTIL);
         jsClient.addScriptToWindow(UI_HANDLER);
         jsClient.addScriptToWindow(POKE);
@@ -92,21 +88,21 @@ public class JsService {
     public boolean setModifierOptionsCursor(int rowIndex, int columnIndex) {
         log.debug("Setting modifier options cursor to row: " + rowIndex + ", column: " + columnIndex);
         String result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.setModifierSelectUiHandlerCursor(%s, %s)"
-                        .formatted(columnIndex, rowIndex)).toString();
+                .formatted(columnIndex, rowIndex)).toString();
         return Boolean.parseBoolean(result);
     }
 
     public boolean setPartyCursor(int index) {
         log.debug("Setting party cursor to index: " + index);
         String result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.setPartyUiHandlerCursor(%s)"
-                        .formatted(index)).toString();
+                .formatted(index)).toString();
         return Boolean.parseBoolean(result);
     }
 
     public boolean setPokeBallCursor(int index) {
         log.debug("Setting pokeball cursor to index: " + index);
         String result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.setBallUiHandlerCursor(%s)"
-                        .formatted(index)).toString();
+                .formatted(index)).toString();
         return Boolean.parseBoolean(result);
     }
 
@@ -119,7 +115,7 @@ public class JsService {
     public boolean setPokemonSelectCursor(int speciesId) {
         log.debug("Setting pokemon select cursor to speciesId: " + speciesId);
         String result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.setStarterSelectUiHandlerCursor(%s);"
-                        .formatted(speciesId)).toString();
+                .formatted(speciesId)).toString();
         return Boolean.parseBoolean(result);
     }
 
@@ -134,12 +130,12 @@ public class JsService {
         return GSON.fromJson(result, WaveAndTurnDto.class);
     }
 
-    public Pokemon getHatchedPokemon(){
+    public Pokemon getHatchedPokemon() {
         String result = jsClient.executeCommandAndGetResult("return window.poru.egg.getHatchedPokemonJson();").toString();
         return GSON.fromJson(result, Pokemon.class);
     }
 
-    public long getEggId(){
+    public long getEggId() {
         return Long.parseLong(jsClient.executeCommandAndGetResult("return window.poru.egg.getEggId();").toString());
     }
 
@@ -155,11 +151,11 @@ public class JsService {
         return Boolean.parseBoolean(jsClient.executeCommandAndGetResult("return window.poru.uihandler.setTitleUiHandlerCursorToNewGame();").toString());
     }
 
-    public boolean setCursorToSaveSlot(int index){
+    public boolean setCursorToSaveSlot(int index) {
         return Boolean.parseBoolean(jsClient.executeCommandAndGetResult("return window.poru.uihandler.setCursorToSaveSlot(%s);".formatted(index)).toString());
     }
 
-    public SaveSlotDto[] getSaveSlots(){
+    public SaveSlotDto[] getSaveSlots() {
         String result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.getSaveSlotsJson();").toString();
         return GSON.fromJson(result, SaveSlotDto[].class);
     }

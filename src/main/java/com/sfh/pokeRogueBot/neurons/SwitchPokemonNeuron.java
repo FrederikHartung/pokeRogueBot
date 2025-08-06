@@ -1,8 +1,8 @@
 package com.sfh.pokeRogueBot.neurons;
 
+import com.sfh.pokeRogueBot.model.decisions.SwitchDecision;
 import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
-import com.sfh.pokeRogueBot.model.decisions.SwitchDecision;
 import com.sfh.pokeRogueBot.model.results.DamageMultiplier;
 import com.sfh.pokeRogueBot.model.run.WavePokemon;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +23,7 @@ public class SwitchPokemonNeuron {
 
     /**
      * This method returns the index of the pokemon with the best type advantage against the enemy pokemon
+     *
      * @return the index of the pokemon with the best type advantage against the enemy pokemon
      */
     public SwitchDecision getBestSwitchDecision(WaveDto waveDto, boolean ignoreFirstPokemon) {
@@ -31,7 +32,7 @@ public class SwitchPokemonNeuron {
         Pokemon[] playerParty = wave.getPlayerParty();
 
         //if the wild pokeon and the player pokemon fainted at the same time
-        if(wave.getEnemyParty().length == 0){
+        if (wave.getEnemyParty().length == 0) {
             return getNextPokemon(playerParty, ignoreFirstPokemon);
         }
 
@@ -39,24 +40,24 @@ public class SwitchPokemonNeuron {
         int startIndexOfPartyPokemons = waveDto.isDoubleFight() ? 2 : 1;
 
         List<SwitchDecision> switchDecisions = new LinkedList<>();
-        for(int i = startIndexOfPartyPokemons; i < playerParty.length; i++){
+        for (int i = startIndexOfPartyPokemons; i < playerParty.length; i++) {
             Pokemon playerPokemon = playerParty[i];
             boolean enemy1Fainted = wave.getEnemyParty()[0].getHp() == 0;
 
             Pokemon enemyPokemon = enemy1Fainted && wave.getEnemyParty().length >= 2 ? wave.getEnemyParty()[1] : wave.getEnemyParty()[0];
 
-            if(null == playerPokemon){
+            if (null == playerPokemon) {
                 continue;
             }
 
-            if(playerParty[i].getHp() > 0){
+            if (playerParty[i].getHp() > 0) {
                 SwitchDecision decision = getSwitchDecisionForIndex(i, playerPokemon, enemyPokemon);
                 log.debug("Calculated possible SwitchDecision for pokemon: " + decision.getPokeName() + " on index: " + decision.getIndex() + " with name: " + decision.getPokeName() + " with combinedDamageMultiplier: " + decision.getCombinedDamageMultiplier());
                 switchDecisions.add(decision);
             }
         }
 
-        if(!switchDecisions.isEmpty()){
+        if (!switchDecisions.isEmpty()) {
             //return the decision with max combinedDamageMultiplier
             return switchDecisions
                     .stream()
@@ -67,26 +68,24 @@ public class SwitchPokemonNeuron {
         return null;
     }
 
-    public SwitchDecision getSwitchDecisionForIndex(int index, Pokemon playerPokemon, Pokemon enemyPokemon){
+    public SwitchDecision getSwitchDecisionForIndex(int index, Pokemon playerPokemon, Pokemon enemyPokemon) {
         DamageMultiplier damageMultiplier = damageCalculatingNeuron.getTypeBasedDamageMultiplier(playerPokemon, enemyPokemon);
 
         return toSwitchDecision(index, playerPokemon.getName(), damageMultiplier);
     }
 
-    public SwitchDecision toSwitchDecision(int index, String name, DamageMultiplier damageMultiplier){
+    public SwitchDecision toSwitchDecision(int index, String name, DamageMultiplier damageMultiplier) {
         float playerDamageMultiplier;
-        if(damageMultiplier.getPlayerDamageMultiplier2() != null){
+        if (damageMultiplier.getPlayerDamageMultiplier2() != null) {
             playerDamageMultiplier = Math.max(damageMultiplier.getPlayerDamageMultiplier1(), damageMultiplier.getPlayerDamageMultiplier2());
-        }
-        else{
+        } else {
             playerDamageMultiplier = damageMultiplier.getPlayerDamageMultiplier1();
         }
 
         float enemyDamageMultiplier;
-        if(damageMultiplier.getEnemyDamageMultiplier2() != null){
+        if (damageMultiplier.getEnemyDamageMultiplier2() != null) {
             enemyDamageMultiplier = Math.max(damageMultiplier.getEnemyDamageMultiplier1(), damageMultiplier.getEnemyDamageMultiplier2());
-        }
-        else{
+        } else {
             enemyDamageMultiplier = damageMultiplier.getEnemyDamageMultiplier1();
         }
 
@@ -94,7 +93,7 @@ public class SwitchPokemonNeuron {
     }
 
     public boolean shouldSwitchPokemon(WaveDto waveDto) {
-        if(waveDto.isDoubleFight()){
+        if (waveDto.isDoubleFight()) {
             return false; //todo: not implemented yet
         }
 
@@ -103,15 +102,14 @@ public class SwitchPokemonNeuron {
         SwitchDecision playerPoke1Switch = toSwitchDecision(0, wavePokemon.getPlayerParty()[0].getName(), playerPoke1);
         SwitchDecision otherSwitch = getBestSwitchDecision(waveDto, false);
 
-        if(otherSwitch == null){
+        if (otherSwitch == null) {
             return false;
         }
 
         boolean shouldSwitch = playerPoke1Switch.getCombinedDamageMultiplier() < otherSwitch.getCombinedDamageMultiplier();
-        if(shouldSwitch){
+        if (shouldSwitch) {
             log.debug("Switching to pokemon: " + otherSwitch.getPokeName() + " on index: " + otherSwitch.getIndex() + " with name: " + otherSwitch.getPokeName() + " with combinedDamageMultiplier: " + otherSwitch.getCombinedDamageMultiplier() + " instead of: " + playerPoke1Switch.getPokeName() + " with combinedDamageMultiplier: " + playerPoke1Switch.getCombinedDamageMultiplier());
-        }
-        else{
+        } else {
             log.debug("Not switching to pokemon: " + otherSwitch.getPokeName() + " on index: " + otherSwitch.getIndex() + " with name: " + otherSwitch.getPokeName() + " with combinedDamageMultiplier: " + otherSwitch.getCombinedDamageMultiplier() + " instead of: " + playerPoke1Switch.getPokeName() + " with combinedDamageMultiplier: " + playerPoke1Switch.getCombinedDamageMultiplier());
         }
 
@@ -120,12 +118,13 @@ public class SwitchPokemonNeuron {
 
     /**
      * If the enemy pokemon was a wild pokemon and both the player pokemon and the wild pokemon fainted, the enemy party is empty and the next pokemon of the player has to be selected
+     *
      * @return
      */
-    public SwitchDecision getNextPokemon(Pokemon[] playerParty, boolean ignoreFirstPokemon){
+    public SwitchDecision getNextPokemon(Pokemon[] playerParty, boolean ignoreFirstPokemon) {
         int startIndex = ignoreFirstPokemon ? 1 : 0;
-        for(int i = startIndex; i < playerParty.length; i++){
-            if(playerParty[i].getHp() > 0){
+        for (int i = startIndex; i < playerParty.length; i++) {
+            if (playerParty[i].getHp() > 0) {
                 return new SwitchDecision(i, playerParty[i].getName(), 1, 1);
             }
         }

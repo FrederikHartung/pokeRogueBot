@@ -1,7 +1,6 @@
 package com.sfh.pokeRogueBot.model.run;
 
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
-import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import lombok.Getter;
 import lombok.Setter;
 

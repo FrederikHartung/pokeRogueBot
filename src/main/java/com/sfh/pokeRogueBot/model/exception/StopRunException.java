@@ -1,8 +1,8 @@
 package com.sfh.pokeRogueBot.model.exception;
 
-public class StopRunException extends RuntimeException{
+public class StopRunException extends RuntimeException {
 
-    public StopRunException(String message){
+    public StopRunException(String message) {
         super(message);
     }
 }

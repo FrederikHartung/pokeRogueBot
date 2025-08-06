@@ -3,7 +3,10 @@ package com.sfh.pokeRogueBot.model.modifier;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.StringJoiner;
 
 @Getter
 @AllArgsConstructor
@@ -36,13 +39,13 @@ public class ModifierShop {
                 '}';
     }
 
-    public List<ChooseModifierItem> getAllItems(){
+    public List<ChooseModifierItem> getAllItems() {
         List<ChooseModifierItem> allItems = new LinkedList<>(freeItems);
         allItems.addAll(shopItems);
         return allItems;
     }
 
-    public boolean freeItemsContains(String modifierType){
+    public boolean freeItemsContains(String modifierType) {
         return freeItems.stream().anyMatch(item -> item.getTypeName().equals(modifierType));
     }
 }

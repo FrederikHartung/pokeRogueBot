@@ -9,7 +9,7 @@ public class Status {
     private StatusEffect effect;
     private int turnCount;
 
-    public float getCatchRateModificatorForStatusEffect(){
+    public float getCatchRateModificatorForStatusEffect() {
         return switch (effect) {
             case NONE -> 1;
             case POISON, PARALYSIS, TOXIC, BURN -> 1.5f;

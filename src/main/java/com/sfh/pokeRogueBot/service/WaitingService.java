@@ -2,8 +2,6 @@ package com.sfh.pokeRogueBot.service;
 
 import com.sfh.pokeRogueBot.config.WaitConfig;
 import com.sfh.pokeRogueBot.phase.Phase;
-import com.sfh.pokeRogueBot.phase.impl.EncounterPhase;
-import com.sfh.pokeRogueBot.phase.impl.MessagePhase;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 

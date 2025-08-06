@@ -35,25 +35,22 @@ public class LearnMovePhase extends AbstractPhase implements Phase {
     @Override
     public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
 
-        if (gameMode == UiMode.MESSAGE){
+        if (gameMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     this.pressSpace,
                     this.waitBriefly
             };
-        }
-        else if(gameMode == UiMode.CONFIRM){
+        } else if (gameMode == UiMode.CONFIRM) {
             //should pokemon learn message
             return new PhaseAction[]{ //enter summary screen
                     this.pressSpace
             };
-        }
-        else if(gameMode == UiMode.EVOLUTION_SCENE){
+        } else if (gameMode == UiMode.EVOLUTION_SCENE) {
             return new PhaseAction[]{
                     this.waitBriefly,
                     this.pressSpace
             };
-        }
-        else if(gameMode == UiMode.SUMMARY){
+        } else if (gameMode == UiMode.SUMMARY) {
             return handleLearnMove();
         }
 
@@ -68,25 +65,25 @@ public class LearnMovePhase extends AbstractPhase implements Phase {
     public PhaseAction[] handleLearnMove() throws NotSupportedException {
         Pokemon pokemon = jsService.getPokemonInLearnMove();
 
-        if(pokemon == null){
+        if (pokemon == null) {
             throw new IllegalStateException("No pokemon in learn move screen");
         }
 
         Move[] moveset = pokemon.getMoveset();
-        String message =  "Pokemon %s wants to learn move: %s".formatted(pokemon.getName(), moveset[moveset.length - 1].getName());
+        String message = "Pokemon %s wants to learn move: %s".formatted(pokemon.getName(), moveset[moveset.length - 1].getName());
         log.debug(message);
         brain.memorize(message);
 
         LearnMoveDecision learnMoveDecision = brain.getLearnMoveDecision(pokemon);
 
-        if(null == learnMoveDecision){
+        if (null == learnMoveDecision) {
             throw new IllegalStateException("No learn move decision found for pokemon: " + pokemon.getName());
         }
 
-        if(learnMoveDecision.isNewMoveBetter()){
+        if (learnMoveDecision.isNewMoveBetter()) {
 
             boolean cursorMoved = jsService.setLearnMoveCursor(learnMoveDecision.getMoveIndexToReplace());
-            if(!cursorMoved){
+            if (!cursorMoved) {
                 throw new IllegalStateException("Failed to move cursor to learn move");
             }
 
@@ -94,8 +91,7 @@ public class LearnMovePhase extends AbstractPhase implements Phase {
                     this.waitLonger,
                     this.pressSpace
             };
-        }
-        else{
+        } else {
             return new PhaseAction[]{
                     this.pressBackspace, //don't learn move
                     this.waitLonger,

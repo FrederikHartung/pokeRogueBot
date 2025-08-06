@@ -84,7 +84,7 @@ public enum FormChangeItem {
 
     private final int value;
 
-    private FormChangeItem(int value) {
+    FormChangeItem(int value) {
         this.value = value;
     }
 

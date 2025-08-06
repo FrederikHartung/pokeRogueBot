@@ -19,7 +19,7 @@ public class NewBiomeEncounterPhase extends AbstractPhase implements Phase {
 
     @Override
     public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
-        if(gameMode == UiMode.EGG_HATCH_SCENE || gameMode == UiMode.MESSAGE){
+        if (gameMode == UiMode.EGG_HATCH_SCENE || gameMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     this.pressSpace,
                     this.waitLonger

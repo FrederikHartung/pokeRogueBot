@@ -47,7 +47,7 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
             waitService.waitEvenLonger(); //wait for the modifier shop to render
             waitService.waitLonger();
             MoveToModifierResult result = brain.getModifierToPick();
-            if(null == result){
+            if (null == result) {
                 //cant choose item, so don't pick any
                 return new PhaseAction[]{
                         this.pressBackspace,
@@ -58,7 +58,7 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
             pokemonIndexToSwitchTo = result.getPokemonIndexToSwitchTo(); //store the pokemon index to switch to
 
             boolean isSettingCursorSuccessfull = jsService.setModifierOptionsCursor(result.getRowIndex(), result.getColumnIndex());
-            if(!isSettingCursorSuccessfull) {
+            if (!isSettingCursorSuccessfull) {
                 throw new IllegalStateException("Could not set cursor to modifier option");
             }
 
@@ -69,7 +69,7 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
         } else if (gameMode == UiMode.PARTY) {
 
             boolean isSettingCursorSuccessfull = jsService.setPartyCursor(pokemonIndexToSwitchTo);
-            if(!isSettingCursorSuccessfull) {
+            if (!isSettingCursorSuccessfull) {
                 throw new IllegalStateException("Could not set cursor to party pokemon");
             }
 

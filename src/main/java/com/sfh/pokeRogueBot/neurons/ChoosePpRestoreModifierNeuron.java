@@ -12,21 +12,21 @@ import org.springframework.stereotype.Component;
 public class ChoosePpRestoreModifierNeuron {
 
     public MoveToModifierResult buyPpRestoreItemIfMoveIsOutOfPp(ModifierShop shop, Pokemon[] playerParty) {
-        ChooseModifierItem ppRestoreItem =  shop.getShopItems().stream()
+        ChooseModifierItem ppRestoreItem = shop.getShopItems().stream()
                 .filter(item -> item.getTypeName().equals(PokemonPpRestoreModifierItem.TARGET))
-                .filter(item -> ((PokemonPpRestoreModifierItem)item).getRestorePoints() == 10)
+                .filter(item -> ((PokemonPpRestoreModifierItem) item).getRestorePoints() == 10)
                 .findFirst()
                 .orElse(null);
 
         //if item is present and player has enough money
-        if(null != ppRestoreItem && ppRestoreItem.getCost() <= shop.getMoney()) {
+        if (null != ppRestoreItem && ppRestoreItem.getCost() <= shop.getMoney()) {
             PokemonPpRestoreModifierItem ppRestoreModifierItem = (PokemonPpRestoreModifierItem) ppRestoreItem;
 
             //check if a pokemon has a move with 0 pp
             for (int i = 0; i < playerParty.length; i++) {
 
                 Pokemon pokemon = playerParty[i];
-                if(null == pokemon || pokemon.getHp() == 0) {
+                if (null == pokemon || pokemon.getHp() == 0) {
                     continue;
                 }
 

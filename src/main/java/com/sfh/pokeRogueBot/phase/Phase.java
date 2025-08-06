@@ -7,6 +7,7 @@ import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 public interface Phase {
 
     int defaultWaitAfterStage2x = 2000;
+
     int getWaitAfterStage2x();
 
     String getPhaseName();

@@ -3,7 +3,6 @@ package com.sfh.pokeRogueBot.file;
 import com.sfh.pokeRogueBot.model.browser.pokemonjson.Iv;
 import com.sfh.pokeRogueBot.model.browser.pokemonjson.Stats;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
-import jakarta.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -81,6 +80,7 @@ public class FileManager {
 
     /**
      * Returns the directory path for saving temporary screenshots.
+     *
      * @return the directory path plus a file separator for the corresponding OS
      */
     public String getScreenshotTempDirPath() {
@@ -89,6 +89,7 @@ public class FileManager {
 
     /**
      * Returns the file path for the given file name prefix for saving screenshots.
+     *
      * @param fileNamePrefix a custom filename prefix
      * @return the file path where the screenshot will be saved
      */
@@ -101,15 +102,15 @@ public class FileManager {
         return DIR_SAVE + File.separator + dateTimeAsString + "_" + fileNamePrefix + SCREENSHOT_FILE_EXTENSION;
     }
 
-    public Path getTempDir(){
+    public Path getTempDir() {
         return Paths.get(DIR_TEMP + File.separator);
     }
 
-    public Path getSaveDir(){
+    public Path getSaveDir() {
         return Paths.get(DIR_SAVE + File.separator);
     }
 
-    public void persistHatchedPokemon(Pokemon pokemon){
+    public void persistHatchedPokemon(Pokemon pokemon) {
         StringJoiner message = new StringJoiner(", ");
         message.add(getDateTimestamp());
         message.add(pokemon.getName());
@@ -144,19 +145,18 @@ public class FileManager {
                 Files.createDirectories(parentDir);
             }
 
-            if(Files.notExists(FILE_HATCHED_POKEMON)){
+            if (Files.notExists(FILE_HATCHED_POKEMON)) {
                 Files.createFile(FILE_HATCHED_POKEMON);
             }
 
             //append the message to the file
-            Files.writeString(FILE_HATCHED_POKEMON, message.toString() + System.lineSeparator(), java.nio.file.StandardOpenOption.APPEND);
-        }
-        catch (Exception e){
+            Files.writeString(FILE_HATCHED_POKEMON, message + System.lineSeparator(), java.nio.file.StandardOpenOption.APPEND);
+        } catch (Exception e) {
             log.error("Error while saving hatched pokemon, error: " + e.getMessage());
         }
     }
 
-    private String getDateTimestamp(){
+    private String getDateTimestamp() {
         String datetimeFormat = "yyyy-MM-dd_HH-mm-ss";
         return LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern(datetimeFormat));
     }

@@ -61,12 +61,11 @@ public class SimpleBot implements Bot {
         browserClient.navigateTo(targetUrl);
 
         while (runNumber <= maxRunsTillShutdown || maxRunsTillShutdown == -1) {
-            try{
+            try {
                 startRun();
                 log.debug("run finished, starting new run");
                 runNumber++;
-            }
-            catch (IllegalStateException e){
+            } catch (IllegalStateException e) {
                 log.error(e.getMessage());
                 return;
             }
@@ -89,17 +88,14 @@ public class SimpleBot implements Bot {
         if (runProperty.getStatus() == RunStatus.LOST) {
             log.info("Metric: Run {}, save game index: {} ended: Lost battle in Wave: {}", runProperty.getRunNumber(), runProperty.getSaveSlotIndex(), runProperty.getWaveIndex());
             return;
-        }
-        else if(runProperty.getStatus() == RunStatus.ERROR) {
+        } else if (runProperty.getStatus() == RunStatus.ERROR) {
             log.warn("Metric: Run {}, save game index: {} ended: Error in Wave: {}", runProperty.getRunNumber(), runProperty.getSaveSlotIndex(), runProperty.getWaveIndex());
             return;
-        }
-        else if(runProperty.getStatus() == RunStatus.RELOAD_APP) {
+        } else if (runProperty.getStatus() == RunStatus.RELOAD_APP) {
             log.warn("Metric: Run {}, save game index: {} ended: Error in Wave: {}. Reloading app", runProperty.getRunNumber(), runProperty.getSaveSlotIndex(), runProperty.getWaveIndex());
             browserClient.navigateTo(targetUrl);
             return;
-        }
-        else if(runProperty.getStatus() == RunStatus.EXIT_APP) {
+        } else if (runProperty.getStatus() == RunStatus.EXIT_APP) {
             log.warn("Metric: Run {}, save game index: {} ended: No available save slot, stopping bot.", runProperty.getRunNumber(), runProperty.getSaveSlotIndex());
             exitApp();
         }
@@ -107,7 +103,7 @@ public class SimpleBot implements Bot {
         throw new IllegalStateException("Run ended with unknown status: " + runProperty.getStatus());
     }
 
-    public void exitApp(){
+    public void exitApp() {
         System.exit(0);
     }
 }

@@ -1,8 +1,8 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
+import com.sfh.pokeRogueBot.model.decisions.SwitchDecision;
 import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
-import com.sfh.pokeRogueBot.model.decisions.SwitchDecision;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
@@ -47,17 +47,14 @@ public class SwitchPhase extends AbstractPhase implements Phase {
                         this.waitBriefly, //render confirm button
                         this.pressSpace, //confirm the switch
                 };
-            }
-            else {
+            } else {
                 throw new IllegalStateException("Could not set cursor to party pokemon");
             }
-        }
-        else if(gameMode == UiMode.MESSAGE){
+        } else if (gameMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     this.waitBriefly
             };
-        }
-        else if(gameMode == UiMode.SUMMARY){
+        } else if (gameMode == UiMode.SUMMARY) {
             ignoreFirstPokemon = true;
             return new PhaseAction[]{
                     this.waitBriefly,

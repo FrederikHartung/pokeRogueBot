@@ -1,11 +1,11 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
-import com.sfh.pokeRogueBot.model.dto.WaveAndTurnDto;
-import com.sfh.pokeRogueBot.model.enums.*;
-import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.decisions.AttackDecision;
 import com.sfh.pokeRogueBot.model.decisions.AttackDecisionForDoubleFight;
 import com.sfh.pokeRogueBot.model.decisions.AttackDecisionForPokemon;
+import com.sfh.pokeRogueBot.model.dto.WaveAndTurnDto;
+import com.sfh.pokeRogueBot.model.enums.*;
+import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
@@ -25,13 +25,12 @@ public class CommandPhase extends AbstractPhase implements Phase {
 
     private final Brain brain;
     private final JsService jsService;
+    int lastWaveIndex = -1;
 
     public CommandPhase(Brain brain, JsService jsService) {
         this.brain = brain;
         this.jsService = jsService;
     }
-
-    int lastWaveIndex = -1;
 
     @Override
     public String getPhaseName() {
@@ -43,12 +42,12 @@ public class CommandPhase extends AbstractPhase implements Phase {
 
         WaveAndTurnDto waveAndTurnDto = this.jsService.getWaveAndTurnIndex();
 
-        if(null == waveAndTurnDto){
+        if (null == waveAndTurnDto) {
             throw new IllegalStateException("waveAndTurnDto is null");
         }
 
         //when a new run started
-        if(brain.shouldResetWaveIndex()){
+        if (brain.shouldResetWaveIndex()) {
             log.debug("Resetting wave index");
             this.lastWaveIndex = -1;
         }
@@ -73,24 +72,21 @@ public class CommandPhase extends AbstractPhase implements Phase {
                         this.waitBriefly,
                         this.pressSpace,
                 };
-            }
-            else if(commandPhaseDecision == CommandPhaseDecision.BALL){
+            } else if (commandPhaseDecision == CommandPhaseDecision.BALL) {
                 log.debug("GameMode.COMMAND, Ball decision chosen");
                 return new PhaseAction[]{
                         this.pressArrowRight,
                         this.waitBriefly,
                         this.pressSpace,
                 };
-            }
-            else if(commandPhaseDecision == CommandPhaseDecision.SWITCH){
+            } else if (commandPhaseDecision == CommandPhaseDecision.SWITCH) {
                 log.debug("GameMode.COMMAND, Switch decision chosen");
                 return new PhaseAction[]{
                         this.pressArrowDown,
                         this.waitBriefly,
                         this.pressSpace,
                 };
-            }
-            else if(commandPhaseDecision == CommandPhaseDecision.RUN){
+            } else if (commandPhaseDecision == CommandPhaseDecision.RUN) {
                 log.debug("GameMode.COMMAND, Run decision chosen");
                 return new PhaseAction[]{
                         this.pressArrowRight,
@@ -100,13 +96,12 @@ public class CommandPhase extends AbstractPhase implements Phase {
                         this.pressSpace,
                 };
             }
-        }
-        else if (gameMode == UiMode.FIGHT) { //which move to use
+        } else if (gameMode == UiMode.FIGHT) { //which move to use
 
             log.debug("GameMode.FIGHT, getting attackDecision");
             AttackDecision attackDecision = brain.getAttackDecision();
 
-            if(null == attackDecision && brain.tryToCatchPokemon()){
+            if (null == attackDecision && brain.tryToCatchPokemon()) {
                 log.debug("CapturePokemon decision chosen because attackDecision is null and is capture pokemon");
                 return new PhaseAction[]{
                         this.pressBackspace, //go back to command menu
@@ -117,12 +112,12 @@ public class CommandPhase extends AbstractPhase implements Phase {
                 };
             }
 
-            if(null == attackDecision){
+            if (null == attackDecision) {
                 throw new IllegalStateException("cant find a attack move in the command phase");
             }
 
             List<PhaseAction> actionList = new LinkedList<>();
-            if(attackDecision instanceof AttackDecisionForPokemon forSingleFight){
+            if (attackDecision instanceof AttackDecisionForPokemon forSingleFight) {
                 log.debug("found attackDecision for single fight");
                 actionList.add(this.pressArrowUp); //to go back to top left
                 actionList.add(this.waitBriefly); //to go back to top left
@@ -131,8 +126,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
                 addActionsToList(forSingleFight.getOwnAttackIndex(), forSingleFight.getSelectedTarget(), actionList, forSingleFight.getMoveTargetAreaType());
 
                 return actionList.toArray(new PhaseAction[0]);
-            }
-            else if(attackDecision instanceof AttackDecisionForDoubleFight forDoubleFight){
+            } else if (attackDecision instanceof AttackDecisionForDoubleFight forDoubleFight) {
                 log.debug("found attackDecision for double fight");
                 actionList.add(this.pressArrowUp); //to go back to top left
                 actionList.add(this.waitBriefly); //to go back to top left
@@ -140,7 +134,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
 
                 addActionsToList(forDoubleFight.getPokemon1().getOwnAttackIndex(), forDoubleFight.getPokemon1().getSelectedTarget(), actionList, forDoubleFight.getPokemon1().getMoveTargetAreaType()); //add the decisions for the first pokemon
 
-                if(null != forDoubleFight.getPokemon1() && null != forDoubleFight.getPokemon2()){ //only when two player pokemon are available
+                if (null != forDoubleFight.getPokemon1() && null != forDoubleFight.getPokemon2()) { //only when two player pokemon are available
                     actionList.add(this.waitLonger); //second pokemon is active now and the phase is back to command phase
                     actionList.add(this.pressSpace); //enter fight game mode again for the second pokemon
 
@@ -155,18 +149,17 @@ public class CommandPhase extends AbstractPhase implements Phase {
             }
 
             throw new NotSupportedException("AttackDecision not supported in CommandPhase: " + attackDecision);
-        }
-        else if (gameMode == UiMode.BALL){
+        } else if (gameMode == UiMode.BALL) {
             log.debug("GameMode.BALL, choosing strongest pokeball");
             jsService.addBallToInventory(); //add the ball to the inventory
             int pokeballIndex = brain.selectStrongestPokeball();
             log.debug("Selected pokeball index: " + pokeballIndex);
-            if(pokeballIndex == -1){
+            if (pokeballIndex == -1) {
                 throw new IllegalStateException("No pokeballs left");
             }
 
             boolean success = jsService.setPokeBallCursor(pokeballIndex);
-            if(success){
+            if (success) {
                 return new PhaseAction[]{
                         this.pressSpace,
                 };
@@ -209,10 +202,9 @@ public class CommandPhase extends AbstractPhase implements Phase {
                 break;
         }
 
-        if(moveTarget == MoveTargetAreaType.ALL_ENEMIES){
+        if (moveTarget == MoveTargetAreaType.ALL_ENEMIES) {
             return; //no need to select target
-        }
-        else if(moveTarget != MoveTargetAreaType.NEAR_OTHER){
+        } else if (moveTarget != MoveTargetAreaType.NEAR_OTHER) {
             log.warn("unchecked MoveTargetAreaType found: " + moveTarget);
         }
 

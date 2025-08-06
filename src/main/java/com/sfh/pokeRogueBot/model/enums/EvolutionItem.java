@@ -36,7 +36,7 @@ public enum EvolutionItem {
 
     private final int value;
 
-    private EvolutionItem(int value) {
+    EvolutionItem(int value) {
         this.value = value;
     }
 

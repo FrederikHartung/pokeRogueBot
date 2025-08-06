@@ -1,6 +1,5 @@
 package com.sfh.pokeRogueBot.model.decisions;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data

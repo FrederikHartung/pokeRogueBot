@@ -26,7 +26,7 @@ public class ShortTermMemory {
     }
 
     public void memorizePhase(String memory) throws ActionLoopDetectedException {
-        if(lastMemories.size() < memorySize) {
+        if (lastMemories.size() < memorySize) {
             lastMemories.add(memory);
         } else {
             checkForActionLoop();
@@ -41,15 +41,15 @@ public class ShortTermMemory {
 
     private void checkForActionLoop() throws ActionLoopDetectedException {
         Map<String, Integer> phaseCount = new java.util.HashMap<>();
-        for(int i = 0; i < memorySize; i++) {
-            if(phaseCount.containsKey(lastMemories.get(i))) {
+        for (int i = 0; i < memorySize; i++) {
+            if (phaseCount.containsKey(lastMemories.get(i))) {
                 phaseCount.put(lastMemories.get(i), phaseCount.get(lastMemories.get(i)) + 1);
             } else {
                 phaseCount.put(lastMemories.get(i), 1);
             }
         }
 
-        if(phaseCount.size() < minPhasesForLoop) {
+        if (phaseCount.size() < minPhasesForLoop) {
             StringJoiner sj = new StringJoiner(", ");
             phaseCount.forEach((k, v) -> sj.add(k + ": " + v));
             throw new ActionLoopDetectedException("Action loop detected: " + sj);

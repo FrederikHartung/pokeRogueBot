@@ -4,59 +4,54 @@ import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import com.sfh.pokeRogueBot.model.enums.PokeBallType;
 import com.sfh.pokeRogueBot.model.poke.PokeBallCatchRate;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
-import com.sfh.pokeRogueBot.service.JsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-
-import java.util.LinkedList;
-import java.util.List;
 
 @Slf4j
 @Component
 public class CapturePokemonNeuron {
 
     /**
-     *
      * @return if the pokemon should be captured
      */
     public boolean shouldCapturePokemon(WaveDto waveDto, Pokemon wildPokemon) {
 
-        if(wildPokemon == null){
+        if (wildPokemon == null) {
             return false;
         }
 
-        if(waveDto.isTrainerFight()){
+        if (waveDto.isTrainerFight()) {
             log.debug("can't capture: trainer fight");
             return false;
         }
 
-        if(!waveDto.hasPokeBalls()){
+        if (!waveDto.hasPokeBalls()) {
             log.debug("can't capture: no pokeballs left");
             return false;
         }
 
-        if(!waveDto.isOnlyOneEnemyLeft()){
+        if (!waveDto.isOnlyOneEnemyLeft()) {
             log.debug("can't capture: more than one enemy left");
             return false;
         }
 
-        if(wildPokemon.isBoss()){
+        if (wildPokemon.isBoss()) {
             boolean isBossCatchable = wildPokemon.getHp() <= (wildPokemon.getStats().getHp() / wildPokemon.getBossSegments());
 
-            if(!isBossCatchable){
+            if (!isBossCatchable) {
                 log.debug("can't capture: boss is not hurt enough");
                 return false;
             }
         }
 
-        if(wildPokemon.isShiny()){
+        if (wildPokemon.isShiny()) {
             throw new IllegalStateException("Shiny pokemon should be captured manualy");
         }
 
-//        if(( (double) wildPokemon.getHp() / wildPokemon.getStats().getHp()) > 0.9){
-//            log.debug("can't capture: pokemon is too healthy");
-//            return false;
-//        }
+        if (((double) wildPokemon.getHp() / wildPokemon.getStats().getHp()) > 0.9) {
+            log.debug("can't capture: pokemon is too healthy");
+            return false;
+        }
 
         log.debug("can capture: " + wildPokemon.getName());
         return true;
@@ -64,8 +59,8 @@ public class CapturePokemonNeuron {
 
     public int selectStrongestPokeball(WaveDto waveDto) {
         int[] pokeballs = waveDto.getPokeballCount();
-        for(int i = pokeballs.length - 1; i >= 0; i--){
-            if(pokeballs[i] > 0){
+        for (int i = pokeballs.length - 1; i >= 0; i--) {
+            if (pokeballs[i] > 0) {
                 pokeballs[i]--;
                 return i;
             }

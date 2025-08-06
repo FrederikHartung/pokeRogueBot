@@ -30,11 +30,11 @@ public class Species {
     private PokeType type2;
     private Float weight;
 
-    public boolean isLevitating(){
+    public boolean isLevitating() {
         return ability1 == Abilities.LEVITATE || ability2 == Abilities.LEVITATE || abilityHidden == Abilities.LEVITATE;
     }
 
-    public boolean hasWaterAbsorb(){
+    public boolean hasWaterAbsorb() {
         return ability1 == Abilities.WATER_ABSORB || ability2 == Abilities.WATER_ABSORB || abilityHidden == Abilities.WATER_ABSORB;
     }
 }

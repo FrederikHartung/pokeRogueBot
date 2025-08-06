@@ -1,13 +1,13 @@
 package com.sfh.pokeRogueBot.neurons;
 
+import com.sfh.pokeRogueBot.model.decisions.ChooseModifierDecision;
+import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem;
 import com.sfh.pokeRogueBot.model.modifier.ModifierPriorityResult;
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.model.modifier.impl.*;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
-import com.sfh.pokeRogueBot.model.dto.WaveDto;
-import com.sfh.pokeRogueBot.model.decisions.ChooseModifierDecision;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -46,13 +46,13 @@ public class ChooseModifierNeuron {
 
         ModifierPriorityResult result = new ModifierPriorityResult();
         //if a egg voucher is available, pick it
-        if(shop.freeItemsContains(AddVoucherModifierItem.TARGET)){
+        if (shop.freeItemsContains(AddVoucherModifierItem.TARGET)) {
             result.setVoucher(true);
             result.setPriority(true);
         }
 
         boolean pokeBallPriority = chosePokeBallModifierNeuron.priorityItemExists(shop, waveDto);
-        if(pokeBallPriority){
+        if (pokeBallPriority) {
             result.setBall(true);
             result.setPriority(true);
         }
@@ -64,28 +64,28 @@ public class ChooseModifierNeuron {
         List<MoveToModifierResult> itemsToBuy = new LinkedList<>();
         //if a pokemon is fainted and no free revive item is available, buy a revive item
         MoveToModifierResult reviveItem = buyReviveItemIfNeeded(shop, playerParty);
-        if(null != reviveItem) {
+        if (null != reviveItem) {
             log.debug("buying revive item for pokemon on index: " + reviveItem.getPokemonIndexToSwitchTo() + ", row: " + reviveItem.getRowIndex() + ", column: " + reviveItem.getColumnIndex());
             itemsToBuy.add(reviveItem); //todo: buy more if more than one is needed
         }
 
         //buy potion if more than one pokemon is hurt
         MoveToModifierResult potionItem = chooseHealModifierNeuron.buyPotionIfMoreThatOnePokemonIsHurt(shop, playerParty);
-        if(null != potionItem) {
+        if (null != potionItem) {
             log.debug("buying potion item for pokemon on index: " + potionItem.getPokemonIndexToSwitchTo() + " because a second pokemon is hurt");
             itemsToBuy.add(potionItem); //todo: buy more if more than one is needed
         }
 
         //buy potion if no free is available or priority exists
         MoveToModifierResult potionItem2 = chooseHealModifierNeuron.buyPotionIfNoFreeIsAvailableOrPriorityExists(shop, playerParty, priorityItemExists);
-        if(null != potionItem2) {
+        if (null != potionItem2) {
             log.debug("buying potion item for pokemon on index " + potionItem2.getPokemonIndexToSwitchTo() + " because no free is available or priority exists");
             itemsToBuy.add(potionItem2); //todo: buy more if more than one is needed
         }
 
         //buy pp restore item if a move is out of pp
         MoveToModifierResult ppRestoreItem = choosePpRestoreModifierNeuron.buyPpRestoreItemIfMoveIsOutOfPp(shop, playerParty);
-        if(null != ppRestoreItem) {
+        if (null != ppRestoreItem) {
             log.debug("buying pp restore item for pokemon on index: " + ppRestoreItem.getPokemonIndexToSwitchTo());
             //itemsToBuy.add(ppRestoreItem); //todo: currenty deactivated, because its crashes the run
         }
@@ -126,7 +126,7 @@ public class ChooseModifierNeuron {
         //pick free heal item
         //MoveToModifierResult healItem = chooseHealModifierNeuron.pickFreePotionIfNeeded(shop, playerParty);
         //if (null != healItem) {
-         //   return healItem;
+        //   return healItem;
         //}
 
         //pick tempStatBoost item
@@ -155,44 +155,39 @@ public class ChooseModifierNeuron {
 
         //pick pokeball item
         MoveToModifierResult pokeballModifierItem = pickItem(shop, AddPokeballModifierItem.TARGET);
-        if (null != pokeballModifierItem) {
-            return pokeballModifierItem;
-        }
-
-
-        return null;
+        return pokeballModifierItem;
     }
 
-    private MoveToModifierResult buyReviveItemIfNeeded(ModifierShop shop, Pokemon[] playerParty){
-        ChooseModifierItem freeReviveItem =  shop.getFreeItems().stream()
+    private MoveToModifierResult buyReviveItemIfNeeded(ModifierShop shop, Pokemon[] playerParty) {
+        ChooseModifierItem freeReviveItem = shop.getFreeItems().stream()
                 .filter(PokemonReviveModifierItem.class::isInstance)
                 .filter(item -> !item.getTypeName().equals(PokemonStatusHealModifierItem.TARGET))
                 .findFirst()
                 .orElse(null);
 
-        if(freeReviveItem != null){ //don't buy a revive item, when a free one is available
+        if (freeReviveItem != null) { //don't buy a revive item, when a free one is available
             return null;
         }
 
-        ChooseModifierItem reviveItemToBuy =  shop.getShopItems().stream()
+        ChooseModifierItem reviveItemToBuy = shop.getShopItems().stream()
                 .filter(PokemonReviveModifierItem.class::isInstance)
                 .filter(item -> !item.getTypeName().equals(PokemonStatusHealModifierItem.TARGET))
                 .findFirst()
                 .orElse(null);
 
-        if(reviveItemToBuy == null || reviveItemToBuy.getCost() > shop.getMoney()){ //if no item is found or the player can't afford it
+        if (reviveItemToBuy == null || reviveItemToBuy.getCost() > shop.getMoney()) { //if no item is found or the player can't afford it
             return null;
         }
 
         int reviveIndex = -1;
-        for(int i = 0; i < playerParty.length; i++){
-            if(playerParty[i].getHp() == 0){
+        for (int i = 0; i < playerParty.length; i++) {
+            if (playerParty[i].getHp() == 0) {
                 reviveIndex = i;
                 break;
             }
         }
 
-        if(reviveIndex != -1){ //buy it, if a pokemon is fainted
+        if (reviveIndex != -1) { //buy it, if a pokemon is fainted
             return new MoveToModifierResult(reviveItemToBuy.getY(), reviveItemToBuy.getX(), reviveIndex, reviveItemToBuy.getName());
         }
 
@@ -208,7 +203,7 @@ public class ChooseModifierNeuron {
                         item.getX(),
                         0,
                         item.getName())
-                    ;
+                        ;
             }
         }
 
@@ -216,21 +211,21 @@ public class ChooseModifierNeuron {
     }
 
     private MoveToModifierResult pickReviveItemIfFreeAndNeeded(ModifierShop shop, Pokemon[] playerParty) {
-        ChooseModifierItem reviveItem =  shop.getFreeItems().stream()
+        ChooseModifierItem reviveItem = shop.getFreeItems().stream()
                 .filter(PokemonReviveModifierItem.class::isInstance)
                 .findFirst()
                 .orElse(null);
 
-        if(null != reviveItem){
+        if (null != reviveItem) {
             int reviveIndex = -1;
-            for(int i = 0; i < playerParty.length; i++){
-                if(playerParty[i].getHp() == 0){
+            for (int i = 0; i < playerParty.length; i++) {
+                if (playerParty[i].getHp() == 0) {
                     reviveIndex = i;
                     break;
                 }
             }
 
-            if(reviveIndex != -1){
+            if (reviveIndex != -1) {
                 return new MoveToModifierResult(reviveItem.getY(), reviveItem.getX(), reviveIndex, reviveItem.getName());
             }
         }

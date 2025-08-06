@@ -1,8 +1,5 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
 import com.sfh.pokeRogueBot.browser.BrowserClient;
 import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
@@ -11,8 +8,9 @@ import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.service.WaitingService;
-
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
@@ -44,15 +42,14 @@ public class LoginPhase extends AbstractPhase implements Phase {
 
     @Override
     public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
-        if(gameMode == UiMode.LOADING){
+        if (gameMode == UiMode.LOADING) {
             return new PhaseAction[]{
                     this.waitLonger
             };
-        }
-        else if(gameMode == UiMode.LOGIN_FORM){
+        } else if (gameMode == UiMode.LOGIN_FORM) {
             waitingService.waitLonger();
             boolean enterUserDataSuccess = browserClient.enterUserData(userName, password);
-            if(enterUserDataSuccess){
+            if (enterUserDataSuccess) {
                 log.debug("entered user data successfully");
                 boolean userDataSubmitted = jsService.submitUserData();
                 if (userDataSubmitted) {
@@ -60,16 +57,13 @@ public class LoginPhase extends AbstractPhase implements Phase {
                     return new PhaseAction[]{
                             this.waitBriefly
                     };
-                }
-                else {
+                } else {
                     log.error("could not submit user data");
                 }
-            }
-            else {
+            } else {
                 log.error("could not enter user data");
             }
-        }
-        else if(gameMode == UiMode.MESSAGE){
+        } else if (gameMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     this.pressSpace
             };

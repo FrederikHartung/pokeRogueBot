@@ -10,7 +10,7 @@ import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem;
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
-import com.sfh.pokeRogueBot.model.run.*;
+import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.neurons.*;
 import com.sfh.pokeRogueBot.phase.ScreenshotClient;
 import lombok.Getter;
@@ -64,7 +64,7 @@ public class Brain {
     }
 
     public MoveToModifierResult getModifierToPick() {
-        if(null == chooseModifierDecision){ //get new decision
+        if (null == chooseModifierDecision) { //get new decision
             this.waveDto = jsService.getWaveDto(); //always refresh money and pokemons before choosing the modifiers
             ModifierShop shop = jsService.getModifierShop();
             List<ChooseModifierItem> allItems = shop.getAllItems();
@@ -72,7 +72,7 @@ public class Brain {
             this.chooseModifierDecision = chooseModifierNeuron.getModifierToPick(waveDto.getWavePokemon().getPlayerParty(), waveDto, shop);
         }
 
-        if(!chooseModifierDecision.getItemsToBuy().isEmpty()){ //buy items first
+        if (!chooseModifierDecision.getItemsToBuy().isEmpty()) { //buy items first
             MoveToModifierResult result = chooseModifierDecision.getItemsToBuy().get(0);
             chooseModifierDecision.getItemsToBuy().remove(0);
             return result;
@@ -93,20 +93,20 @@ public class Brain {
 
         waveDto = jsService.getWaveDto(); //always update current state
 
-        if(waveDto.isDoubleFight()){
+        if (waveDto.isDoubleFight()) {
 
             Pokemon[] playerParty = waveDto.getWavePokemon().getPlayerParty();
             Pokemon[] enemyParty = waveDto.getWavePokemon().getEnemyParty();
 
             int playerPartySize = 0;
-            for(Pokemon pokemon : playerParty){
-                if(pokemon.getHp() > 0){
+            for (Pokemon pokemon : playerParty) {
+                if (pokemon.getHp() > 0) {
                     playerPartySize++;
                 }
             }
             int enemyPartySize = 0;
-            for(Pokemon pokemon : enemyParty){
-                if(pokemon.getHp() > 0){
+            for (Pokemon pokemon : enemyParty) {
+                if (pokemon.getHp() > 0) {
                     enemyPartySize++;
                 }
             }
@@ -125,8 +125,7 @@ public class Brain {
             );
             forDoubleFight.setCatchable(capturePokemonNeuron.shouldCapturePokemon(waveDto, enemyPokemon1));
             return forDoubleFight;
-        }
-        else{
+        } else {
             //single fight
             Pokemon wildPokemon = waveDto.getWavePokemon().getEnemyParty()[0];
             return combatNeuron.getAttackDecisionForSingleFight(
@@ -148,26 +147,26 @@ public class Brain {
         log.debug("new wave: Waveindex: " + waveDto.getWaveIndex() + ", is trainer fight: " + waveDto.isTrainerFight());
 
         if (null != waveDto && waveDto.isWildPokemonFight()) {
-            for(Pokemon wildPokemon : waveDto.getWavePokemon().getEnemyParty()) {
+            for (Pokemon wildPokemon : waveDto.getWavePokemon().getEnemyParty()) {
                 if (wildPokemon.isShiny()) {
                     String message = "Shiny pokemon detected: " + wildPokemon.getName();
                     log.info(message);
                     screenshotClient.persistScreenshot("shiny_pokemon_detected");
                     throw new StopRunException(message);
                 }
-                if(wildPokemon.getSpecies().isMythical()){
+                if (wildPokemon.getSpecies().isMythical()) {
                     String message = "Mythical pokemon detected: " + wildPokemon.getName();
                     log.info(message);
                     screenshotClient.persistScreenshot("mythical_pokemon_detected");
                     throw new StopRunException(message);
                 }
-                if(wildPokemon.getSpecies().isLegendary()){
+                if (wildPokemon.getSpecies().isLegendary()) {
                     String message = "Legendary pokemon detected: " + wildPokemon.getName();
                     log.info(message);
                     screenshotClient.persistScreenshot("legendary_pokemon_detected");
                     throw new StopRunException(message);
                 }
-                if(wildPokemon.getSpecies().isSubLegendary()){
+                if (wildPokemon.getSpecies().isSubLegendary()) {
                     String message = "Sub Legendary pokemon detected: " + wildPokemon.getName();
                     log.info(message);
                     screenshotClient.persistScreenshot("sub_legendary_pokemon_detected");
@@ -192,15 +191,16 @@ public class Brain {
     /**
      * If the save slots are not loaded, open the save slots menu to get the save slots data
      * If the save slots are loaded, check if there is a save slot without an error
+     *
      * @return if the load game menu should be opened
      */
     public boolean shouldLoadGame() {
-        if(null == saveSlots){
+        if (null == saveSlots) {
             return true;
         }
 
-        for(SaveSlotDto saveSlot : saveSlots){
-            if(saveSlot.isDataPresent() && !saveSlot.isErrorOccurred()){
+        for (SaveSlotDto saveSlot : saveSlots) {
+            if (saveSlot.isDataPresent() && !saveSlot.isErrorOccurred()) {
                 return true;
             }
         }
@@ -210,15 +210,16 @@ public class Brain {
 
     /**
      * When called, the save slot menu should be opened so the data is accessible with JS
+     *
      * @return which save slot index should be loaded or -1 if no save slot should be loaded
      */
     public int getSaveSlotIndexToLoad() {
-        if(null == saveSlots){
+        if (null == saveSlots) {
             this.saveSlots = jsService.getSaveSlots();
         }
 
-        for(SaveSlotDto saveSlot : saveSlots){
-            if(saveSlot.isDataPresent() && !saveSlot.isErrorOccurred()){
+        for (SaveSlotDto saveSlot : saveSlots) {
+            if (saveSlot.isDataPresent() && !saveSlot.isErrorOccurred()) {
                 return saveSlot.getSlotId();
             }
         }
@@ -229,15 +230,16 @@ public class Brain {
     /**
      * When called, the save slot data are already loaded.
      * Returns which save slot index should be saved to or -1 if no save slot is free.
+     *
      * @return a value >= 0 if the save slot is empty and has no error
      */
     public int getSaveSlotIndexToSave() {
-        if(null == saveSlots){
+        if (null == saveSlots) {
             throw new IllegalStateException("Save slots are not loaded, cannot determine save slot index to save");
         }
 
-        for(SaveSlotDto saveSlot : saveSlots){
-            if(!saveSlot.isDataPresent() && !saveSlot.isErrorOccurred()){
+        for (SaveSlotDto saveSlot : saveSlots) {
+            if (!saveSlot.isDataPresent() && !saveSlot.isErrorOccurred()) {
                 return saveSlot.getSlotId();
             }
         }
@@ -246,29 +248,28 @@ public class Brain {
     }
 
     public RunProperty getRunProperty() {
-        if(runProperty == null){
+        if (runProperty == null) {
             log.debug("runProperty is null, creating new one");
             runProperty = new RunProperty(1);
             waveIndexReset = true;
             return runProperty;
         }
 
-        if(runProperty.getStatus() == RunStatus.OK){
+        if (runProperty.getStatus() == RunStatus.OK) {
             log.debug("runProperty is OK, returning runProperty");
             return runProperty;
         }
 
-        if(null == saveSlots){
+        if (null == saveSlots) {
             throw new IllegalStateException("Save slots are not loaded, cannot determine run property");
         }
 
-        switch (runProperty.getStatus()){
+        switch (runProperty.getStatus()) {
             case ERROR, RELOAD_APP:
-                if(runProperty.getSaveSlotIndex() != -1){
+                if (runProperty.getSaveSlotIndex() != -1) {
                     log.debug("Error occurred, setting error to save slot: " + runProperty.getSaveSlotIndex());
                     saveSlots[runProperty.getSaveSlotIndex()].setErrorOccurred(true);
-                }
-                else{
+                } else {
                     log.debug("Save slot index is -1, so error occurred before starting a run.");
                 }
                 runProperty = new RunProperty(runProperty.getRunNumber() + 1);
@@ -293,7 +294,7 @@ public class Brain {
 
     public SwitchDecision getBestSwitchDecision() {
         SwitchDecision switchDecision = switchPokemonNeuron.getBestSwitchDecision(waveDto, false);
-        if(switchDecision == null){
+        if (switchDecision == null) {
             throw new IllegalStateException("No switch decision found");
         }
         log.debug("Switching to pokemon: " + switchDecision.getPokeName() + " on index: " + switchDecision.getIndex());
@@ -310,7 +311,7 @@ public class Brain {
     }
 
     public boolean shouldResetWaveIndex() {
-        if(waveIndexReset){
+        if (waveIndexReset) {
             waveIndexReset = false;
             return true;
         }

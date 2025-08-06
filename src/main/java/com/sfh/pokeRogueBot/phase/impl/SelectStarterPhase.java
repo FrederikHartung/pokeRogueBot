@@ -14,7 +14,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.StringJoiner;
 
 @Slf4j
 @Component
@@ -25,7 +27,7 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
     private final JsService jsService;
     private final WaitingService waitingService;
     private final Brain brain;
-    private final List<Integer>  starterIds;
+    private final List<Integer> starterIds;
     private final List<Starter> starters = new LinkedList<>();
 
     private boolean selectedStarters = false;
@@ -49,15 +51,14 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
     public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
 
         if (gameMode == UiMode.STARTER_SELECT) {
-            if(starters.isEmpty() && !selectedStarters){
+            if (starters.isEmpty() && !selectedStarters) {
                 selectStarter(jsService.getAvailableStarterPokemon());
                 selectedStarters = true;
                 StringJoiner joiner = new StringJoiner(", ");
                 starters.forEach(starter -> joiner.add(starter.getSpecies().getSpeciesString()));
-                log.debug("Selected starters: {}", joiner.toString());
+                log.debug("Selected starters: {}", joiner);
                 return new PhaseAction[]{this.waitLonger};
-            }
-            else if(!starters.isEmpty()){
+            } else if (!starters.isEmpty()) {
                 waitingService.waitLonger(); //always wait for render
                 int lastPokemonIndex = starters.size() - 1;
                 int starterId = starters.get(lastPokemonIndex).getSpeciesId();
@@ -65,7 +66,7 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
 
                 brain.memorize("selectedStarterId: " + starterId);
 
-                if(!success){
+                if (!success) {
                     throw new IllegalStateException("Failed to set cursor to starter: " + starterId);
                 }
                 starters.remove(lastPokemonIndex);
@@ -76,10 +77,9 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
                         this.waitLonger,
                         this.pressSpace // confirm the selection
                 };
-            }
-            else{
+            } else {
                 boolean success = jsService.confirmPokemonSelect();
-                if(!success){
+                if (!success) {
                     throw new IllegalStateException("Failed to confirm starter selection");
                 }
 
@@ -91,17 +91,15 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
                 };
             }
 
-        }
-        else if(gameMode == UiMode.CONFIRM){
+        } else if (gameMode == UiMode.CONFIRM) {
             return new PhaseAction[]{
                     this.pressSpace
             };
-        }
-        else if(gameMode == UiMode.SAVE_SLOT){
+        } else if (gameMode == UiMode.SAVE_SLOT) {
             RunProperty runProperty = brain.getRunProperty();
             log.debug("Setting Cursor to saveSlotIndex: {}", runProperty.getSaveSlotIndex());
             boolean setSaveSlotCursorSuccess = jsService.setCursorToSaveSlot(runProperty.getSaveSlotIndex());
-            if(setSaveSlotCursorSuccess){
+            if (setSaveSlotCursorSuccess) {
                 return new PhaseAction[]{
                         this.pressSpace, //choose
                         this.waitBriefly,
@@ -115,11 +113,11 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
         throw new NotSupportedException("gameMode not supported in SelectStarterPhase: " + gameMode);
     }
 
-    private void selectStarter(Starter[] availableStarters){
+    private void selectStarter(Starter[] availableStarters) {
         int maxCost = 10;
         for (Starter starter : availableStarters) {
-            for(int starterId : starterIds){
-                if((starters.size() <= 6) && (starter.getSpeciesId() == starterId) && ((maxCost - starter.getCost()) >= 0)){
+            for (int starterId : starterIds) {
+                if ((starters.size() <= 6) && (starter.getSpeciesId() == starterId) && ((maxCost - starter.getCost()) >= 0)) {
                     this.starters.add(starter);
                     maxCost -= starter.getCost();
                     break;

@@ -16,7 +16,7 @@ public class ShinySparklePhase extends AbstractPhase implements Phase {
 
     @Override
     public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
-        if(gameMode == UiMode.MESSAGE){
+        if (gameMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     this.waitBriefly
             };
