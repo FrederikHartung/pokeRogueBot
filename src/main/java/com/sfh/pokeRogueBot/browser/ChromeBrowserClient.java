@@ -3,7 +3,6 @@ package com.sfh.pokeRogueBot.browser;
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -51,7 +50,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
         if (null == this.driver) {
             ChromeOptions options = new ChromeOptions();
 
-            if (!StringUtils.isEmpty(pathChromeUserDir)) {
+            if (null != pathChromeUserDir && (!(pathChromeUserDir.isEmpty()))) {
                 log.debug("Using Chrome user dir: " + pathChromeUserDir + " and profile: " + chromeProfile);
                 options.addArguments("user-data-dir=" + pathChromeUserDir);
                 options.addArguments("--profile-directory=" + chromeProfile);

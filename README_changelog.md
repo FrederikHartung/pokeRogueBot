@@ -1,9 +1,14 @@
 #Changelog
 
-## 2.3 Work in Progress
+## 3.0
+- migrated to Java 21
+- started to migrate some classes to Kotlin 2.1
+- migrated some unit Tests to Mockk
+- moved the start of to bot to a BotStarter class
+
+## 2.3
 - added persisting of all encountered items in the modifier shop
 - added calculation of pokemon catch rate
-- added api to activate or deactivate the bot
 
 ## 2.2
 - updated reading of modifier shop items

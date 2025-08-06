@@ -5,12 +5,6 @@ Focus on progress and not on perfection. It's better to stick to a bad implement
 If a good idea comes up, write it down and implement it later. Focus on the current task. Order the tasks by their level of improvement and how easy they are to implement.  
 Only refactor, when it's really necessary.
 
-
-## Sprint 1, week 09.06-16.06.:
-- [x] achieve first lost run
-
-## Sprint 2, week 17.06-23.06.:
-
 ## Open todo's with high priority:
 - [x] remove the db and spring data
 - [x] if an exception is thrown, save and go back to title screen

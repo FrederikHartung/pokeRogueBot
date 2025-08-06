@@ -15,7 +15,7 @@
 	<description>A simple Bot for the pokeRogue Game</description>
 	<properties>
 		<java.version>21</java.version>
-		<kotlin.version>2.2.0</kotlin.version>
+		<kotlin.version>2.1.0</kotlin.version>
 	</properties>
 	<dependencies>
 
@@ -38,11 +38,6 @@
 			<groupId>org.springframework.retry</groupId>
 			<artifactId>spring-retry</artifactId>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-web -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-web</artifactId>
-		</dependency>
 
 		<!-- _____________ Utility _____________ -->
 		<!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
@@ -51,13 +46,6 @@
 			<artifactId>gson</artifactId>
 			<version>2.11.0</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
-		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-lang3</artifactId>
-			<version>3.14.0</version>
-		</dependency>
-
 		<!-- _____________ Logging _____________ -->
 		<!-- https://mvnrepository.com/artifact/ch.qos.logback/logback-classic -->
 		<dependency>
@@ -113,12 +101,6 @@
 		</dependency>
 		<dependency>
 			<groupId>org.jetbrains.kotlin</groupId>
-			<artifactId>kotlin-test-junit</artifactId>
-			<version>${kotlin.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.jetbrains.kotlin</groupId>
 			<artifactId>kotlin-reflect</artifactId>
 			<version>${kotlin.version}</version>
 		</dependency>
@@ -164,6 +146,12 @@
 						<goals>
 							<goal>test-compile</goal>
 						</goals>
+						<configuration>
+							<sourceDirs>
+								<source>src/test/kotlin</source>
+								<source>src/test/java</source>
+							</sourceDirs>
+						</configuration>
 					</execution>
 				</executions>
 				<configuration>
@@ -210,6 +198,13 @@
 						</goals>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<argLine>-XX:+EnableDynamicAgentLoading</argLine>
+				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
