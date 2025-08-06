@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * The main bot class that controls the flow of the bot.
+ * The com.sfh.pokeRogueBot.main bot class that controls the flow of the bot.
  * On start, the Temp folder is cleared and the bot navigates to the target URL.
  * After navigating to the target url, the bot continues with a save game or starts a new run.
  * If a run is lost, the bot reloads the page and starts a new run.
