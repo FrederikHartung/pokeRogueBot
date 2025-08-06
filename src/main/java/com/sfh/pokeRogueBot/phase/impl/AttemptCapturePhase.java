@@ -27,8 +27,7 @@ public class AttemptCapturePhase extends AbstractPhase implements Phase {
                     this.waitBriefly,
                     this.pressSpace
             };
-        }
-        else if (gameMode == UiMode.MESSAGE) {
+        } else if (gameMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     this.pressSpace
             };

@@ -30,12 +30,11 @@ public class CheckSwitchPhase extends AbstractPhase implements Phase {
 
             boolean shouldSwitchPokemon = brain.shouldSwitchPokemon();
 
-            if(shouldSwitchPokemon) {
+            if (shouldSwitchPokemon) {
                 return new PhaseAction[]{
                         this.pressSpace
                 };
-            }
-            else {
+            } else {
                 return new PhaseAction[]{
                         this.pressArrowDown,
                         this.waitBriefly,

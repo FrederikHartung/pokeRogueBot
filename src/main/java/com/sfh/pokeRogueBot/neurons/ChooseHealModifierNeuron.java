@@ -17,12 +17,12 @@ import java.util.List;
 public class ChooseHealModifierNeuron {
 
     public MoveToModifierResult buyPotionIfMoreThatOnePokemonIsHurt(ModifierShop shop, Pokemon[] playerParty) {
-        ChooseModifierItem potion =  shop.getShopItems().stream()
+        ChooseModifierItem potion = shop.getShopItems().stream()
                 .filter(item -> item.getTypeName().equals(PokemonHpRestoreModifierItem.TARGET))
                 .findFirst()
                 .orElse(null);
 
-        if(null != potion && potion.getCost() <= shop.getMoney()){
+        if (null != potion && potion.getCost() <= shop.getMoney()) {
             PokemonHpRestoreModifierItem potionItem = (PokemonHpRestoreModifierItem) potion;
             List<Pokemon> filteredPokemon = Arrays.stream(playerParty) //get the pokemon, where the potion is at least half used
                     .filter(p -> p.getHp() > 0)
@@ -40,8 +40,8 @@ public class ChooseHealModifierNeuron {
                                 Math.max(potionItem.getRestorePoints(),
                                         (potionItem.getRestorePercent() * p.getStats().getHp()))))).orElse(null);
 
-                for(int i = 0; i < playerParty.length; i++){
-                    if(playerParty[i].equals(mostAffectedPokemon)){
+                for (int i = 0; i < playerParty.length; i++) {
+                    if (playerParty[i].equals(mostAffectedPokemon)) {
                         return new MoveToModifierResult(potion.getY(), potion.getX(), i, potionItem.getName());
                     }
                 }
@@ -53,23 +53,23 @@ public class ChooseHealModifierNeuron {
     }
 
     public MoveToModifierResult buyPotionIfNoFreeIsAvailableOrPriorityExists(ModifierShop shop, Pokemon[] playerParty, boolean priorityItemExists) {
-        if(!priorityItemExists){
-            ChooseModifierItem freeHealItem =  shop.getFreeItems().stream()
+        if (!priorityItemExists) {
+            ChooseModifierItem freeHealItem = shop.getFreeItems().stream()
                     .filter(item -> item.getTypeName().equals(PokemonHpRestoreModifierItem.TARGET))
                     .findFirst()
                     .orElse(null);
 
-            if(freeHealItem != null){ //don't buy a item, when a free one is available
+            if (freeHealItem != null) { //don't buy a item, when a free one is available
                 return null;
             }
         }
 
-        ChooseModifierItem healItemToBuy =  shop.getShopItems().stream()
+        ChooseModifierItem healItemToBuy = shop.getShopItems().stream()
                 .filter(item -> item.getTypeName().equals(PokemonHpRestoreModifierItem.TARGET))
                 .findFirst()
                 .orElse(null);
 
-        if(healItemToBuy == null || healItemToBuy.getCost() > shop.getMoney()){ //if no item is found or the player can't afford it
+        if (healItemToBuy == null || healItemToBuy.getCost() > shop.getMoney()) { //if no item is found or the player can't afford it
             return null;
         }
 
@@ -79,9 +79,9 @@ public class ChooseHealModifierNeuron {
                 .max(Comparator.comparingInt(p -> p.getStats().getHp() - p.getHp()))
                 .orElse(null);
 
-        if(mostHurtPokemon != null){
-            for(int i = 0; i < playerParty.length; i++){
-                if(playerParty[i].equals(mostHurtPokemon)){
+        if (mostHurtPokemon != null) {
+            for (int i = 0; i < playerParty.length; i++) {
+                if (playerParty[i].equals(mostHurtPokemon)) {
                     return new MoveToModifierResult(healItemToBuy.getY(), healItemToBuy.getX(), i, healItemToBuy.getName());
                 }
             }
@@ -91,28 +91,28 @@ public class ChooseHealModifierNeuron {
     }
 
     public MoveToModifierResult pickFreePotionIfNeeded(ModifierShop shop, Pokemon[] playerParty) {
-        ChooseModifierItem freeHealItem =  shop.getFreeItems().stream()
+        ChooseModifierItem freeHealItem = shop.getFreeItems().stream()
                 .filter(item -> item.getTypeName().equals(PokemonHpRestoreModifierItem.TARGET))
                 .findFirst()
                 .orElse(null);
 
-        if(freeHealItem == null){
+        if (freeHealItem == null) {
             return null;
         }
 
         int injuredPokemonWithMaxMissingHealtIndex = -1;
         int maxMissingHealt = 0;
-        for(int i = 0; i < playerParty.length; i++){
-            if(playerParty[i].getHp() > 0 && playerParty[i].getHp() < playerParty[i].getStats().getHp()){
+        for (int i = 0; i < playerParty.length; i++) {
+            if (playerParty[i].getHp() > 0 && playerParty[i].getHp() < playerParty[i].getStats().getHp()) {
                 int missingHealt = playerParty[i].getStats().getHp() - playerParty[i].getHp();
-                if(missingHealt > maxMissingHealt){
+                if (missingHealt > maxMissingHealt) {
                     maxMissingHealt = missingHealt;
                     injuredPokemonWithMaxMissingHealtIndex = i;
                 }
             }
         }
 
-        if(maxMissingHealt < 5){ //dont pick free potion if its not worth it
+        if (maxMissingHealt < 5) { //dont pick free potion if its not worth it
             return null;
         }
 

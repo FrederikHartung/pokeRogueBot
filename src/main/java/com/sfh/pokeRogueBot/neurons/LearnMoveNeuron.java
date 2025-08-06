@@ -4,7 +4,6 @@ import com.sfh.pokeRogueBot.model.browser.pokemonjson.Move;
 import com.sfh.pokeRogueBot.model.decisions.LearnMoveDecision;
 import com.sfh.pokeRogueBot.model.enums.LearnMoveReasonType;
 import com.sfh.pokeRogueBot.model.enums.PokeType;
-import com.sfh.pokeRogueBot.model.exception.StopRunException;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -15,28 +14,27 @@ import java.util.Arrays;
 @Component
 public class LearnMoveNeuron {
 
-    private final LearnMoveFilterNeuron learnMoveFilterNeuron;
-
     private static final LearnMoveDecision MOVE_IS_NOT_BETTER_DECISION = new LearnMoveDecision(false, -1, LearnMoveReasonType.MOVE_IS_NOT_BETTER);
+    private final LearnMoveFilterNeuron learnMoveFilterNeuron;
 
     public LearnMoveNeuron(LearnMoveFilterNeuron learnMoveFilterNeuron) {
         this.learnMoveFilterNeuron = learnMoveFilterNeuron;
     }
 
     public LearnMoveDecision getLearnMoveDecision(Pokemon pokemon) {
-        if(null == pokemon || null == pokemon.getMoveset() || pokemon.getMoveset().length < 2){
+        if (null == pokemon || null == pokemon.getMoveset() || pokemon.getMoveset().length < 2) {
             throw new IllegalStateException("Pokemon has less than 2 moves");
         }
 
         Move[] allMoves = pokemon.getMoveset();
         Move newMove = allMoves[allMoves.length - 1];
-        if(null == newMove){
+        if (null == newMove) {
             throw new IllegalStateException("New move is null");
         }
 
         //filter unwanted moves
         LearnMoveDecision filterUnwantedMoves = learnMoveFilterNeuron.filterUnwantedMoves(pokemon, newMove);
-        if(null != filterUnwantedMoves){
+        if (null != filterUnwantedMoves) {
             log.debug("Don't learning move: %s for reason: %s".formatted(newMove.getName(), filterUnwantedMoves.getReason()));
             return filterUnwantedMoves;
         }
@@ -46,22 +44,21 @@ public class LearnMoveNeuron {
 
         //replace existing status attack moves first
         int indexOfStatusAttackMove = learnMoveFilterNeuron.getIndexOfStatusAttackMove(existingMoves);
-        if(indexOfStatusAttackMove != -1){
+        if (indexOfStatusAttackMove != -1) {
             log.debug("Forgetting status attack move: %s for new move: %s".formatted(existingMoves[indexOfStatusAttackMove].getName(), newMove.getName()));
             return new LearnMoveDecision(true, indexOfStatusAttackMove, LearnMoveReasonType.FORGET_STATUS_ATTACK);
         }
 
         //check if the pokemon has one or two types
         boolean pokemonHasTwoTypes = pokemon.getSpecies().getType2() != null;
-        if(pokemonHasTwoTypes){
+        if (pokemonHasTwoTypes) {
             LearnMoveDecision decision = handleTwoTypes(pokemon, existingMoves, newMove);
-            if(null != decision){
+            if (null != decision) {
                 return decision;
             }
-        }
-        else{
+        } else {
             LearnMoveDecision decision = handleOneType(pokemon, existingMoves, newMove);
-            if(null != decision){
+            if (null != decision) {
                 return decision;
             }
         }
@@ -74,10 +71,9 @@ public class LearnMoveNeuron {
         PokeType moveType = newMove.getType();
 
         //if the new move is of the same type as the pokemon
-        if(pokemonType.equals(moveType)){
+        if (pokemonType.equals(moveType)) {
             return handleOneTypeSameType(pokemon, existingMoves, newMove);
-        }
-        else{
+        } else {
             return handleOneTypeDifferentType(pokemon, existingMoves, newMove);
         }
     }
@@ -86,9 +82,9 @@ public class LearnMoveNeuron {
         int numberOfAttacksWithType = getNumberOfAttacksWithType(existingMoves, pokemon.getSpecies().getType1());
 
         //if the pokemon has just one type and the move typ is different, replace the weakest attack of the pokemon type if it has 2 or more attacks of his type
-        if(numberOfAttacksWithType > 2){
+        if (numberOfAttacksWithType > 2) {
             int index = learnMoveFilterNeuron.replaceWeakestAttackOfType(existingMoves, pokemon.getSpecies().getType1());
-            if(index != -1){
+            if (index != -1) {
                 log.debug("Forgetting move with type: %s for new move: %s for pokemon %s with type %s with reason %s"
                         .formatted(
                                 existingMoves[index].getType(),
@@ -98,16 +94,15 @@ public class LearnMoveNeuron {
                                 LearnMoveReasonType.FORGET_WEAKER_ATTACK)
                 );
                 return new LearnMoveDecision(true, index, LearnMoveReasonType.FORGET_TO_MUCH_POKE_TYPE_MOVES);
-            }
-            else {
+            } else {
                 return MOVE_IS_NOT_BETTER_DECISION;
             }
 
         }
         // if 2 or less moves of the pokemon type are available, replace the weakest attack of the other type
-        else{
+        else {
             int index = learnMoveFilterNeuron.replaceWeakestAttackOfTypeNot(existingMoves, pokemon.getSpecies().getType1());
-            if(index != -1){
+            if (index != -1) {
                 log.debug("Forgetting move with type: %s for new move: %s for pokemon %s with type %s with reason %s"
                         .formatted(
                                 existingMoves[index].getType(),
@@ -117,8 +112,7 @@ public class LearnMoveNeuron {
                                 LearnMoveReasonType.FORGET_WEAKER_ATTACK)
                 );
                 return new LearnMoveDecision(true, index, LearnMoveReasonType.FORGET_OTHER_TYPE);
-            }
-            else {
+            } else {
                 return MOVE_IS_NOT_BETTER_DECISION;
             }
         }
@@ -130,9 +124,9 @@ public class LearnMoveNeuron {
 
         //if the pokemon has less than 2 moves of his type, replace the weakest attack of an other type
         //replace existing moves with type that is not the same as the pokemon
-        if(numberOfAttacksWithType < 2){
+        if (numberOfAttacksWithType < 2) {
             int index = learnMoveFilterNeuron.replaceWeakestAttackOfTypeNot(existingMoves, pokemon.getSpecies().getType1());
-            if(index != -1){
+            if (index != -1) {
                 log.debug("Forgetting move with type: %s for new move: %s for pokemon %s with type %s with reason %s"
                         .formatted(
                                 existingMoves[index].getType(),
@@ -142,16 +136,15 @@ public class LearnMoveNeuron {
                                 LearnMoveReasonType.FORGET_OTHER_TYPE)
                 );
                 return new LearnMoveDecision(true, index, LearnMoveReasonType.FORGET_OTHER_TYPE);
-            }
-            else {
+            } else {
                 return MOVE_IS_NOT_BETTER_DECISION;
             }
 
         }
         //if the pokemon has 2 or more moves of his type, replace the weakest attack of his type
-        else{
+        else {
             int index = learnMoveFilterNeuron.replaceWeakestAttackOfType(existingMoves, pokemon.getSpecies().getType1());
-            if(index != -1){
+            if (index != -1) {
                 log.debug("Forgetting move with type: %s for new move: %s for pokemon %s with type %s with reason %s"
                         .formatted(
                                 existingMoves[index].getType(),
@@ -161,8 +154,7 @@ public class LearnMoveNeuron {
                                 LearnMoveReasonType.FORGET_WEAKER_ATTACK)
                 );
                 return new LearnMoveDecision(true, index, LearnMoveReasonType.FORGET_WEAKER_ATTACK);
-            }
-            else {
+            } else {
                 return MOVE_IS_NOT_BETTER_DECISION;
             }
         }
@@ -175,10 +167,9 @@ public class LearnMoveNeuron {
 
         boolean newMoveTypeIsOnePokemonType = pokemonType1.equals(moveType) || pokemonType2.equals(moveType);
 
-        if(newMoveTypeIsOnePokemonType){
+        if (newMoveTypeIsOnePokemonType) {
             return handleTwoTypesSameType(pokemon, existingMoves, newMove);
-        }
-        else{
+        } else {
             //don't learn move if the new move is not of the type of the pokemon
             return MOVE_IS_NOT_BETTER_DECISION;
         }
@@ -190,9 +181,9 @@ public class LearnMoveNeuron {
         //if it has less than two of the new move type, replace the weakest move of the other type
         //else replace the weakest move of the new move type
         int numberOfAttacksWithNewMoveType = getNumberOfAttacksWithType(existingMoves, newMove.getType());
-        if(numberOfAttacksWithNewMoveType < 2){
+        if (numberOfAttacksWithNewMoveType < 2) {
             int index = learnMoveFilterNeuron.replaceWeakestAttackOfTypeNot(existingMoves, newMove.getType());
-            if(index != -1){
+            if (index != -1) {
                 log.debug("Forgetting move with type: %s for new move: %s for pokemon %s with type %s with reason %s"
                         .formatted(
                                 existingMoves[index].getType(),
@@ -202,14 +193,12 @@ public class LearnMoveNeuron {
                                 LearnMoveReasonType.FORGET_OTHER_TYPE)
                 );
                 return new LearnMoveDecision(true, index, LearnMoveReasonType.FORGET_OTHER_TYPE);
-            }
-            else {
+            } else {
                 return MOVE_IS_NOT_BETTER_DECISION;
             }
-        }
-        else{
+        } else {
             int index = learnMoveFilterNeuron.replaceWeakestAttackOfType(existingMoves, newMove.getType());
-            if(index != -1){
+            if (index != -1) {
                 log.debug("Forgetting move with type: %s for new move: %s for pokemon %s with type %s with reason %s"
                         .formatted(
                                 existingMoves[index].getType(),
@@ -219,14 +208,13 @@ public class LearnMoveNeuron {
                                 LearnMoveReasonType.FORGET_WEAKER_ATTACK)
                 );
                 return new LearnMoveDecision(true, index, LearnMoveReasonType.FORGET_WEAKER_ATTACK);
-            }
-            else {
+            } else {
                 return MOVE_IS_NOT_BETTER_DECISION;
             }
         }
     }
 
-    public int getNumberOfAttacksWithType(Move[] existingMoves, PokeType type){
+    public int getNumberOfAttacksWithType(Move[] existingMoves, PokeType type) {
         return (int) Arrays.stream(existingMoves).filter(move -> move != null && move.getType().equals(type)).count();
     }
 }

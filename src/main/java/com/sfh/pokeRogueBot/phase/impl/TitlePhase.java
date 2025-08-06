@@ -1,7 +1,7 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
-import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
+import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
@@ -36,13 +36,13 @@ public class TitlePhase extends AbstractPhase implements Phase {
 
         RunProperty runProperty = brain.getRunProperty();
 
-        if(null == runProperty){
+        if (null == runProperty) {
             throw new IllegalStateException("RunProperty is null in TitlePhase");
         }
 
         if (gameMode == UiMode.TITLE) {
 
-            if(runProperty.getSaveSlotIndex() >= 0){
+            if (runProperty.getSaveSlotIndex() >= 0) {
                 log.debug("found run property with a save slot index, so the current run is lost.");
                 runProperty.setStatus(RunStatus.LOST);//run ended because of player fainted
                 return new PhaseAction[]{
@@ -50,10 +50,10 @@ public class TitlePhase extends AbstractPhase implements Phase {
                 };
             }
 
-            if(brain.shouldLoadGame()){
+            if (brain.shouldLoadGame()) {
                 log.debug("opening load game screen.");
                 boolean setCursorToLoadGameSuccessful = jsService.setCursorToLoadGame();
-                if(setCursorToLoadGameSuccessful){
+                if (setCursorToLoadGameSuccessful) {
                     return new PhaseAction[]{
                             this.pressSpace
                     };
@@ -64,7 +64,7 @@ public class TitlePhase extends AbstractPhase implements Phase {
 
             //save games already loaded to the brain
             int saveGameSlotIndex = brain.getSaveSlotIndexToSave();
-            if(saveGameSlotIndex == -1){
+            if (saveGameSlotIndex == -1) {
                 //no available save slot, close app
                 log.warn("No available save slot, closing app.");
                 runProperty.setStatus(RunStatus.EXIT_APP);
@@ -76,7 +76,7 @@ public class TitlePhase extends AbstractPhase implements Phase {
             runProperty.setSaveSlotIndex(saveGameSlotIndex);
 
             boolean setCursorToNewGameSuccessful = jsService.setCursorToNewGame();
-            if(setCursorToNewGameSuccessful){
+            if (setCursorToNewGameSuccessful) {
                 log.debug("Setting cursor to new game.");
 
                 return new PhaseAction[]{
@@ -85,10 +85,9 @@ public class TitlePhase extends AbstractPhase implements Phase {
             }
 
             throw new IllegalStateException("Unable to set cursor to new game.");
-        }
-        else if(gameMode == UiMode.SAVE_SLOT){
+        } else if (gameMode == UiMode.SAVE_SLOT) {
             int saveSlotIndexToLoad = brain.getSaveSlotIndexToLoad();
-            if(saveSlotIndexToLoad == -1 ){
+            if (saveSlotIndexToLoad == -1) {
                 log.debug("No save slot to load, pressing backspace and returning to title.");
                 return new PhaseAction[]{
                         this.pressBackspace
@@ -96,7 +95,7 @@ public class TitlePhase extends AbstractPhase implements Phase {
             }
 
             boolean setCursorToSaveSlotSuccessful = jsService.setCursorToSaveSlot(saveSlotIndexToLoad);
-            if(setCursorToSaveSlotSuccessful){
+            if (setCursorToSaveSlotSuccessful) {
                 log.debug("Save slot index to load: " + saveSlotIndexToLoad);
                 //save new game to slot saveSlotIndexToLoad
                 runProperty.setSaveSlotIndex(saveSlotIndexToLoad);
@@ -108,8 +107,7 @@ public class TitlePhase extends AbstractPhase implements Phase {
             }
 
             throw new IllegalStateException("Unable to set cursor to save slot.");
-        }
-        else if(gameMode == UiMode.MESSAGE){
+        } else if (gameMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     this.waitBriefly
             };

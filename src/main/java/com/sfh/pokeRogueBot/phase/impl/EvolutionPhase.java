@@ -23,8 +23,7 @@ public class EvolutionPhase extends AbstractPhase implements Phase {
             return new PhaseAction[]{
                     this.pressSpace
             };
-        }
-        else if (gameMode == UiMode.EVOLUTION_SCENE) {
+        } else if (gameMode == UiMode.EVOLUTION_SCENE) {
             return new PhaseAction[]{
                     this.waitBriefly,
                     this.pressSpace

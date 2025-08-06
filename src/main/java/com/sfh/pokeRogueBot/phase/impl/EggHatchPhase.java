@@ -49,15 +49,14 @@ public class EggHatchPhase extends AbstractPhase implements Phase {
             return new PhaseAction[]{
                     this.pressSpace
             };
-        }
-        else if (gameMode == UiMode.EGG_HATCH_SCENE) {
+        } else if (gameMode == UiMode.EGG_HATCH_SCENE) {
 
             long eggId = jsService.getEggId();
-            if(!eggIds.contains(eggId)){
+            if (!eggIds.contains(eggId)) {
                 eggIds.add(eggId);
                 waitingService.waitEvenLonger();
                 Pokemon hatchedPokemon = jsService.getHatchedPokemon();
-                if(null == hatchedPokemon){
+                if (null == hatchedPokemon) {
                     throw new IllegalStateException("Hatched Pokemon is null");
                 }
 

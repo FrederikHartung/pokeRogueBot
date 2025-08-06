@@ -3,7 +3,6 @@ package com.sfh.pokeRogueBot.model.modifier.impl;
 import com.sfh.pokeRogueBot.model.enums.ModifierTier;
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem;
 import lombok.Data;
-import lombok.Setter;
 
 @Data
 public class ModifierItem implements ChooseModifierItem {

@@ -39,23 +39,21 @@ public class ReturnToTitlePhase extends AbstractPhase implements Phase {
     @Override
     public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
 
-        if(gameMode == UiMode.TITLE){
+        if (gameMode == UiMode.TITLE) {
 
             screenshotClient.takeTempScreenshot("error_" + lastExceptionType); //take screenshot for debugging
             log.debug("Trying to save and quit");
             boolean saveAndQuitSuccessful = jsService.saveAndQuit();
-            if(saveAndQuitSuccessful) {
+            if (saveAndQuitSuccessful) {
                 return new PhaseAction[]{ //wait for render
                         waitEvenLonger
                 };
-            }
-            else {
+            } else {
                 return new PhaseAction[]{ //fallback, so no loop happens
                         waitBriefly
                 };
             }
-        }
-        else{
+        } else {
             throw new NotSupportedException("GameMode is not supported in ReturnToTitlePhase: " + gameMode);
         }
     }

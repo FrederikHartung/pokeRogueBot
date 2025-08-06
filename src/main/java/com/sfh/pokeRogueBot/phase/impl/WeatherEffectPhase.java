@@ -19,12 +19,11 @@ public class WeatherEffectPhase extends AbstractPhase implements Phase {
 
     @Override
     public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
-        if(gameMode == UiMode.COMMAND || gameMode == UiMode.MODIFIER_SELECT){
+        if (gameMode == UiMode.COMMAND || gameMode == UiMode.MODIFIER_SELECT) {
             return new PhaseAction[]{
                     waitBriefly
             };
-        }
-        else if(gameMode == UiMode.MESSAGE){
+        } else if (gameMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     pressSpace
             };

@@ -27,23 +27,23 @@ public class WaveDto {
     private int waveIndex;
     private int[] pokeballCount;
 
-    public boolean isTrainerFight(){
-      return this.getBattleType() == BattleType.TRAINER;
+    public boolean isTrainerFight() {
+        return this.getBattleType() == BattleType.TRAINER;
     }
 
-    public boolean isWildPokemonFight(){
+    public boolean isWildPokemonFight() {
         return this.getBattleType() == BattleType.WILD;
     }
 
-    public boolean isOnlyOneEnemyLeft(){
-        if(!isDoubleFight()){
+    public boolean isOnlyOneEnemyLeft() {
+        if (!isDoubleFight()) {
             return true;
         }
 
         Pokemon[] enemies = this.getWavePokemon().getEnemyParty();
         int alivePokemons = 0;
-        for(Pokemon enemy : enemies){
-            if(enemy.getHp() > 0){
+        for (Pokemon enemy : enemies) {
+            if (enemy.getHp() > 0) {
                 alivePokemons++;
             }
         }
@@ -52,8 +52,8 @@ public class WaveDto {
     }
 
     public boolean hasPokeBalls() {
-        for(int ballCount:pokeballCount){
-            if(ballCount > 0){
+        for (int ballCount : pokeballCount) {
+            if (ballCount > 0) {
                 return true;
             }
         }
