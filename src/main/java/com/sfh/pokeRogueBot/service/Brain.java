@@ -181,11 +181,12 @@ public class Brain {
     }
 
     public void clearShortTermMemory() {
-        shortTermMemory.clearMemory();
+        shortTermMemory.clearLastPhaseMemory();
     }
 
-    public void rememberItems() {
+    public void rememberLongTermMemories() {
         longTermMemory.rememberItems();
+        longTermMemory.rememberUiValidatedPhases();
     }
 
     /**

@@ -1,7 +1,7 @@
 #Changelog
 
-## 3.1 WOP
--
+## 3.1 WIP
+- Added Support for UI Validation of a Phase
 
 ## 3.0
 - migrated to Java 21

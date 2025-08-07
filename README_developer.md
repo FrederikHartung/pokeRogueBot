@@ -5,6 +5,13 @@ Focus on progress and not on perfection. It's better to stick to a bad implement
 If a good idea comes up, write it down and implement it later. Focus on the current task. Order the tasks by their level of improvement and how easy they are to implement.  
 Only refactor, when it's really necessary.
 
+## Current Task:
+Add Support for UI Validation of a Phase.
+Some Phases have a UI, which needs an UI Handler to set a Cursor. The uiValidatedPhases should be persisted to the FileSystem in Json format and on App start loaded in to the LongTermMemory.  
+Also the LongTermMemory should remember, if a new Phase was validated and if so, the result should also be persisted to the FileSystem on App Termination.  
+Todos:
+- [x] Add uiValidatedPhases to LongTermMemory
+
 ## Open todo's with high priority:
 - [x] remove the db and spring data
 - [x] if an exception is thrown, save and go back to title screen
