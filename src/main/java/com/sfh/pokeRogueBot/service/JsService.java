@@ -1,6 +1,5 @@
 package com.sfh.pokeRogueBot.service;
 
-import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.sfh.pokeRogueBot.browser.JsClient;
@@ -17,27 +16,24 @@ import com.sfh.pokeRogueBot.model.run.WavePokemon;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.lang.reflect.Type;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 
 @Slf4j
 @Service
 public class JsService {
 
-    public static final Path UTIL = Paths.get(".", "bin", "js", "util.js");
-    public static final Path UI_HANDLER = Paths.get(".", "bin", "js", "uihandler.js");
-    public static final Path POKE = Paths.get(".", "bin", "js", "poke.js");
-    public static final Path WAVE = Paths.get(".", "bin", "js", "wave.js");
-    public static final Path MODIFIER = Paths.get(".", "bin", "js", "modifier.js");
-    public static final Path STARTER = Paths.get(".", "bin", "js", "starter.js");
-    public static final Path EGG = Paths.get(".", "bin", "js", "egg.js");
+    private static final Path UTIL = Paths.get(".", "bin", "js", "util.js");
+    private static final Path UI_HANDLER = Paths.get(".", "bin", "js", "uihandler.js");
+    private static final Path POKE = Paths.get(".", "bin", "js", "poke.js");
+    private static final Path WAVE = Paths.get(".", "bin", "js", "wave.js");
+    private static final Path MODIFIER = Paths.get(".", "bin", "js", "modifier.js");
+    private static final Path STARTER = Paths.get(".", "bin", "js", "starter.js");
+    private static final Path EGG = Paths.get(".", "bin", "js", "egg.js");
     private static final Gson GSON = new GsonBuilder()
             .registerTypeAdapter(ChooseModifierItem.class, new ChooseModifierItemDeserializer())
             .create();
-    private static final Type TYPE = new TypeToken<List<ChooseModifierItem>>() {
-    }.getType();
+
     private final JsClient jsClient;
 
     public JsService(JsClient jsClient) {

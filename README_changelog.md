@@ -1,7 +1,7 @@
 #Changelog
 
 ## 3.1
-- fixed small bug in one Unit Test
+- deleted old and bad Unit Tests which broked only in CICD Pipeline
 
 ## 3.0
 - migrated to Java 21

@@ -27,7 +27,7 @@ public class FileManager {
     private int fileIndex = 0;
 
     public void deleteTempData() {
-        File folder = new File(getScreenshotTempDirPath());
+        File folder = new File(DIR_TEMP + File.separator);
         File[] files = folder.listFiles();
         if (files == null) {
             return;
@@ -76,15 +76,6 @@ public class FileManager {
         } catch (Exception e) {
             log.error("Error while saving screenshot to: " + filePath + ", error: " + e.getMessage());
         }
-    }
-
-    /**
-     * Returns the directory path for saving temporary screenshots.
-     *
-     * @return the directory path plus a file separator for the corresponding OS
-     */
-    public String getScreenshotTempDirPath() {
-        return DIR_TEMP + File.separator;
     }
 
     /**
