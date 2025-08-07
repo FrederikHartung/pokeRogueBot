@@ -44,3 +44,4 @@ Only refactor, when it's really necessary.
 - [ ] SimpleFightConfig: add configurable retry policy
 - [ ] pokemon status in js 
 - [ ] add .getMove() properties to moveset
+- [ ] FileManager: Refactor the bad OS dependent get temp Screenshot file path Implementation and corresponding Unit Tests
