@@ -2,6 +2,7 @@ package com.sfh.pokeRogueBot.phase
 
 import com.sfh.pokeRogueBot.model.enums.UiMode
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException
+import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplate
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction
 
 interface Phase {
@@ -12,6 +13,10 @@ interface Phase {
     fun getActionsForUiMode(uiMode: UiMode): Array<PhaseAction>
 }
 
-interface UiPhase : Phase
+interface UiPhase : Phase {
+    fun getPhaseUiTemplate(): PhaseUiTemplate
+}
+
+interface NoUiPhase : Phase
 
 interface CustomPhase : Phase

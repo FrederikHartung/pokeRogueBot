@@ -11,9 +11,12 @@ import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
+import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplate;
 import com.sfh.pokeRogueBot.neurons.*;
+import com.sfh.pokeRogueBot.phase.NoUiPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.ScreenshotClient;
+import com.sfh.pokeRogueBot.phase.UiPhase;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -322,6 +325,19 @@ public class Brain {
     }
 
     public boolean phaseUiIsValidated(@NotNull Phase phase) {
-        return longTermMemory.isUiValidated(phase);
+        boolean isValidated = longTermMemory.isUiValidated(phase);
+        if (isValidated) {
+            return true;
+        }
+        if (phase instanceof NoUiPhase noUiPhase) {
+            longTermMemory.memorizePhase(noUiPhase.getPhaseName());
+            return true;
+        }
+        if (phase instanceof UiPhase uiPhase) {
+            //validate phase and memorize or throw validation error
+            PhaseUiTemplate template = uiPhase.getPhaseUiTemplate();
+            return true;
+        }
+        return false; //missing Interface on PhaseClass and developer has to check the phase in the browser
     }
 }

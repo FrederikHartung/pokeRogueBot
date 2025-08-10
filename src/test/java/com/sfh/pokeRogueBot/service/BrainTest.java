@@ -7,7 +7,6 @@ import com.sfh.pokeRogueBot.neurons.*;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.ScreenshotClient;
 import com.sfh.pokeRogueBot.phase.impl.SelectGenderPhase;
-import com.sfh.pokeRogueBot.phase.impl.TitlePhase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
