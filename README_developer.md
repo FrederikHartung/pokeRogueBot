@@ -10,7 +10,14 @@ Add Support for UI Validation of a Phase.
 Some Phases have a UI, which needs an UI Handler to set a Cursor. The uiValidatedPhases should be persisted to the FileSystem in Json format and on App start loaded in to the LongTermMemory.  
 Also the LongTermMemory should remember, if a new Phase was validated and if so, the result should also be persisted to the FileSystem on App Termination.  
 Todos:
-- [x] Add uiValidatedPhases to LongTermMemory
+- [x] Add UiValidatedPhases to LongTermMemory
+- [x] Added loading of UiValidatedPhases on Appstart from Json File
+- [x] Added FeatureFlag to toggle remembering of Items and UiValidatedPhases
+- [x] Add function to LongTermMemory to check if a Phase is UI validated
+- [ ] Add UI-Validator:
+  - Where call the long Term Memory from? -> Waverunner -> Brain -> LongTermMemory
+  - Where inject the ui validator -> Brain
+  - How to specify the ui?
 
 ## Open todo's with high priority:
 - [x] remove the db and spring data

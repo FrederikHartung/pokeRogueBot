@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.sfh</groupId>
 	<artifactId>pokeRogueBot</artifactId>
-	<version>2.3</version>
+	<version>3.1</version>
 	<name>pokeRogueBot</name>
 	<description>A simple Bot for the pokeRogue Game</description>
 	<properties>

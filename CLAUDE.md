@@ -107,3 +107,11 @@ This is a Spring Boot application (version 3.5.3) written in mixed Java/Kotlin t
 - Integration tests for file management
 - MockK used for Kotlin component testing
 - Spring Boot test framework integration
+
+**Java to Kotlin Migration Guidelines:**
+- When migrating Java classes to Kotlin, prioritize classes that use Lombok annotations (@Data, @Getter, @Setter)
+- Kotlin cannot access Lombok-generated methods at compile time, leading to compilation errors
+- If a Kotlin class needs to access fields/methods from a Java class with Lombok, migrate the Java class to Kotlin first
+- Use Kotlin data classes to replace Java classes with @Data annotation
+- Use Kotlin properties with getter/setter syntax instead of Lombok-generated methods
+- When encountering "Cannot access field" or "Unresolved reference" errors for setter/getter methods, migrate the target Java class to Kotlin
