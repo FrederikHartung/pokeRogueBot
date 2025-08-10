@@ -1,0 +1,113 @@
+package com.sfh.pokeRogueBot.bot
+
+import com.sfh.pokeRogueBot.model.enums.RunStatus
+import com.sfh.pokeRogueBot.model.enums.UiMode
+import com.sfh.pokeRogueBot.model.exception.UnsupportedPhaseException
+import com.sfh.pokeRogueBot.model.run.RunProperty
+import com.sfh.pokeRogueBot.phase.Phase
+import com.sfh.pokeRogueBot.phase.PhaseProcessor
+import com.sfh.pokeRogueBot.phase.PhaseProvider
+import com.sfh.pokeRogueBot.phase.impl.MessagePhase
+import com.sfh.pokeRogueBot.phase.impl.ReturnToTitlePhase
+import com.sfh.pokeRogueBot.phase.impl.TitlePhase
+import com.sfh.pokeRogueBot.service.Brain
+import com.sfh.pokeRogueBot.service.JsService
+import com.sfh.pokeRogueBot.service.WaitingService
+import org.openqa.selenium.JavascriptException
+import org.openqa.selenium.NoSuchWindowException
+import org.openqa.selenium.remote.UnreachableBrowserException
+import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.stereotype.Component
+
+@Component
+class WaveRunner(
+    private val jsService: JsService,
+    private val phaseProcessor: PhaseProcessor,
+    private val brain: Brain,
+    private val phaseProvider: PhaseProvider,
+    private val waitingService: WaitingService,
+    @Value("\${bot.startBotOnStartup}") startBotOnStartup: Boolean
+) {
+
+    companion object {
+        const val WAIT_TIME_IF_WAVE_RUNNER_IS_NOT_ACTIVE = 10000
+        private val log = LoggerFactory.getLogger(WaveRunner::class.java)
+    }
+
+    var isActive: Boolean = startBotOnStartup
+
+    fun handlePhaseInWave(runProperty: RunProperty) {
+        if (!isActive) {
+            log.debug("WaveRunner is not active, skipping phase handling")
+            waitingService.sleep(WAIT_TIME_IF_WAVE_RUNNER_IS_NOT_ACTIVE)
+            return
+        }
+
+        try {
+            val phaseAsString = jsService.getCurrentPhaseAsString()
+            val phase = phaseProvider.fromString(phaseAsString)
+            val uiMode = jsService.getUiMode()
+
+            when {
+                phase != null && uiMode != UiMode.UNKNOWN -> {
+                    log.debug("phase detected: ${phase.phaseName}, gameMode: $uiMode")
+                    phaseProcessor.handlePhase(phase, uiMode)
+                    brain.memorize(phase.phaseName)
+                }
+                phase == null && uiMode == UiMode.MESSAGE -> {
+                    log.warn("no known phase detected, phaseAsString: $phaseAsString , but gameMode is MESSAGE")
+                    phaseProcessor.handlePhase(phaseProvider.fromString(MessagePhase.NAME)!!, uiMode)
+                    brain.memorize(MessagePhase.NAME)
+                }
+                else -> {
+                    log.debug("no known phase detected, phaseAsString: $phaseAsString , gameMode: $uiMode")
+                    throw UnsupportedPhaseException(phaseAsString, uiMode)
+                }
+            }
+        } catch (e: Exception) {
+            when (e) {
+                is JavascriptException, is NoSuchWindowException, is UnreachableBrowserException -> {
+                    log.error("Unexpected error, quitting app: ${e.message}")
+                    e.printStackTrace()
+                    System.exit(1)
+                }
+                else -> {
+                    log.error("Error in WaveRunner, trying to save and quit to title, error: ${e.message}", e)
+                    runProperty.status = RunStatus.ERROR
+                    saveAndQuit(runProperty, e.javaClass.simpleName)
+                }
+            }
+        }
+    }
+
+    /**
+     * if save and quit is executed, the title menu should be reached.
+     * if not, the app should be reloaded
+     *
+     * @param runProperty       to set the runstatus to reload app if needed
+     * @param lastExceptionType the last exception type that occurred
+     */
+    fun saveAndQuit(runProperty: RunProperty, lastExceptionType: String) {
+        try {
+            val phase = phaseProvider.fromString(ReturnToTitlePhase.NAME)
+            if (phase is ReturnToTitlePhase) {
+                phase.lastExceptionType = lastExceptionType
+                log.debug("handling ReturnToTitlePhase")
+                phaseProcessor.handlePhase(phase, UiMode.TITLE)
+            }
+            waitingService.waitEvenLonger() // wait for render title
+            val phaseAsString = jsService.getCurrentPhaseAsString()
+            if (phaseAsString == TitlePhase.NAME) {
+                log.debug("we are in title phase, saving and quitting worked")
+                return
+            } else {
+                log.error("unable to save and quit, we are not in title phase")
+            }
+        } catch (e: Exception) {
+            log.error("unable to save and quit: ${e.message}")
+        }
+
+        runProperty.status = RunStatus.RELOAD_APP
+    }
+}

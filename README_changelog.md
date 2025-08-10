@@ -3,6 +3,7 @@
 ## 3.1 WIP
 - Added Support for UI Validation of a Phase
 - Migrated multiple Classes to Kotlin
+- Added CustomPhase and UiPhase Interfaces to better difference between different Phase Types
 
 ## 3.0
 - migrated to Java 21
