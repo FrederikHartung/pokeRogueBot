@@ -64,6 +64,6 @@ class SelectStarterPhaseTest {
 
     @Test
     void an_unsupported_game_mode_is_passed() {
-        assertThrows(NotSupportedException.class, () -> selectStarterPhase.getActionsForUiMode(UiMode.UNKNOWN));
+        assertThrows(NotSupportedException.class, () -> selectStarterPhase.getActionsForUiMode(UiMode.ADMIN));
     }
 }

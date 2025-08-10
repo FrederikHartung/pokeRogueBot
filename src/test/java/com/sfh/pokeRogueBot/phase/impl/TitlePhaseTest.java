@@ -162,7 +162,7 @@ class TitlePhaseTest {
 
     @Test
     void if_the_game_mode_is_not_supported_an_exception_is_thrown() {
-        assertThrows(NotSupportedException.class, () -> titlePhase.getActionsForUiMode(UiMode.UNKNOWN));
+        assertThrows(NotSupportedException.class, () -> titlePhase.getActionsForUiMode(UiMode.ADMIN));
     }
 
     @Test

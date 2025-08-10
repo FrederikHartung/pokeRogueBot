@@ -90,12 +90,13 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
                         this.pressSpace
                 };
             }
-
-        } else if (uiMode == UiMode.CONFIRM) {
+        }
+        else if (uiMode == UiMode.CONFIRM) {
             return new PhaseAction[]{
                     this.pressSpace
             };
-        } else if (uiMode == UiMode.SAVE_SLOT) {
+        }
+        else if (uiMode == UiMode.SAVE_SLOT) {
             RunProperty runProperty = brain.getRunProperty();
             log.debug("Setting Cursor to saveSlotIndex: {}", runProperty.getSaveSlotIndex());
             boolean setSaveSlotCursorSuccess = jsService.setCursorToSaveSlot(runProperty.getSaveSlotIndex());
@@ -110,7 +111,7 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
             throw new IllegalStateException("Failed to set cursor to save slot: " + runProperty.getSaveSlotIndex());
         }
 
-        throw new NotSupportedException("gameMode not supported in SelectStarterPhase: " + uiMode);
+        throw new NotSupportedException("uiMode not supported in SelectStarterPhase: " + uiMode);
     }
 
     private void selectStarter(Starter[] availableStarters) {

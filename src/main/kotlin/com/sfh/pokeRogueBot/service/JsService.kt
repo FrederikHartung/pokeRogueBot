@@ -7,6 +7,7 @@ import com.sfh.pokeRogueBot.model.dto.SaveSlotDto
 import com.sfh.pokeRogueBot.model.dto.WaveAndTurnDto
 import com.sfh.pokeRogueBot.model.dto.WaveDto
 import com.sfh.pokeRogueBot.model.enums.UiMode
+import com.sfh.pokeRogueBot.model.exception.UnsupportedUiModeException
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItemDeserializer
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop
@@ -54,7 +55,7 @@ class JsService(private val jsClient: JsClient) {
         return if (result is Long) {
             UiMode.fromValue(result.toInt())
         } else {
-            UiMode.UNKNOWN
+            throw UnsupportedUiModeException("" + result)
         }
     }
 

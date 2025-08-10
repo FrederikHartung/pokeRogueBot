@@ -49,22 +49,9 @@ class WaveRunner(
             val phase = phaseProvider.fromString(phaseAsString)
             val uiMode = jsService.getUiMode()
 
-            when {
-                phase != null && uiMode != UiMode.UNKNOWN -> {
-                    log.debug("phase detected: ${phase.phaseName}, gameMode: $uiMode")
-                    phaseProcessor.handlePhase(phase, uiMode)
-                    brain.memorize(phase.phaseName)
-                }
-                phase == null && uiMode == UiMode.MESSAGE -> {
-                    log.warn("no known phase detected, phaseAsString: $phaseAsString , but gameMode is MESSAGE")
-                    phaseProcessor.handlePhase(phaseProvider.fromString(MessagePhase.NAME)!!, uiMode)
-                    brain.memorize(MessagePhase.NAME)
-                }
-                else -> {
-                    log.debug("no known phase detected, phaseAsString: $phaseAsString , gameMode: $uiMode")
-                    throw UnsupportedPhaseException(phaseAsString, uiMode)
-                }
-            }
+            log.debug("phase detected: {}, gameMode: {}", phase.phaseName, uiMode)
+            phaseProcessor.handlePhase(phase, uiMode)
+            brain.memorize(phase.phaseName)
         } catch (e: Exception) {
             when (e) {
                 is JavascriptException, is NoSuchWindowException, is UnreachableBrowserException -> {
