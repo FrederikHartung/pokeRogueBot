@@ -12,9 +12,11 @@ import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.neurons.*;
+import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.ScreenshotClient;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -317,5 +319,9 @@ public class Brain {
             return true;
         }
         return false;
+    }
+
+    public boolean phaseUiIsValidated(@NotNull Phase phase) {
+        return longTermMemory.isUiValidated(phase);
     }
 }

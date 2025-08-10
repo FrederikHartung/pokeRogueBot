@@ -4,7 +4,10 @@ import com.sfh.pokeRogueBot.model.dto.SaveSlotDto;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.neurons.*;
+import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.ScreenshotClient;
+import com.sfh.pokeRogueBot.phase.impl.SelectGenderPhase;
+import com.sfh.pokeRogueBot.phase.impl.TitlePhase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -27,7 +30,7 @@ class BrainTest {
     ScreenshotClient screenshotClient;
     SaveSlotDto[] saveSlots;
 
-
+    final Phase phase = new SelectGenderPhase();
     RunProperty runProperty;
 
     @BeforeEach
@@ -188,5 +191,14 @@ class BrainTest {
         assertNotSame(newRunProperty, runProperty);
         assertEquals(runProperty.getRunNumber() + 1, newRunProperty.getRunNumber());
         assertEquals(RunStatus.OK, newRunProperty.getStatus());
+    }
+
+    @Test
+    void phaseUiIsValidated_returns_the_response_of_the_longTermMemory(){
+        doReturn(true).when(longTermMemory).isUiValidated(any());
+        assertTrue(brain.phaseUiIsValidated(phase));
+
+        doReturn(false).when(longTermMemory).isUiValidated(any());
+        assertFalse(brain.phaseUiIsValidated(phase));
     }
 }

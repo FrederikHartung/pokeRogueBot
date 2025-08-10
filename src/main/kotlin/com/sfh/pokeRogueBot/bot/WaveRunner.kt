@@ -2,12 +2,9 @@ package com.sfh.pokeRogueBot.bot
 
 import com.sfh.pokeRogueBot.model.enums.RunStatus
 import com.sfh.pokeRogueBot.model.enums.UiMode
-import com.sfh.pokeRogueBot.model.exception.UnsupportedPhaseException
 import com.sfh.pokeRogueBot.model.run.RunProperty
-import com.sfh.pokeRogueBot.phase.Phase
 import com.sfh.pokeRogueBot.phase.PhaseProcessor
 import com.sfh.pokeRogueBot.phase.PhaseProvider
-import com.sfh.pokeRogueBot.phase.impl.MessagePhase
 import com.sfh.pokeRogueBot.phase.impl.ReturnToTitlePhase
 import com.sfh.pokeRogueBot.phase.impl.TitlePhase
 import com.sfh.pokeRogueBot.service.Brain
@@ -47,6 +44,12 @@ class WaveRunner(
         try {
             val phaseAsString = jsService.getCurrentPhaseAsString()
             val phase = phaseProvider.fromString(phaseAsString)
+            if (!(brain.phaseUiIsValidated(phase))) {
+                log.warn("Phase ${phaseAsString} is not validated, waiting...")
+                waitingService.waitEvenLonger()
+                brain.memorize(phase.phaseName)
+                return
+            }
             val uiMode = jsService.getUiMode()
 
             log.debug("phase detected: {}, gameMode: {}", phase.phaseName, uiMode)
