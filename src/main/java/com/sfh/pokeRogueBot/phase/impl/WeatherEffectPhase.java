@@ -18,17 +18,17 @@ public class WeatherEffectPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
-        if (gameMode == UiMode.COMMAND || gameMode == UiMode.MODIFIER_SELECT) {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
+        if (uiMode == UiMode.COMMAND || uiMode == UiMode.MODIFIER_SELECT) {
             return new PhaseAction[]{
                     waitBriefly
             };
-        } else if (gameMode == UiMode.MESSAGE) {
+        } else if (uiMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     pressSpace
             };
         }
 
-        throw new NotSupportedException("WeatherEffectPhase does not support GameMode: " + gameMode);
+        throw new NotSupportedException("WeatherEffectPhase does not support GameMode: " + uiMode);
     }
 }

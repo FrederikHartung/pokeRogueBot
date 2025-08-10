@@ -18,18 +18,18 @@ public class SelectTargetPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
-        if (gameMode == UiMode.TARGET_SELECT) {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
+        if (uiMode == UiMode.TARGET_SELECT) {
             return new PhaseAction[]{
                     pressSpace
             };
-        } else if (gameMode == UiMode.MESSAGE) {
+        } else if (uiMode == UiMode.MESSAGE) {
 
             return new PhaseAction[]{
                     pressSpace
             };
         }
 
-        throw new NotSupportedException("GameMode not supported in SelectTargetPhase: " + gameMode);
+        throw new NotSupportedException("GameMode not supported in SelectTargetPhase: " + uiMode);
     }
 }

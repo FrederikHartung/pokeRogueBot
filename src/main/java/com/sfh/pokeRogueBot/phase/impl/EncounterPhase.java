@@ -23,17 +23,17 @@ public class EncounterPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
-        if (gameMode == UiMode.MESSAGE) {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
+        if (uiMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     this.pressSpace
             };
-        } else if (gameMode == UiMode.TITLE || gameMode == UiMode.STARTER_SELECT) {
+        } else if (uiMode == UiMode.TITLE || uiMode == UiMode.STARTER_SELECT) {
             return new PhaseAction[]{
                     this.waitBriefly
             };
         }
 
-        throw new NotSupportedException("GameMode not supported in EncounterPhase: " + gameMode);
+        throw new NotSupportedException("GameMode not supported in EncounterPhase: " + uiMode);
     }
 }

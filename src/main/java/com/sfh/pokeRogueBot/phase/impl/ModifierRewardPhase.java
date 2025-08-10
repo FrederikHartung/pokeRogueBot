@@ -18,14 +18,14 @@ public class ModifierRewardPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
-        if (gameMode == UiMode.MESSAGE || gameMode == UiMode.EGG_HATCH_SCENE) {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
+        if (uiMode == UiMode.MESSAGE || uiMode == UiMode.EGG_HATCH_SCENE) {
             return new PhaseAction[]{
                     this.pressSpace
             };
         }
 
-        throw new NotSupportedException("GameMode not supported for ModifierRewardPhase: " + gameMode);
+        throw new NotSupportedException("GameMode not supported for ModifierRewardPhase: " + uiMode);
     }
 
     @Override

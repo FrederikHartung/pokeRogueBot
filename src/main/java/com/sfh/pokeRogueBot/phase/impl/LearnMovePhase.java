@@ -33,28 +33,28 @@ public class LearnMovePhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
 
-        if (gameMode == UiMode.MESSAGE) {
+        if (uiMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     this.pressSpace,
                     this.waitBriefly
             };
-        } else if (gameMode == UiMode.CONFIRM) {
+        } else if (uiMode == UiMode.CONFIRM) {
             //should pokemon learn message
             return new PhaseAction[]{ //enter summary screen
                     this.pressSpace
             };
-        } else if (gameMode == UiMode.EVOLUTION_SCENE) {
+        } else if (uiMode == UiMode.EVOLUTION_SCENE) {
             return new PhaseAction[]{
                     this.waitBriefly,
                     this.pressSpace
             };
-        } else if (gameMode == UiMode.SUMMARY) {
+        } else if (uiMode == UiMode.SUMMARY) {
             return handleLearnMove();
         }
 
-        throw new NotSupportedException("GameMode not supported for LearnMovePhase: " + gameMode);
+        throw new NotSupportedException("GameMode not supported for LearnMovePhase: " + uiMode);
     }
 
     @Override

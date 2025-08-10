@@ -41,12 +41,12 @@ public class LoginPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
-        if (gameMode == UiMode.LOADING) {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
+        if (uiMode == UiMode.LOADING) {
             return new PhaseAction[]{
                     this.waitLonger
             };
-        } else if (gameMode == UiMode.LOGIN_FORM) {
+        } else if (uiMode == UiMode.LOGIN_FORM) {
             waitingService.waitLonger();
             boolean enterUserDataSuccess = browserClient.enterUserData(userName, password);
             if (enterUserDataSuccess) {
@@ -63,12 +63,12 @@ public class LoginPhase extends AbstractPhase implements Phase {
             } else {
                 log.error("could not enter user data");
             }
-        } else if (gameMode == UiMode.MESSAGE) {
+        } else if (uiMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     this.pressSpace
             };
         }
 
-        throw new NotSupportedException("Gamemode " + gameMode + "not supported in " + NAME);
+        throw new NotSupportedException("Gamemode " + uiMode + "not supported in " + NAME);
     }
 }

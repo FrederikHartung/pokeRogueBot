@@ -18,14 +18,14 @@ public class NewBiomeEncounterPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
-        if (gameMode == UiMode.EGG_HATCH_SCENE || gameMode == UiMode.MESSAGE) {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
+        if (uiMode == UiMode.EGG_HATCH_SCENE || uiMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     this.pressSpace,
                     this.waitLonger
             };
         }
 
-        throw new NotSupportedException("NewBiomeEncounterPhase does not support GameMode: " + gameMode);
+        throw new NotSupportedException("NewBiomeEncounterPhase does not support GameMode: " + uiMode);
     }
 }

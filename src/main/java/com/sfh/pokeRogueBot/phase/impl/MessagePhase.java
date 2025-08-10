@@ -23,18 +23,18 @@ public class MessagePhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
-        if (gameMode == UiMode.MESSAGE) {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
+        if (uiMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     this.pressSpace,
                     this.waitBriefly
             };
-        } else if (gameMode == UiMode.COMMAND || gameMode == UiMode.EGG_HATCH_SCENE || gameMode == UiMode.MODIFIER_SELECT) {
+        } else if (uiMode == UiMode.COMMAND || uiMode == UiMode.EGG_HATCH_SCENE || uiMode == UiMode.MODIFIER_SELECT) {
             return new PhaseAction[]{
                     this.waitLonger
             };
         }
 
-        throw new NotSupportedException("GameMode not supported for MessagePhase: " + gameMode);
+        throw new NotSupportedException("GameMode not supported for MessagePhase: " + uiMode);
     }
 }

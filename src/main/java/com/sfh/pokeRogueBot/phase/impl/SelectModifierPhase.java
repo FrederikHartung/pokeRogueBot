@@ -39,10 +39,10 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
         List<PhaseAction> actionList = new LinkedList<>();
 
-        if (gameMode == UiMode.MODIFIER_SELECT) {
+        if (uiMode == UiMode.MODIFIER_SELECT) {
 
             waitService.waitEvenLonger(); //wait for the modifier shop to render
             waitService.waitLonger();
@@ -66,7 +66,7 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
             waitService.waitEvenLonger(); //wait for the cursor to be set
 
             actionList.add(this.pressSpace); //to confirm selection -> gamemode will change to party
-        } else if (gameMode == UiMode.PARTY) {
+        } else if (uiMode == UiMode.PARTY) {
 
             boolean isSettingCursorSuccessfull = jsService.setPartyCursor(pokemonIndexToSwitchTo);
             if (!isSettingCursorSuccessfull) {
@@ -77,14 +77,14 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
             actionList.add(this.pressSpace); //open confirm menu
             actionList.add(this.waitBriefly); //wait for confirm menu to render
             actionList.add(this.pressSpace); //confirm the application of the modifier
-        } else if (gameMode == UiMode.MESSAGE) {
+        } else if (uiMode == UiMode.MESSAGE) {
             actionList.add(this.pressSpace);
-        } else if (gameMode == UiMode.SUMMARY) {
+        } else if (uiMode == UiMode.SUMMARY) {
             actionList.add(this.pressBackspace); //go back to team
             actionList.add(waitLonger);
             actionList.add(this.pressBackspace); //go back to modifier shop
         } else {
-            throw new NotSupportedException("GameMode not supported for SelectModifierPhase: " + gameMode);
+            throw new NotSupportedException("GameMode not supported for SelectModifierPhase: " + uiMode);
         }
 
         return actionList.toArray(new PhaseAction[0]);

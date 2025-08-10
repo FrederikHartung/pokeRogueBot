@@ -18,8 +18,8 @@ public class AttemptCapturePhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
-        if (gameMode == UiMode.CONFIRM) { //todo: release the pokemon with the lowest level
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
+        if (uiMode == UiMode.CONFIRM) { //todo: release the pokemon with the lowest level
 
             return new PhaseAction[]{ //don't take captured wild pokemons
                     this.waitBriefly,
@@ -27,13 +27,13 @@ public class AttemptCapturePhase extends AbstractPhase implements Phase {
                     this.waitBriefly,
                     this.pressSpace
             };
-        } else if (gameMode == UiMode.MESSAGE) {
+        } else if (uiMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     this.pressSpace
             };
         }
 
-        throw new NotSupportedException("GameMode " + gameMode + " is not supported in " + NAME);
+        throw new NotSupportedException("GameMode " + uiMode + " is not supported in " + NAME);
     }
 
     @Override
