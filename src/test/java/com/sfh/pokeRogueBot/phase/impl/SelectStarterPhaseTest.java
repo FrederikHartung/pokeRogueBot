@@ -46,7 +46,7 @@ class SelectStarterPhaseTest {
     void a_save_slot_is_selected() {
         runProperty.setSaveSlotIndex(1);
 
-        PhaseAction[] actions = selectStarterPhase.getActionsForGameMode(gameModeSaveSlot);
+        PhaseAction[] actions = selectStarterPhase.getActionsForUiMode(gameModeSaveSlot);
         verify(jsService, never()).getAvailableStarterPokemon();
         verify(jsService, times(1)).setCursorToSaveSlot(1);
         assertEquals(3, actions.length);
@@ -59,11 +59,11 @@ class SelectStarterPhaseTest {
         runProperty.setSaveSlotIndex(1);
         doReturn(false).when(jsService).setCursorToSaveSlot(anyInt());
 
-        assertThrows(IllegalStateException.class, () -> selectStarterPhase.getActionsForGameMode(gameModeSaveSlot));
+        assertThrows(IllegalStateException.class, () -> selectStarterPhase.getActionsForUiMode(gameModeSaveSlot));
     }
 
     @Test
     void an_unsupported_game_mode_is_passed() {
-        assertThrows(NotSupportedException.class, () -> selectStarterPhase.getActionsForGameMode(UiMode.UNKNOWN));
+        assertThrows(NotSupportedException.class, () -> selectStarterPhase.getActionsForUiMode(UiMode.UNKNOWN));
     }
 }

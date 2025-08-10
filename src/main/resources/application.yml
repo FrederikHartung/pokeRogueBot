@@ -1,3 +1,8 @@
+app:
+  long-term-memory:
+    remember-items: false
+    remember-ui-validated-phases: false
+
 spring:
   application:
     name: pokeRogueBot

@@ -48,7 +48,7 @@ class EggHatchPhaseTest {
     @Test
     void an_egg_is_hatched(){
 
-        PhaseAction[] actions = eggHatchPhase.getActionsForGameMode(UiMode.EGG_HATCH_SCENE);
+        PhaseAction[] actions = eggHatchPhase.getActionsForUiMode(UiMode.EGG_HATCH_SCENE);
         assertNotNull(actions);
         assertEquals(1, actions.length);
         assertEquals(KeyToPress.SPACE, ((PressKeyPhaseAction) actions[0]).getKeyToPress());
