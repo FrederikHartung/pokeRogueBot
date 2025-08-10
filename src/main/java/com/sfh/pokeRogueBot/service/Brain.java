@@ -38,6 +38,7 @@ public class Brain {
     private final CombatNeuron combatNeuron;
     private final CapturePokemonNeuron capturePokemonNeuron;
     private final LearnMoveNeuron learnMoveNeuron;
+    private final UiValidator uiValidator;
 
     private RunProperty runProperty = null;
     private boolean waveIndexReset = false;
@@ -50,7 +51,12 @@ public class Brain {
             JsService jsService,
             ShortTermMemory shortTermMemory, LongTermMemory longTermMemory,
             ScreenshotClient screenshotClient,
-            SwitchPokemonNeuron switchPokemonNeuron, ChooseModifierNeuron chooseModifierNeuron, CombatNeuron combatNeuron, CapturePokemonNeuron capturePokemonNeuron, LearnMoveNeuron learnMoveNeuron
+            SwitchPokemonNeuron switchPokemonNeuron,
+            ChooseModifierNeuron chooseModifierNeuron,
+            CombatNeuron combatNeuron,
+            CapturePokemonNeuron capturePokemonNeuron,
+            LearnMoveNeuron learnMoveNeuron,
+            UiValidator uiValidator
     ) {
         this.jsService = jsService;
         this.shortTermMemory = shortTermMemory;
@@ -61,6 +67,7 @@ public class Brain {
         this.combatNeuron = combatNeuron;
         this.capturePokemonNeuron = capturePokemonNeuron;
         this.learnMoveNeuron = learnMoveNeuron;
+        this.uiValidator = uiValidator;
     }
 
     public SwitchDecision getFaintedPokemonSwitchDecision(boolean ignoreFirstPokemon) {
@@ -334,8 +341,9 @@ public class Brain {
             return true;
         }
         if (phase instanceof UiPhase uiPhase) {
-            //validate phase and memorize or throw validation error
+            //validate phase and memorize or throw exception
             PhaseUiTemplate template = uiPhase.getPhaseUiTemplate();
+            uiValidator.validateOrThrow(template);
             return true;
         }
         return false; //missing Interface on PhaseClass and developer has to check the phase in the browser

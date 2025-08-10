@@ -14,10 +14,8 @@ Todos:
 - [x] Added loading of UiValidatedPhases on Appstart from Json File
 - [x] Added FeatureFlag to toggle remembering of Items and UiValidatedPhases
 - [x] Add function to LongTermMemory to check if a Phase is UI validated
-- [ ] Add UI-Validator:
-  - Where call the long Term Memory from? -> Waverunner -> Brain -> LongTermMemory
-  - Where inject the ui validator -> Brain
-  - How to specify the ui?
+- [x] Add UiValidator
+- [ ] Write Logic for UiValidator
 
 ## Open todo's with high priority:
 - [x] remove the db and spring data
