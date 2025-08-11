@@ -18,7 +18,7 @@ public class SwitchSummonPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
         return new PhaseAction[]{
                 this.pressSpace
         };

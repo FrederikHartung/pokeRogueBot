@@ -32,7 +32,7 @@ public class TitlePhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
 
         RunProperty runProperty = brain.getRunProperty();
 
@@ -40,7 +40,7 @@ public class TitlePhase extends AbstractPhase implements Phase {
             throw new IllegalStateException("RunProperty is null in TitlePhase");
         }
 
-        if (gameMode == UiMode.TITLE) {
+        if (uiMode == UiMode.TITLE) {
 
             if (runProperty.getSaveSlotIndex() >= 0) {
                 log.debug("found run property with a save slot index, so the current run is lost.");
@@ -85,7 +85,7 @@ public class TitlePhase extends AbstractPhase implements Phase {
             }
 
             throw new IllegalStateException("Unable to set cursor to new game.");
-        } else if (gameMode == UiMode.SAVE_SLOT) {
+        } else if (uiMode == UiMode.SAVE_SLOT) {
             int saveSlotIndexToLoad = brain.getSaveSlotIndexToLoad();
             if (saveSlotIndexToLoad == -1) {
                 log.debug("No save slot to load, pressing backspace and returning to title.");
@@ -107,12 +107,12 @@ public class TitlePhase extends AbstractPhase implements Phase {
             }
 
             throw new IllegalStateException("Unable to set cursor to save slot.");
-        } else if (gameMode == UiMode.MESSAGE) {
+        } else if (uiMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     this.waitBriefly
             };
         }
 
-        throw new NotSupportedException("TitlePhase does not support game mode: " + gameMode);
+        throw new NotSupportedException("TitlePhase does not support game mode: " + uiMode);
     }
 }

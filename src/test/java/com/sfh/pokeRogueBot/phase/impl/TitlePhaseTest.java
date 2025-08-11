@@ -46,7 +46,7 @@ class TitlePhaseTest {
     void if_null_is_returned_when_getting_a_runproperty_a_exception_is_thrown(){
         doReturn(null).when(brain).getRunProperty();
 
-        assertThrows(IllegalStateException.class, () -> titlePhase.getActionsForGameMode(null));
+        assertThrows(IllegalStateException.class, () -> titlePhase.getActionsForUiMode(null));
     }
 
     /*
@@ -58,7 +58,7 @@ class TitlePhaseTest {
     void if_a_runproperty_with_saveSlotIndex_greater_than_or_equal_to_0_is_returned_a_waitAction_is_returned(){
         runProperty.setSaveSlotIndex(0);
 
-        PhaseAction[] actions = titlePhase.getActionsForGameMode(gameModeTitle);
+        PhaseAction[] actions = titlePhase.getActionsForUiMode(gameModeTitle);
 
         assertEquals(RunStatus.LOST, runProperty.getStatus());
         assertEquals(1, actions.length);
@@ -76,7 +76,7 @@ class TitlePhaseTest {
         runProperty.setSaveSlotIndex(-1);
         doReturn(true).when(brain).shouldLoadGame();
 
-        PhaseAction[] actions = titlePhase.getActionsForGameMode(gameModeTitle);
+        PhaseAction[] actions = titlePhase.getActionsForUiMode(gameModeTitle);
 
         verify(jsService, times(1)).setCursorToLoadGame();
         verify(jsService, never()).setCursorToNewGame();
@@ -92,14 +92,14 @@ class TitlePhaseTest {
         doReturn(true).when(brain).shouldLoadGame();
         doReturn(false).when(jsService).setCursorToLoadGame();
 
-        assertThrows(IllegalStateException.class, () -> titlePhase.getActionsForGameMode(gameModeTitle));
+        assertThrows(IllegalStateException.class, () -> titlePhase.getActionsForUiMode(gameModeTitle));
     }
 
     @Test
     void if_no_save_game_should_be_loaded_the_cursor_is_set_to_new_game(){
         runProperty.setSaveSlotIndex(-1);
 
-        PhaseAction[] actions = titlePhase.getActionsForGameMode(gameModeTitle);
+        PhaseAction[] actions = titlePhase.getActionsForUiMode(gameModeTitle);
 
         verify(jsService, times(1)).setCursorToNewGame();
         verify(jsService, never()).setCursorToLoadGame();
@@ -114,14 +114,14 @@ class TitlePhaseTest {
         runProperty.setSaveSlotIndex(-1);
         doReturn(false).when(jsService).setCursorToNewGame();
 
-        assertThrows(IllegalStateException.class, () -> titlePhase.getActionsForGameMode(gameModeTitle));
+        assertThrows(IllegalStateException.class, () -> titlePhase.getActionsForUiMode(gameModeTitle));
     }
 
     @Test
     void if_no_save_game_is_found_the_save_game_ui_is_closed(){
         doReturn(-1).when(brain).getSaveSlotIndexToLoad();
 
-        PhaseAction[] actions = titlePhase.getActionsForGameMode(gameModeSaveSlot);
+        PhaseAction[] actions = titlePhase.getActionsForUiMode(gameModeSaveSlot);
 
         verify(brain, times(1)).getSaveSlotIndexToLoad();
 
@@ -135,7 +135,7 @@ class TitlePhaseTest {
     void if_a_savegame_should_be_loaded_the_cursor_is_set_to_save_slot() {
         doReturn(0).when(brain).getSaveSlotIndexToLoad();
 
-        PhaseAction[] actions = titlePhase.getActionsForGameMode(gameModeSaveSlot);
+        PhaseAction[] actions = titlePhase.getActionsForUiMode(gameModeSaveSlot);
 
         verify(jsService, times(1)).setCursorToSaveSlot(0);
         assertEquals(2, actions.length);
@@ -149,12 +149,12 @@ class TitlePhaseTest {
         doReturn(0).when(brain).getSaveSlotIndexToLoad();
         doReturn(false).when(jsService).setCursorToSaveSlot(anyInt());
 
-        assertThrows(IllegalStateException.class, () -> titlePhase.getActionsForGameMode(gameModeSaveSlot));
+        assertThrows(IllegalStateException.class, () -> titlePhase.getActionsForUiMode(gameModeSaveSlot));
     }
 
     @Test
     void if_the_game_mode_is_message_a_space_is_pressed() {
-        PhaseAction[] actions = titlePhase.getActionsForGameMode(UiMode.MESSAGE);
+        PhaseAction[] actions = titlePhase.getActionsForUiMode(UiMode.MESSAGE);
 
         assertEquals(1, actions.length);
         assertEquals(WaitPhaseAction.class, actions[0].getClass());
@@ -162,7 +162,7 @@ class TitlePhaseTest {
 
     @Test
     void if_the_game_mode_is_not_supported_an_exception_is_thrown() {
-        assertThrows(NotSupportedException.class, () -> titlePhase.getActionsForGameMode(UiMode.UNKNOWN));
+        assertThrows(NotSupportedException.class, () -> titlePhase.getActionsForUiMode(UiMode.ADMIN));
     }
 
     @Test
@@ -170,7 +170,7 @@ class TitlePhaseTest {
         runProperty.setSaveSlotIndex(-1);
         doReturn(-1).when(brain).getSaveSlotIndexToSave();
 
-        PhaseAction[] actions = titlePhase.getActionsForGameMode(gameModeTitle);
+        PhaseAction[] actions = titlePhase.getActionsForUiMode(gameModeTitle);
 
         assertEquals(RunStatus.EXIT_APP, runProperty.getStatus());
         assertEquals(1, actions.length);
@@ -185,7 +185,7 @@ class TitlePhaseTest {
         runProperty.setSaveSlotIndex(-1);
         doReturn(3).when(brain).getSaveSlotIndexToSave();
 
-        PhaseAction[] actions = titlePhase.getActionsForGameMode(gameModeTitle);
+        PhaseAction[] actions = titlePhase.getActionsForUiMode(gameModeTitle);
 
         assertEquals(RunStatus.OK, runProperty.getStatus());
         assertEquals(1, actions.length);

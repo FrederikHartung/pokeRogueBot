@@ -3,6 +3,7 @@ package com.sfh.pokeRogueBot.bot;
 import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.exception.ActionLoopDetectedException;
+import com.sfh.pokeRogueBot.model.exception.UnsupportedPhaseException;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.PhaseProcessor;
@@ -62,6 +63,9 @@ class WaveRunnerTest {
         doReturn(returnToTitlePhase).when(phaseProvider).fromString(ReturnToTitlePhase.NAME);
         doReturn(messagePhase).when(phaseProvider).fromString(MessagePhase.NAME);
         doReturn(titlePhase).when(phaseProvider).fromString(TitlePhase.NAME);
+        doReturn(MessagePhase.NAME).when(jsService).getCurrentPhaseAsString();
+
+        doReturn(true).when(brain).phaseUiIsValidated(any());
     }
 
     /**
@@ -86,32 +90,12 @@ class WaveRunnerTest {
     @Test
     void if_an_exception_is_caught_the_runner_saves_and_quits() throws Exception {
         String unsupportedPhase = "unsupportedPhase";
-        doReturn(unsupportedPhase).doReturn(TitlePhase.NAME).when(jsService).getCurrentPhaseAsString();
-        doReturn(null).when(phaseProvider).fromString(unsupportedPhase);
-        doReturn(returnToTitlePhase).when(phaseProvider).fromString(ReturnToTitlePhase.NAME);
+        doReturn(unsupportedPhase).when(jsService).getCurrentPhaseAsString();
+        doThrow(new UnsupportedPhaseException(unsupportedPhase)).when(phaseProvider).fromString(unsupportedPhase);
 
         waveRunner.handlePhaseInWave(runProperty);
 
-        verify(phaseProcessor).handlePhase(any(ReturnToTitlePhase.class), any());
-        verify(phaseProvider).fromString(unsupportedPhase);
-        verify(phaseProvider).fromString(ReturnToTitlePhase.NAME);
-        assertEquals(RunStatus.ERROR, runProperty.getStatus());
-    }
-
-    /**
-     * Not all Phases are implemented so as a fallback a "MessagePhase" is handled if the game mode is message
-     * @throws Exception
-     */
-    @Test
-    void if_an_unhandled_phase_occurs_but_the_game_mode_is_message_a_message_phase_is_handled() throws Exception {
-        doReturn("dummyPhase").when(jsService).getCurrentPhaseAsString();
-        doReturn(null).when(phaseProvider).fromString("dummyPhase");
-        doReturn(UiMode.MESSAGE).when(jsService).getUiMode();
-        waveRunner.handlePhaseInWave(runProperty);
-
-        verify(phaseProcessor).handlePhase(any(Phase.class), any());
-        verify(phaseProvider).fromString(MessagePhase.NAME);
-        verify(brain).memorize(MessagePhase.NAME);
+        assertEquals(RunStatus.RELOAD_APP, runProperty.getStatus());
     }
 
     /**
@@ -154,5 +138,17 @@ class WaveRunnerTest {
         verify(waitingService).waitEvenLonger();
         verify(jsService).getCurrentPhaseAsString();
         assertEquals(RunStatus.RELOAD_APP, runProperty.getStatus());
+    }
+
+    @Test
+    void phaseUiIsValidated_returns_false_and_the_runners_waits_and_memorize_the_phase_and_returns(){
+        doReturn(false).when(brain).phaseUiIsValidated(any());
+
+        waveRunner.handlePhaseInWave(runProperty);
+
+        verify(brain).phaseUiIsValidated(any());
+        verify(waitingService).waitEvenLonger();
+        verify(brain).memorize(any());
+        verify(jsService, never()).getUiMode();
     }
 }

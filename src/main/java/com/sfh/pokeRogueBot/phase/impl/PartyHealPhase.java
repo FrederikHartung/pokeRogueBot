@@ -18,12 +18,12 @@ public class PartyHealPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
-        if (gameMode == UiMode.MESSAGE) {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
+        if (uiMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     this.pressSpace
             };
-        } else if (gameMode == UiMode.EGG_HATCH_SCENE) {
+        } else if (uiMode == UiMode.EGG_HATCH_SCENE) {
             return new PhaseAction[]{
                     this.pressSpace,
                     this.waitLonger
@@ -31,7 +31,7 @@ public class PartyHealPhase extends AbstractPhase implements Phase {
             };
         }
 
-        throw new NotSupportedException("GameMode not supported for PartyHealPhase: " + gameMode);
+        throw new NotSupportedException("GameMode not supported for PartyHealPhase: " + uiMode);
     }
 
     @Override

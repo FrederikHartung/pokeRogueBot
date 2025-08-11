@@ -1,10 +1,15 @@
+app:
+  long-term-memory:
+    remember-items: false
+    remember-ui-validated-phases: true
+
 spring:
   application:
     name: pokeRogueBot
 
 browser:
   target-url: "http://localhost:8000/"
-  closeOnExit: true
+  closeOnExit: false
   waitTimeForRenderAfterNavigation: 8000
   pathChromeUserDir:
   chromeProfile: "Default"

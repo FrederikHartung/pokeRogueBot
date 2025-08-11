@@ -18,13 +18,13 @@ public class GameOverPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
-        if (gameMode == UiMode.MESSAGE) {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
+        if (uiMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     this.pressSpace
             };
         }
-        throw new NotSupportedException("GameMode not supported in GameOverPhase: " + gameMode);
+        throw new NotSupportedException("GameMode not supported in GameOverPhase: " + uiMode);
     }
 
     @Override

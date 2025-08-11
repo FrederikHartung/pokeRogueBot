@@ -1,7 +1,6 @@
 package com.sfh.pokeRogueBot.model.enums;
 
 public enum UiMode {
-    UNKNOWN(-1),
     MESSAGE(0),
     TITLE(1),
     COMMAND(2),

@@ -4,7 +4,7 @@ import com.sfh.pokeRogueBot.browser.BrowserClient;
 import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
-import com.sfh.pokeRogueBot.phase.Phase;
+import com.sfh.pokeRogueBot.phase.NoUiPhase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.service.WaitingService;
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-public class LoginPhase extends AbstractPhase implements Phase {
+public class LoginPhase extends AbstractPhase implements NoUiPhase {
 
     public static final String NAME = "LoginPhase";
 
@@ -41,12 +41,12 @@ public class LoginPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
-        if (gameMode == UiMode.LOADING) {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
+        if (uiMode == UiMode.LOADING) {
             return new PhaseAction[]{
                     this.waitLonger
             };
-        } else if (gameMode == UiMode.LOGIN_FORM) {
+        } else if (uiMode == UiMode.LOGIN_FORM) {
             waitingService.waitLonger();
             boolean enterUserDataSuccess = browserClient.enterUserData(userName, password);
             if (enterUserDataSuccess) {
@@ -63,12 +63,12 @@ public class LoginPhase extends AbstractPhase implements Phase {
             } else {
                 log.error("could not enter user data");
             }
-        } else if (gameMode == UiMode.MESSAGE) {
+        } else if (uiMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     this.pressSpace
             };
         }
 
-        throw new NotSupportedException("Gamemode " + gameMode + "not supported in " + NAME);
+        throw new NotSupportedException("Gamemode " + uiMode + "not supported in " + NAME);
     }
 }

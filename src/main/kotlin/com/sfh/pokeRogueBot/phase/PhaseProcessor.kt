@@ -24,8 +24,8 @@ class PhaseProcessor(
      * Handles the given phase by performing the actions in the phase and waits the configured time after the phase.
      */
     @Throws(Exception::class)
-    fun handlePhase(phase: Phase, gameMode: UiMode) {
-        val actionsToPerform = phase.getActionsForGameMode(gameMode)
+    fun handlePhase(phase: Phase, uiMode: UiMode) {
+        val actionsToPerform = phase.getActionsForUiMode(uiMode)
         for (action in actionsToPerform) {
             handleAction(action)
         }

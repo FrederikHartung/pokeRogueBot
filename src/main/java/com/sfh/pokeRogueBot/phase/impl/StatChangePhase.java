@@ -18,13 +18,13 @@ public class StatChangePhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
-        if (gameMode == UiMode.MESSAGE) {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
+        if (uiMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     pressSpace,
             };
         }
 
-        throw new NotSupportedException("StatChangePhase does not support GameMode: " + gameMode);
+        throw new NotSupportedException("StatChangePhase does not support GameMode: " + uiMode);
     }
 }

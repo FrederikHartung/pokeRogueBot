@@ -38,7 +38,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
 
         WaveAndTurnDto waveAndTurnDto = this.jsService.getWaveAndTurnIndex();
 
@@ -58,7 +58,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
             this.lastWaveIndex = waveAndTurnDto.getWaveIndex();
         }
 
-        if (gameMode == UiMode.COMMAND) { //fight, ball, pokemon, run
+        if (uiMode == UiMode.COMMAND) { //fight, ball, pokemon, run
             CommandPhaseDecision commandPhaseDecision = brain.getCommandDecision();
             String memory = "wave: " + waveAndTurnDto.getWaveIndex() + ", turn: " + waveAndTurnDto.getTurnIndex() + ", decision: " + commandPhaseDecision;
             brain.memorize(memory);
@@ -96,7 +96,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
                         this.pressSpace,
                 };
             }
-        } else if (gameMode == UiMode.FIGHT) { //which move to use
+        } else if (uiMode == UiMode.FIGHT) { //which move to use
 
             log.debug("GameMode.FIGHT, getting attackDecision");
             AttackDecision attackDecision = brain.getAttackDecision();
@@ -149,7 +149,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
             }
 
             throw new NotSupportedException("AttackDecision not supported in CommandPhase: " + attackDecision);
-        } else if (gameMode == UiMode.BALL) {
+        } else if (uiMode == UiMode.BALL) {
             log.debug("GameMode.BALL, choosing strongest pokeball");
             jsService.addBallToInventory(); //add the ball to the inventory
             int pokeballIndex = brain.selectStrongestPokeball();
@@ -166,7 +166,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
             }
 
             throw new IllegalStateException("Could not set pokeball cursor to index: " + pokeballIndex);
-        } else if (gameMode == UiMode.MESSAGE) {
+        } else if (uiMode == UiMode.MESSAGE) {
             log.warn("GameMode.MESSAGE detected in CommandPhase. Expecting error...");
             return new PhaseAction[]{
                     this.pressSpace,
@@ -174,7 +174,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
             };
         }
 
-        throw new NotSupportedException("GameMode not supported in CommandPhase: " + gameMode);
+        throw new NotSupportedException("GameMode not supported in CommandPhase: " + uiMode);
     }
 
     private void addActionsToList(OwnAttackIndex ownAttackIndex, SelectedTarget selectedTarget, List<PhaseAction> actionList, MoveTargetAreaType moveTarget) {

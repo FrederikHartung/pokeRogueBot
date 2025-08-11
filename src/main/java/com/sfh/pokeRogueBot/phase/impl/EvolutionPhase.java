@@ -18,18 +18,18 @@ public class EvolutionPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
-        if (gameMode == UiMode.MESSAGE) {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
+        if (uiMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     this.pressSpace
             };
-        } else if (gameMode == UiMode.EVOLUTION_SCENE) {
+        } else if (uiMode == UiMode.EVOLUTION_SCENE) {
             return new PhaseAction[]{
                     this.waitBriefly,
                     this.pressSpace
             };
         }
 
-        throw new NotSupportedException("GameMode " + gameMode + " is not supported in " + NAME);
+        throw new NotSupportedException("GameMode " + uiMode + " is not supported in " + NAME);
     }
 }

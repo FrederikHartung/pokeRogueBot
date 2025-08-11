@@ -44,12 +44,12 @@ public class EggHatchPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
-        if (gameMode == UiMode.MESSAGE) {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
+        if (uiMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     this.pressSpace
             };
-        } else if (gameMode == UiMode.EGG_HATCH_SCENE) {
+        } else if (uiMode == UiMode.EGG_HATCH_SCENE) {
 
             long eggId = jsService.getEggId();
             if (!eggIds.contains(eggId)) {
@@ -75,7 +75,7 @@ public class EggHatchPhase extends AbstractPhase implements Phase {
             };
         }
 
-        throw new NotSupportedException("GameMode " + gameMode + " is not supported in " + NAME);
+        throw new NotSupportedException("GameMode " + uiMode + " is not supported in " + NAME);
     }
 
     @Override

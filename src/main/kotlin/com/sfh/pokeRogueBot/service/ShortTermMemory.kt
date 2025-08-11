@@ -11,31 +11,31 @@ import java.util.*
  */
 @Component
 class ShortTermMemory(
-    @Value("\${brain.shortTermMemory.memorySize}") private val memorySize: Int,
-    @Value("\${brain.shortTermMemory.minPhasesForLoop}") private val minPhasesForLoop: Int
+    @Value("\${brain.shortTermMemory.memorySize}") private val lastPhasesMemorySize: Int,
+    @Value("\${brain.shortTermMemory.minPhasesForLoop}") private val minPhasesForLoop: Int,
 ) {
 
-    private val lastMemories: MutableList<String> = LinkedList()
+    private val lastPhasesMemories: MutableList<String> = LinkedList()
 
     fun memorizePhase(memory: String) {
-        if (lastMemories.size < memorySize) {
-            lastMemories.add(memory)
+        if (lastPhasesMemories.size < lastPhasesMemorySize) {
+            lastPhasesMemories.add(memory)
         } else {
             checkForActionLoop()
-            lastMemories.removeFirst()
-            lastMemories.add(memory)
+            lastPhasesMemories.removeFirst()
+            lastPhasesMemories.add(memory)
         }
     }
 
-    fun clearMemory() {
-        lastMemories.clear()
+    fun clearLastPhaseMemory() {
+        lastPhasesMemories.clear()
     }
 
     private fun checkForActionLoop() {
         val phaseCount = mutableMapOf<String, Int>()
 
-        for (i in 0 until memorySize) {
-            val phase = lastMemories[i]
+        for (i in 0 until lastPhasesMemorySize) {
+            val phase = lastPhasesMemories[i]
             phaseCount[phase] = phaseCount.getOrDefault(phase, 0) + 1
         }
 

@@ -48,9 +48,9 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
 
-        if (gameMode == UiMode.STARTER_SELECT) {
+        if (uiMode == UiMode.STARTER_SELECT) {
             if (starters.isEmpty() && !selectedStarters) {
                 selectStarter(jsService.getAvailableStarterPokemon());
                 selectedStarters = true;
@@ -90,12 +90,13 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
                         this.pressSpace
                 };
             }
-
-        } else if (gameMode == UiMode.CONFIRM) {
+        }
+        else if (uiMode == UiMode.CONFIRM) {
             return new PhaseAction[]{
                     this.pressSpace
             };
-        } else if (gameMode == UiMode.SAVE_SLOT) {
+        }
+        else if (uiMode == UiMode.SAVE_SLOT) {
             RunProperty runProperty = brain.getRunProperty();
             log.debug("Setting Cursor to saveSlotIndex: {}", runProperty.getSaveSlotIndex());
             boolean setSaveSlotCursorSuccess = jsService.setCursorToSaveSlot(runProperty.getSaveSlotIndex());
@@ -110,7 +111,7 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
             throw new IllegalStateException("Failed to set cursor to save slot: " + runProperty.getSaveSlotIndex());
         }
 
-        throw new NotSupportedException("gameMode not supported in SelectStarterPhase: " + gameMode);
+        throw new NotSupportedException("uiMode not supported in SelectStarterPhase: " + uiMode);
     }
 
     private void selectStarter(Starter[] availableStarters) {

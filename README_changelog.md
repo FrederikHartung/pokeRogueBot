@@ -1,7 +1,9 @@
 #Changelog
 
-## 3.1
-- deleted old and bad Unit Tests which broked only in CICD Pipeline
+## 3.1 WIP
+- Added Support for UI Validation of a Phase
+- Migrated multiple Classes to Kotlin
+- Added CustomPhase and UiPhase Interfaces to better difference between different Phase Types
 
 ## 3.0
 - migrated to Java 21
@@ -9,6 +11,7 @@
 - migrated some unit Tests to Mockk
 - moved the start of to bot to a BotStarter class
 - added github workflows to check if 'mvn clean test' runs successfully
+- deleted old and bad Unit Tests which broked only in CICD Pipeline
 
 ## 2.3
 - added persisting of all encountered items in the modifier shop

@@ -11,10 +11,15 @@ import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
+import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplate;
 import com.sfh.pokeRogueBot.neurons.*;
+import com.sfh.pokeRogueBot.phase.NoUiPhase;
+import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.ScreenshotClient;
+import com.sfh.pokeRogueBot.phase.UiPhase;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -33,6 +38,7 @@ public class Brain {
     private final CombatNeuron combatNeuron;
     private final CapturePokemonNeuron capturePokemonNeuron;
     private final LearnMoveNeuron learnMoveNeuron;
+    private final UiValidator uiValidator;
 
     private RunProperty runProperty = null;
     private boolean waveIndexReset = false;
@@ -45,7 +51,12 @@ public class Brain {
             JsService jsService,
             ShortTermMemory shortTermMemory, LongTermMemory longTermMemory,
             ScreenshotClient screenshotClient,
-            SwitchPokemonNeuron switchPokemonNeuron, ChooseModifierNeuron chooseModifierNeuron, CombatNeuron combatNeuron, CapturePokemonNeuron capturePokemonNeuron, LearnMoveNeuron learnMoveNeuron
+            SwitchPokemonNeuron switchPokemonNeuron,
+            ChooseModifierNeuron chooseModifierNeuron,
+            CombatNeuron combatNeuron,
+            CapturePokemonNeuron capturePokemonNeuron,
+            LearnMoveNeuron learnMoveNeuron,
+            UiValidator uiValidator
     ) {
         this.jsService = jsService;
         this.shortTermMemory = shortTermMemory;
@@ -56,6 +67,7 @@ public class Brain {
         this.combatNeuron = combatNeuron;
         this.capturePokemonNeuron = capturePokemonNeuron;
         this.learnMoveNeuron = learnMoveNeuron;
+        this.uiValidator = uiValidator;
     }
 
     public SwitchDecision getFaintedPokemonSwitchDecision(boolean ignoreFirstPokemon) {
@@ -181,11 +193,12 @@ public class Brain {
     }
 
     public void clearShortTermMemory() {
-        shortTermMemory.clearMemory();
+        shortTermMemory.clearLastPhaseMemory();
     }
 
-    public void rememberItems() {
+    public void rememberLongTermMemories() {
         longTermMemory.rememberItems();
+        longTermMemory.rememberUiValidatedPhases();
     }
 
     /**
@@ -316,5 +329,24 @@ public class Brain {
             return true;
         }
         return false;
+    }
+
+    public boolean phaseUiIsValidated(@NotNull Phase phase) {
+        boolean isValidated = longTermMemory.isUiValidated(phase);
+        if (isValidated) {
+            return true;
+        }
+        if (phase instanceof NoUiPhase noUiPhase) {
+            longTermMemory.memorizePhase(noUiPhase.getPhaseName());
+            return true;
+        }
+        if (phase instanceof UiPhase uiPhase) {
+            //validate phase and memorize or throw exception
+            PhaseUiTemplate template = uiPhase.getPhaseUiTemplate();
+            uiValidator.validateOrThrow(template, uiPhase.getPhaseName());
+            longTermMemory.memorizePhase(uiPhase.getPhaseName());
+            return true;
+        }
+        return false; //missing Interface on PhaseClass and developer has to check the phase in the browser
     }
 }
