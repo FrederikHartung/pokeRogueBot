@@ -14,17 +14,17 @@ class UiValidator(private val jsService: JsService) {
             throw UiValidationFailedException("uiHandler.index '${uiHandler.index}' does not match phaseUiTemplate.handlerIndex '${phaseUiTemplate.handlerIndex}' for handler ${phaseUiTemplate.handlerIndex} in phase $phaseName")
         }
         if (uiHandler.name != phaseUiTemplate.handlerName) {
-            throw UiValidationFailedException("uiHandler.name '${uiHandler.name} does not match phaseUiTemplate.handlerName '${phaseUiTemplate.handlerName}' in phase $phaseName")
+            throw UiValidationFailedException("uiHandler.name '${uiHandler.name}' does not match phaseUiTemplate.handlerName '${phaseUiTemplate.handlerName}' in phase $phaseName")
         }
         if (uiHandler.configOptionsSize != phaseUiTemplate.configOptionsLabel.size) {
             throw UiValidationFailedException("uiHandler.configOptionsSize '${uiHandler.configOptionsSize}' does not match phaseUiTemplate.configOptionsLabel.size '${phaseUiTemplate.configOptionsLabel.size}' in phase $phaseName")
         }
         if (!configOptionsAreMatching(phaseUiTemplate.configOptionsLabel, uiHandler.configOptionsLabel)) {
-            throw UiValidationFailedException("uiHandler.configOptionsLabel '${uiHandler.configOptionsLabel.contentToString()}' does not match phaseUiTemplate.configOptionsLabel '${phaseUiTemplate.configOptionsLabel.contentToString()}' in phase $phaseName")
+            throw UiValidationFailedException("uiHandler.configOptionsLabel '${uiHandler.configOptionsLabel}' does not match phaseUiTemplate.configOptionsLabel '${phaseUiTemplate.configOptionsLabel}' in phase $phaseName")
         }
     }
 
-    fun configOptionsAreMatching(templateOptions: Array<String>, handlerOptions: Array<String>): Boolean {
-        return templateOptions.contentEquals(handlerOptions)
+    private fun configOptionsAreMatching(templateOptions: List<String>, handlerOptions: List<String>): Boolean {
+        return templateOptions == handlerOptions
     }
 }

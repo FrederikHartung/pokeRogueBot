@@ -6,5 +6,5 @@ data class UiHandler(
     val index: Int,
     val name: String,
     val configOptionsSize: Int,
-    val configOptionsLabel: Array<String>
+    val configOptionsLabel: List<String>
 )

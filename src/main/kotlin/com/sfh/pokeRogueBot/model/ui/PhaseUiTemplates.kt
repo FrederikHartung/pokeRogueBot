@@ -5,6 +5,6 @@ object PhaseUiTemplates {
         15,
         "OptionSelectUiHandler",
         2,
-        arrayOf("Boy", "Girl")
+        listOf("Boy", "Girl")
     )
 }

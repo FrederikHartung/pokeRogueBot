@@ -5,7 +5,8 @@ import com.sfh.pokeRogueBot.model.exception.UiValidationFailedException
 import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplate
 import io.mockk.every
 import io.mockk.mockk
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertDoesNotThrow
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -18,7 +19,7 @@ class UiValidatorTest {
     private lateinit var uiHandler: UiHandler
 
     val name = "TestUiHandler"
-    val configOptionsLabel = arrayOf("A", "B", "C")
+    val configOptionsLabel = listOf("A", "B", "C")
     val uiTemplate: PhaseUiTemplate = PhaseUiTemplate(
         15,
         name,
@@ -42,7 +43,7 @@ class UiValidatorTest {
         index: Int = 15,
         name: String = "TestUiHandler",
         configOptionsSize: Int = 3,
-        configOptionsLabel: Array<String> = arrayOf("A", "B", "C")
+        configOptionsLabel: List<String> = listOf("A", "B", "C")
     ): UiHandler {
         return UiHandler(
             active = active,
@@ -52,23 +53,6 @@ class UiValidatorTest {
             configOptionsSize = configOptionsSize,
             configOptionsLabel = configOptionsLabel,
         )
-    }
-
-    @Test
-    fun `two identical configOptionsLabel are returning true in configOptionsAreMatching`() {
-        assertTrue(uiValidator.configOptionsAreMatching(uiTemplate.configOptionsLabel, uiTemplate.configOptionsLabel))
-    }
-
-    @Test
-    fun `two not identical configOptionsLabel are returning false in configOptionsAreMatching`() {
-        val notMatchingConfigOptionsLabel = arrayOf("D", "B", "C")
-        assertFalse(uiValidator.configOptionsAreMatching(uiTemplate.configOptionsLabel, notMatchingConfigOptionsLabel))
-    }
-
-    @Test
-    fun `two arrays with different length are returning false in configOptionsAreMatching`() {
-        val notMatchingConfigOptionsLabel = arrayOf("A", "B", "C", "D")
-        assertFalse(uiValidator.configOptionsAreMatching(uiTemplate.configOptionsLabel, notMatchingConfigOptionsLabel))
     }
 
     @Test
@@ -108,7 +92,7 @@ class UiValidatorTest {
 
     @Test
     fun `validateOrThrow throws because configOptionsAreMatching are not matching`() {
-        val configOptions = arrayOf("A", "B", "C", "D")
+        val configOptions = listOf("A", "B", "C", "D")
         val handler = createHandler(configOptionsLabel = configOptions)
         every { jsService.getUiHandler(any()) } returns handler
         val e = assertThrows<UiValidationFailedException> {
