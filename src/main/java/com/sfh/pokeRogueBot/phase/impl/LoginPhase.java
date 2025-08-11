@@ -4,7 +4,7 @@ import com.sfh.pokeRogueBot.browser.BrowserClient;
 import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
-import com.sfh.pokeRogueBot.phase.Phase;
+import com.sfh.pokeRogueBot.phase.NoUiPhase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.service.WaitingService;
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-public class LoginPhase extends AbstractPhase implements Phase {
+public class LoginPhase extends AbstractPhase implements NoUiPhase {
 
     public static final String NAME = "LoginPhase";
 

@@ -343,7 +343,8 @@ public class Brain {
         if (phase instanceof UiPhase uiPhase) {
             //validate phase and memorize or throw exception
             PhaseUiTemplate template = uiPhase.getPhaseUiTemplate();
-            uiValidator.validateOrThrow(template);
+            uiValidator.validateOrThrow(template, uiPhase.getPhaseName());
+            longTermMemory.memorizePhase(uiPhase.getPhaseName());
             return true;
         }
         return false; //missing Interface on PhaseClass and developer has to check the phase in the browser

@@ -8,7 +8,23 @@ import org.springframework.stereotype.Component
 class UiValidator(private val jsService: JsService) {
 
     @Throws(UiValidationFailedException::class)
-    fun validateOrThrow(phaseUiTemplate: PhaseUiTemplate) {
-        return
+    fun validateOrThrow(phaseUiTemplate: PhaseUiTemplate, phaseName: String) {
+        val uiHandler = jsService.getUiHandler(phaseUiTemplate.handlerIndex)
+        if (uiHandler.index != phaseUiTemplate.handlerIndex) {
+            throw UiValidationFailedException("uiHandler.index '${uiHandler.index}' does not match phaseUiTemplate.handlerIndex '${phaseUiTemplate.handlerIndex}' for handler ${phaseUiTemplate.handlerIndex} in phase $phaseName")
+        }
+        if (uiHandler.name != phaseUiTemplate.handlerName) {
+            throw UiValidationFailedException("uiHandler.name '${uiHandler.name} does not match phaseUiTemplate.handlerName '${phaseUiTemplate.handlerName}' in phase $phaseName")
+        }
+        if (uiHandler.configOptionsSize != phaseUiTemplate.configOptionsLabel.size) {
+            throw UiValidationFailedException("uiHandler.configOptionsSize '${uiHandler.configOptionsSize}' does not match phaseUiTemplate.configOptionsLabel.size '${phaseUiTemplate.configOptionsLabel.size}' in phase $phaseName")
+        }
+        if (!configOptionsAreMatching(phaseUiTemplate.configOptionsLabel, uiHandler.configOptionsLabel)) {
+            throw UiValidationFailedException("uiHandler.configOptionsLabel '${uiHandler.configOptionsLabel.contentToString()}' does not match phaseUiTemplate.configOptionsLabel '${phaseUiTemplate.configOptionsLabel.contentToString()}' in phase $phaseName")
+        }
+    }
+
+    fun configOptionsAreMatching(templateOptions: Array<String>, handlerOptions: Array<String>): Boolean {
+        return templateOptions.contentEquals(handlerOptions)
     }
 }

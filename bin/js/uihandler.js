@@ -17,7 +17,7 @@ window.poru.uihandler = {
 
     setModifierSelectUiHandlerCursor: (cursorColumn, cursorRow) => {
         var modifierSelectUiHandler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[6];
-        
+
         if(modifierSelectUiHandler && modifierSelectUiHandler.active){
             console.log("setting modifierSelectUiHandler cursors...");
 
@@ -33,7 +33,7 @@ window.poru.uihandler = {
 
             return true; //moved
         }
-        
+
         return false; //false state or error
     },
 
@@ -196,7 +196,7 @@ window.poru.uihandler = {
             if(handler.optionsMode === false){
                 return false;
             }
-            
+
             if(handler.optionsCursor === cursor){
                 return true;
             }
@@ -282,5 +282,41 @@ window.poru.uihandler = {
 
     getModifierShopItemsJson: () => {
         return JSON.stringify(window.poru.uihandler.getModifierShopItems());
-    }
+    },
+
+    getUiHandler: (index) => {
+        const scene = window.poru.util.getBattleScene()
+        if(scene){
+            const handlers = scene.ui?.handlers
+            if(handlers){
+                const handler = handlers[index]
+                if(handler) {
+                    return handler
+                }
+            }
+        }
+        return null
+    },
+
+    getUiHandlerJson: (index) => {
+        const handler = window.poru.uihandler.getUiHandler(index)
+        if(handler){
+            const handlerDto = {
+                active: handler.active,
+                awaitingActionInput: handler.awaitingActionInput,
+                index: index,
+                name: handler.constructor.name,
+                configOptionsSize: handler.config.options.length,
+                configOptionsLabel: []
+            }
+
+            for (const option of handler.config.options) {
+                handlerDto.configOptionsLabel.push(option.label)
+            }
+            return JSON.stringify(handlerDto)
+        }
+
+        return null
+    },
+
 }

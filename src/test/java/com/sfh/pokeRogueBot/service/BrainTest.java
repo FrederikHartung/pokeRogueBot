@@ -214,7 +214,7 @@ class BrainTest {
 
         assertFalse(isValidated);
         verify(longTermMemory, never()).memorizePhase(any());
-        verify(uiValidator, never()).validateOrThrow(any());
+        verify(uiValidator, never()).validateOrThrow(any(), any());
     }
 
     @Test
@@ -231,15 +231,18 @@ class BrainTest {
     }
 
     @Test
-    void phaseUiIsValidated_calls_validateOrThrow_for_non_validated_UiPhase(){
+    void phaseUiIsValidated_calls_validateOrThrow_for_non_validated_UiPhase_and_memorize_validated_ui_phase() {
         doReturn(false).when(longTermMemory).isUiValidated(any());
         UiPhase uiPhase = mock(UiPhase.class);
+        String uiPhaseName = "uiPhaseName";
+        doReturn(uiPhaseName).when(uiPhase).getPhaseName();
         PhaseUiTemplate template = PhaseUiTemplates.INSTANCE.getSelectGenderPhaseUi();
         doReturn(template).when(uiPhase).getPhaseUiTemplate();
 
         boolean isValidated = brain.phaseUiIsValidated(uiPhase);
 
         assertTrue(isValidated);
-        verify(uiValidator).validateOrThrow(template);
+        verify(uiValidator).validateOrThrow(template, uiPhaseName);
+        verify(longTermMemory).memorizePhase(uiPhase.getPhaseName());
     }
 }

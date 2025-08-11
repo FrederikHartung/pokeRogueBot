@@ -3,6 +3,7 @@ package com.sfh.pokeRogueBot.service
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.sfh.pokeRogueBot.browser.JsClient
+import com.sfh.pokeRogueBot.model.browser.gamejson.UiHandler
 import com.sfh.pokeRogueBot.model.dto.SaveSlotDto
 import com.sfh.pokeRogueBot.model.dto.WaveAndTurnDto
 import com.sfh.pokeRogueBot.model.dto.WaveDto
@@ -79,22 +80,25 @@ class JsService(private val jsClient: JsClient) {
 
     fun setModifierOptionsCursor(rowIndex: Int, columnIndex: Int): Boolean {
         log.debug("Setting modifier options cursor to row: $rowIndex, column: $columnIndex")
-        val result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.setModifierSelectUiHandlerCursor(%s, %s)"
-            .format(columnIndex, rowIndex)).toString()
+        val result =
+            jsClient.executeCommandAndGetResult("return window.poru.uihandler.setModifierSelectUiHandlerCursor(${columnIndex}, ${rowIndex})")
+                .toString()
         return result.toBoolean()
     }
 
     fun setPartyCursor(index: Int): Boolean {
         log.debug("Setting party cursor to index: $index")
-        val result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.setPartyUiHandlerCursor(%s)"
-            .format(index)).toString()
+        val result =
+            jsClient.executeCommandAndGetResult("return window.poru.uihandler.setPartyUiHandlerCursor(${index})")
+                .toString()
         return result.toBoolean()
     }
 
     fun setPokeBallCursor(index: Int): Boolean {
         log.debug("Setting pokeball cursor to index: $index")
-        val result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.setBallUiHandlerCursor(%s)"
-            .format(index)).toString()
+        val result =
+            jsClient.executeCommandAndGetResult("return window.poru.uihandler.setBallUiHandlerCursor(${index})")
+                .toString()
         return result.toBoolean()
     }
 
@@ -106,8 +110,9 @@ class JsService(private val jsClient: JsClient) {
 
     fun setPokemonSelectCursor(speciesId: Int): Boolean {
         log.debug("Setting pokemon select cursor to speciesId: $speciesId")
-        val result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.setStarterSelectUiHandlerCursor(%s);"
-            .format(speciesId)).toString()
+        val result =
+            jsClient.executeCommandAndGetResult("return window.poru.uihandler.setStarterSelectUiHandlerCursor(${speciesId});")
+                .toString()
         return result.toBoolean()
     }
 
@@ -144,7 +149,8 @@ class JsService(private val jsClient: JsClient) {
     }
 
     fun setCursorToSaveSlot(index: Int): Boolean {
-        return jsClient.executeCommandAndGetResult("return window.poru.uihandler.setCursorToSaveSlot(%s);".format(index)).toString().toBoolean()
+        return jsClient.executeCommandAndGetResult("return window.poru.uihandler.setCursorToSaveSlot(${index});")
+            .toString().toBoolean()
     }
 
     fun getSaveSlots(): Array<SaveSlotDto> {
@@ -162,10 +168,18 @@ class JsService(private val jsClient: JsClient) {
     }
 
     fun setLearnMoveCursor(moveIndexToReplace: Int): Boolean {
-        return jsClient.executeCommandAndGetResult("return window.poru.uihandler.setLearnMoveCursor(%s);".format(moveIndexToReplace)).toString().toBoolean()
+        return jsClient.executeCommandAndGetResult("return window.poru.uihandler.setLearnMoveCursor(${moveIndexToReplace});")
+            .toString().toBoolean()
     }
 
     fun addBallToInventory() {
         jsClient.executeCommandAndGetResult("window.poru.util.addBallToInventory();")
+    }
+
+    fun getUiHandler(index: Int): UiHandler {
+        val json =
+            jsClient.executeCommandAndGetResult("return window.poru.uihandler.getUiHandlerJson(${index});").toString()
+        val uiHandler = GSON.fromJson(json, UiHandler::class.java)
+        return uiHandler
     }
 }
