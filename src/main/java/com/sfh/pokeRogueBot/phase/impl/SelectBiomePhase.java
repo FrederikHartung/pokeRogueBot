@@ -18,13 +18,13 @@ public class SelectBiomePhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
-        if (gameMode == UiMode.MESSAGE || gameMode == UiMode.OPTION_SELECT) {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
+        if (uiMode == UiMode.MESSAGE || uiMode == UiMode.OPTION_SELECT) {
             return new PhaseAction[]{
                     pressSpace
             };
         }
 
-        throw new NotSupportedException("GameMode not supported in SelectBiomePhase: " + gameMode);
+        throw new NotSupportedException("GameMode not supported in SelectBiomePhase: " + uiMode);
     }
 }

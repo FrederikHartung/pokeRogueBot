@@ -33,9 +33,9 @@ public class SwitchPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
 
-        if (gameMode == UiMode.PARTY) { // maybe an own pokemon fainted
+        if (uiMode == UiMode.PARTY) { // maybe an own pokemon fainted
             SwitchDecision switchDecision = brain.getFaintedPokemonSwitchDecision(ignoreFirstPokemon);
             ignoreFirstPokemon = false;
             boolean switchSuccessful = jsService.setPartyCursor(switchDecision.getIndex());
@@ -50,11 +50,11 @@ public class SwitchPhase extends AbstractPhase implements Phase {
             } else {
                 throw new IllegalStateException("Could not set cursor to party pokemon");
             }
-        } else if (gameMode == UiMode.MESSAGE) {
+        } else if (uiMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     this.waitBriefly
             };
-        } else if (gameMode == UiMode.SUMMARY) {
+        } else if (uiMode == UiMode.SUMMARY) {
             ignoreFirstPokemon = true;
             return new PhaseAction[]{
                     this.waitBriefly,
@@ -62,6 +62,6 @@ public class SwitchPhase extends AbstractPhase implements Phase {
             };
         }
 
-        throw new NotSupportedException("GameMode not supported in SwitchPhase: " + gameMode);
+        throw new NotSupportedException("GameMode not supported in SwitchPhase: " + uiMode);
     }
 }

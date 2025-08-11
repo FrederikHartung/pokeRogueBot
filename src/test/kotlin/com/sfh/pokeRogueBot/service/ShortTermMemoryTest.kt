@@ -57,14 +57,14 @@ class ShortTermMemoryTest {
     }
 
     @Test
-    fun `clearMemory resets the memory`() {
+    fun `clearLastPhaseMemory resets the memory`() {
         assertDoesNotThrow {
             repeat(memorySize - 1) {
                 shortTermMemory.memorizePhase(CommandPhase.NAME)
             }
         }
 
-        shortTermMemory.clearMemory()
+        shortTermMemory.clearLastPhaseMemory()
 
         assertDoesNotThrow {
             repeat(memorySize - 1) {

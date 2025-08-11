@@ -18,14 +18,14 @@ public class TrainerVictoryPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
-        if (gameMode == UiMode.MESSAGE) {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
+        if (uiMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     pressSpace,
             };
         }
 
-        throw new NotSupportedException("TrainerVictoryPhase does not support GameMode: " + gameMode);
+        throw new NotSupportedException("TrainerVictoryPhase does not support GameMode: " + uiMode);
     }
 
 }

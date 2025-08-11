@@ -103,7 +103,7 @@ class SimpleBotTest {
         verify(jsService, times(maxRunsTillShutdown)).init();
         verify(browserClient).navigateTo(targetUrl);
         verify(fileManager).deleteTempData();
-        verify(brain).rememberItems();
+        verify(brain).rememberLongTermMemories();
     }
 
     /**

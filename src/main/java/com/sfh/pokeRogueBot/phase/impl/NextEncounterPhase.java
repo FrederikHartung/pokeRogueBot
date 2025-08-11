@@ -18,14 +18,14 @@ public class NextEncounterPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
 
-        if (gameMode == UiMode.MESSAGE) {
+        if (uiMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     pressSpace,
             };
         }
 
-        throw new NotSupportedException("NextEncounterPhase does not support GameMode: " + gameMode);
+        throw new NotSupportedException("NextEncounterPhase does not support GameMode: " + uiMode);
     }
 }

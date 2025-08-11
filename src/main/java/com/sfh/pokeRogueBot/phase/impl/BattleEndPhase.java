@@ -18,14 +18,14 @@ public class BattleEndPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
-        if (gameMode == UiMode.MODIFIER_SELECT || gameMode == UiMode.MESSAGE) {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
+        if (uiMode == UiMode.MODIFIER_SELECT || uiMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     this.waitBriefly
             };
         }
 
-        throw new NotSupportedException("GameMode not supported: " + gameMode);
+        throw new NotSupportedException("GameMode not supported: " + uiMode);
     }
 
 }

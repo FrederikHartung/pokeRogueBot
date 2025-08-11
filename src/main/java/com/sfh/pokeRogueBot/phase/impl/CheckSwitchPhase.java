@@ -25,8 +25,8 @@ public class CheckSwitchPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
-        if (gameMode == UiMode.CONFIRM) {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
+        if (uiMode == UiMode.CONFIRM) {
 
             boolean shouldSwitchPokemon = brain.shouldSwitchPokemon();
 
@@ -42,12 +42,12 @@ public class CheckSwitchPhase extends AbstractPhase implements Phase {
                 };
             }
 
-        } else if (gameMode == UiMode.MESSAGE) {
+        } else if (uiMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     this.waitLonger
             };
         } else {
-            throw new NotSupportedException("GameMode not supported: " + gameMode);
+            throw new NotSupportedException("GameMode not supported: " + uiMode);
         }
     }
 }

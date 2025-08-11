@@ -3,8 +3,14 @@ package com.sfh.pokeRogueBot.service;
 import com.sfh.pokeRogueBot.model.dto.SaveSlotDto;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
+import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplate;
+import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplates;
 import com.sfh.pokeRogueBot.neurons.*;
+import com.sfh.pokeRogueBot.phase.NoUiPhase;
+import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.ScreenshotClient;
+import com.sfh.pokeRogueBot.phase.UiPhase;
+import com.sfh.pokeRogueBot.phase.impl.SelectGenderPhase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -23,11 +29,12 @@ class BrainTest {
     SwitchPokemonNeuron switchPokemonNeuron;
     CapturePokemonNeuron capturePokemonNeuron;
     LearnMoveNeuron learnMoveNeuron;
+    UiValidator uiValidator;
 
     ScreenshotClient screenshotClient;
     SaveSlotDto[] saveSlots;
 
-
+    final Phase phase = new SelectGenderPhase();
     RunProperty runProperty;
 
     @BeforeEach
@@ -41,7 +48,8 @@ class BrainTest {
         screenshotClient = mock(ScreenshotClient.class);
         capturePokemonNeuron = mock(CapturePokemonNeuron.class);
         learnMoveNeuron = mock(LearnMoveNeuron.class);
-        Brain objToSpy = new Brain(
+        uiValidator = mock(UiValidator.class);
+        brain = new Brain(
                 jsService,
                 shortTermMemory,
                 longTermMemory,
@@ -50,9 +58,9 @@ class BrainTest {
                 chooseModifierNeuron,
                 combatNeuron,
                 capturePokemonNeuron,
-                learnMoveNeuron
+                learnMoveNeuron,
+                uiValidator
         );
-        brain = spy(objToSpy);
 
         runProperty = new RunProperty(1);
         ReflectionTestUtils.setField(brain, "runProperty", runProperty);
@@ -188,5 +196,53 @@ class BrainTest {
         assertNotSame(newRunProperty, runProperty);
         assertEquals(runProperty.getRunNumber() + 1, newRunProperty.getRunNumber());
         assertEquals(RunStatus.OK, newRunProperty.getStatus());
+    }
+
+    @Test
+    void phaseUiIsValidated_returns_the_response_of_the_longTermMemory(){
+        doReturn(true).when(longTermMemory).isUiValidated(any());
+        assertTrue(brain.phaseUiIsValidated(phase));
+    }
+
+    @Test
+    void phaseUiIsValidated_returns_false_for_phases_without_NoUiPhase_and_UiPhase_Interfaces(){
+        doReturn(false).when(longTermMemory).isUiValidated(any());
+        Phase newPhase = mock(Phase.class);
+        doReturn("newPhase").when(newPhase).getPhaseName();
+
+        boolean isValidated = brain.phaseUiIsValidated(newPhase);
+
+        assertFalse(isValidated);
+        verify(longTermMemory, never()).memorizePhase(any());
+        verify(uiValidator, never()).validateOrThrow(any(), any());
+    }
+
+    @Test
+    void phaseUiIsValidated_calls_memorizePhase_for_non_validated_NoUiPhase(){
+        doReturn(false).when(longTermMemory).isUiValidated(any());
+        NoUiPhase noUiPhase = mock(NoUiPhase.class);
+        String noUiPhaseName = "noUiPhaseName";
+        doReturn(noUiPhaseName).when(noUiPhase).getPhaseName();
+
+        boolean isValidated = brain.phaseUiIsValidated(noUiPhase);
+
+        assertTrue(isValidated);
+        verify(longTermMemory).memorizePhase(noUiPhase.getPhaseName());
+    }
+
+    @Test
+    void phaseUiIsValidated_calls_validateOrThrow_for_non_validated_UiPhase_and_memorize_validated_ui_phase() {
+        doReturn(false).when(longTermMemory).isUiValidated(any());
+        UiPhase uiPhase = mock(UiPhase.class);
+        String uiPhaseName = "uiPhaseName";
+        doReturn(uiPhaseName).when(uiPhase).getPhaseName();
+        PhaseUiTemplate template = PhaseUiTemplates.INSTANCE.getSelectGenderPhaseUi();
+        doReturn(template).when(uiPhase).getPhaseUiTemplate();
+
+        boolean isValidated = brain.phaseUiIsValidated(uiPhase);
+
+        assertTrue(isValidated);
+        verify(uiValidator).validateOrThrow(template, uiPhaseName);
+        verify(longTermMemory).memorizePhase(uiPhase.getPhaseName());
     }
 }

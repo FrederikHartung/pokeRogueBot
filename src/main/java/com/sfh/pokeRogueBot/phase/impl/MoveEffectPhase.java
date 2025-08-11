@@ -31,16 +31,16 @@ public class MoveEffectPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForGameMode(UiMode gameMode) throws NotSupportedException {
-        if (gameMode == UiMode.MESSAGE) {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
+        if (uiMode == UiMode.MESSAGE) {
             return new PhaseAction[]{
                     waitBriefly //todo: check if this is correct or if space needs to be pressed
             };
-        } else if (gameMode == UiMode.PARTY) {
+        } else if (uiMode == UiMode.PARTY) {
             return handlePartyGameMode();
         }
 
-        throw new NotSupportedException("GameMode not supported for MoveEffectPhase: " + gameMode);
+        throw new NotSupportedException("GameMode not supported for MoveEffectPhase: " + uiMode);
     }
 
     public PhaseAction[] handlePartyGameMode() {
