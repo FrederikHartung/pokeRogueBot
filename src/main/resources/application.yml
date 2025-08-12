@@ -1,5 +1,5 @@
 app:
-  chooseGender: "Male" #Male or Female
+  chooseGender: "Boy" #Boy or Girl
   long-term-memory:
     remember-items: false
     remember-ui-validated-phases: true

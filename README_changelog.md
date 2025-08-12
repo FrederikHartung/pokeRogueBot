@@ -2,7 +2,7 @@
 
 ## 3.0 WIP
 ### Features:
-- added config option to choose Gender of Player Character
+- Added Config Option to choose Gender of Player Character
 - Added Support for UI Validation of a Phase
 ### Technical Changes:
 - Migrated to Java 21
@@ -14,6 +14,8 @@
 - Deleted old and bad Unit Tests which broke only in CI-CD Pipelines on Linux Machines
 - Added CustomPhase and UiPhase Interfaces to better difference between different Phase Types
 - Migrated Ui specific JsService Methods to new Class JsUiService
+- Reduces Bloated JavaScript Error Messages to relevant Part
+- Deactivated Logging to File System
 
 ## 2.3
 - added persisting of all encountered items in the modifier shop

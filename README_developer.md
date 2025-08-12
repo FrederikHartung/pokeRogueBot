@@ -6,7 +6,7 @@ If a good idea comes up, write it down and implement it later. Focus on the curr
 Only refactor, when it's really necessary.
 
 ## Current Task:
-Add config option to choose player gender
+Fix Crash in TitlePhase -> load Game
 
 ## Open todo's with high priority:
 - [x] remove the db and spring data

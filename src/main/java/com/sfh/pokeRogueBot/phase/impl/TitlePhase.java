@@ -4,17 +4,20 @@ import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
+import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplate;
+import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplates;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
-import com.sfh.pokeRogueBot.phase.Phase;
+import com.sfh.pokeRogueBot.phase.UiPhase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.Brain;
 import com.sfh.pokeRogueBot.service.javascript.JsUiService;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-public class TitlePhase extends AbstractPhase implements Phase {
+public class TitlePhase extends AbstractPhase implements UiPhase {
 
     public static final String NAME = "TitlePhase";
 
@@ -114,5 +117,10 @@ public class TitlePhase extends AbstractPhase implements Phase {
         }
 
         throw new NotSupportedException("TitlePhase does not support game mode: " + uiMode);
+    }
+
+    @Override
+    public @NotNull PhaseUiTemplate getPhaseUiTemplate() {
+        return PhaseUiTemplates.INSTANCE.getTitlePhaseUi();
     }
 }

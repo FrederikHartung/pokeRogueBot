@@ -112,4 +112,11 @@ class JsUiService(private val jsClient: JsClient) {
         val uiHandler = GSON.fromJson(json, UiHandler::class.java)
         return uiHandler
     }
+
+    fun setCursorToIndex(handlerIndex: Int, handlerName: String, indexToSetCursorTo: Int): Boolean {
+        val result =
+            jsClient.executeCommandAndGetResult("return window.poru.uihandler.setUiHandlerCursor(${handlerIndex}, \"${handlerName}\", ${indexToSetCursorTo});")
+                .toString().toBoolean()
+        return result
+    }
 }

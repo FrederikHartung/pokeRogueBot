@@ -57,7 +57,12 @@ class WaveRunner(
             brain.memorize(phase.phaseName)
         } catch (e: Exception) {
             when (e) {
-                is JavascriptException, is NoSuchWindowException, is UnreachableBrowserException -> {
+                is JavascriptException -> {
+                    //logging of the exception happends in the ChromeBrowserClient
+                    System.exit(1)
+                }
+
+                is NoSuchWindowException, is UnreachableBrowserException -> {
                     log.error("Unexpected error, quitting app: ${e.message}")
                     e.printStackTrace()
                     System.exit(1)

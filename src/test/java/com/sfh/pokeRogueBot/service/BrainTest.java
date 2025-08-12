@@ -44,7 +44,7 @@ class BrainTest {
     void setUp() {
         jsService = mock(JsService.class);
         jsUiService = mock(JsUiService.class);
-        phase = new SelectGenderPhase("Male", jsService);
+        phase = new SelectGenderPhase("Male", jsUiService);
         shortTermMemory = mock(ShortTermMemory.class);
         longTermMemory = mock(LongTermMemory.class);
         chooseModifierNeuron = mock(ChooseModifierNeuron.class);
