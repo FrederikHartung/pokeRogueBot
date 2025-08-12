@@ -1,17 +1,19 @@
 #Changelog
 
-## 3.1 WIP
+## 3.0 WIP
+### Features:
+- added config option to choose Gender of Player Character
 - Added Support for UI Validation of a Phase
-- Migrated multiple Classes to Kotlin
+### Technical Changes:
+- Migrated to Java 21
+- Fixed JavaScript mapping Issues related to a newer Game Version
+- Started to migrate some Classes to Kotlin
+- Migrated some Unit Tests to Mockk
+- Moved the Start of the Bot to a BotStarter class
+- Added Github Workflows to check if 'mvn clean test' runs successfully
+- Deleted old and bad Unit Tests which broke only in CI-CD Pipelines on Linux Machines
 - Added CustomPhase and UiPhase Interfaces to better difference between different Phase Types
-
-## 3.0
-- migrated to Java 21
-- started to migrate some classes to Kotlin 2.1
-- migrated some unit Tests to Mockk
-- moved the start of to bot to a BotStarter class
-- added github workflows to check if 'mvn clean test' runs successfully
-- deleted old and bad Unit Tests which broked only in CICD Pipeline
+- Migrated Ui specific JsService Methods to new Class JsUiService
 
 ## 2.3
 - added persisting of all encountered items in the modifier shop

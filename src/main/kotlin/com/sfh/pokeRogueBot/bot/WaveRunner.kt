@@ -8,8 +8,8 @@ import com.sfh.pokeRogueBot.phase.PhaseProvider
 import com.sfh.pokeRogueBot.phase.impl.ReturnToTitlePhase
 import com.sfh.pokeRogueBot.phase.impl.TitlePhase
 import com.sfh.pokeRogueBot.service.Brain
-import com.sfh.pokeRogueBot.service.JsService
 import com.sfh.pokeRogueBot.service.WaitingService
+import com.sfh.pokeRogueBot.service.javascript.JsService
 import org.openqa.selenium.JavascriptException
 import org.openqa.selenium.NoSuchWindowException
 import org.openqa.selenium.remote.UnreachableBrowserException

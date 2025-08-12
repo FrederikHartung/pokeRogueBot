@@ -17,6 +17,8 @@ import com.sfh.pokeRogueBot.phase.NoUiPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.ScreenshotClient;
 import com.sfh.pokeRogueBot.phase.UiPhase;
+import com.sfh.pokeRogueBot.service.javascript.JsService;
+import com.sfh.pokeRogueBot.service.javascript.JsUiService;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -29,6 +31,7 @@ import java.util.List;
 public class Brain {
 
     private final JsService jsService;
+    private final JsUiService jsUiService;
     private final ShortTermMemory shortTermMemory;
     private final LongTermMemory longTermMemory;
     private final ScreenshotClient screenshotClient;
@@ -49,7 +52,9 @@ public class Brain {
 
     public Brain(
             JsService jsService,
-            ShortTermMemory shortTermMemory, LongTermMemory longTermMemory,
+            JsUiService jsUiService,
+            ShortTermMemory shortTermMemory,
+            LongTermMemory longTermMemory,
             ScreenshotClient screenshotClient,
             SwitchPokemonNeuron switchPokemonNeuron,
             ChooseModifierNeuron chooseModifierNeuron,
@@ -59,6 +64,7 @@ public class Brain {
             UiValidator uiValidator
     ) {
         this.jsService = jsService;
+        this.jsUiService = jsUiService;
         this.shortTermMemory = shortTermMemory;
         this.longTermMemory = longTermMemory;
         this.screenshotClient = screenshotClient;
@@ -78,7 +84,7 @@ public class Brain {
     public MoveToModifierResult getModifierToPick() {
         if (null == chooseModifierDecision) { //get new decision
             this.waveDto = jsService.getWaveDto(); //always refresh money and pokemons before choosing the modifiers
-            ModifierShop shop = jsService.getModifierShop();
+            ModifierShop shop = jsUiService.getModifierShop();
             List<ChooseModifierItem> allItems = shop.getAllItems();
             longTermMemory.memorizeItems(allItems);
             this.chooseModifierDecision = chooseModifierNeuron.getModifierToPick(waveDto.getWavePokemon().getPlayerParty(), waveDto, shop);
@@ -228,7 +234,7 @@ public class Brain {
      */
     public int getSaveSlotIndexToLoad() {
         if (null == saveSlots) {
-            this.saveSlots = jsService.getSaveSlots();
+            this.saveSlots = jsUiService.getSaveSlots();
         }
 
         for (SaveSlotDto saveSlot : saveSlots) {

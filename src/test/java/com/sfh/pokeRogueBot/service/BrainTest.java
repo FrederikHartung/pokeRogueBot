@@ -11,6 +11,8 @@ import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.ScreenshotClient;
 import com.sfh.pokeRogueBot.phase.UiPhase;
 import com.sfh.pokeRogueBot.phase.impl.SelectGenderPhase;
+import com.sfh.pokeRogueBot.service.javascript.JsService;
+import com.sfh.pokeRogueBot.service.javascript.JsUiService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -22,6 +24,7 @@ class BrainTest {
 
     Brain brain;
     JsService jsService;
+    JsUiService jsUiService;
     ShortTermMemory shortTermMemory;
     LongTermMemory longTermMemory;
     ChooseModifierNeuron chooseModifierNeuron;
@@ -34,12 +37,14 @@ class BrainTest {
     ScreenshotClient screenshotClient;
     SaveSlotDto[] saveSlots;
 
-    final Phase phase = new SelectGenderPhase();
+    Phase phase;
     RunProperty runProperty;
 
     @BeforeEach
     void setUp() {
         jsService = mock(JsService.class);
+        jsUiService = mock(JsUiService.class);
+        phase = new SelectGenderPhase("Male", jsService);
         shortTermMemory = mock(ShortTermMemory.class);
         longTermMemory = mock(LongTermMemory.class);
         chooseModifierNeuron = mock(ChooseModifierNeuron.class);
@@ -51,6 +56,7 @@ class BrainTest {
         uiValidator = mock(UiValidator.class);
         brain = new Brain(
                 jsService,
+                jsUiService,
                 shortTermMemory,
                 longTermMemory,
                 screenshotClient,

@@ -7,10 +7,15 @@ import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplates
 import com.sfh.pokeRogueBot.phase.AbstractPhase
 import com.sfh.pokeRogueBot.phase.UiPhase
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction
+import com.sfh.pokeRogueBot.service.javascript.JsService
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 
 @Component
-class SelectGenderPhase : AbstractPhase(), UiPhase {
+class SelectGenderPhase(
+    @Value("\${app.chooseGender}") private val genderToPick: String,
+    private val jsService: JsService,
+) : AbstractPhase(), UiPhase {
 
     override fun getPhaseUiTemplate(): PhaseUiTemplate {
         return PhaseUiTemplates.selectGenderPhaseUi
@@ -21,6 +26,17 @@ class SelectGenderPhase : AbstractPhase(), UiPhase {
 
     @Throws(NotSupportedException::class)
     override fun getActionsForUiMode(uiMode: UiMode): Array<PhaseAction> {
+        var indexToSetCursorTo = -1
+        getPhaseUiTemplate().configOptionsLabel.forEachIndexed { index, label ->
+            if (label == genderToPick) {
+                indexToSetCursorTo = index
+            }
+        }
+        if (indexToSetCursorTo == -1) {
+            indexToSetCursorTo = 0 //fallback to "Male"
+        }
+        //jsservice validate handler is active and set cursor
+
         return arrayOf<PhaseAction>(
             this.pressSpace
         )

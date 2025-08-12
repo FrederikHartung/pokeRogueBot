@@ -1,14 +1,14 @@
 package com.sfh.pokeRogueBot.bot;
 
 import com.sfh.pokeRogueBot.browser.BrowserClient;
+import com.sfh.pokeRogueBot.config.JsConfig;
 import com.sfh.pokeRogueBot.file.FileManager;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.service.Brain;
-import com.sfh.pokeRogueBot.service.JsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 /**
  * The com.sfh.pokeRogueBot.main bot class that controls the flow of the bot.
@@ -21,10 +21,10 @@ import org.springframework.stereotype.Component;
  */
 
 @Slf4j
-@Component
+@Service
 public class SimpleBot implements Bot {
 
-    private final JsService jsService;
+    private final JsConfig jsConfig;
     private final FileManager fileManager;
     private final BrowserClient browserClient;
     private final Brain brain;
@@ -36,7 +36,7 @@ public class SimpleBot implements Bot {
     private int runNumber = 1;
 
     public SimpleBot(
-            JsService jsService,
+            JsConfig jsConfig,
             FileManager fileManager,
             BrowserClient browserClient,
             Brain brain,
@@ -44,7 +44,7 @@ public class SimpleBot implements Bot {
             @Value("${browser.target-url}") String targetUrl,
             @Value("${bot.maxRunsTillShutdown}") int maxRunsTillShutdown
     ) {
-        this.jsService = jsService;
+        this.jsConfig = jsConfig;
         this.fileManager = fileManager;
         this.browserClient = browserClient;
         this.brain = brain;
@@ -77,7 +77,7 @@ public class SimpleBot implements Bot {
     private void startRun() throws IllegalStateException {
 
         brain.clearShortTermMemory();
-        jsService.init();
+        jsConfig.init();
 
         RunProperty runProperty = brain.getRunProperty();
         log.debug("run " + runProperty.getRunNumber() + ", starting wave fighting mode");

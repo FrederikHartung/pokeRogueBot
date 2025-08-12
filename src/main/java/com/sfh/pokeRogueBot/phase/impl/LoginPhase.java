@@ -6,8 +6,8 @@ import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.NoUiPhase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
-import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.service.WaitingService;
+import com.sfh.pokeRogueBot.service.javascript.JsUiService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -20,17 +20,18 @@ public class LoginPhase extends AbstractPhase implements NoUiPhase {
 
     private final BrowserClient browserClient;
     private final WaitingService waitingService;
-    private final JsService jsService;
+    private final JsUiService jsUIService;
     private final String userName;
     private final String password;
 
     public LoginPhase(
-            BrowserClient browserClient, WaitingService waitingService, JsService jsService, @Value("${browser.userName}") String userName,
+            BrowserClient browserClient, WaitingService waitingService, JsUiService jsUIService,
+            @Value("${browser.userName}") String userName,
             @Value("${browser.password}") String password
     ) {
         this.browserClient = browserClient;
         this.waitingService = waitingService;
-        this.jsService = jsService;
+        this.jsUIService = jsUIService;
         this.userName = userName;
         this.password = password;
     }
@@ -51,7 +52,7 @@ public class LoginPhase extends AbstractPhase implements NoUiPhase {
             boolean enterUserDataSuccess = browserClient.enterUserData(userName, password);
             if (enterUserDataSuccess) {
                 log.debug("entered user data successfully");
-                boolean userDataSubmitted = jsService.submitUserData();
+                boolean userDataSubmitted = jsUIService.submitUserData();
                 if (userDataSubmitted) {
                     log.debug("submitted user data successfully");
                     return new PhaseAction[]{
@@ -69,6 +70,6 @@ public class LoginPhase extends AbstractPhase implements NoUiPhase {
             };
         }
 
-        throw new NotSupportedException("Gamemode " + uiMode + "not supported in " + NAME);
+        throw new NotSupportedException("UiMode " + uiMode + "not supported in " + NAME);
     }
 }

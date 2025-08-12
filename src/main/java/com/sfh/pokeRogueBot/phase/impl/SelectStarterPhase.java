@@ -8,8 +8,9 @@ import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.Brain;
-import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.service.WaitingService;
+import com.sfh.pokeRogueBot.service.javascript.JsService;
+import com.sfh.pokeRogueBot.service.javascript.JsUiService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -25,6 +26,7 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
     public static final String NAME = "SelectStarterPhase";
 
     private final JsService jsService;
+    private final JsUiService jsUiService;
     private final WaitingService waitingService;
     private final Brain brain;
     private final List<Integer> starterIds;
@@ -33,10 +35,14 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
     private boolean selectedStarters = false;
 
     public SelectStarterPhase(
-            JsService jsService, WaitingService waitingService, Brain brain,
+            JsService jsService,
+            JsUiService jsUiService,
+            WaitingService waitingService,
+            Brain brain,
             @Value("${starter.ids}") List<Integer> starterIds
     ) {
         this.jsService = jsService;
+        this.jsUiService = jsUiService;
         this.waitingService = waitingService;
         this.brain = brain;
         this.starterIds = starterIds;
@@ -62,7 +68,7 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
                 waitingService.waitLonger(); //always wait for render
                 int lastPokemonIndex = starters.size() - 1;
                 int starterId = starters.get(lastPokemonIndex).getSpeciesId();
-                boolean success = jsService.setPokemonSelectCursor(starterId);
+                boolean success = jsUiService.setPokemonSelectCursor(starterId);
 
                 brain.memorize("selectedStarterId: " + starterId);
 
@@ -78,7 +84,7 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
                         this.pressSpace // confirm the selection
                 };
             } else {
-                boolean success = jsService.confirmPokemonSelect();
+                boolean success = jsUiService.confirmPokemonSelect();
                 if (!success) {
                     throw new IllegalStateException("Failed to confirm starter selection");
                 }
@@ -99,7 +105,7 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
         else if (uiMode == UiMode.SAVE_SLOT) {
             RunProperty runProperty = brain.getRunProperty();
             log.debug("Setting Cursor to saveSlotIndex: {}", runProperty.getSaveSlotIndex());
-            boolean setSaveSlotCursorSuccess = jsService.setCursorToSaveSlot(runProperty.getSaveSlotIndex());
+            boolean setSaveSlotCursorSuccess = jsUiService.setCursorToSaveSlot(runProperty.getSaveSlotIndex());
             if (setSaveSlotCursorSuccess) {
                 return new PhaseAction[]{
                         this.pressSpace, //choose

@@ -3,6 +3,7 @@ package com.sfh.pokeRogueBot.service
 import com.sfh.pokeRogueBot.model.browser.gamejson.UiHandler
 import com.sfh.pokeRogueBot.model.exception.UiValidationFailedException
 import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplate
+import com.sfh.pokeRogueBot.service.javascript.JsUiService
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
@@ -14,7 +15,7 @@ import org.junit.jupiter.api.assertThrows
 class UiValidatorTest {
 
     private lateinit var uiValidator: UiValidator
-    private lateinit var jsService: JsService
+    private lateinit var jsUiService: JsUiService
 
     private lateinit var uiHandler: UiHandler
 
@@ -30,11 +31,11 @@ class UiValidatorTest {
 
     @BeforeEach
     fun setUp() {
-        jsService = mockk()
-        uiValidator = UiValidator(jsService)
+        jsUiService = mockk()
+        uiValidator = UiValidator(jsUiService)
 
         uiHandler = createHandler()
-        every { jsService.getUiHandler(any()) } returns uiHandler
+        every { jsUiService.getUiHandler(any()) } returns uiHandler
     }
 
     private fun createHandler(
@@ -63,7 +64,7 @@ class UiValidatorTest {
     @Test
     fun `validateOrThrow throws because indexes are not matching`() {
         val handler = createHandler(index = 1)
-        every { jsService.getUiHandler(any()) } returns handler
+        every { jsUiService.getUiHandler(any()) } returns handler
         val e = assertThrows<UiValidationFailedException> {
             uiValidator.validateOrThrow(uiTemplate, phaseName)
         }
@@ -73,7 +74,7 @@ class UiValidatorTest {
     @Test
     fun `validateOrThrow throws because handler names are not matching`() {
         val handler = createHandler(name = "OtherUiHandler")
-        every { jsService.getUiHandler(any()) } returns handler
+        every { jsUiService.getUiHandler(any()) } returns handler
         val e = assertThrows<UiValidationFailedException> {
             uiValidator.validateOrThrow(uiTemplate, phaseName)
         }
@@ -83,7 +84,7 @@ class UiValidatorTest {
     @Test
     fun `validateOrThrow throws because configOptionsSize are not matching`() {
         val handler = createHandler(configOptionsSize = 5)
-        every { jsService.getUiHandler(any()) } returns handler
+        every { jsUiService.getUiHandler(any()) } returns handler
         val e = assertThrows<UiValidationFailedException> {
             uiValidator.validateOrThrow(uiTemplate, phaseName)
         }
@@ -94,7 +95,7 @@ class UiValidatorTest {
     fun `validateOrThrow throws because configOptionsAreMatching are not matching`() {
         val configOptions = listOf("A", "B", "C", "D")
         val handler = createHandler(configOptionsLabel = configOptions)
-        every { jsService.getUiHandler(any()) } returns handler
+        every { jsUiService.getUiHandler(any()) } returns handler
         val e = assertThrows<UiValidationFailedException> {
             uiValidator.validateOrThrow(uiTemplate, phaseName)
         }

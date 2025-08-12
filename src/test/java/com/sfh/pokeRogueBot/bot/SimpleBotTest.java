@@ -1,11 +1,11 @@
 package com.sfh.pokeRogueBot.bot;
 
 import com.sfh.pokeRogueBot.browser.BrowserClient;
+import com.sfh.pokeRogueBot.config.JsConfig;
 import com.sfh.pokeRogueBot.file.FileManager;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.service.Brain;
-import com.sfh.pokeRogueBot.service.JsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -15,7 +15,7 @@ import static org.mockito.Mockito.*;
 class SimpleBotTest {
 
     SimpleBot bot;
-    JsService jsService;
+    JsConfig jsConfig;
     FileManager fileManager;
     BrowserClient browserClient;
     Brain brain;
@@ -28,7 +28,7 @@ class SimpleBotTest {
 
     @BeforeEach
     void setUp() {
-        jsService = mock(JsService.class);
+        jsConfig = mock(JsConfig.class);
         fileManager = mock(FileManager.class);
         browserClient = mock(BrowserClient.class);
         brain = mock(Brain.class);
@@ -73,7 +73,7 @@ class SimpleBotTest {
     @Test
     void on_start_jsService_should_be_initialized(){
         bot.start();
-        verify(jsService).init();
+        verify(jsConfig).init();
     }
 
     /**
@@ -100,7 +100,7 @@ class SimpleBotTest {
         localBot.start();
         verify(brain, times(maxRunsTillShutdown)).getRunProperty();
         verify(brain, times(maxRunsTillShutdown)).clearShortTermMemory();
-        verify(jsService, times(maxRunsTillShutdown)).init();
+        verify(jsConfig, times(maxRunsTillShutdown)).init();
         verify(browserClient).navigateTo(targetUrl);
         verify(fileManager).deleteTempData();
         verify(brain).rememberLongTermMemories();
@@ -152,7 +152,7 @@ class SimpleBotTest {
         localBot.start();
         verify(brain, times(1)).getRunProperty();
         verify(brain, times(1)).clearShortTermMemory();
-        verify(jsService).init();
+        verify(jsConfig).init();
         verify(browserClient).navigateTo(targetUrl);
         verify(fileManager).deleteTempData();
         verify(localBot).exitApp();
@@ -172,7 +172,7 @@ class SimpleBotTest {
         localBot.start();
         verify(brain, times(maxRunsTillShutdown)).getRunProperty();
         verify(brain, times(maxRunsTillShutdown)).clearShortTermMemory();
-        verify(jsService, times(maxRunsTillShutdown)).init();
+        verify(jsConfig, times(maxRunsTillShutdown)).init();
         //one initial on start and one for every time where RELOAD_APP is returned
         verify(browserClient, times(maxRunsTillShutdown + 1)).navigateTo(targetUrl);
         verify(fileManager).deleteTempData();
@@ -180,7 +180,7 @@ class SimpleBotTest {
 
     private SimpleBot getBot(){
         return new SimpleBot(
-                jsService,
+                jsConfig,
                 fileManager,
                 browserClient,
                 brain,

@@ -10,7 +10,8 @@ import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.Brain;
-import com.sfh.pokeRogueBot.service.JsService;
+import com.sfh.pokeRogueBot.service.javascript.JsService;
+import com.sfh.pokeRogueBot.service.javascript.JsUiService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -25,11 +26,16 @@ public class CommandPhase extends AbstractPhase implements Phase {
 
     private final Brain brain;
     private final JsService jsService;
+    private final JsUiService jsUiService;
     int lastWaveIndex = -1;
 
-    public CommandPhase(Brain brain, JsService jsService) {
+    public CommandPhase(Brain brain,
+                        JsService jsService,
+                        JsUiService jsUiService
+    ) {
         this.brain = brain;
         this.jsService = jsService;
+        this.jsUiService = jsUiService;
     }
 
     @Override
@@ -158,7 +164,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
                 throw new IllegalStateException("No pokeballs left");
             }
 
-            boolean success = jsService.setPokeBallCursor(pokeballIndex);
+            boolean success = jsUiService.setPokeBallCursor(pokeballIndex);
             if (success) {
                 return new PhaseAction[]{
                         this.pressSpace,

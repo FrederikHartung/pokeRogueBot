@@ -7,7 +7,7 @@ import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.Brain;
-import com.sfh.pokeRogueBot.service.JsService;
+import com.sfh.pokeRogueBot.service.javascript.JsUiService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -18,13 +18,13 @@ public class SwitchPhase extends AbstractPhase implements Phase {
     public static final String NAME = "SwitchPhase";
 
     private final Brain brain;
-    private final JsService jsService;
+    private final JsUiService jsUiService;
 
     private boolean ignoreFirstPokemon = false;
 
-    public SwitchPhase(Brain brain, JsService jsService) {
+    public SwitchPhase(Brain brain, JsUiService jsUiService) {
         this.brain = brain;
-        this.jsService = jsService;
+        this.jsUiService = jsUiService;
     }
 
     @Override
@@ -38,7 +38,7 @@ public class SwitchPhase extends AbstractPhase implements Phase {
         if (uiMode == UiMode.PARTY) { // maybe an own pokemon fainted
             SwitchDecision switchDecision = brain.getFaintedPokemonSwitchDecision(ignoreFirstPokemon);
             ignoreFirstPokemon = false;
-            boolean switchSuccessful = jsService.setPartyCursor(switchDecision.getIndex());
+            boolean switchSuccessful = jsUiService.setPartyCursor(switchDecision.getIndex());
 
             if (switchSuccessful) {
                 return new PhaseAction[]{

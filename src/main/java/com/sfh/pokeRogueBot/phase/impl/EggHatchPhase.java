@@ -9,8 +9,8 @@ import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.ScreenshotClient;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.Brain;
-import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.service.WaitingService;
+import com.sfh.pokeRogueBot.service.javascript.JsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 

@@ -6,24 +6,23 @@ import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
-import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.Brain;
-import com.sfh.pokeRogueBot.service.JsService;
+import com.sfh.pokeRogueBot.service.javascript.JsUiService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-public class LearnMovePhase extends AbstractPhase implements Phase {
+public class LearnMovePhase extends AbstractPhase {
 
     public static final String NAME = "LearnMovePhase";
 
-    private final JsService jsService;
+    private final JsUiService jsUiService;
     private final Brain brain;
 
-    public LearnMovePhase(JsService jsService, Brain brain) {
-        this.jsService = jsService;
+    public LearnMovePhase(JsUiService jsUiService, Brain brain) {
+        this.jsUiService = jsUiService;
         this.brain = brain;
     }
 
@@ -63,11 +62,7 @@ public class LearnMovePhase extends AbstractPhase implements Phase {
     }
 
     public PhaseAction[] handleLearnMove() throws NotSupportedException {
-        Pokemon pokemon = jsService.getPokemonInLearnMove();
-
-        if (pokemon == null) {
-            throw new IllegalStateException("No pokemon in learn move screen");
-        }
+        Pokemon pokemon = jsUiService.getPokemonInLearnMove();
 
         Move[] moveset = pokemon.getMoveset();
         String message = "Pokemon %s wants to learn move: %s".formatted(pokemon.getName(), moveset[moveset.length - 1].getName());
@@ -82,7 +77,7 @@ public class LearnMovePhase extends AbstractPhase implements Phase {
 
         if (learnMoveDecision.isNewMoveBetter()) {
 
-            boolean cursorMoved = jsService.setLearnMoveCursor(learnMoveDecision.getMoveIndexToReplace());
+            boolean cursorMoved = jsUiService.setLearnMoveCursor(learnMoveDecision.getMoveIndexToReplace());
             if (!cursorMoved) {
                 throw new IllegalStateException("Failed to move cursor to learn move");
             }

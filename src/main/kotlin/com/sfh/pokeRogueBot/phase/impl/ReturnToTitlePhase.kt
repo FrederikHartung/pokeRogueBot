@@ -4,10 +4,9 @@ import com.sfh.pokeRogueBot.model.enums.UiMode
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException
 import com.sfh.pokeRogueBot.phase.AbstractPhase
 import com.sfh.pokeRogueBot.phase.CustomPhase
-import com.sfh.pokeRogueBot.phase.Phase
 import com.sfh.pokeRogueBot.phase.ScreenshotClient
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction
-import com.sfh.pokeRogueBot.service.JsService
+import com.sfh.pokeRogueBot.service.javascript.JsUiService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
@@ -16,7 +15,7 @@ import org.springframework.stereotype.Component
  */
 @Component
 class ReturnToTitlePhase(
-    private val jsService: JsService,
+    private val jsUiService: JsUiService,
     private val screenshotClient: ScreenshotClient
 ) : AbstractPhase(), CustomPhase {
 
@@ -34,7 +33,7 @@ class ReturnToTitlePhase(
             UiMode.TITLE -> {
                 screenshotClient.takeTempScreenshot("error_$lastExceptionType") //take screenshot for debugging
                 log.debug("Trying to save and quit")
-                val saveAndQuitSuccessful = jsService.saveAndQuit()
+                val saveAndQuitSuccessful = jsUiService.saveAndQuit()
                 if (saveAndQuitSuccessful) {
                     arrayOf(waitEvenLonger) //wait for render
                 } else {

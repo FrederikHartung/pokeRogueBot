@@ -7,8 +7,8 @@ import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.Brain;
-import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.service.WaitingService;
+import com.sfh.pokeRogueBot.service.javascript.JsUiService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -22,14 +22,14 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
     public static final String NAME = "SelectModifierPhase";
 
     private final Brain brain;
-    private final JsService jsService;
+    private final JsUiService jsUiService;
     private final WaitingService waitService;
 
     private int pokemonIndexToSwitchTo = -1; //on startup
 
-    public SelectModifierPhase(Brain brain, JsService jsService, WaitingService waitService) {
+    public SelectModifierPhase(Brain brain, JsUiService jsUiService, WaitingService waitService) {
         this.brain = brain;
-        this.jsService = jsService;
+        this.jsUiService = jsUiService;
         this.waitService = waitService;
     }
 
@@ -57,7 +57,7 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
             }
             pokemonIndexToSwitchTo = result.getPokemonIndexToSwitchTo(); //store the pokemon index to switch to
 
-            boolean isSettingCursorSuccessfull = jsService.setModifierOptionsCursor(result.getRowIndex(), result.getColumnIndex());
+            boolean isSettingCursorSuccessfull = jsUiService.setModifierOptionsCursor(result.getRowIndex(), result.getColumnIndex());
             if (!isSettingCursorSuccessfull) {
                 throw new IllegalStateException("Could not set cursor to modifier option");
             }
@@ -68,7 +68,7 @@ public class SelectModifierPhase extends AbstractPhase implements Phase {
             actionList.add(this.pressSpace); //to confirm selection -> gamemode will change to party
         } else if (uiMode == UiMode.PARTY) {
 
-            boolean isSettingCursorSuccessfull = jsService.setPartyCursor(pokemonIndexToSwitchTo);
+            boolean isSettingCursorSuccessfull = jsUiService.setPartyCursor(pokemonIndexToSwitchTo);
             if (!isSettingCursorSuccessfull) {
                 throw new IllegalStateException("Could not set cursor to party pokemon");
             }

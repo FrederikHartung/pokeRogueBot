@@ -2,14 +2,15 @@ package com.sfh.pokeRogueBot.service
 
 import com.sfh.pokeRogueBot.model.exception.UiValidationFailedException
 import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplate
+import com.sfh.pokeRogueBot.service.javascript.JsUiService
 import org.springframework.stereotype.Component
 
 @Component
-class UiValidator(private val jsService: JsService) {
+class UiValidator(private val jsUiService: JsUiService) {
 
     @Throws(UiValidationFailedException::class)
     fun validateOrThrow(phaseUiTemplate: PhaseUiTemplate, phaseName: String) {
-        val uiHandler = jsService.getUiHandler(phaseUiTemplate.handlerIndex)
+        val uiHandler = jsUiService.getUiHandler(phaseUiTemplate.handlerIndex)
         if (uiHandler.index != phaseUiTemplate.handlerIndex) {
             throw UiValidationFailedException("uiHandler.index '${uiHandler.index}' does not match phaseUiTemplate.handlerIndex '${phaseUiTemplate.handlerIndex}' for handler ${phaseUiTemplate.handlerIndex} in phase $phaseName")
         }

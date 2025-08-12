@@ -8,7 +8,7 @@ import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.Brain;
-import com.sfh.pokeRogueBot.service.JsService;
+import com.sfh.pokeRogueBot.service.javascript.JsUiService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -19,11 +19,11 @@ public class TitlePhase extends AbstractPhase implements Phase {
     public static final String NAME = "TitlePhase";
 
     private final Brain brain;
-    private final JsService jsService;
+    private final JsUiService jsUiService;
 
-    public TitlePhase(Brain brain, JsService jsService) {
+    public TitlePhase(Brain brain, JsUiService jsUiService) {
         this.brain = brain;
-        this.jsService = jsService;
+        this.jsUiService = jsUiService;
     }
 
     @Override
@@ -52,7 +52,7 @@ public class TitlePhase extends AbstractPhase implements Phase {
 
             if (brain.shouldLoadGame()) {
                 log.debug("opening load game screen.");
-                boolean setCursorToLoadGameSuccessful = jsService.setCursorToLoadGame();
+                boolean setCursorToLoadGameSuccessful = jsUiService.setCursorToLoadGame();
                 if (setCursorToLoadGameSuccessful) {
                     return new PhaseAction[]{
                             this.pressSpace
@@ -75,7 +75,7 @@ public class TitlePhase extends AbstractPhase implements Phase {
 
             runProperty.setSaveSlotIndex(saveGameSlotIndex);
 
-            boolean setCursorToNewGameSuccessful = jsService.setCursorToNewGame();
+            boolean setCursorToNewGameSuccessful = jsUiService.setCursorToNewGame();
             if (setCursorToNewGameSuccessful) {
                 log.debug("Setting cursor to new game.");
 
@@ -94,7 +94,7 @@ public class TitlePhase extends AbstractPhase implements Phase {
                 };
             }
 
-            boolean setCursorToSaveSlotSuccessful = jsService.setCursorToSaveSlot(saveSlotIndexToLoad);
+            boolean setCursorToSaveSlotSuccessful = jsUiService.setCursorToSaveSlot(saveSlotIndexToLoad);
             if (setCursorToSaveSlotSuccessful) {
                 log.debug("Save slot index to load: " + saveSlotIndexToLoad);
                 //save new game to slot saveSlotIndexToLoad
