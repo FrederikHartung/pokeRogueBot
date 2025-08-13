@@ -36,4 +36,17 @@ window.poru.starter = {
         return JSON.stringify(window.poru.starter.getPossibleStarter());
     },
 
+    getNumberOfSelectedStarters: () => {
+        try {
+            const starterSelectUiHandler = window.poru.uihandler.getUiHandler(10);
+            if(starterSelectUiHandler && starterSelectUiHandler.active && starterSelectUiHandler.starterSpecies){
+                return starterSelectUiHandler.starterSpecies.length;
+            }
+            return -1;
+        } catch (error) {
+            console.error("Error in getNumberOfSelectedStarters:", error);
+            return -1;
+        }
+    }
+
 }
