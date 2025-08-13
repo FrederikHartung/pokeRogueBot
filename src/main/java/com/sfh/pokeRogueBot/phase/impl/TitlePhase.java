@@ -97,7 +97,12 @@ public class TitlePhase extends AbstractPhase implements UiPhase {
                 };
             }
 
-            boolean setCursorToSaveSlotSuccessful = jsUiService.setCursorToSaveSlot(saveSlotIndexToLoad);
+            PhaseUiTemplate template = getPhaseUiTemplate();
+            boolean setCursorToSaveSlotSuccessful = jsUiService.setCursorToIndex(
+                    template.getHandlerIndex(),
+                    template.getHandlerName(),
+                    1 //Load Game
+            );
             if (setCursorToSaveSlotSuccessful) {
                 log.debug("Save slot index to load: " + saveSlotIndexToLoad);
                 //save new game to slot saveSlotIndexToLoad

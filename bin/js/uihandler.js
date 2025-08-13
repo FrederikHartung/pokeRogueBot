@@ -4,7 +4,7 @@ window.poru.uihandler = {
         try {
             var scene = window.poru.util.getBattleScene();
             if (!scene || !scene.ui || !scene.ui.handlers) return false;
-            
+
             var partyUiHandler = scene.ui.handlers[8];
             if(partyUiHandler && partyUiHandler.active) {
                 if(partyUiHandler.cursor === pokemonIndex) {
@@ -12,7 +12,7 @@ window.poru.uihandler = {
                 }
                 else{
                     return partyUiHandler.setCursor(pokemonIndex);
-                };
+                }
             }
         } catch (e) {
             console.error('Error in setPartyUiHandlerCursor:', e);
@@ -25,7 +25,7 @@ window.poru.uihandler = {
         try {
             var scene = window.poru.util.getBattleScene();
             if (!scene || !scene.ui || !scene.ui.handlers) return false;
-            
+
             var modifierSelectUiHandler = scene.ui.handlers[6];
 
             if(modifierSelectUiHandler && modifierSelectUiHandler.active){
@@ -54,7 +54,7 @@ window.poru.uihandler = {
         try {
             var scene = window.poru.util.getBattleScene();
             if (!scene || !scene.ui || !scene.ui.handlers) return false;
-            
+
             var ballUiHandler = scene.ui.handlers[4];
 
             if(ballUiHandler && ballUiHandler.active){
@@ -72,9 +72,11 @@ window.poru.uihandler = {
     },
 
     setStarterSelectUiHandlerCursor: (speciesId) => {
-        console.log("setStarterSelectUiHandlerCursor");
-        var starterSelectUiHandler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[10];
-        var starter = window.poru.starter.getPossibleStarter();
+        const starterSelectUiHandler = window.poru.uihandler.getUiHandler(10);
+        if(!(starterSelectUiHandler && starterSelectUiHandler.active)){
+            return false
+        }
+        const starter = window.poru.starter.getPossibleStarter();
         var speciesIndex = -1;
         var targetGeneration = -1;
         for(let i = 0; i < starter.length; i++) {
@@ -102,7 +104,7 @@ window.poru.uihandler = {
     },
 
     confirmStarterSelect: () => {
-        var starterSelectUiHandler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[10];
+        var starterSelectUiHandler = window.poru.uihandler.getUiHandler(10);
         if(starterSelectUiHandler && starterSelectUiHandler.active){
             starterSelectUiHandler.tryStart()
             return true;
@@ -112,20 +114,20 @@ window.poru.uihandler = {
     },
 
     saveAndQuit: () => {
-        var scene = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[15].scene;
+        var scene = window.poru.util.getBattleScene();
         if(scene){
-            scene.gameData.saveAll(scene, true, true, true, true).then(() => scene.reset(true));
+            scene.gameData?.saveAll().then(() => scene.reset(true));
             return true;
         }
         return false;
     },
 
     getSaveSlots: () => {
-        var handler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[7];
-        if(handler){
+        const handler = window.poru.uihandler.getUiHandler(7)
+        if(handler && handler.active){
             var sessionSlots = handler.sessionSlots;
             if(sessionSlots){
-                var sessionSlotsDto = [];
+                const sessionSlotsDto = [];
                 for(let i = 0; i < sessionSlots.length; i++){
                     sessionSlotsDto.push({
                         hasData: sessionSlots[i].hasData,
@@ -144,23 +146,11 @@ window.poru.uihandler = {
         return JSON.stringify(window.poru.uihandler.getSaveSlots());
     },
 
-    setCursorToSaveSlot: (slotId) => {
-        var handler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[7];
-        if(handler){
-            if(handler.cursor === slotId){
-                return true;
-            }
-            return handler.setCursor(slotId);
-        }
-
-        return false;
-    },
-
     setTitleUiHandlerCursorToLoadGame : () => {
         try {
             var scene = window.poru.util.getBattleScene();
             if (!scene || !scene.ui || !scene.ui.handlers) return false;
-            
+
             var titleUiHandler = scene.ui.handlers[1];
             if(titleUiHandler && titleUiHandler.active){
                 var options = titleUiHandler.config.options;
@@ -189,7 +179,7 @@ window.poru.uihandler = {
         try {
             var scene = window.poru.util.getBattleScene();
             if (!scene || !scene.ui || !scene.ui.handlers) return false;
-            
+
             var titleUiHandler = scene.ui.handlers[1];
             if(titleUiHandler && titleUiHandler.active){
                 var options = titleUiHandler.config.options;
@@ -215,7 +205,7 @@ window.poru.uihandler = {
     },
 
     pressLoginButton: () => {
-        var handler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[29];
+        var handler = window.poru.uihandler.getUiHandler(29);
         if(handler && handler.active){
             handler.submitAction();
             return true;
@@ -225,7 +215,7 @@ window.poru.uihandler = {
     },
 
     setPartyOptionsCursor: (cursor) => {
-        var handler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[8];
+        const handler = window.poru.uihandler.getUiHandler(8);
         if(handler && handler.active){
 
             if(handler.optionsMode === false){
@@ -235,7 +225,7 @@ window.poru.uihandler = {
             if(handler.optionsCursor === cursor){
                 return true;
             }
-            var result = handler.setCursor(cursor);
+            const result = handler.setCursor(cursor);
 
             return result;
         }
@@ -244,11 +234,11 @@ window.poru.uihandler = {
     },
 
     getPokemonInLearnMovePhase: () => {
-        var handler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[9];
+        const handler = window.poru.uihandler.getUiHandler(9);
         if(handler && handler.active){
-            var pokemonDto = window.poru.poke.getPokemonDto(handler.pokemon);
-            var newMove = handler.newMove;
-            var newMoveDto = window.poru.poke.getMoveDto(newMove, -1, 0);
+            const pokemonDto = window.poru.poke.getPokemonDto(handler.pokemon);
+            const newMove = handler.newMove;
+            const newMoveDto = window.poru.poke.getMoveDto(newMove, -1, 0);
             pokemonDto.moveset.push(newMoveDto);
 
             return pokemonDto;
@@ -262,7 +252,7 @@ window.poru.uihandler = {
     },
 
     setLearnMoveCursor: (cursor) => {
-        var handler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[9];
+        const handler = window.poru.uihandler.getUiHandler(9);
         if(handler && handler.active){
             if(handler.moveCursor === cursor){
                 return true;
@@ -274,26 +264,26 @@ window.poru.uihandler = {
     },
 
     getModifierShopItems: () => {
-        var modifierSelectUiHandler = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.handlers[6];
+        const modifierSelectUiHandler = window.poru.uihandler.getUiHandler(6);
         if(modifierSelectUiHandler && modifierSelectUiHandler.active){
-            var freeItemsDtoArray = this.poru.modifier.getModifierItemDtoArray(modifierSelectUiHandler.options);
-            var shopOptionsRows = modifierSelectUiHandler.shopOptionsRows;
+            const freeItemsDtoArray = this.poru.modifier.getModifierItemDtoArray(modifierSelectUiHandler.options);
+            const shopOptionsRows = modifierSelectUiHandler.shopOptionsRows;
 
-            var shopOptionsDtoArrayArray = [];
+            const shopOptionsDtoArrayArray = [];
             for(let i = shopOptionsRows.length -1; i >= 0; i--){
-                var row = shopOptionsRows[i];
-                var rowDto = this.poru.modifier.getModifierItemDtoArray(row);
+                const row = shopOptionsRows[i];
+                const rowDto = this.poru.modifier.getModifierItemDtoArray(row);
                 shopOptionsDtoArrayArray.push(rowDto);
             }
 
             for(let colIndex = 0; colIndex < freeItemsDtoArray.length; colIndex++){
-                var freeItem = freeItemsDtoArray[colIndex];
+                const freeItem = freeItemsDtoArray[colIndex];
                 freeItem.x = colIndex;
                 freeItem.y = 1; //skip button row
             }
 
             for(let rowIndex = 0; rowIndex < shopOptionsDtoArrayArray.length; rowIndex++){
-                var row = shopOptionsDtoArrayArray[rowIndex];
+                const row = shopOptionsDtoArrayArray[rowIndex];
                 for(let colIndex = 0; colIndex < row.length; colIndex++){
                     var item = row[colIndex];
                     item.x = colIndex;

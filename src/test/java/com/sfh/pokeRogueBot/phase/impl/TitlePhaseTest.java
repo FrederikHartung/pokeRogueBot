@@ -39,7 +39,7 @@ class TitlePhaseTest {
         doReturn(true).when(jsUiService).setCursorToLoadGame();
         doReturn(true).when(jsUiService).setCursorToNewGame();
         doReturn(0).when(brain).getSaveSlotIndexToLoad();
-        doReturn(true).when(jsUiService).setCursorToSaveSlot(anyInt());
+        doReturn(true).when(jsUiService).setCursorToIndex(anyInt(), anyString(), anyInt());
     }
 
     @Test
@@ -137,7 +137,7 @@ class TitlePhaseTest {
 
         PhaseAction[] actions = titlePhase.getActionsForUiMode(gameModeSaveSlot);
 
-        verify(jsUiService, times(1)).setCursorToSaveSlot(0);
+        verify(jsUiService, times(1)).setCursorToIndex(anyInt(), anyString(), anyInt());
         assertEquals(2, actions.length);
         assertEquals(PressKeyPhaseAction.class, actions[0].getClass());
         assertEquals(KeyToPress.SPACE, ((PressKeyPhaseAction) actions[0]).getKeyToPress());
@@ -147,7 +147,7 @@ class TitlePhaseTest {
     @Test
     void if_the_cursor_could_not_be_set_to_save_slot_an_exception_is_thrown(){
         doReturn(0).when(brain).getSaveSlotIndexToLoad();
-        doReturn(false).when(jsUiService).setCursorToSaveSlot(anyInt());
+        doReturn(false).when(jsUiService).setCursorToIndex(anyInt(), anyString(), anyInt());
 
         assertThrows(IllegalStateException.class, () -> titlePhase.getActionsForUiMode(gameModeSaveSlot));
     }

@@ -10,7 +10,7 @@ window.poru.modifier = {
           4: "MASTER",
           5: "LUXURY"
         };
-      
+
         return tierMapping[tier] || "COMMON";
     },
 
@@ -23,7 +23,7 @@ window.poru.modifier = {
           4: "MASTER",
           5: "LUXURY"
         };
-      
+
         return tierMapping[tier] || "COMMON";
     },
 
@@ -58,12 +58,12 @@ window.poru.modifier = {
             typeName: container.modifierTypeOption.type.constructor.name,
             x: container.x,
             y: container.y,
-    
+
             //ModifierTypeOption
             cost: container.modifierTypeOption.cost,
             upgradeCount: container.modifierTypeOption.upgradeCount,
         }
-    
+
         if (option.typeName === "AddPokeballModifierType"){
             option.count = container.modifierTypeOption.type.count;
             option.pokeballType = window.poru.modifier.getPokeBallTypeEnumString(container.modifierTypeOption.type.pokeballType);
@@ -90,24 +90,24 @@ window.poru.modifier = {
         else if (option.typeName === "TempBattleStatBoosterModifierType"){
             option.tempBattleStat = container.modifierTypeOption.type.tempBattleStat;
         }
-    
+
         resultArray.push(option);
     },
 
     getSelectModifiers: () => {
-        var uiElements = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentPhase.scene.ui.getAll();
+        var uiElements = window.poru.util.getBattleScene().ui.getAll();
         var activeAndVisibleElements = uiElements.filter(element => element._visible && element.active);
         var modifierOption =  new Set();
         var resultArray = [];
-        
+
         activeAndVisibleElements.forEach(element => {
             window.poru.modifier.filterShopItems(element, modifierOption);
         });
-        
+
         modifierOption.forEach(element => {
             window.poru.modifier.buildResult(element, resultArray);
         });
-        
+
         return resultArray;
     },
 
@@ -126,7 +126,7 @@ window.poru.modifier = {
                 name: modifierTypeOption.type.name,
 
                 typeName: modifierTypeOption.type.constructor.name,
-                
+
                 cost: modifierTypeOption.cost,
                 upgradeCount: modifierTypeOption.upgradeCount,
             };

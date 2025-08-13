@@ -42,7 +42,7 @@ class SelectStarterPhaseTest {
 
         runProperty = new RunProperty(1);
         doReturn(runProperty).when(brain).getRunProperty();
-        doReturn(true).when(jsUiService).setCursorToSaveSlot(anyInt());
+        doReturn(true).when(jsUiService).setCursorToIndex(anyInt(), anyString(), anyInt());
     }
 
     @Test
@@ -51,7 +51,7 @@ class SelectStarterPhaseTest {
 
         PhaseAction[] actions = selectStarterPhase.getActionsForUiMode(gameModeSaveSlot);
         verify(jsService, never()).getAvailableStarterPokemon();
-        verify(jsUiService, times(1)).setCursorToSaveSlot(1);
+        verify(jsUiService, times(1)).setCursorToIndex(anyInt(), anyString(), anyInt());
         assertEquals(3, actions.length);
         assertEquals(PressKeyPhaseAction.class, actions[0].getClass());
         assertEquals(KeyToPress.SPACE, ((PressKeyPhaseAction) actions[0]).getKeyToPress());
@@ -60,7 +60,7 @@ class SelectStarterPhaseTest {
     @Test
     void the_cursor_could_not_be_set_to_the_save_slot(){
         runProperty.setSaveSlotIndex(1);
-        doReturn(false).when(jsUiService).setCursorToSaveSlot(anyInt());
+        doReturn(false).when(jsUiService).setCursorToIndex(anyInt(), anyString(), anyInt());
 
         assertThrows(IllegalStateException.class, () -> selectStarterPhase.getActionsForUiMode(gameModeSaveSlot));
     }

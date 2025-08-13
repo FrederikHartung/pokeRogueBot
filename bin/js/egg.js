@@ -1,10 +1,10 @@
 if(!window.poru) window.poru = {};
 window.poru.egg = {
     getHatchedPokemon: () => {
-        var eggPhase = window.poru.util.getPhase();
+        const eggPhase = window.poru.util.getPhase();
 
         if(eggPhase.pokemon){
-            var hatchedPokemon = eggPhase.pokemon;
+            const hatchedPokemon = eggPhase.pokemon;
             if(hatchedPokemon){
                 return window.poru.poke.getPokemonDto(hatchedPokemon);
             }
@@ -18,7 +18,7 @@ window.poru.egg = {
     },
 
     getEggId: () => {
-        var eggPhase = window.poru.util.getPhase();
+        const eggPhase = window.poru.util.getPhase();
         if(eggPhase.egg){
             return eggPhase.egg.id;
         }

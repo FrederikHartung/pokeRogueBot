@@ -105,7 +105,7 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
         else if (uiMode == UiMode.SAVE_SLOT) {
             RunProperty runProperty = brain.getRunProperty();
             log.debug("Setting Cursor to saveSlotIndex: {}", runProperty.getSaveSlotIndex());
-            boolean setSaveSlotCursorSuccess = jsUiService.setCursorToSaveSlot(runProperty.getSaveSlotIndex());
+            boolean setSaveSlotCursorSuccess = jsUiService.setCursorToIndex(-1, "", runProperty.getSaveSlotIndex()); //TODO: Add correct handler
             if (setSaveSlotCursorSuccess) {
                 return new PhaseAction[]{
                         this.pressSpace, //choose

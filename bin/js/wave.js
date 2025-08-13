@@ -2,12 +2,12 @@ if(!window.poru) window.poru = {};
 window.poru.wave = {
 
     getWavePokemons: () => {
-        
-        var enemyParty = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentBattle.enemyParty;
-        var enemyPartyDto = [];
+        const scene = window.poru.util.getBattleScene()
+        const enemyParty = scene.currentBattle.enemyParty;
+        const enemyPartyDto = [];
 
-        var ownParty = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].party;
-        var ownPartyDto = [];
+        const ownParty = scene.party;
+        const ownPartyDto = [];
 
         //enemy party
         for (let i = 0; i < enemyParty.length; i++) {
@@ -55,31 +55,31 @@ window.poru.wave = {
     },
 
     getWave: () => {
-        var currentBattle = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1].currentBattle;
-        var battleScene = Phaser.Display.Canvas.CanvasPool.pool[0].parent.game.scene.scenes[1];
-        
-        var battleSceneDto = {
-            arena: window.poru.wave.getArena(battleScene), //object
-            battleStyle: window.poru.wave.getBattleStyleString(battleScene.battleStyle), //String
-            
+        const scene = window.poru.util.getBattleScene()
+        const currentBattle = scene.currentBattle;
+
+        const battleSceneDto = {
+            arena: window.poru.wave.getArena(scene), //object
+            battleStyle: window.poru.wave.getBattleStyleString(scene.battleStyle), //String
+
             battleScore: currentBattle.battleScore, //int
             battleType: window.poru.wave.getBattleTypeString(currentBattle.battleType), //enum
             double: currentBattle.double, //boolean
             enemyFaints: currentBattle.enemyFaints, //int
-            money: battleScene.money, //int
+            money: scene.money, //int
             moneyScattered: currentBattle.moneyScattered, //int
             playerFaints: currentBattle.playerFaints, //int
             turn: currentBattle.turn, //int
             waveIndex: currentBattle.waveIndex, //int
             pokeballCount: [
-                battleScene.pokeballCounts[0],
-                battleScene.pokeballCounts[1],
-                battleScene.pokeballCounts[2],
-                battleScene.pokeballCounts[3],
-                battleScene.pokeballCounts[4],
+                scene.pokeballCounts[0],
+                scene.pokeballCounts[1],
+                scene.pokeballCounts[2],
+                scene.pokeballCounts[3],
+                scene.pokeballCounts[4],
             ]
         };
-        
+
         return battleSceneDto;
     },
 
@@ -125,7 +125,7 @@ window.poru.wave = {
           41: "LABORATORY",
           50: "END"
         };
-      
+
         return biomeMapping[index] || "UNKNOWN";
     },
 
@@ -135,7 +135,7 @@ window.poru.wave = {
           1: "TRAINER",
           2: "CLEAR",
         };
-      
+
         return biomeMapping[index] || "UNKNOWN";
     },
 
@@ -144,7 +144,7 @@ window.poru.wave = {
           0: "SWITCH",
           1: "SET"
         };
-      
+
         return biomeMapping[index] || "UNKNOWN";
     },
 

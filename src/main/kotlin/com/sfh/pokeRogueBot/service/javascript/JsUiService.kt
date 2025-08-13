@@ -79,11 +79,6 @@ class JsUiService(private val jsClient: JsClient) {
             .toString().toBoolean()
     }
 
-    fun setCursorToSaveSlot(index: Int): Boolean {
-        return jsClient.executeCommandAndGetResult("return window.poru.uihandler.setCursorToSaveSlot(${index});")
-            .toString().toBoolean()
-    }
-
     fun getSaveSlots(): Array<SaveSlotDto> {
         val result = jsClient.executeCommandAndGetResult("return window.poru.uihandler.getSaveSlotsJson();").toString()
         return GSON.fromJson(result, Array<SaveSlotDto>::class.java)
