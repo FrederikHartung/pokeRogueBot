@@ -48,6 +48,7 @@ class JsService(private val jsClient: JsClient) {
         return GSON.fromJson(pokemonJson, WavePokemon::class.java)
     }
 
+    @Deprecated("broken")
     fun getAvailableStarterPokemon(): Array<Starter> {
         val result =
             jsClient.executeCommandAndGetResult("return window.poru.starter.getPossibleStarterJson();").toString()
@@ -70,5 +71,15 @@ class JsService(private val jsClient: JsClient) {
 
     fun addBallToInventory() {
         jsClient.executeCommandAndGetResult("window.poru.util.addBallToInventory();")
+    }
+
+    fun getNumberOfSelectedStarters(): Int {
+        val result =
+            jsClient.executeCommandAndGetResult("return window.poru.starter.getNumberOfSelectedStarters();").toString()
+                .toInt()
+        if (result == -1) {
+            throw IllegalStateException("Unable to get getNumberOfSelectedStarters")
+        }
+        return result
     }
 }

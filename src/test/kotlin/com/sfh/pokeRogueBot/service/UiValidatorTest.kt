@@ -24,6 +24,7 @@ class UiValidatorTest {
     val uiTemplate: PhaseUiTemplate = PhaseUiTemplate(
         15,
         name,
+        true,
         3,
         configOptionsLabel,
     )

@@ -368,7 +368,6 @@ window.poru.uihandler = {
         const handler = window.poru.uihandler.getUiHandler(handlerIndex)
         if(handler){
             const name = handler.constructor.name
-            console.log(`setUiHandlerCursor: expected '${handlerName}', actual '${name}' at index ${handlerIndex}`)
             if(handlerName === name){
                 handler.setCursor(cursorIndex)
                 return true

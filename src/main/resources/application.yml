@@ -72,9 +72,6 @@ bot:
   maxRunsTillShutdown: -1
   startBotOnStartup: true
 
-starter:
-  ids: 7, 4, 1 #the pokedex ids of the starter pokemons
-
 logging:
   level:
     ROOT: INFO

@@ -9,6 +9,7 @@ import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItemDeserializer
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop
 import com.sfh.pokeRogueBot.model.poke.Pokemon
+import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplate
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
@@ -109,9 +110,17 @@ class JsUiService(private val jsClient: JsClient) {
     }
 
     fun setCursorToIndex(handlerIndex: Int, handlerName: String, indexToSetCursorTo: Int): Boolean {
+        val handler = getUiHandler(handlerIndex)
+        if (!handler.active) {
+            throw IllegalArgumentException("Handler $handlerName is not active")
+        }
         val result =
             jsClient.executeCommandAndGetResult("return window.poru.uihandler.setUiHandlerCursor(${handlerIndex}, \"${handlerName}\", ${indexToSetCursorTo});")
                 .toString().toBoolean()
         return result
+    }
+
+    fun setCursorToIndex(phaseUiTemplate: PhaseUiTemplate, indexToSetCursorTo: Int): Boolean {
+        return setCursorToIndex(phaseUiTemplate.handlerIndex, phaseUiTemplate.handlerName, indexToSetCursorTo)
     }
 }
