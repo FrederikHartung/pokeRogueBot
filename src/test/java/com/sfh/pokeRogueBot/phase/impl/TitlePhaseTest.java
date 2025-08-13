@@ -46,7 +46,7 @@ class TitlePhaseTest {
     void if_null_is_returned_when_getting_a_runproperty_a_exception_is_thrown(){
         doReturn(null).when(brain).getRunProperty();
 
-        assertThrows(IllegalStateException.class, () -> titlePhase.getActionsForUiMode(null));
+        assertThrows(IllegalStateException.class, () -> titlePhase.getActionsForUiMode(UiMode.TITLE));
     }
 
     /*
@@ -153,11 +153,11 @@ class TitlePhaseTest {
     }
 
     @Test
-    void if_the_game_mode_is_message_a_space_is_pressed() {
-        PhaseAction[] actions = titlePhase.getActionsForUiMode(UiMode.MESSAGE);
+    void if_the_game_mode_is_title_a_space_is_pressed() {
+        PhaseAction[] actions = titlePhase.getActionsForUiMode(UiMode.TITLE);
 
         assertEquals(1, actions.length);
-        assertEquals(WaitPhaseAction.class, actions[0].getClass());
+        assertEquals(PressKeyPhaseAction.class, actions[0].getClass());
     }
 
     @Test

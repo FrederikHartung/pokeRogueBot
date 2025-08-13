@@ -14,7 +14,7 @@ interface Phase {
 }
 
 interface UiPhase : Phase {
-    fun getPhaseUiTemplate(): PhaseUiTemplate
+    fun getPhaseUiTemplateForUiMode(uiMode: UiMode): PhaseUiTemplate
 }
 
 interface NoUiPhase : Phase

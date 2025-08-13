@@ -13,12 +13,18 @@ import org.springframework.stereotype.Component
 
 @Component
 class SelectGenderPhase(
-    @Value("\${app.chooseGender}") private val genderToPick: String,
+    @Value("\${app.game.chooseGender}") private val genderToPick: String,
     private val jsUiService: JsUiService,
 ) : AbstractPhase(), UiPhase {
 
-    override fun getPhaseUiTemplate(): PhaseUiTemplate {
-        return PhaseUiTemplates.selectGenderPhaseUi
+    override fun getPhaseUiTemplateForUiMode(uiMode: UiMode): PhaseUiTemplate {
+        when (uiMode) {
+            UiMode.OPTION_SELECT -> {
+                return PhaseUiTemplates.selectGenderPhaseWithOptionSelect
+            }
+
+            else -> throw NotSupportedException("SelectGenderPhase does not support template for ui mode: " + uiMode)
+        }
     }
 
     override val phaseName: String
@@ -26,7 +32,7 @@ class SelectGenderPhase(
 
     @Throws(NotSupportedException::class)
     override fun getActionsForUiMode(uiMode: UiMode): Array<PhaseAction> {
-        val template = getPhaseUiTemplate()
+        val template = getPhaseUiTemplateForUiMode(uiMode)
         var indexToSetCursorTo = -1
         template.configOptionsLabel.forEachIndexed { index, label ->
             if (label == genderToPick) {
@@ -37,7 +43,7 @@ class SelectGenderPhase(
             indexToSetCursorTo = 0 //fallback to "Male"
         }
 
-        val handler = jsUiService.getUiHandler(getPhaseUiTemplate().handlerIndex)
+        val handler = jsUiService.getUiHandler(getPhaseUiTemplateForUiMode(uiMode).handlerIndex)
         if (!handler.active) { //wait till render or till loop detection throws
             return arrayOf<PhaseAction>(
                 this.waitBriefly

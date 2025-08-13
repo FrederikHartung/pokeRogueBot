@@ -4,14 +4,16 @@ import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.model.run.Starter;
+import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplate;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
-import com.sfh.pokeRogueBot.phase.Phase;
+import com.sfh.pokeRogueBot.phase.UiPhase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.Brain;
 import com.sfh.pokeRogueBot.service.WaitingService;
 import com.sfh.pokeRogueBot.service.javascript.JsService;
 import com.sfh.pokeRogueBot.service.javascript.JsUiService;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -21,7 +23,7 @@ import java.util.StringJoiner;
 
 @Slf4j
 @Component
-public class SelectStarterPhase extends AbstractPhase implements Phase {
+public class SelectStarterPhase extends AbstractPhase implements UiPhase {
 
     public static final String NAME = "SelectStarterPhase";
 
@@ -132,5 +134,10 @@ public class SelectStarterPhase extends AbstractPhase implements Phase {
 
             }
         }
+    }
+
+    @Override
+    public @NotNull PhaseUiTemplate getPhaseUiTemplateForUiMode(@NotNull UiMode uiMode) {
+        return null;
     }
 }

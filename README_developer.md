@@ -6,7 +6,7 @@ If a good idea comes up, write it down and implement it later. Focus on the curr
 Only refactor, when it's really necessary.
 
 ## Current Task:
-Fix Crash in TitlePhase -> load Game
+Add UI Validation in ChooseStarterPhase
 
 ## Open todo's with high priority:
 - [x] remove the db and spring data

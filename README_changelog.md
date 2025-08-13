@@ -3,6 +3,7 @@
 ## 3.0 WIP
 ### Features:
 - Added Config Option to choose Gender of Player Character
+- Added Config Option for GameSettings
 - Added Support for UI Validation of a Phase
 ### Technical Changes:
 - Migrated to Java 21

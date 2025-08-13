@@ -65,7 +65,7 @@ class WaveRunnerTest {
         doReturn(titlePhase).when(phaseProvider).fromString(TitlePhase.NAME);
         doReturn(MessagePhase.NAME).when(jsService).getCurrentPhaseAsString();
 
-        doReturn(true).when(brain).phaseUiIsValidated(any());
+        doReturn(true).when(brain).phaseUiIsValidated(any(), any());
     }
 
     /**
@@ -141,14 +141,14 @@ class WaveRunnerTest {
     }
 
     @Test
-    void phaseUiIsValidated_returns_false_and_the_runners_waits_and_memorize_the_phase_and_returns(){
-        doReturn(false).when(brain).phaseUiIsValidated(any());
+    void phaseUiIsValidated_returns_false_and_the_runners_waits_and_memorize_the_phase_and_returns() throws Exception {
+        doReturn(false).when(brain).phaseUiIsValidated(any(), any());
 
         waveRunner.handlePhaseInWave(runProperty);
 
-        verify(brain).phaseUiIsValidated(any());
+        verify(brain).phaseUiIsValidated(any(), any());
         verify(waitingService).waitEvenLonger();
         verify(brain).memorize(any());
-        verify(jsService, never()).getUiMode();
+        verify(phaseProcessor, never()).handlePhase(any(), any());
     }
 }

@@ -309,6 +309,24 @@ window.poru.uihandler = {
         return JSON.stringify(window.poru.uihandler.getModifierShopItems());
     },
 
+    getAllActiveUiHandler: (index) => {
+        const scene = window.poru.util.getBattleScene()
+        if(scene){
+            const handlers = scene.ui?.handlers
+            const activeHandlers = []
+            if(handlers){
+                for (const handler of handlers) {
+                    if(handler && handler.active){
+                        activeHandlers.push(handler)
+                    }
+                }
+            }
+
+            return activeHandlers;
+        }
+        return null
+    },
+
     getUiHandler: (index) => {
         const scene = window.poru.util.getBattleScene()
         if(scene){
@@ -331,12 +349,14 @@ window.poru.uihandler = {
                 awaitingActionInput: handler.awaitingActionInput,
                 index: index,
                 name: handler.constructor.name,
-                configOptionsSize: handler.config.options.length,
+                configOptionsSize: handler.config?.options?.length || 0,
                 configOptionsLabel: []
             }
 
-            for (const option of handler.config.options) {
-                handlerDto.configOptionsLabel.push(option.label)
+            if (handler.config?.options) {
+                for (const option of handler.config.options) {
+                    handlerDto.configOptionsLabel.push(option.label)
+                }
             }
             return JSON.stringify(handlerDto)
         }

@@ -38,6 +38,7 @@ public class TitlePhase extends AbstractPhase implements UiPhase {
     public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
 
         RunProperty runProperty = brain.getRunProperty();
+        PhaseUiTemplate template = getPhaseUiTemplateForUiMode(uiMode);
 
         if (null == runProperty) {
             throw new IllegalStateException("RunProperty is null in TitlePhase");
@@ -97,7 +98,6 @@ public class TitlePhase extends AbstractPhase implements UiPhase {
                 };
             }
 
-            PhaseUiTemplate template = getPhaseUiTemplate();
             boolean setCursorToSaveSlotSuccessful = jsUiService.setCursorToIndex(
                     template.getHandlerIndex(),
                     template.getHandlerName(),
@@ -119,13 +119,31 @@ public class TitlePhase extends AbstractPhase implements UiPhase {
             return new PhaseAction[]{
                     this.waitBriefly
             };
+        } else if (uiMode == UiMode.OPTION_SELECT) {
+            //set Cursor to "Classic" and pressSpace
+            boolean setCursorToClassicSuccessful = jsUiService.setCursorToIndex(
+                    template.getHandlerIndex(),
+                    template.getHandlerName(),
+                    0 //Classic
+            );
+            if (!setCursorToClassicSuccessful) {
+                throw new IllegalStateException("Unable to set cursor to classic GameMode");
+            }
+            return new PhaseAction[]{
+                    this.pressSpace,
+            };
         }
 
-        throw new NotSupportedException("TitlePhase does not support game mode: " + uiMode);
+        throw new NotSupportedException("TitlePhase does not support ui mode: " + uiMode);
     }
 
     @Override
-    public @NotNull PhaseUiTemplate getPhaseUiTemplate() {
-        return PhaseUiTemplates.INSTANCE.getTitlePhaseUi();
+    public @NotNull PhaseUiTemplate getPhaseUiTemplateForUiMode(UiMode uiMode) {
+        return switch (uiMode) {
+            case TITLE -> PhaseUiTemplates.INSTANCE.getTitlePhaseWithTitle();
+            case OPTION_SELECT -> PhaseUiTemplates.INSTANCE.getTitlePhaseWithOptionSelect();
+            case SAVE_SLOT -> PhaseUiTemplates.INSTANCE.getTitlePhaseWithSaveSlot();
+            default -> throw new NotSupportedException("TitlePhase does not support template for ui mode: " + uiMode);
+        };
     }
 }

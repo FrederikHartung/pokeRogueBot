@@ -44,13 +44,13 @@ class WaveRunner(
         try {
             val phaseAsString = jsService.getCurrentPhaseAsString()
             val phase = phaseProvider.fromString(phaseAsString)
-            if (!(brain.phaseUiIsValidated(phase))) {
+            val uiMode = jsService.getUiMode()
+            if (!(brain.phaseUiIsValidated(phase, uiMode))) {
                 log.warn("Phase ${phaseAsString} is not validated, waiting...")
                 waitingService.waitEvenLonger()
                 brain.memorize(phase.phaseName)
                 return
             }
-            val uiMode = jsService.getUiMode()
 
             log.debug("phase detected: {}, gameMode: {}", phase.phaseName, uiMode)
             phaseProcessor.handlePhase(phase, uiMode)

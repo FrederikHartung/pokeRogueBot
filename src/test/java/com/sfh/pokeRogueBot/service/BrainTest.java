@@ -2,6 +2,7 @@ package com.sfh.pokeRogueBot.service;
 
 import com.sfh.pokeRogueBot.model.dto.SaveSlotDto;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
+import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplate;
 import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplates;
@@ -39,6 +40,7 @@ class BrainTest {
 
     Phase phase;
     RunProperty runProperty;
+    final UiMode uiMode = UiMode.MESSAGE;
 
     @BeforeEach
     void setUp() {
@@ -207,7 +209,7 @@ class BrainTest {
     @Test
     void phaseUiIsValidated_returns_the_response_of_the_longTermMemory(){
         doReturn(true).when(longTermMemory).isUiValidated(any());
-        assertTrue(brain.phaseUiIsValidated(phase));
+        assertTrue(brain.phaseUiIsValidated(phase, uiMode));
     }
 
     @Test
@@ -216,7 +218,7 @@ class BrainTest {
         Phase newPhase = mock(Phase.class);
         doReturn("newPhase").when(newPhase).getPhaseName();
 
-        boolean isValidated = brain.phaseUiIsValidated(newPhase);
+        boolean isValidated = brain.phaseUiIsValidated(newPhase, uiMode);
 
         assertFalse(isValidated);
         verify(longTermMemory, never()).memorizePhase(any());
@@ -230,7 +232,7 @@ class BrainTest {
         String noUiPhaseName = "noUiPhaseName";
         doReturn(noUiPhaseName).when(noUiPhase).getPhaseName();
 
-        boolean isValidated = brain.phaseUiIsValidated(noUiPhase);
+        boolean isValidated = brain.phaseUiIsValidated(noUiPhase, uiMode);
 
         assertTrue(isValidated);
         verify(longTermMemory).memorizePhase(noUiPhase.getPhaseName());
@@ -242,10 +244,10 @@ class BrainTest {
         UiPhase uiPhase = mock(UiPhase.class);
         String uiPhaseName = "uiPhaseName";
         doReturn(uiPhaseName).when(uiPhase).getPhaseName();
-        PhaseUiTemplate template = PhaseUiTemplates.INSTANCE.getSelectGenderPhaseUi();
-        doReturn(template).when(uiPhase).getPhaseUiTemplate();
+        PhaseUiTemplate template = PhaseUiTemplates.INSTANCE.getSelectGenderPhaseWithOptionSelect();
+        doReturn(template).when(uiPhase).getPhaseUiTemplateForUiMode(uiMode);
 
-        boolean isValidated = brain.phaseUiIsValidated(uiPhase);
+        boolean isValidated = brain.phaseUiIsValidated(uiPhase, uiMode);
 
         assertTrue(isValidated);
         verify(uiValidator).validateOrThrow(template, uiPhaseName);

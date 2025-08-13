@@ -5,6 +5,7 @@ import com.sfh.pokeRogueBot.model.dto.SaveSlotDto;
 import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
+import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.exception.StopRunException;
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem;
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
@@ -337,7 +338,7 @@ public class Brain {
         return false;
     }
 
-    public boolean phaseUiIsValidated(@NotNull Phase phase) {
+    public boolean phaseUiIsValidated(@NotNull Phase phase, @NotNull UiMode uiMode) {
         boolean isValidated = longTermMemory.isUiValidated(phase);
         if (isValidated) {
             return true;
@@ -348,7 +349,7 @@ public class Brain {
         }
         if (phase instanceof UiPhase uiPhase) {
             //validate phase and memorize or throw exception
-            PhaseUiTemplate template = uiPhase.getPhaseUiTemplate();
+            PhaseUiTemplate template = uiPhase.getPhaseUiTemplateForUiMode(uiMode);
             uiValidator.validateOrThrow(template, uiPhase.getPhaseName());
             longTermMemory.memorizePhase(uiPhase.getPhaseName());
             return true;
