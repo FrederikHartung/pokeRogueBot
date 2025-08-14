@@ -10,6 +10,7 @@ import com.sfh.pokeRogueBot.phase.impl.TitlePhase
 import com.sfh.pokeRogueBot.service.Brain
 import com.sfh.pokeRogueBot.service.WaitingService
 import com.sfh.pokeRogueBot.service.javascript.JsService
+import com.sfh.pokeRogueBot.service.javascript.JsUiService
 import org.openqa.selenium.JavascriptException
 import org.openqa.selenium.NoSuchWindowException
 import org.openqa.selenium.remote.UnreachableBrowserException
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Component
 @Component
 class WaveRunner(
     private val jsService: JsService,
+    private val jsUiService: JsUiService,
     private val phaseProcessor: PhaseProcessor,
     private val brain: Brain,
     private val phaseProvider: PhaseProvider,
@@ -52,6 +54,13 @@ class WaveRunner(
             val phaseAsString = jsService.getCurrentPhaseAsString()
             val phase = phaseProvider.fromString(phaseAsString)
             val uiMode = jsService.getUiMode()
+            if (uiMode == UiMode.MESSAGE) {
+                log.debug("uimode is message")
+                brain.memorize(phase.phaseName)
+                jsUiService.triggerMessageAdvance()
+                waitingService.waitBriefly()
+                return
+            }
 
             if (!(brain.phaseUiIsValidated(phase, uiMode))) {
                 log.warn("Phase ${phaseAsString} is not validated, waiting...")

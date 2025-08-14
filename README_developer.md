@@ -26,6 +26,9 @@ Add UI Validation to CommandPhase
 - [ ] learning of attacks
 - [ ] API for stopping the app or let it run again
 - [ ] ChooseRareModifierNeuron
+- [ ] remove getWaitAfterStage2x
+- [ ] move wait config to central service
+- [ ] remove all checks for ui-mode message from phases
 
 ## Open todo's with low priority:
 - [x] make the h2 database as default

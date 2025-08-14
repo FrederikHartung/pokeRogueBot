@@ -123,4 +123,9 @@ class JsUiService(private val jsClient: JsClient) {
     fun setCursorToIndex(phaseUiTemplate: PhaseUiTemplate, indexToSetCursorTo: Int): Boolean {
         return setCursorToIndex(phaseUiTemplate.handlerIndex, phaseUiTemplate.handlerName, indexToSetCursorTo)
     }
+
+    fun triggerMessageAdvance(): Boolean {
+        return jsClient.executeCommandAndGetResult("return window.poru.uihandler.triggerMessageAdvance();").toString()
+            .toBoolean()
+    }
 }

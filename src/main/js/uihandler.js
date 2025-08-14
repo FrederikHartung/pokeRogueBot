@@ -296,10 +296,11 @@ window.poru.uihandler = {
                 shopOptions = shopOptions.concat(shopOptionsDtoArrayArray[i]);
             }
 
+            const scene = window.poru.util.getBattleScene();
             return {
                 freeItems: freeItemsDtoArray,
                 shopItems: shopOptions,
-                money: modifierSelectUiHandler.scene.money
+                money: scene.money
             };
         }
         return null;
@@ -380,5 +381,20 @@ window.poru.uihandler = {
 
         return false
     },
+
+    triggerMessageAdvance: () => {
+        const UiMode_MESSAGE = 0;
+        const Button_ACTION = 6;
+        // Check if Ui Mode is Message and awaitingActionInput
+        const scene = window.poru.util.getBattleScene()
+        if (scene) {
+            if (scene.ui.getMode() === UiMode_MESSAGE && //message
+                scene.ui.getHandler().awaitingActionInput) {
+                scene.ui.processInput(Button_ACTION);
+                return true; // Action was triggered
+            }
+        }
+        return false; // No action taken (conditions not met)
+    }
 
 }

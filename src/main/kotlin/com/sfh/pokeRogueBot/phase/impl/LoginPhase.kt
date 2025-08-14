@@ -54,7 +54,8 @@ class LoginPhase(
             }
 
             UiMode.MESSAGE -> {
-                return arrayOf(pressSpace)
+                jsUIService.triggerMessageAdvance()
+                return arrayOf(waitBriefly)
             }
 
             else -> throw ActionUiModeNotSupportedException(uiMode, phaseName)

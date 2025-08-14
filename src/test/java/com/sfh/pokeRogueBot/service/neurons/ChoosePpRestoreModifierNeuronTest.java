@@ -52,6 +52,7 @@ class ChoosePpRestoreModifierNeuronTest {
         buyableItems.add(potion);
 
         ppRestoreItem = new PokemonPpRestoreModifierItem();
+        ppRestoreItem.setName("Test Item");
         ppRestoreItem.setTypeName(PokemonPpRestoreModifierItem.TARGET);
         ppRestoreItem.setRestorePoints(10);
         ppRestoreItem.setCost(150);

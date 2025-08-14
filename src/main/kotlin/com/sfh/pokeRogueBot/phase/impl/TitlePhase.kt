@@ -81,7 +81,7 @@ class TitlePhase(
                 val setCursorToSaveSlotSuccessful = jsUiService.setCursorToIndex(
                     template.handlerIndex,
                     template.handlerName,
-                    1 // Load Game
+                    saveSlotIndexToLoad // Load Game
                 )
                 if (setCursorToSaveSlotSuccessful) {
                     log.debug("Save slot index to load: $saveSlotIndexToLoad")
@@ -93,6 +93,7 @@ class TitlePhase(
             }
 
             UiMode.MESSAGE -> {
+                jsUiService.triggerMessageAdvance()
                 return arrayOf(waitBriefly)
             }
 

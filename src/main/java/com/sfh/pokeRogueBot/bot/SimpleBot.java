@@ -56,9 +56,13 @@ public class SimpleBot implements Bot {
 
     @Override
     public void start() {
+        log.info("Starting SimpleBot");
         fileManager.deleteTempData();
+        log.debug("Deleting temp data");
         brain.rememberLongTermMemories();
+        log.debug("Remember long term memories");
         browserClient.navigateTo(targetUrl);
+        log.debug("Navigated to Browsergame");
 
         while (runNumber <= maxRunsTillShutdown || maxRunsTillShutdown == -1) {
             try {

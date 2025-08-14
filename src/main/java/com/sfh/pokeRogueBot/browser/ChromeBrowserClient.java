@@ -55,6 +55,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
                 options.addArguments("user-data-dir=" + pathChromeUserDir);
                 options.addArguments("--profile-directory=" + chromeProfile);
             }
+            log.debug("Creating Chrome driver");
             this.driver = new ChromeDriver(options);
         }
 

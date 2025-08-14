@@ -73,5 +73,23 @@ object PhaseUiTemplates {
         -1,
         listOf()
     )
-
+    val selectModifierWithSelectModifier = PhaseUiTemplate(
+        6,
+        "ModifierSelectUiHandler",
+        false,
+        -1,
+        listOf()
+    )
+    val attemptCaptureWithConfirm = PhaseUiTemplate(
+        14,
+        "ConfirmUiHandler",
+        true,
+        4,
+        listOf(
+            "Summary",
+            "Pokédex",
+            "Yes",
+            "No"
+        )
+    )
 }

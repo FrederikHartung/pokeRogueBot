@@ -158,7 +158,6 @@ public class CommandPhase extends AbstractPhase implements UiPhase {
             throw new NotSupportedException("AttackDecision not supported in CommandPhase: " + attackDecision);
         } else if (uiMode == UiMode.BALL) {
             log.debug("GameMode.BALL, choosing strongest pokeball");
-            jsService.addBallToInventory(); //add the ball to the inventory
             int pokeballIndex = brain.selectStrongestPokeball();
             log.debug("Selected pokeball index: " + pokeballIndex);
             if (pokeballIndex == -1) {

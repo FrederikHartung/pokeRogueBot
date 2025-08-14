@@ -69,10 +69,6 @@ class JsService(private val jsClient: JsClient) {
         return jsClient.executeCommandAndGetResult("return window.poru.egg.getEggId();").toString().toLong()
     }
 
-    fun addBallToInventory() {
-        jsClient.executeCommandAndGetResult("window.poru.util.addBallToInventory();")
-    }
-
     fun getNumberOfSelectedStarters(): Int {
         val result =
             jsClient.executeCommandAndGetResult("return window.poru.starter.getNumberOfSelectedStarters();").toString()
