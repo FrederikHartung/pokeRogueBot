@@ -17,13 +17,13 @@ class JsConfig(
     private val gameSettingsConfig: GameSettingsConfig
 ) {
 
-    private val UTIL: Path = Paths.get(".", "bin", "js", "util.js")
-    private val POKE: Path = Paths.get(".", "bin", "js", "poke.js")
-    private val WAVE: Path = Paths.get(".", "bin", "js", "wave.js")
-    private val MODIFIER: Path = Paths.get(".", "bin", "js", "modifier.js")
-    private val STARTER: Path = Paths.get(".", "bin", "js", "starter.js")
-    private val EGG: Path = Paths.get(".", "bin", "js", "egg.js")
-    private val UI_HANDLER: Path = Paths.get(".", "bin", "js", "uihandler.js")
+    private val UTIL: Path = Paths.get(".", "src", "main", "js", "util.js")
+    private val POKE: Path = Paths.get(".", "src", "main", "js", "poke.js")
+    private val WAVE: Path = Paths.get(".", "src", "main", "js", "wave.js")
+    private val MODIFIER: Path = Paths.get(".", "src", "main", "js", "modifier.js")
+    private val STARTER: Path = Paths.get(".", "src", "main", "js", "starter.js")
+    private val EGG: Path = Paths.get(".", "src", "main", "js", "egg.js")
+    private val UI_HANDLER: Path = Paths.get(".", "src", "main", "js", "uihandler.js")
     private val GSON: Gson = GsonBuilder()
         .registerTypeAdapter(ChooseModifierItem::class.java, ChooseModifierItemDeserializer())
         .create()

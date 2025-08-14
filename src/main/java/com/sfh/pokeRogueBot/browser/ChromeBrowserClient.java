@@ -84,7 +84,12 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
                 log.debug("Browser closed");
             }
         } catch (Exception e) {
-            log.error("Error while closing browser: " + e.getMessage());
+            String message = e.getMessage();
+            if (message != null && message.contains("Timed out waiting for driver server to stop")) {
+                log.error("Error while closing browser: Timed out waiting for driver server to stop.");
+            } else {
+                log.error("Error while closing browser: " + message);
+            }
         }
     }
 
