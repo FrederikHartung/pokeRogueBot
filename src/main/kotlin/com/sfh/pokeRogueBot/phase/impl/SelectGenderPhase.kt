@@ -2,6 +2,7 @@ package com.sfh.pokeRogueBot.phase.impl
 
 import com.sfh.pokeRogueBot.model.enums.UiMode
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException
+import com.sfh.pokeRogueBot.model.exception.TemplateUiModeNotSupportedException
 import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplate
 import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplates
 import com.sfh.pokeRogueBot.phase.AbstractPhase
@@ -17,13 +18,14 @@ class SelectGenderPhase(
     private val jsUiService: JsUiService,
 ) : AbstractPhase(), UiPhase {
 
+    @Throws(TemplateUiModeNotSupportedException::class)
     override fun getPhaseUiTemplateForUiMode(uiMode: UiMode): PhaseUiTemplate {
         when (uiMode) {
             UiMode.OPTION_SELECT -> {
                 return PhaseUiTemplates.selectGenderPhaseWithOptionSelect
             }
 
-            else -> throw NotSupportedException("SelectGenderPhase does not support template for ui mode: " + uiMode)
+            else -> throw TemplateUiModeNotSupportedException(uiMode, phaseName)
         }
     }
 

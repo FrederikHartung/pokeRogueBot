@@ -5,14 +5,19 @@ import com.sfh.pokeRogueBot.model.decisions.AttackDecisionForDoubleFight;
 import com.sfh.pokeRogueBot.model.decisions.AttackDecisionForPokemon;
 import com.sfh.pokeRogueBot.model.dto.WaveAndTurnDto;
 import com.sfh.pokeRogueBot.model.enums.*;
+import com.sfh.pokeRogueBot.model.exception.ActionUiModeNotSupportedException;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
+import com.sfh.pokeRogueBot.model.exception.TemplateUiModeNotSupportedException;
+import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplate;
+import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplates;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
-import com.sfh.pokeRogueBot.phase.Phase;
+import com.sfh.pokeRogueBot.phase.UiPhase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.Brain;
 import com.sfh.pokeRogueBot.service.javascript.JsService;
 import com.sfh.pokeRogueBot.service.javascript.JsUiService;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedList;
@@ -20,7 +25,7 @@ import java.util.List;
 
 @Slf4j
 @Component
-public class CommandPhase extends AbstractPhase implements Phase {
+public class CommandPhase extends AbstractPhase implements UiPhase {
 
     public static final String NAME = "CommandPhase";
 
@@ -44,13 +49,9 @@ public class CommandPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws ActionUiModeNotSupportedException {
 
         WaveAndTurnDto waveAndTurnDto = this.jsService.getWaveAndTurnIndex();
-
-        if (null == waveAndTurnDto) {
-            throw new IllegalStateException("waveAndTurnDto is null");
-        }
 
         //when a new run started
         if (brain.shouldResetWaveIndex()) {
@@ -180,7 +181,7 @@ public class CommandPhase extends AbstractPhase implements Phase {
             };
         }
 
-        throw new NotSupportedException("GameMode not supported in CommandPhase: " + uiMode);
+        throw new ActionUiModeNotSupportedException(uiMode, getPhaseName());
     }
 
     private void addActionsToList(OwnAttackIndex ownAttackIndex, SelectedTarget selectedTarget, List<PhaseAction> actionList, MoveTargetAreaType moveTarget) {
@@ -235,5 +236,13 @@ public class CommandPhase extends AbstractPhase implements Phase {
                 actionList.add(this.pressSpace);
                 break;
         }
+    }
+
+    @Override
+    public @NotNull PhaseUiTemplate getPhaseUiTemplateForUiMode(@NotNull UiMode uiMode) throws TemplateUiModeNotSupportedException {
+        return switch (uiMode) {
+            case UiMode.COMMAND -> PhaseUiTemplates.INSTANCE.getCommandWithCommand();
+            default -> throw new TemplateUiModeNotSupportedException(uiMode, getPhaseName());
+        };
     }
 }

@@ -2,7 +2,7 @@ package com.sfh.pokeRogueBot.phase.impl;
 
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.model.enums.UiMode;
-import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
+import com.sfh.pokeRogueBot.model.exception.TemplateUiModeNotSupportedException;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.phase.actions.PressKeyPhaseAction;
@@ -60,6 +60,6 @@ class SelectStarterPhaseTest {
 
     @Test
     void an_unsupported_game_mode_is_passed() {
-        assertThrows(NotSupportedException.class, () -> selectStarterPhase.getActionsForUiMode(UiMode.ADMIN));
+        assertThrows(TemplateUiModeNotSupportedException.class, () -> selectStarterPhase.getActionsForUiMode(UiMode.ADMIN));
     }
 }

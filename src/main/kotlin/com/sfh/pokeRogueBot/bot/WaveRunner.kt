@@ -42,9 +42,17 @@ class WaveRunner(
         }
 
         try {
+            val isUiHandlerActive = jsService.isUiHandlerActive()
+            if (!isUiHandlerActive) {
+                waitingService.waitBriefly()
+                log.debug("uiHandlerActive is not active, skipping phase handling and wait for render")
+                return
+            }
+
             val phaseAsString = jsService.getCurrentPhaseAsString()
             val phase = phaseProvider.fromString(phaseAsString)
             val uiMode = jsService.getUiMode()
+
             if (!(brain.phaseUiIsValidated(phase, uiMode))) {
                 log.warn("Phase ${phaseAsString} is not validated, waiting...")
                 waitingService.waitEvenLonger()

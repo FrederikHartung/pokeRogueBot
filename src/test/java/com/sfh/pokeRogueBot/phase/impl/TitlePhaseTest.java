@@ -3,7 +3,7 @@ package com.sfh.pokeRogueBot.phase.impl;
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.enums.UiMode;
-import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
+import com.sfh.pokeRogueBot.model.exception.TemplateUiModeNotSupportedException;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.phase.actions.PressKeyPhaseAction;
@@ -162,7 +162,7 @@ class TitlePhaseTest {
 
     @Test
     void if_the_game_mode_is_not_supported_an_exception_is_thrown() {
-        assertThrows(NotSupportedException.class, () -> titlePhase.getActionsForUiMode(UiMode.ADMIN));
+        assertThrows(TemplateUiModeNotSupportedException.class, () -> titlePhase.getActionsForUiMode(UiMode.ADMIN));
     }
 
     @Test

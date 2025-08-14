@@ -82,4 +82,9 @@ class JsService(private val jsClient: JsClient) {
         }
         return result
     }
+
+    fun isUiHandlerActive(): Boolean {
+        return jsClient.executeCommandAndGetResult("return window.poru.util.isUiHandlerActive();").toString()
+            .toBoolean()
+    }
 }

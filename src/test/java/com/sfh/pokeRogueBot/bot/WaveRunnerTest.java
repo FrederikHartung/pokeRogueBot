@@ -66,6 +66,7 @@ class WaveRunnerTest {
         doReturn(MessagePhase.NAME).when(jsService).getCurrentPhaseAsString();
 
         doReturn(true).when(brain).phaseUiIsValidated(any(), any());
+        doReturn(true).when(jsService).isUiHandlerActive();
     }
 
     /**
@@ -150,5 +151,14 @@ class WaveRunnerTest {
         verify(waitingService).waitEvenLonger();
         verify(brain).memorize(any());
         verify(phaseProcessor, never()).handlePhase(any(), any());
+    }
+
+    @Test
+    void ifHandlerIsNotActiveTheRunnerWaitsAndReturns() {
+        doReturn(false).when(jsService).isUiHandlerActive();
+        waveRunner.handlePhaseInWave(runProperty);
+
+        verify(waitingService).waitBriefly();
+        verify(jsService, never()).getCurrentPhaseAsString();
     }
 }

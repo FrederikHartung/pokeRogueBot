@@ -66,5 +66,12 @@ object PhaseUiTemplates {
         -1,
         listOf()
     )
+    val commandWithCommand = PhaseUiTemplate(
+        2,
+        "CommandUiHandler",
+        false,
+        -1,
+        listOf()
+    )
 
 }

@@ -17,6 +17,7 @@
 - Migrated Ui specific JsService Methods to new Class JsUiService
 - Reduces Bloated JavaScript Error Messages to relevant Part
 - Deactivated Logging to File System
+- Added dedicated Exceptions for "ActionUiModeNotSupportedException" and "TemplateUiModeNotSupportedException"
 
 ## 2.3
 - added persisting of all encountered items in the modifier shop

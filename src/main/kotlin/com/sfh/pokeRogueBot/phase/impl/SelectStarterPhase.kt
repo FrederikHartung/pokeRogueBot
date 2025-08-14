@@ -1,7 +1,8 @@
 package com.sfh.pokeRogueBot.phase.impl
 
 import com.sfh.pokeRogueBot.model.enums.UiMode
-import com.sfh.pokeRogueBot.model.exception.NotSupportedException
+import com.sfh.pokeRogueBot.model.exception.ActionUiModeNotSupportedException
+import com.sfh.pokeRogueBot.model.exception.TemplateUiModeNotSupportedException
 import com.sfh.pokeRogueBot.model.run.RunProperty
 import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplate
 import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplates
@@ -76,7 +77,7 @@ class SelectStarterPhase(
                 throw IllegalStateException("Failed to set cursor to save slot: ${runProperty.saveSlotIndex}")
             }
 
-            else -> throw NotSupportedException("uiMode for actions not supported in SelectStarterPhase: $uiMode")
+            else -> throw ActionUiModeNotSupportedException(uiMode, phaseName)
         }
     }
 
@@ -86,7 +87,7 @@ class SelectStarterPhase(
             UiMode.OPTION_SELECT -> PhaseUiTemplates.starterSelectWithOptionSelect
             UiMode.CONFIRM -> PhaseUiTemplates.starterSelectWithConfirm
             UiMode.SAVE_SLOT -> PhaseUiTemplates.starterSelectWithSaveSlot
-            else -> throw NotSupportedException("uiMode for template not supported in SelectStarterPhase: $uiMode")
+            else -> throw TemplateUiModeNotSupportedException(uiMode, phaseName)
         }
     }
 }
