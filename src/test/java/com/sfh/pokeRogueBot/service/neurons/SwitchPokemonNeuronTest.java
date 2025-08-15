@@ -53,12 +53,14 @@ class SwitchPokemonNeuronTest {
         waveDto.setWavePokemon(wavePokemon);
 
         playerPokemon1 = new Pokemon();
+        playerPokemon1.setName("pokemon1");
         playerParty[0] = playerPokemon1;
         player1Species = new Species();
         playerPokemon1.setSpecies(player1Species);
         player1Species.setType1(PokeType.GRASS);
 
         playerPokemon2 = new Pokemon();
+        playerPokemon2.setName("pokemon2");
         playerParty[1] = playerPokemon2;
         player2Species = new Species();
         playerPokemon2.setSpecies(player2Species);
@@ -66,6 +68,7 @@ class SwitchPokemonNeuronTest {
         playerPokemon2.setHp(20);
 
         playerPokemon3 = new Pokemon();
+        playerPokemon3.setName("pokemon3");
         playerParty[2] = playerPokemon3;
         player3Species = new Species();
         playerPokemon3.setSpecies(player3Species);
@@ -73,6 +76,7 @@ class SwitchPokemonNeuronTest {
         playerPokemon3.setHp(30);
 
         enemyPokemon1 = new Pokemon();
+        enemyPokemon1.setName("EnemyPokemon1");
         enemyParty[0] = enemyPokemon1;
         enemyPokemon1.setHp(40);
         enemy1Species = new Species();

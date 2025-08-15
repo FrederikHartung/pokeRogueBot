@@ -6,7 +6,7 @@ If a good idea comes up, write it down and implement it later. Focus on the curr
 Only refactor, when it's really necessary.
 
 ## Current Task:
-Add UI Validation to CommandPhase
+Add DamageAnimPhase
 
 ## Open todo's with high priority:
 - [x] remove the db and spring data

@@ -92,4 +92,11 @@ object PhaseUiTemplates {
             "No"
         )
     )
+    val switchPhaseWithParty = PhaseUiTemplate(
+        8,
+        "PartyUiHandler",
+        false,
+        -1,
+        listOf()
+    )
 }

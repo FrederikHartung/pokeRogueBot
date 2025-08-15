@@ -50,6 +50,17 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
         if (null == this.driver) {
             ChromeOptions options = new ChromeOptions();
 
+            // Disable network-related features to speed up startup, especially on poor connections
+            options.addArguments("--disable-extensions");
+            options.addArguments("--disable-component-update");
+            options.addArguments("--disable-background-networking");
+            options.addArguments("--disable-sync");
+            options.addArguments("--disable-translate");
+            options.addArguments("--disable-domain-reliability");
+            options.addArguments("--disable-client-side-phishing-detection");
+            options.addArguments("--disable-dev-shm-usage");
+            options.addArguments("--no-sandbox");
+
             if (null != pathChromeUserDir && (!(pathChromeUserDir.isEmpty()))) {
                 log.debug("Using Chrome user dir: " + pathChromeUserDir + " and profile: " + chromeProfile);
                 options.addArguments("user-data-dir=" + pathChromeUserDir);
@@ -57,6 +68,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
             }
             log.debug("Creating Chrome driver");
             this.driver = new ChromeDriver(options);
+            log.debug("Chrome driver created");
         }
 
         driver.get(targetUrl);
