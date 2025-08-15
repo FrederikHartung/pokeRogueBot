@@ -54,7 +54,7 @@ class DamageCalculatingNeuronTest {
         playerPokemonStats.setSpecialDefense(30);
         playerPokemonStats.setSpeed(30);
 
-        playerMove1 = new Move();
+        playerMove1 = Move.Companion.createDefault();
         playerMoves[0] = playerMove1;
         playerMove1.setPPLeft(10);
         playerMove1.setUsable(true);
@@ -63,7 +63,7 @@ class DamageCalculatingNeuronTest {
         playerMove1.setName("Attack1");
         playerMove1.setPower(40);
 
-        playerMove2 = new Move();
+        playerMove2 = Move.Companion.createDefault();
         playerMoves[1] = playerMove2;
         playerMove2.setPPLeft(15);
         playerMove2.setUsable(true);
@@ -72,7 +72,7 @@ class DamageCalculatingNeuronTest {
         playerMove2.setName("Attack2");
         playerMove2.setPower(50);
 
-        playerMove3 = new Move();
+        playerMove3 = Move.Companion.createDefault();
         playerMoves[2] = playerMove3;
         playerMove3.setPPLeft(20);
         playerMove3.setUsable(true);
@@ -81,7 +81,7 @@ class DamageCalculatingNeuronTest {
         playerMove3.setName("Attack3");
         playerMove3.setPower(60);
 
-        playerMove4 = new Move();
+        playerMove4 = Move.Companion.createDefault();
         playerMoves[3] = playerMove4;
         playerMove4.setPPLeft(25);
         playerMove4.setUsable(true);

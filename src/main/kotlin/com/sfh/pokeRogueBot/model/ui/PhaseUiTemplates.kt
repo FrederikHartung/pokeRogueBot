@@ -99,4 +99,11 @@ object PhaseUiTemplates {
         -1,
         listOf()
     )
+    val learnMoveWithConfirm = PhaseUiTemplate(
+        14,
+        "ConfirmUiHandler",
+        true,
+        2,
+        listOf("Yes", "No")
+    )
 }

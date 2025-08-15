@@ -6,7 +6,7 @@ If a good idea comes up, write it down and implement it later. Focus on the curr
 Only refactor, when it's really necessary.
 
 ## Current Task:
-Add DamageAnimPhase
+Let the bot loose 5 Runs in a row and then create new Release
 
 ## Open todo's with high priority:
 - [x] remove the db and spring data

@@ -47,7 +47,7 @@ class LearnMoveNeuronTest {
 
         existingMoves = new Move[4];
 
-        move1 = new Move();
+        move1 = Move.Companion.createDefault();
         move1.setName("move1");
         move1.setPower(40);
         move1.setCategory(MoveCategory.PHYSICAL);
@@ -55,7 +55,7 @@ class LearnMoveNeuronTest {
         moveSet[0] = move1;
         existingMoves[0] = move1;
 
-        move2 = new Move();
+        move2 = Move.Companion.createDefault();
         move2.setName("move2");
         move2.setPower(40);
         move2.setCategory(MoveCategory.PHYSICAL);
@@ -63,7 +63,7 @@ class LearnMoveNeuronTest {
         moveSet[1] = move2;
         existingMoves[1] = move2;
 
-        move3 = new Move();
+        move3 = Move.Companion.createDefault();
         move3.setName("move3");
         move3.setPower(40);
         move3.setCategory(MoveCategory.SPECIAL);
@@ -71,7 +71,7 @@ class LearnMoveNeuronTest {
         moveSet[2] = move3;
         existingMoves[2] = move3;
 
-        move4 = new Move();
+        move4 = Move.Companion.createDefault();
         move4.setName("move4");
         move4.setPower(40);
         move4.setCategory(MoveCategory.SPECIAL);
@@ -79,7 +79,7 @@ class LearnMoveNeuronTest {
         moveSet[3] = move4;
         existingMoves[3] = move4;
 
-        newMove = new Move();
+        newMove = Move.Companion.createDefault();
         newMove.setName("newMove");
         newMove.setPower(100);
         newMove.setCategory(MoveCategory.PHYSICAL);

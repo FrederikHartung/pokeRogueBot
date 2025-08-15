@@ -1,7 +1,9 @@
 package com.sfh.pokeRogueBot.service.neurons;
 
 import com.sfh.pokeRogueBot.model.browser.pokemonjson.Move;
-import com.sfh.pokeRogueBot.model.modifier.*;
+import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem;
+import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
+import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.model.modifier.impl.PokemonHpRestoreModifierItem;
 import com.sfh.pokeRogueBot.model.modifier.impl.PokemonPpRestoreModifierItem;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
@@ -13,7 +15,8 @@ import java.util.LinkedList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 
 class ChoosePpRestoreModifierNeuronTest {
 
@@ -31,11 +34,11 @@ class ChoosePpRestoreModifierNeuronTest {
 
     Pokemon pokemon1 = new Pokemon();
     Move[] moveset1 = new Move[4];
-    Move move1 = new Move();
+    Move move1 = Move.Companion.createDefault();
 
     Pokemon pokemon2 = new Pokemon();
     Move[] moveset2 = new Move[4];
-    Move move2 = new Move();
+    Move move2 = Move.Companion.createDefault();
 
     @BeforeEach
     void setUp() {
