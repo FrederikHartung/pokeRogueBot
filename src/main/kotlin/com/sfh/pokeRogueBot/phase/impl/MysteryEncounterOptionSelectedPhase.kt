@@ -7,13 +7,8 @@ import com.sfh.pokeRogueBot.phase.actions.PhaseAction
 import org.springframework.stereotype.Component
 
 @Component
-class LevelCapPhase() : AbstractPhase(), NoUiPhase {
-
-    companion object {
-        val NAME = "LevelCapPhase"
-    }
-
-    override val phaseName = NAME
+class MysteryEncounterOptionSelectedPhase : AbstractPhase(), NoUiPhase {
+    override val phaseName = "MysteryEncounterOptionSelectedPhase"
 
     override fun getActionsForUiMode(uiMode: UiMode): Array<PhaseAction> {
         return arrayOf(this.waitBriefly)

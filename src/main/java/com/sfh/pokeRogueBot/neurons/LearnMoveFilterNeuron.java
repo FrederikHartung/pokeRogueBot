@@ -1,12 +1,12 @@
 package com.sfh.pokeRogueBot.neurons;
 
 import com.sfh.pokeRogueBot.model.browser.pokemonjson.Move;
-import com.sfh.pokeRogueBot.model.browser.pokemonjson.Species;
 import com.sfh.pokeRogueBot.model.decisions.LearnMoveDecision;
 import com.sfh.pokeRogueBot.model.enums.LearnMoveReasonType;
 import com.sfh.pokeRogueBot.model.enums.MoveCategory;
 import com.sfh.pokeRogueBot.model.enums.PokeType;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
+import com.sfh.pokeRogueBot.model.poke.Species;
 import org.springframework.stereotype.Component;
 
 @Component

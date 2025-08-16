@@ -1,12 +1,12 @@
 package com.sfh.pokeRogueBot.neurons;
 
 import com.sfh.pokeRogueBot.model.browser.pokemonjson.Move;
-import com.sfh.pokeRogueBot.model.browser.pokemonjson.Species;
 import com.sfh.pokeRogueBot.model.decisions.LearnMoveDecision;
 import com.sfh.pokeRogueBot.model.enums.LearnMoveReasonType;
 import com.sfh.pokeRogueBot.model.enums.MoveCategory;
 import com.sfh.pokeRogueBot.model.enums.PokeType;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
+import com.sfh.pokeRogueBot.model.poke.Species;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -33,9 +33,9 @@ class LearnMoveFilterNeuronTest {
         LearnMoveFilterNeuron objToSpy = new LearnMoveFilterNeuron();
         learnMoveFilterNeuron = spy(objToSpy);
 
-        pokemon = new Pokemon();
+        pokemon = Pokemon.Companion.createDefault();
 
-        species = new Species();
+        species = Species.Companion.createDefault();
         pokemon.setSpecies(species);
         species.setType1(PokeType.NORMAL);
         species.setType2(PokeType.FLYING);

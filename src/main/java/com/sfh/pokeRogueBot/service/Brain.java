@@ -36,13 +36,13 @@ public class Brain {
     private final ShortTermMemory shortTermMemory;
     private final LongTermMemory longTermMemory;
     private final ScreenshotClient screenshotClient;
+    private final UiValidator uiValidator;
 
     private final SwitchPokemonNeuron switchPokemonNeuron;
     private final ChooseModifierNeuron chooseModifierNeuron;
     private final CombatNeuron combatNeuron;
     private final CapturePokemonNeuron capturePokemonNeuron;
     private final LearnMoveNeuron learnMoveNeuron;
-    private final UiValidator uiValidator;
 
     private RunProperty runProperty = null;
     private boolean waveIndexReset = false;
@@ -163,6 +163,8 @@ public class Brain {
         this.waveDto = jsService.getWaveDto();
         this.chooseModifierDecision = null;
         runProperty.setWaveIndex(newWaveIndex);
+        runProperty.updateTeamSnapshot(waveDto.getWavePokemon().getPlayerParty());
+        runProperty.setMoney(waveDto.getMoney());
         log.debug("new wave: Waveindex: " + waveDto.getWaveIndex() + ", is trainer fight: " + waveDto.isTrainerFight());
 
         if (null != waveDto && waveDto.isWildPokemonFight()) {
@@ -173,19 +175,19 @@ public class Brain {
                     screenshotClient.persistScreenshot("shiny_pokemon_detected");
                     throw new StopRunException(message);
                 }
-                if (wildPokemon.getSpecies().isMythical()) {
+                if (wildPokemon.getSpecies().getMythical()) {
                     String message = "Mythical pokemon detected: " + wildPokemon.getName();
                     log.info(message);
                     screenshotClient.persistScreenshot("mythical_pokemon_detected");
                     throw new StopRunException(message);
                 }
-                if (wildPokemon.getSpecies().isLegendary()) {
+                if (wildPokemon.getSpecies().getLegendary()) {
                     String message = "Legendary pokemon detected: " + wildPokemon.getName();
                     log.info(message);
                     screenshotClient.persistScreenshot("legendary_pokemon_detected");
                     throw new StopRunException(message);
                 }
-                if (wildPokemon.getSpecies().isSubLegendary()) {
+                if (wildPokemon.getSpecies().getSubLegendary()) {
                     String message = "Sub Legendary pokemon detected: " + wildPokemon.getName();
                     log.info(message);
                     screenshotClient.persistScreenshot("sub_legendary_pokemon_detected");
@@ -204,6 +206,7 @@ public class Brain {
     }
 
     public void rememberLongTermMemories() {
+        log.debug("Remember long term memories");
         longTermMemory.rememberItems();
         longTermMemory.rememberUiValidatedPhases();
     }

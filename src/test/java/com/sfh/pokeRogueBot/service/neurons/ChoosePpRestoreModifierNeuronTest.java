@@ -32,11 +32,11 @@ class ChoosePpRestoreModifierNeuronTest {
 
     Pokemon[] playerParty = new Pokemon[6];
 
-    Pokemon pokemon1 = new Pokemon();
+    Pokemon pokemon1 = Pokemon.Companion.createDefault();
     Move[] moveset1 = new Move[4];
     Move move1 = Move.Companion.createDefault();
 
-    Pokemon pokemon2 = new Pokemon();
+    Pokemon pokemon2 = Pokemon.Companion.createDefault();
     Move[] moveset2 = new Move[4];
     Move move2 = Move.Companion.createDefault();
 

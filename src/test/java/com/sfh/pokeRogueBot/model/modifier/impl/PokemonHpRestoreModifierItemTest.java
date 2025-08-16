@@ -4,7 +4,7 @@ import com.sfh.pokeRogueBot.model.browser.pokemonjson.Stats;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class PokemonHpRestoreModifierItemTest {
 
@@ -14,9 +14,9 @@ class PokemonHpRestoreModifierItemTest {
         potion.setRestorePoints(20);
         potion.setRestorePercent(10);
 
-        Pokemon pokemon = new Pokemon();
+        Pokemon pokemon = Pokemon.Companion.createDefault();
         pokemon.setHp(80);
-        pokemon.setStats(new Stats());
+        pokemon.setStats(Stats.Companion.createDefault());
         pokemon.getStats().setHp(100);
 
         potion.apply(pokemon);
@@ -30,9 +30,9 @@ class PokemonHpRestoreModifierItemTest {
         potion.setRestorePoints(20);
         potion.setRestorePercent(10);
 
-        Pokemon pokemon = new Pokemon();
+        Pokemon pokemon = Pokemon.Companion.createDefault();
         pokemon.setHp(70);
-        pokemon.setStats(new Stats());
+        pokemon.setStats(Stats.Companion.createDefault());
         pokemon.getStats().setHp(100);
 
         potion.apply(pokemon);
@@ -46,9 +46,9 @@ class PokemonHpRestoreModifierItemTest {
         potion.setRestorePoints(5);
         potion.setRestorePercent(10);
 
-        Pokemon pokemon = new Pokemon();
+        Pokemon pokemon = Pokemon.Companion.createDefault();
         pokemon.setHp(70);
-        pokemon.setStats(new Stats());
+        pokemon.setStats(Stats.Companion.createDefault());
         pokemon.getStats().setHp(100);
 
         potion.apply(pokemon);

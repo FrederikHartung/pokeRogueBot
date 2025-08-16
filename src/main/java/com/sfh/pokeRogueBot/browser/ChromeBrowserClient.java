@@ -72,6 +72,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
         }
 
         driver.get(targetUrl);
+        log.debug("Navigated to " + targetUrl);
 
         try {
             Thread.sleep(waitTimeForRenderAfterNavigation);

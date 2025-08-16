@@ -5,6 +5,7 @@
 - Added Config Option to choose Gender of Player Character
 - Added Config Option for GameSettings
 - Added Support for UI Validation of a Phase
+- Added Export of RunResult after lost Runs
 ### Technical Changes:
 - Migrated to Java 21
 - Fixed JavaScript mapping Issues related to a newer Game Version

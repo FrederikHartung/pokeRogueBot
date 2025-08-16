@@ -106,4 +106,11 @@ object PhaseUiTemplates {
         2,
         listOf("Yes", "No")
     )
+    val mysteryEncounter = PhaseUiTemplate(
+        44,
+        "MysteryEncounterUiHandler",
+        false,
+        -1,
+        listOf()
+    )
 }

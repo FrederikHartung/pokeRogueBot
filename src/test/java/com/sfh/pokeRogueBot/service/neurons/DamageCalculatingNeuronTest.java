@@ -1,11 +1,11 @@
 package com.sfh.pokeRogueBot.service.neurons;
 
 import com.sfh.pokeRogueBot.model.browser.pokemonjson.Move;
-import com.sfh.pokeRogueBot.model.browser.pokemonjson.Species;
 import com.sfh.pokeRogueBot.model.browser.pokemonjson.Stats;
 import com.sfh.pokeRogueBot.model.decisions.PossibleAttackMove;
 import com.sfh.pokeRogueBot.model.enums.PokeType;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
+import com.sfh.pokeRogueBot.model.poke.Species;
 import com.sfh.pokeRogueBot.model.results.DamageMultiplier;
 import com.sfh.pokeRogueBot.neurons.DamageCalculatingNeuron;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,12 +40,12 @@ class DamageCalculatingNeuronTest {
         DamageCalculatingNeuron objToSpy = new DamageCalculatingNeuron();
         damageCalculatingNeuron = spy(objToSpy);
 
-        playerPokemon = new Pokemon();
-        player1Species = new Species();
+        playerPokemon = Pokemon.Companion.createDefault();
+        player1Species = Species.Companion.createDefault();
         playerPokemon.setSpecies(player1Species);
         playerPokemon.setMoveset(playerMoves);
 
-        playerPokemonStats = new Stats();
+        playerPokemonStats = Stats.Companion.createDefault();
         playerPokemon.setStats(playerPokemonStats);
         playerPokemonStats.setHp(100);
         playerPokemonStats.setAttack(30);
@@ -90,12 +90,12 @@ class DamageCalculatingNeuronTest {
         playerMove4.setName("Attack4");
         playerMove4.setPower(70);
 
-        enemyPokemon = new Pokemon();
-        enemy1Species = new Species();
+        enemyPokemon = Pokemon.Companion.createDefault();
+        enemy1Species = Species.Companion.createDefault();
         enemyPokemon.setSpecies(enemy1Species);
         enemy1Species.setType1(PokeType.NORMAL);
         enemy1Species.setType2(PokeType.FLYING);
-        enemyPokemonStats = new Stats();
+        enemyPokemonStats = Stats.Companion.createDefault();
 
         enemyPokemon.setStats(enemyPokemonStats);
         enemyPokemonStats.setHp(100);

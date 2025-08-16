@@ -21,10 +21,11 @@ app:
       enableTutorials: false
       enableVibration: false
       enableTouchControls: false
-
   long-term-memory:
     remember-items: false
     remember-ui-validated-phases: true
+  metric:
+    save-run-result-after-lost-run: false
 
 
 spring:

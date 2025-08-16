@@ -40,7 +40,7 @@ class EggHatchPhaseTest {
         EggHatchPhase objToSpy = new EggHatchPhase(screenshotClient, jsService, waitingService, fileManager, brain);
         eggHatchPhase = org.mockito.Mockito.spy(objToSpy);
 
-        hatchedPokemon = new Pokemon();
+        hatchedPokemon = Pokemon.Companion.createDefault();
 
         doReturn(eggId).when(jsService).getEggId();
         doReturn(hatchedPokemon).when(jsService).getHatchedPokemon();
