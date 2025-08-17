@@ -19,7 +19,8 @@
 - Reduces Bloated JavaScript Error Messages to relevant Part
 - Deactivated Logging to File System
 - Added dedicated Exceptions for "ActionUiModeNotSupportedException" and "TemplateUiModeNotSupportedException"
-- Added ChromeOptions to deactivate specific Chrome Features for faster ChromeStartø
+- Added ChromeOptions to deactivate specific Chrome Features for faster ChromeStart
+- Added GenericWaitPhase for Phases without Interaction
 
 ## 2.3
 - added persisting of all encountered items in the modifier shop

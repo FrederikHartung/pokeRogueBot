@@ -26,8 +26,7 @@ class TitlePhase(
         private val log = LoggerFactory.getLogger(TitlePhase::class.java)
     }
 
-    override val phaseName: String
-        get() = NAME
+    override val phaseName = NAME
 
     @Throws(NotSupportedException::class)
     override fun getActionsForUiMode(uiMode: UiMode): Array<PhaseAction> {
