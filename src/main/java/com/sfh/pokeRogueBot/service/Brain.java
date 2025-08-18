@@ -77,7 +77,7 @@ public class Brain {
         this.uiValidator = uiValidator;
     }
 
-    public SwitchDecision getFaintedPokemonSwitchDecision(boolean ignoreFirstPokemon) {
+    public SwitchDecision getPokemonSwitchDecision(boolean ignoreFirstPokemon) {
         waveDto = jsService.getWaveDto(); //always update current state
         return switchPokemonNeuron.getBestSwitchDecision(waveDto, ignoreFirstPokemon);
     }

@@ -322,7 +322,7 @@ window.poru.poke = {
         } else {
             return "UNKNOWN";
         }
-              
+
     },
 
     getMoveTargetAsString: (id) => {
@@ -348,7 +348,7 @@ window.poru.poke = {
             "PARTY",
             "CURSE"
         ];
-    
+
             if (id >= 0 && id < MoveTarget.length) {
                 return MoveTarget[id];
             } else {
@@ -384,7 +384,7 @@ window.poru.poke = {
             "CAREFUL",
             "QUIRKY"
         ];
-    
+
             if (id >= 0 && id < Nature.length) {
                 return Nature[id];
             } else {
@@ -415,7 +415,7 @@ window.poru.poke = {
             17: "FAIRY",
             18: "STELLAR"
         };
-    
+
         const nature = Nature[id];
             if (nature !== undefined) {
                 return nature;
@@ -423,13 +423,13 @@ window.poru.poke = {
                 return "UNKNOWN";
             }
     },
-    
+
     getGenderAsString: (id) => {
         const Gender = [
             "MALE",
             "FEMALE",
         ]
-    
+
         const gender = Gender[id];
         if(gender !== undefined){
             return gender;
@@ -449,7 +449,7 @@ window.poru.poke = {
             "BURN",
             "FAINT"
         ];
-        
+
         const statusEffect = StatusEffect[id];
         if (statusEffect !== undefined) {
             return statusEffect;
@@ -464,7 +464,7 @@ window.poru.poke = {
             "SPECIAL",
             "STATUS"
         ];
-    
+
         const category = Category[id];
         if (category !== undefined) {
             return category;
@@ -477,34 +477,32 @@ window.poru.poke = {
         if (!pokemon) {
             return null;
         }
-        
+
         var status = pokemon.status;
         if (!status) {
             return null;
         }
-        
+
         if (!status.effect) {
             return null;
         }
-        
+
         if (status.turnCount === null || status.turnCount === undefined) {
             return null;
         }
-        
+
         return {
             effect: window.poru.poke.getStatusEffectAsString(status.effect), // String
             turnCount: status.turnCount, // Integer
         };
     },
 
-    getMoveDto: (move, disabledId, ppUsed) => {
+    getMoveDto: (move, isUsable, ppUsed) => {
         if (!move) {
             return;
         }
 
-        var isMoveDisabled = disabledId === move.id;
-        var isMoveUsable = !isMoveDisabled && ((move.pp - ppUsed) > 0);
-        var moveDto = {
+        const moveDto = {
             name: move.name,
             id: move.id,
             accuracy: move.accuracy,
@@ -518,7 +516,7 @@ window.poru.poke = {
             movePp: move.pp,
             pPUsed: ppUsed,
             pPLeft: move.pp - ppUsed,
-            isUsable: isMoveUsable,
+            isUsable: isUsable,
         };
 
         return moveDto;
@@ -528,24 +526,24 @@ window.poru.poke = {
         if (!pokemon || !pokemon.moveset) {
             return [];
         }
-    
-        var moveSet = pokemon.moveset;
-        if(pokemon.summonData){
-            var disabledId = pokemon.summonData.disabledMove;
-        }
-        else if(pokemon.summonDataPrimer){        
-            var disabledId = pokemon.summonDataPrimer.disabledMove;
-        }
-        else{
-            var disabledId = -1;
-        }
 
-        var movesetDto = [];
-    
+        const moveSet = pokemon.moveset;
+        const movesetDto = [];
+
         moveSet.forEach(moveSetItem => {
-            movesetDto.push(window.poru.poke.getMoveDto(moveSetItem.getMove(), disabledId, moveSetItem.ppUsed));
+            let isUsable = false;
+            try {
+                const result = moveSetItem.isUsable(pokemon);
+                isUsable = result === true;
+            } catch (error) {
+                console.log("poru error in isUsable: " + error)
+                isUsable = false;
+            }
+            const move = moveSetItem.getMove()
+            const ppUsed = moveSetItem.ppUsed
+            movesetDto.push(window.poru.poke.getMoveDto(move, isUsable, ppUsed));
         });
-    
+
         return movesetDto;
     },
 
@@ -658,7 +656,7 @@ window.poru.poke = {
         if (!pokemon || !pokemon.summonData) {
             return null;
         }
-    
+
         var battleStats = pokemon.summonData.battleStats;
         if (battleStats) {
             return {
@@ -674,7 +672,7 @@ window.poru.poke = {
     },
 
     getPokemonDto: (pokemon) => {
-    
+
         let dto = {
             active: pokemon.active, //boolean
             aiType: pokemon.aiType, //integer
@@ -718,17 +716,17 @@ window.poru.poke = {
             battleStats: window.poru.poke.getBattleStats(pokemon), //object
             trainerSlot: pokemon.trainerSlot, //integer
             variant: pokemon.variant, //integer
-    
+
             //battleInfo
             boss: pokemon.battleInfo.boss, //boolean
             bossSegments: pokemon.battleInfo.bossSegments, //integer
             player: pokemon.battleInfo.player, //boolean
         }
-    
+
         if(pokemon.compatibleTms){
             dto.compatibleTms = pokemon.compatibleTms; //array of integers
         }
-    
+
         return dto;
     },
 

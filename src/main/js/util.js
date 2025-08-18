@@ -45,6 +45,11 @@ window.poru.util = {
         return scene?.party?.[0] ?? null;
     },
 
+    getPlayerPokemonOnIndex: (index) => {
+        const scene = getScene();
+        return scene?.party?.[index] ?? null;
+    },
+
     // --- Modifiers ---
     getModifiers: () => {
         const scene = getScene();
@@ -207,5 +212,38 @@ window.poru.util = {
             }
         }
         return false
+    },
+
+    currentBattleHasEnemyTrainer: () => {
+        const scene = window.poru.util.getBattleScene()
+        if(scene){
+            if(scene.currentBattle.trainer){
+                return true
+            }
+        }
+        return false
+    },
+
+    fixFaintedEnemyBug: (index) => {
+        const scene = window.poru.util.getBattleScene()
+        if(scene){
+            const currentBattle = scene.currentBattle
+            if(currentBattle){
+                const enemyParty = currentBattle.enemyParty
+                if(enemyParty && enemyParty.length >= index){
+                    const pokemon = enemyParty[index]
+                    if(pokemon){
+                        pokemon.hp = 1
+                        console.log("set hp successfully")
+                        return;
+                    }
+                }
+                else{
+                    console.log("party not found or length to small: " + enemyParty.length)
+                }
+            }
+        }
+        console.log("set hp not successfully")
     }
+
 };

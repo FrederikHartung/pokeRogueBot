@@ -28,6 +28,10 @@ data class WaveDto(
         return battleType == BattleType.TRAINER
     }
 
+    fun isMysteryEntcounter(): Boolean {
+        return battleType == BattleType.MYSTERY_ENCOUNTER
+    }
+
     fun isWildPokemonFight(): Boolean {
         return battleType == BattleType.WILD
     }

@@ -8,6 +8,7 @@ import com.sfh.pokeRogueBot.model.enums.StatusEffect;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.poke.Species;
 import com.sfh.pokeRogueBot.neurons.CapturePokemonNeuron;
+import com.sfh.pokeRogueBot.service.javascript.JsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -16,6 +17,7 @@ import static org.mockito.Mockito.*;
 
 class CapturePokemonNeuronTest {
 
+    JsService jsService;
     CapturePokemonNeuron capturePokemonNeuron;
 
     WaveDto waveDto;
@@ -27,9 +29,8 @@ class CapturePokemonNeuronTest {
 
     @BeforeEach
     void setUp() {
-
-        CapturePokemonNeuron objToSpy = new CapturePokemonNeuron();
-        capturePokemonNeuron = spy(objToSpy);
+        jsService = mock(JsService.class);
+        capturePokemonNeuron = new CapturePokemonNeuron(jsService);
 
         waveDto = mock(WaveDto.class);
         wildPokemon = Pokemon.Companion.createDefault();
@@ -59,7 +60,7 @@ class CapturePokemonNeuronTest {
         doReturn(true).when(waveDto).hasPokeBalls();
         doReturn(true).when(waveDto).isOnlyOneEnemyLeft();
         doReturn(pokeballs).when(waveDto).getPokeballCount();
-
+        doReturn(true).when(jsService).currentBattleHasEnemyTrainer();
     }
 
     @Test

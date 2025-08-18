@@ -130,13 +130,14 @@ window.poru.wave = {
     },
 
     getBattleTypeString: (index) => {
-        const biomeMapping = {
+        const battleTypeMapping = {
           0: "WILD",
           1: "TRAINER",
           2: "CLEAR",
+          3: "MYSTERY_ENCOUNTER"
         };
 
-        return biomeMapping[index] || "UNKNOWN";
+        return battleTypeMapping[index] || "UNKNOWN";
     },
 
     getBattleStyleString: (index) => {

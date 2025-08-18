@@ -4,6 +4,7 @@ import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import com.sfh.pokeRogueBot.model.enums.PokeBallType;
 import com.sfh.pokeRogueBot.model.poke.PokeBallCatchRate;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
+import com.sfh.pokeRogueBot.service.javascript.JsService;
 import lombok.extern.slf4j.Slf4j;
 import net.bytebuddy.asm.Advice;
 import org.springframework.stereotype.Component;
@@ -11,6 +12,12 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 public class CapturePokemonNeuron {
+
+    private final JsService jsService;
+
+    public CapturePokemonNeuron(JsService jsService) {
+        this.jsService = jsService;
+    }
 
     /**
      * @return if the pokemon should be captured
@@ -23,6 +30,10 @@ public class CapturePokemonNeuron {
 
         if (waveDto.isTrainerFight()) {
             log.debug("can't capture: trainer fight");
+            return false;
+        }
+
+        if(waveDto.isMysteryEntcounter() && jsService.currentBattleHasEnemyTrainer()) {
             return false;
         }
 
@@ -46,7 +57,7 @@ public class CapturePokemonNeuron {
         }
 
         if (wildPokemon.isShiny()) {
-            throw new IllegalStateException("Shiny pokemon should be captured manualy");
+            throw new IllegalStateException("Shiny pokemon should be captured manually");
         }
 
         if (((double) wildPokemon.getHp() / wildPokemon.getStats().getHp()) > 0.9) {

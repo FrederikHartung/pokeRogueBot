@@ -31,7 +31,7 @@ class SwitchPhase(
     override fun getActionsForUiMode(uiMode: UiMode): Array<PhaseAction> {
         return when (uiMode) {
             UiMode.PARTY -> { // maybe an own pokemon fainted
-                val switchDecision = brain.getFaintedPokemonSwitchDecision(ignoreFirstPokemon)
+                val switchDecision = brain.getPokemonSwitchDecision(ignoreFirstPokemon)
                 ignoreFirstPokemon = false
                 val switchSuccessful = jsUiService.setPartyCursor(switchDecision.index)
 

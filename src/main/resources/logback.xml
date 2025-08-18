@@ -2,6 +2,9 @@
     <!-- File Appender -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <prudent>true</prudent>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>./Logs/app.%d{yyyy-MM-dd}.log</fileNamePattern>
             <maxHistory>5</maxHistory>
@@ -22,6 +25,6 @@
     <!-- Root logger with two appenders -->
     <root level="debug">
         <appender-ref ref="CONSOLE"/>
-        <!--        <appender-ref ref="FILE"/>-->
+        <appender-ref ref="FILE"/>
     </root>
 </configuration>

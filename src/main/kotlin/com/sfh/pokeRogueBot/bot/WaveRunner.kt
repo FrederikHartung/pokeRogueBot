@@ -80,8 +80,7 @@ class WaveRunner(
                 }
 
                 is NoSuchWindowException, is UnreachableBrowserException -> {
-                    log.error("Unexpected error, quitting app: ${e.message}")
-                    e.printStackTrace()
+                    log.warn("Unexpected error, quitting app: ${e.message}")
                     System.exit(1)
                 }
                 else -> {
@@ -117,7 +116,12 @@ class WaveRunner(
                 log.error("unable to save and quit, we are not in title phase")
             }
         } catch (e: Exception) {
-            log.error("unable to save and quit: ${e.message}")
+            if(e.message?.startsWith("no such window: target window already closed") == true) {
+                log.warn("unable to save and quit: no such window: target window already closed")
+            }
+            else{
+                log.error("unable to save and quit: ${e.message}")
+            }
         }
 
         runProperty.status = RunStatus.RELOAD_APP

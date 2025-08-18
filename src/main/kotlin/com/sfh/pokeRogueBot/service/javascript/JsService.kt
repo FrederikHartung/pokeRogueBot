@@ -83,4 +83,9 @@ class JsService(private val jsClient: JsClient) {
         return jsClient.executeCommandAndGetResult("return window.poru.util.isUiHandlerActive();").toString()
             .toBoolean()
     }
+
+    fun currentBattleHasEnemyTrainer(): Boolean {
+        return jsClient.executeCommandAndGetResult("return window.poru.util.currentBattleHasEnemyTrainer();").toString()
+            .toBoolean()
+    }
 }

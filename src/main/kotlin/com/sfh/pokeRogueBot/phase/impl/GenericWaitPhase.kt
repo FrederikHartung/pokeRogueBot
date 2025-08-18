@@ -37,3 +37,15 @@ class ShowAbilityPhase : GenericWaitPhase()
 
 @Component
 class StatStageChangePhase : GenericWaitPhase()
+
+@Component
+class PostMysteryEncounterPhase: GenericWaitPhase()
+
+@Component
+class WeatherEffectPhase: GenericWaitPhase()
+
+@Component
+class MysteryEncounterBattlePhase: GenericWaitPhase()
+
+@Component
+class PokemonAnimPhase: GenericWaitPhase()

@@ -238,7 +238,7 @@ window.poru.uihandler = {
         if(handler && handler.active){
             const pokemonDto = window.poru.poke.getPokemonDto(handler.pokemon);
             const newMove = handler.newMove;
-            const newMoveDto = window.poru.poke.getMoveDto(newMove, -1, 0);
+            const newMoveDto = window.poru.poke.getMoveDto(newMove, true, 0);
             pokemonDto.moveset.push(newMoveDto);
 
             return pokemonDto;

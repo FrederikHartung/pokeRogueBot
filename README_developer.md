@@ -30,6 +30,7 @@ Let the bot loose 20 Runs in a row and then create new Release
 - [ ] move wait config to central service
 - [ ] remove all checks for ui-mode message from phases
 - [ ] optimise RunResult Data Class (less unused properties)
+- [ ] Mystery Encounter Reward phase
 
 ## Open todo's with low priority:
 - [x] make the h2 database as default

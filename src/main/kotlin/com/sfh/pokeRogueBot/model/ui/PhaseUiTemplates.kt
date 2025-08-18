@@ -113,4 +113,11 @@ object PhaseUiTemplates {
         -1,
         listOf()
     )
+    val mysteryEncounterRewardWithOptionSelect = PhaseUiTemplate(
+        15,
+        "OptionSelectUiHandler",
+        false,
+        -1,
+        listOf()
+    )
 }

@@ -3,9 +3,11 @@ package com.sfh.pokeRogueBot.phase.impl;
 import com.sfh.pokeRogueBot.model.decisions.AttackDecision;
 import com.sfh.pokeRogueBot.model.decisions.AttackDecisionForDoubleFight;
 import com.sfh.pokeRogueBot.model.decisions.AttackDecisionForPokemon;
+import com.sfh.pokeRogueBot.model.decisions.SwitchDecision;
 import com.sfh.pokeRogueBot.model.dto.WaveAndTurnDto;
 import com.sfh.pokeRogueBot.model.enums.*;
 import com.sfh.pokeRogueBot.model.exception.ActionUiModeNotSupportedException;
+import com.sfh.pokeRogueBot.model.exception.NoAttackMoveFoundException;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.model.exception.TemplateUiModeNotSupportedException;
 import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplate;
@@ -17,6 +19,7 @@ import com.sfh.pokeRogueBot.service.Brain;
 import com.sfh.pokeRogueBot.service.javascript.JsService;
 import com.sfh.pokeRogueBot.service.javascript.JsUiService;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
@@ -103,10 +106,24 @@ public class CommandPhase extends AbstractPhase implements UiPhase {
                         this.pressSpace,
                 };
             }
-        } else if (uiMode == UiMode.FIGHT) { //which move to use
+        }
+        else if (uiMode == UiMode.FIGHT) { //which move to use
 
             log.debug("GameMode.FIGHT, getting attackDecision");
-            AttackDecision attackDecision = brain.getAttackDecision();
+            AttackDecision attackDecision;
+            try{
+                attackDecision = brain.getAttackDecision();
+            }
+            catch (NoAttackMoveFoundException e){
+                log.debug("no attack move found, going to switch pokemon screen");
+                return new PhaseAction[]{
+                        this.pressBackspace,
+                        this.waitBriefly,
+                        this.pressArrowDown,
+                        this.waitBriefly,
+                        this.pressSpace,
+                };
+            }
 
             if (null == attackDecision && brain.tryToCatchPokemon()) {
                 log.debug("CapturePokemon decision chosen because attackDecision is null and is capture pokemon");
@@ -156,7 +173,8 @@ public class CommandPhase extends AbstractPhase implements UiPhase {
             }
 
             throw new NotSupportedException("AttackDecision not supported in CommandPhase: " + attackDecision);
-        } else if (uiMode == UiMode.BALL) {
+        }
+        else if (uiMode == UiMode.BALL) {
             log.debug("GameMode.BALL, choosing strongest pokeball");
             int pokeballIndex = brain.selectStrongestPokeball();
             log.debug("Selected pokeball index: " + pokeballIndex);
@@ -172,12 +190,21 @@ public class CommandPhase extends AbstractPhase implements UiPhase {
             }
 
             throw new IllegalStateException("Could not set pokeball cursor to index: " + pokeballIndex);
-        } else if (uiMode == UiMode.MESSAGE) {
-            log.warn("GameMode.MESSAGE detected in CommandPhase. Expecting error...");
-            return new PhaseAction[]{
-                    this.pressSpace,
-                    this.waitEvenLonger
-            };
+        }
+        else if (uiMode == UiMode.PARTY) {
+            SwitchDecision switchDecision = brain.getPokemonSwitchDecision(true);
+            boolean switchSuccessful = jsUiService.setPartyCursor(switchDecision.getIndex());
+
+            if (switchSuccessful) {
+                return new PhaseAction[]{
+                        this.waitBriefly,
+                        this.pressSpace, //choose the pokemon
+                        this.waitBriefly, //render confirm button
+                        this.pressSpace //confirm the switch
+                };
+            } else {
+                throw new IllegalStateException("Could not set cursor to party pokemon");
+            }
         }
 
         throw new ActionUiModeNotSupportedException(uiMode, getPhaseName());
