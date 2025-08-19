@@ -116,7 +116,7 @@ window.poru.uihandler = {
     saveAndQuit: () => {
         var scene = window.poru.util.getBattleScene();
         if(scene){
-            scene.gameData?.saveAll().then(() => scene.reset(true));
+            scene.gameData?.saveAll(true, true, true, true).then(() => scene.reset(true));
             return true;
         }
         return false;
