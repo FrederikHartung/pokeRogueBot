@@ -4,6 +4,7 @@ import com.sfh.pokeRogueBot.model.decisions.*;
 import com.sfh.pokeRogueBot.model.enums.ChoosenAttackMoveType;
 import com.sfh.pokeRogueBot.model.enums.OwnPokemonIndex;
 import com.sfh.pokeRogueBot.model.enums.SelectedTarget;
+import com.sfh.pokeRogueBot.model.exception.NoAttackMoveFoundException;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -88,7 +89,7 @@ public class CombatNeuron {
             return new ChosenAttackMove(bestMove.getIndex(), bestMove.getAttackName(), bestMove.getMinDamage(), ChoosenAttackMoveType.MAX_DAMAGE, bestMove.getAttackPriority(), bestMove.getAttackerSpeed(), index, bestMove.getTargetAreaType());
         }
 
-        throw new IllegalStateException("No max dmg attack move found");
+        throw new NoAttackMoveFoundException();
     }
 
     private ChosenAttackMove getFinisherMove(List<PossibleAttackMove> possibleAttackMoves, int enemyHealth, OwnPokemonIndex index) {

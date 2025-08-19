@@ -1,7 +1,32 @@
 app:
+  game:
+    chooseGender: "Boy" #Boy or Girl
+    settings:
+      # Game Speed - allowed values: X1(1.0), X1_25(1.25), X1_5(1.5), X2(2.0), X2_5(2.5), X3(3.0), X4(4.0), X5(5.0)
+      gameSpeed: "X5"
+      # HP Bar Speed - allowed values: NORMAL(0), FAST(1), FASTER(2), SKIP(3)
+      hpBarSpeed: "SKIP"
+      # EXP Gains Speed - allowed values: NORMAL(0), FAST(1), FASTER(2), SKIP(3)
+      expGainsSpeed: "SKIP"
+      # EXP Party Display - allowed values: NORMAL(0), LEVEL_UP_NOTIFICATION(1), SKIP(2)
+      expParty: "SKIP"
+      skipSeenDialogues: true
+      # Egg Skip - allowed values: NEVER(0), ASK(1), ALWAYS(2)
+      eggSkipPreference: "ALWAYS"
+      # Battle Style - allowed values: SWITCH(0), SET(1)
+      battleStyle: "SET"
+      commandCursorMemory: false
+      enableRetries: false
+      hideIvs: true
+      enableTutorials: false
+      enableVibration: false
+      enableTouchControls: false
   long-term-memory:
     remember-items: false
     remember-ui-validated-phases: true
+  metric:
+    save-run-result-after-lost-run: false
+
 
 spring:
   application:
@@ -9,7 +34,7 @@ spring:
 
 browser:
   target-url: "http://localhost:8000/"
-  closeOnExit: false
+  closeOnExit: true
   waitTimeForRenderAfterNavigation: 8000
   pathChromeUserDir:
   chromeProfile: "Default"
@@ -47,9 +72,6 @@ bot:
   backoffPerRetry: 2500
   maxRunsTillShutdown: -1
   startBotOnStartup: true
-
-starter:
-  ids: 7, 4, 1 #the pokedex ids of the starter pokemons
 
 logging:
   level:

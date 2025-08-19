@@ -56,6 +56,13 @@ This is a Spring Boot application (version 3.5.3) written in mixed Java/Kotlin t
 - `ImageClient`: Screenshot capture for debugging
 - JavaScript bridge reads game state without modifying it
 
+**JavaScript Integration (bin/js/):**
+- Custom JavaScript code is injected into the browser and attached to `window.poru.*` namespace
+- This namespace organization (e.g., `window.poru.uihandler`, `window.poru.util`) makes debugging easier
+- Developers and users can manually call functions in the browser console for testing: `window.poru.uihandler.getUiHandler(15)`
+- All bot JavaScript functions are easily accessible and discoverable through the organized namespace structure
+- Enables manual debugging and testing of game state interactions directly in browser DevTools
+
 **Phase System (src/main/java/com/sfh/pokeRogueBot/phase/):**
 - `Phase`: Abstract base for all game states
 - `PhaseProcessor`: Handles phase transitions and actions  

@@ -1,10 +1,10 @@
 package com.sfh.pokeRogueBot.service.neurons;
 
-import com.sfh.pokeRogueBot.model.browser.pokemonjson.Species;
 import com.sfh.pokeRogueBot.model.decisions.SwitchDecision;
 import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import com.sfh.pokeRogueBot.model.enums.PokeType;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
+import com.sfh.pokeRogueBot.model.poke.Species;
 import com.sfh.pokeRogueBot.model.run.WavePokemon;
 import com.sfh.pokeRogueBot.neurons.DamageCalculatingNeuron;
 import com.sfh.pokeRogueBot.neurons.SwitchPokemonNeuron;
@@ -52,30 +52,34 @@ class SwitchPokemonNeuronTest {
         wavePokemon.setPlayerParty(playerParty);
         waveDto.setWavePokemon(wavePokemon);
 
-        playerPokemon1 = new Pokemon();
+        playerPokemon1 = Pokemon.Companion.createDefault();
+        playerPokemon1.setName("pokemon1");
         playerParty[0] = playerPokemon1;
-        player1Species = new Species();
+        player1Species = Species.Companion.createDefault();
         playerPokemon1.setSpecies(player1Species);
         player1Species.setType1(PokeType.GRASS);
 
-        playerPokemon2 = new Pokemon();
+        playerPokemon2 = Pokemon.Companion.createDefault();
+        playerPokemon2.setName("pokemon2");
         playerParty[1] = playerPokemon2;
-        player2Species = new Species();
+        player2Species = Species.Companion.createDefault();
         playerPokemon2.setSpecies(player2Species);
         player2Species.setType1(PokeType.ELECTRIC);
         playerPokemon2.setHp(20);
 
-        playerPokemon3 = new Pokemon();
+        playerPokemon3 = Pokemon.Companion.createDefault();
+        playerPokemon3.setName("pokemon3");
         playerParty[2] = playerPokemon3;
-        player3Species = new Species();
+        player3Species = Species.Companion.createDefault();
         playerPokemon3.setSpecies(player3Species);
         player3Species.setType1(PokeType.WATER);
         playerPokemon3.setHp(30);
 
-        enemyPokemon1 = new Pokemon();
+        enemyPokemon1 = Pokemon.Companion.createDefault();
+        enemyPokemon1.setName("EnemyPokemon1");
         enemyParty[0] = enemyPokemon1;
         enemyPokemon1.setHp(40);
-        enemy1Species = new Species();
+        enemy1Species = Species.Companion.createDefault();
         enemy1Species.setType1(PokeType.FIRE);
         enemyPokemon1.setSpecies(enemy1Species);
     }

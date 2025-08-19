@@ -1,27 +1,29 @@
 package com.sfh.pokeRogueBot.bot;
 
-import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
+import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.exception.ActionLoopDetectedException;
 import com.sfh.pokeRogueBot.model.exception.UnsupportedPhaseException;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
-import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.PhaseProcessor;
 import com.sfh.pokeRogueBot.phase.PhaseProvider;
 import com.sfh.pokeRogueBot.phase.impl.*;
 import com.sfh.pokeRogueBot.service.Brain;
-import com.sfh.pokeRogueBot.service.JsService;
 import com.sfh.pokeRogueBot.service.WaitingService;
+import com.sfh.pokeRogueBot.service.javascript.JsService;
+import com.sfh.pokeRogueBot.service.javascript.JsUiService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 class WaveRunnerTest {
 
     WaveRunner waveRunner;
     JsService jsService;
+    JsUiService jsUiService;
     PhaseProcessor phaseProcessor;
     Brain brain;
     PhaseProvider phaseProvider;
@@ -37,12 +39,12 @@ class WaveRunnerTest {
     @BeforeEach
     void setUp() {
         jsService = mock(JsService.class);
+        jsUiService = mock(JsUiService.class);
         phaseProcessor = mock(PhaseProcessor.class);
         phaseProvider = mock(PhaseProvider.class);
         brain = mock(Brain.class);
         waitingService = mock(WaitingService.class);
-        WaveRunner objToSpy = new WaveRunner(jsService, phaseProcessor, brain, phaseProvider, waitingService, true);
-        waveRunner = spy(objToSpy);
+        waveRunner = new WaveRunner(jsService, jsUiService, phaseProcessor, brain, phaseProvider, waitingService, true);
 
         runProperty = new RunProperty(1);
         titlePhase = mock(TitlePhase.class);
@@ -65,7 +67,9 @@ class WaveRunnerTest {
         doReturn(titlePhase).when(phaseProvider).fromString(TitlePhase.NAME);
         doReturn(MessagePhase.NAME).when(jsService).getCurrentPhaseAsString();
 
-        doReturn(true).when(brain).phaseUiIsValidated(any());
+        doReturn(true).when(brain).phaseUiIsValidated(any(), any());
+        doReturn(true).when(jsService).isUiHandlerActive();
+        doReturn(true).when(jsUiService).triggerMessageAdvance();
     }
 
     /**
@@ -141,14 +145,35 @@ class WaveRunnerTest {
     }
 
     @Test
-    void phaseUiIsValidated_returns_false_and_the_runners_waits_and_memorize_the_phase_and_returns(){
-        doReturn(false).when(brain).phaseUiIsValidated(any());
+    void phaseUiIsValidated_returns_false_and_the_runners_waits_and_memorize_the_phase_and_returns() throws Exception {
+        doReturn(false).when(brain).phaseUiIsValidated(any(), any());
 
         waveRunner.handlePhaseInWave(runProperty);
 
-        verify(brain).phaseUiIsValidated(any());
+        verify(brain).phaseUiIsValidated(any(), any());
         verify(waitingService).waitEvenLonger();
         verify(brain).memorize(any());
-        verify(jsService, never()).getUiMode();
+        verify(phaseProcessor, never()).handlePhase(any(), any());
+    }
+
+    @Test
+    void ifHandlerIsNotActiveTheRunnerWaitsAndReturns() {
+        doReturn(false).when(jsService).isUiHandlerActive();
+        waveRunner.handlePhaseInWave(runProperty);
+
+        verify(waitingService).waitBriefly();
+        verify(jsService, never()).getCurrentPhaseAsString();
+    }
+
+    @Test
+    void ifUiModeIsMessageJsUiServiceTriggerMessageAdvance() {
+        doReturn(UiMode.MESSAGE).when(jsService).getUiMode();
+
+        waveRunner.handlePhaseInWave(runProperty);
+
+        verify(jsUiService).triggerMessageAdvance();
+        verify(waitingService).waitBriefly();
+        verify(brain).memorize(any());
+        verify(brain, never()).phaseUiIsValidated(any(), any());
     }
 }

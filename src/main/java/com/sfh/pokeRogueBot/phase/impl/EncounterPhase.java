@@ -2,13 +2,15 @@ package com.sfh.pokeRogueBot.phase.impl;
 
 import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
+import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplate;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
-import com.sfh.pokeRogueBot.phase.Phase;
+import com.sfh.pokeRogueBot.phase.UiPhase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
 @Component
-public class EncounterPhase extends AbstractPhase implements Phase {
+public class EncounterPhase extends AbstractPhase implements UiPhase {
 
     public static final String NAME = "EncounterPhase";
 
@@ -35,5 +37,10 @@ public class EncounterPhase extends AbstractPhase implements Phase {
         }
 
         throw new NotSupportedException("GameMode not supported in EncounterPhase: " + uiMode);
+    }
+
+    @Override
+    public @NotNull PhaseUiTemplate getPhaseUiTemplateForUiMode(@NotNull UiMode uiMode) {
+        return null;
     }
 }

@@ -50,15 +50,29 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
         if (null == this.driver) {
             ChromeOptions options = new ChromeOptions();
 
+            // Disable network-related features to speed up startup, especially on poor connections
+            options.addArguments("--disable-extensions");
+            options.addArguments("--disable-component-update");
+            options.addArguments("--disable-background-networking");
+            options.addArguments("--disable-sync");
+            options.addArguments("--disable-translate");
+            options.addArguments("--disable-domain-reliability");
+            options.addArguments("--disable-client-side-phishing-detection");
+            options.addArguments("--disable-dev-shm-usage");
+            options.addArguments("--no-sandbox");
+
             if (null != pathChromeUserDir && (!(pathChromeUserDir.isEmpty()))) {
                 log.debug("Using Chrome user dir: " + pathChromeUserDir + " and profile: " + chromeProfile);
                 options.addArguments("user-data-dir=" + pathChromeUserDir);
                 options.addArguments("--profile-directory=" + chromeProfile);
             }
+            log.debug("Creating Chrome driver");
             this.driver = new ChromeDriver(options);
+            log.debug("Chrome driver created");
         }
 
         driver.get(targetUrl);
+        log.debug("Navigated to " + targetUrl);
 
         try {
             Thread.sleep(waitTimeForRenderAfterNavigation);
@@ -84,7 +98,12 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
                 log.debug("Browser closed");
             }
         } catch (Exception e) {
-            log.error("Error while closing browser: " + e.getMessage());
+            String message = e.getMessage();
+            if (message != null && message.contains("Timed out waiting for driver server to stop")) {
+                log.warn("Error while closing browser: Timed out waiting for driver server to stop.");
+            } else {
+                log.error("Error while closing browser: " + message);
+            }
         }
     }
 
@@ -131,7 +150,17 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
             log.error("browser unreachable, error: " + e.getMessage());
             throw e;
         } catch (JavascriptException e) {
-            log.error("JavaScript Exception occured, error: " + e.getMessage());
+            String message = e.getMessage();
+            // Extract just the core error message without full stack trace
+            if (message != null && message.contains("javascript error: ")) {
+                String coreError = message.substring(message.indexOf("javascript error: ") + 18);
+                if (coreError.contains("\n")) {
+                    coreError = coreError.substring(0, coreError.indexOf("\n"));
+                }
+                log.error("JavaScript error: {} (command: {})", coreError, jsCommand);
+            } else {
+                log.error("JavaScript Exception: {} (command: {})", message, jsCommand);
+            }
             throw e;
         } catch (Exception e) {
             log.error("Error while executing JS command: " + jsCommand + ", error: " + e.getMessage());

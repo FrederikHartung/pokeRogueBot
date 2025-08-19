@@ -1,7 +1,7 @@
 package com.sfh.pokeRogueBot.file;
 
-import com.sfh.pokeRogueBot.model.browser.pokemonjson.Iv;
 import com.sfh.pokeRogueBot.model.browser.pokemonjson.Stats;
+import com.sfh.pokeRogueBot.model.poke.Iv;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -27,6 +27,7 @@ public class FileManager {
     private int fileIndex = 0;
 
     public void deleteTempData() {
+        log.debug("Deleting temp data");
         File folder = new File(DIR_TEMP + File.separator);
         File[] files = folder.listFiles();
         if (files == null) {
@@ -107,9 +108,9 @@ public class FileManager {
         message.add(pokemon.getName());
         message.add("id: " + pokemon.getSpecies().getSpeciesId());
         message.add("shiny: " + pokemon.isShiny());
-        message.add("legendary: " + pokemon.getSpecies().isLegendary());
-        message.add("sub legendary: " + pokemon.getSpecies().isSubLegendary());
-        message.add("mystical: " + pokemon.getSpecies().isMythical());
+        message.add("legendary: " + pokemon.getSpecies().getLegendary());
+        message.add("sub legendary: " + pokemon.getSpecies().getSubLegendary());
+        message.add("mystical: " + pokemon.getSpecies().getMythical());
         message.add("base stats total: " + pokemon.getSpecies().getBaseTotal());
 
         Stats baseStats = pokemon.getSpecies().getBaseStats();

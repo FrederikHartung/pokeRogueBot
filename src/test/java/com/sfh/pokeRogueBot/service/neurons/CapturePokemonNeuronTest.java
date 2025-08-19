@@ -1,13 +1,14 @@
 package com.sfh.pokeRogueBot.service.neurons;
 
-import com.sfh.pokeRogueBot.model.browser.pokemonjson.Species;
 import com.sfh.pokeRogueBot.model.browser.pokemonjson.Stats;
 import com.sfh.pokeRogueBot.model.browser.pokemonjson.Status;
 import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import com.sfh.pokeRogueBot.model.enums.PokeBallType;
 import com.sfh.pokeRogueBot.model.enums.StatusEffect;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
+import com.sfh.pokeRogueBot.model.poke.Species;
 import com.sfh.pokeRogueBot.neurons.CapturePokemonNeuron;
+import com.sfh.pokeRogueBot.service.javascript.JsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -16,6 +17,7 @@ import static org.mockito.Mockito.*;
 
 class CapturePokemonNeuronTest {
 
+    JsService jsService;
     CapturePokemonNeuron capturePokemonNeuron;
 
     WaveDto waveDto;
@@ -27,14 +29,13 @@ class CapturePokemonNeuronTest {
 
     @BeforeEach
     void setUp() {
-
-        CapturePokemonNeuron objToSpy = new CapturePokemonNeuron();
-        capturePokemonNeuron = spy(objToSpy);
+        jsService = mock(JsService.class);
+        capturePokemonNeuron = new CapturePokemonNeuron(jsService);
 
         waveDto = mock(WaveDto.class);
-        wildPokemon = new Pokemon();
+        wildPokemon = Pokemon.Companion.createDefault();
 
-        species = new Species();
+        species = Species.Companion.createDefault();
         species.setCatchRate(45);
         wildPokemon.setSpecies(species);
 
@@ -42,7 +43,7 @@ class CapturePokemonNeuronTest {
         wildPokemon.setStatus(status);
         status.setEffect(StatusEffect.NONE);
 
-        wildPokemonStats = new Stats();
+        wildPokemonStats = Stats.Companion.createDefault();
         wildPokemon.setStats(wildPokemonStats);
         wildPokemonStats.setHp(20);
         wildPokemon.setHp(20);
@@ -59,7 +60,7 @@ class CapturePokemonNeuronTest {
         doReturn(true).when(waveDto).hasPokeBalls();
         doReturn(true).when(waveDto).isOnlyOneEnemyLeft();
         doReturn(pokeballs).when(waveDto).getPokeballCount();
-
+        doReturn(true).when(jsService).currentBattleHasEnemyTrainer();
     }
 
     @Test
@@ -90,7 +91,7 @@ class CapturePokemonNeuronTest {
     void pokemon_should_not_be_captured_if_a_boss_has_to_much_hp_left() {
         wildPokemon.setBoss(true);
         wildPokemon.setHp(50);
-        Stats stats = new Stats();
+        Stats stats = Stats.Companion.createDefault();
         stats.setHp(100);
         wildPokemon.setStats(stats);
         wildPokemon.setBossSegments(3);

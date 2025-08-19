@@ -2,6 +2,7 @@ package com.sfh.pokeRogueBot.service;
 
 import com.sfh.pokeRogueBot.model.dto.SaveSlotDto;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
+import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplate;
 import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplates;
@@ -11,6 +12,8 @@ import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.ScreenshotClient;
 import com.sfh.pokeRogueBot.phase.UiPhase;
 import com.sfh.pokeRogueBot.phase.impl.SelectGenderPhase;
+import com.sfh.pokeRogueBot.service.javascript.JsService;
+import com.sfh.pokeRogueBot.service.javascript.JsUiService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -22,6 +25,7 @@ class BrainTest {
 
     Brain brain;
     JsService jsService;
+    JsUiService jsUiService;
     ShortTermMemory shortTermMemory;
     LongTermMemory longTermMemory;
     ChooseModifierNeuron chooseModifierNeuron;
@@ -34,12 +38,15 @@ class BrainTest {
     ScreenshotClient screenshotClient;
     SaveSlotDto[] saveSlots;
 
-    final Phase phase = new SelectGenderPhase();
+    Phase phase;
     RunProperty runProperty;
+    final UiMode uiMode = UiMode.MESSAGE;
 
     @BeforeEach
     void setUp() {
         jsService = mock(JsService.class);
+        jsUiService = mock(JsUiService.class);
+        phase = new SelectGenderPhase("Male", jsUiService);
         shortTermMemory = mock(ShortTermMemory.class);
         longTermMemory = mock(LongTermMemory.class);
         chooseModifierNeuron = mock(ChooseModifierNeuron.class);
@@ -51,6 +58,7 @@ class BrainTest {
         uiValidator = mock(UiValidator.class);
         brain = new Brain(
                 jsService,
+                jsUiService,
                 shortTermMemory,
                 longTermMemory,
                 screenshotClient,
@@ -201,7 +209,7 @@ class BrainTest {
     @Test
     void phaseUiIsValidated_returns_the_response_of_the_longTermMemory(){
         doReturn(true).when(longTermMemory).isUiValidated(any());
-        assertTrue(brain.phaseUiIsValidated(phase));
+        assertTrue(brain.phaseUiIsValidated(phase, uiMode));
     }
 
     @Test
@@ -210,7 +218,7 @@ class BrainTest {
         Phase newPhase = mock(Phase.class);
         doReturn("newPhase").when(newPhase).getPhaseName();
 
-        boolean isValidated = brain.phaseUiIsValidated(newPhase);
+        boolean isValidated = brain.phaseUiIsValidated(newPhase, uiMode);
 
         assertFalse(isValidated);
         verify(longTermMemory, never()).memorizePhase(any());
@@ -224,7 +232,7 @@ class BrainTest {
         String noUiPhaseName = "noUiPhaseName";
         doReturn(noUiPhaseName).when(noUiPhase).getPhaseName();
 
-        boolean isValidated = brain.phaseUiIsValidated(noUiPhase);
+        boolean isValidated = brain.phaseUiIsValidated(noUiPhase, uiMode);
 
         assertTrue(isValidated);
         verify(longTermMemory).memorizePhase(noUiPhase.getPhaseName());
@@ -236,10 +244,10 @@ class BrainTest {
         UiPhase uiPhase = mock(UiPhase.class);
         String uiPhaseName = "uiPhaseName";
         doReturn(uiPhaseName).when(uiPhase).getPhaseName();
-        PhaseUiTemplate template = PhaseUiTemplates.INSTANCE.getSelectGenderPhaseUi();
-        doReturn(template).when(uiPhase).getPhaseUiTemplate();
+        PhaseUiTemplate template = PhaseUiTemplates.INSTANCE.getSelectGenderPhaseWithOptionSelect();
+        doReturn(template).when(uiPhase).getPhaseUiTemplateForUiMode(uiMode);
 
-        boolean isValidated = brain.phaseUiIsValidated(uiPhase);
+        boolean isValidated = brain.phaseUiIsValidated(uiPhase, uiMode);
 
         assertTrue(isValidated);
         verify(uiValidator).validateOrThrow(template, uiPhaseName);

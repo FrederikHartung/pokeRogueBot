@@ -7,7 +7,7 @@ import com.sfh.pokeRogueBot.phase.AbstractPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.Brain;
-import com.sfh.pokeRogueBot.service.JsService;
+import com.sfh.pokeRogueBot.service.javascript.JsUiService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -18,11 +18,11 @@ public class MoveEffectPhase extends AbstractPhase implements Phase {
     public static final String NAME = "MoveEffectPhase";
 
     private final Brain brain;
-    private final JsService jsService;
+    private final JsUiService jsUiService;
 
-    public MoveEffectPhase(Brain brain, JsService jsService) {
+    public MoveEffectPhase(Brain brain, JsUiService jsUiService) {
         this.brain = brain;
-        this.jsService = jsService;
+        this.jsUiService = jsUiService;
     }
 
     @Override
@@ -47,7 +47,7 @@ public class MoveEffectPhase extends AbstractPhase implements Phase {
 
         SwitchDecision switchDecision = brain.getBestSwitchDecision();
 
-        boolean setCursorSuccess = jsService.setPartyCursor(switchDecision.getIndex());
+        boolean setCursorSuccess = jsUiService.setPartyCursor(switchDecision.getIndex());
         if (!setCursorSuccess) {
             throw new IllegalStateException("Could not set cursor to index: " + switchDecision.getIndex());
         }

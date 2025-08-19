@@ -3,12 +3,12 @@ package com.sfh.pokeRogueBot.phase.impl;
 import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
-import com.sfh.pokeRogueBot.phase.Phase;
+import com.sfh.pokeRogueBot.phase.NoUiPhase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import org.springframework.stereotype.Component;
 
 @Component
-public class EvolutionPhase extends AbstractPhase implements Phase {
+public class EvolutionPhase extends AbstractPhase implements NoUiPhase {
 
     public static final String NAME = "EvolutionPhase";
 

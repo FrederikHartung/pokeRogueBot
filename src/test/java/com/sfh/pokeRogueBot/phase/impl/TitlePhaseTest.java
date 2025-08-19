@@ -1,19 +1,20 @@
 package com.sfh.pokeRogueBot.phase.impl;
 
-import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.enums.KeyToPress;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
-import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
+import com.sfh.pokeRogueBot.model.enums.UiMode;
+import com.sfh.pokeRogueBot.model.exception.TemplateUiModeNotSupportedException;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.phase.actions.PressKeyPhaseAction;
 import com.sfh.pokeRogueBot.phase.actions.WaitPhaseAction;
 import com.sfh.pokeRogueBot.service.Brain;
-import com.sfh.pokeRogueBot.service.JsService;
+import com.sfh.pokeRogueBot.service.javascript.JsUiService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 class TitlePhaseTest {
@@ -23,30 +24,29 @@ class TitlePhaseTest {
 
     TitlePhase titlePhase;
     Brain brain;
-    JsService jsService;
+    JsUiService jsUiService;
 
     RunProperty runProperty;
 
     @BeforeEach
     void setUp() {
         brain = mock(Brain.class);
-        jsService = mock(JsService.class);
-        TitlePhase objToSpy = new TitlePhase(brain, jsService);
-        titlePhase = spy(objToSpy);
+        jsUiService = mock(JsUiService.class);
+        titlePhase = new TitlePhase(brain, jsUiService);
 
         runProperty = new RunProperty(1);
         doReturn(runProperty).when(brain).getRunProperty();
-        doReturn(true).when(jsService).setCursorToLoadGame();
-        doReturn(true).when(jsService).setCursorToNewGame();
+        doReturn(true).when(jsUiService).setCursorToLoadGame();
+        doReturn(true).when(jsUiService).setCursorToNewGame();
         doReturn(0).when(brain).getSaveSlotIndexToLoad();
-        doReturn(true).when(jsService).setCursorToSaveSlot(anyInt());
+        doReturn(true).when(jsUiService).setCursorToIndex(anyInt(), anyString(), anyInt());
     }
 
     @Test
     void if_null_is_returned_when_getting_a_runproperty_a_exception_is_thrown(){
         doReturn(null).when(brain).getRunProperty();
 
-        assertThrows(IllegalStateException.class, () -> titlePhase.getActionsForUiMode(null));
+        assertThrows(IllegalStateException.class, () -> titlePhase.getActionsForUiMode(UiMode.TITLE));
     }
 
     /*
@@ -78,8 +78,8 @@ class TitlePhaseTest {
 
         PhaseAction[] actions = titlePhase.getActionsForUiMode(gameModeTitle);
 
-        verify(jsService, times(1)).setCursorToLoadGame();
-        verify(jsService, never()).setCursorToNewGame();
+        verify(jsUiService, times(1)).setCursorToLoadGame();
+        verify(jsUiService, never()).setCursorToNewGame();
         assertEquals(1, actions.length);
         assertEquals(PressKeyPhaseAction.class, actions[0].getClass());
         assertEquals(KeyToPress.SPACE, ((PressKeyPhaseAction)actions[0]).getKeyToPress());
@@ -90,7 +90,7 @@ class TitlePhaseTest {
     void if_the_cursor_could_not_be_set_to_load_game_an_exception_is_thrown(){
         runProperty.setSaveSlotIndex(-1);
         doReturn(true).when(brain).shouldLoadGame();
-        doReturn(false).when(jsService).setCursorToLoadGame();
+        doReturn(false).when(jsUiService).setCursorToLoadGame();
 
         assertThrows(IllegalStateException.class, () -> titlePhase.getActionsForUiMode(gameModeTitle));
     }
@@ -101,8 +101,8 @@ class TitlePhaseTest {
 
         PhaseAction[] actions = titlePhase.getActionsForUiMode(gameModeTitle);
 
-        verify(jsService, times(1)).setCursorToNewGame();
-        verify(jsService, never()).setCursorToLoadGame();
+        verify(jsUiService, times(1)).setCursorToNewGame();
+        verify(jsUiService, never()).setCursorToLoadGame();
         assertEquals(1, actions.length);
         assertEquals(PressKeyPhaseAction.class, actions[0].getClass());
         assertEquals(KeyToPress.SPACE, ((PressKeyPhaseAction)actions[0]).getKeyToPress());
@@ -112,7 +112,7 @@ class TitlePhaseTest {
     @Test
     void if_the_cursor_could_not_be_set_to_new_game_an_exception_is_thrown(){
         runProperty.setSaveSlotIndex(-1);
-        doReturn(false).when(jsService).setCursorToNewGame();
+        doReturn(false).when(jsUiService).setCursorToNewGame();
 
         assertThrows(IllegalStateException.class, () -> titlePhase.getActionsForUiMode(gameModeTitle));
     }
@@ -137,7 +137,7 @@ class TitlePhaseTest {
 
         PhaseAction[] actions = titlePhase.getActionsForUiMode(gameModeSaveSlot);
 
-        verify(jsService, times(1)).setCursorToSaveSlot(0);
+        verify(jsUiService, times(1)).setCursorToIndex(anyInt(), anyString(), anyInt());
         assertEquals(2, actions.length);
         assertEquals(PressKeyPhaseAction.class, actions[0].getClass());
         assertEquals(KeyToPress.SPACE, ((PressKeyPhaseAction) actions[0]).getKeyToPress());
@@ -147,22 +147,22 @@ class TitlePhaseTest {
     @Test
     void if_the_cursor_could_not_be_set_to_save_slot_an_exception_is_thrown(){
         doReturn(0).when(brain).getSaveSlotIndexToLoad();
-        doReturn(false).when(jsService).setCursorToSaveSlot(anyInt());
+        doReturn(false).when(jsUiService).setCursorToIndex(anyInt(), anyString(), anyInt());
 
         assertThrows(IllegalStateException.class, () -> titlePhase.getActionsForUiMode(gameModeSaveSlot));
     }
 
     @Test
-    void if_the_game_mode_is_message_a_space_is_pressed() {
-        PhaseAction[] actions = titlePhase.getActionsForUiMode(UiMode.MESSAGE);
+    void if_the_game_mode_is_title_a_space_is_pressed() {
+        PhaseAction[] actions = titlePhase.getActionsForUiMode(UiMode.TITLE);
 
         assertEquals(1, actions.length);
-        assertEquals(WaitPhaseAction.class, actions[0].getClass());
+        assertEquals(PressKeyPhaseAction.class, actions[0].getClass());
     }
 
     @Test
     void if_the_game_mode_is_not_supported_an_exception_is_thrown() {
-        assertThrows(NotSupportedException.class, () -> titlePhase.getActionsForUiMode(UiMode.ADMIN));
+        assertThrows(TemplateUiModeNotSupportedException.class, () -> titlePhase.getActionsForUiMode(UiMode.ADMIN));
     }
 
     @Test

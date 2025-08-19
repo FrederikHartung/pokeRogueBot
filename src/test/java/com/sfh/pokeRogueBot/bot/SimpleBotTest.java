@@ -1,11 +1,13 @@
 package com.sfh.pokeRogueBot.bot;
 
 import com.sfh.pokeRogueBot.browser.BrowserClient;
+import com.sfh.pokeRogueBot.config.JsConfig;
 import com.sfh.pokeRogueBot.file.FileManager;
+import com.sfh.pokeRogueBot.model.SystemExitWrapper;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.service.Brain;
-import com.sfh.pokeRogueBot.service.JsService;
+import com.sfh.pokeRogueBot.service.MetricService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -15,11 +17,13 @@ import static org.mockito.Mockito.*;
 class SimpleBotTest {
 
     SimpleBot bot;
-    JsService jsService;
+    JsConfig jsConfig;
     FileManager fileManager;
     BrowserClient browserClient;
     Brain brain;
     WaveRunner waveRunner;
+    SystemExitWrapper systemExitWrapper;
+    MetricService metricService;
 
     RunProperty runProperty;
 
@@ -28,13 +32,14 @@ class SimpleBotTest {
 
     @BeforeEach
     void setUp() {
-        jsService = mock(JsService.class);
+        jsConfig = mock(JsConfig.class);
         fileManager = mock(FileManager.class);
         browserClient = mock(BrowserClient.class);
         brain = mock(Brain.class);
         waveRunner = mock(WaveRunner.class);
-        SimpleBot objToSpy = getBot();
-        bot = spy(objToSpy);
+        systemExitWrapper = mock(SystemExitWrapper.class);
+        metricService = mock(MetricService.class);
+        bot = createBot(maxRunsTillShutdown);
 
         runProperty = mock(RunProperty.class);
         doReturn(runProperty).when(brain).getRunProperty();
@@ -73,7 +78,7 @@ class SimpleBotTest {
     @Test
     void on_start_jsService_should_be_initialized(){
         bot.start();
-        verify(jsService).init();
+        verify(jsConfig).init();
     }
 
     /**
@@ -92,15 +97,13 @@ class SimpleBotTest {
      */
     @Test
     void if_maxRunsTillShutdown_is_not_negativ_only_a_specific_number_of_runs_is_excecuted(){
-        maxRunsTillShutdown = 3;
-        SimpleBot localBot = spy(getBot());
 
         doReturn(RunStatus.LOST).when(runProperty).getStatus();
 
-        localBot.start();
+        bot.start();
         verify(brain, times(maxRunsTillShutdown)).getRunProperty();
         verify(brain, times(maxRunsTillShutdown)).clearShortTermMemory();
-        verify(jsService, times(maxRunsTillShutdown)).init();
+        verify(jsConfig, times(maxRunsTillShutdown)).init();
         verify(browserClient).navigateTo(targetUrl);
         verify(fileManager).deleteTempData();
         verify(brain).rememberLongTermMemories();
@@ -144,18 +147,16 @@ class SimpleBotTest {
     @Test
     void a_run_property_with_status_exit_app_is_handled(){
         maxRunsTillShutdown = 3;
-        SimpleBot localBot = spy(getBot());
 
         doReturn(RunStatus.EXIT_APP).when(runProperty).getStatus();
-        doNothing().when(localBot).exitApp();
 
-        localBot.start();
+        bot.start();
         verify(brain, times(1)).getRunProperty();
         verify(brain, times(1)).clearShortTermMemory();
-        verify(jsService).init();
+        verify(jsConfig).init();
         verify(browserClient).navigateTo(targetUrl);
         verify(fileManager).deleteTempData();
-        verify(localBot).exitApp();
+        verify(systemExitWrapper).exit(anyInt());
     }
 
     /**
@@ -165,28 +166,31 @@ class SimpleBotTest {
      */
     @Test
     void a_run_property_with_status_reload_app_is_handled(){
-        maxRunsTillShutdown = 3;
-        SimpleBot localBot = spy(getBot());
         doReturn(RunStatus.RELOAD_APP).when(runProperty).getStatus();
 
+        int maxRunsTillShutdown = 3;
+        SimpleBot localBot = createBot(3);
         localBot.start();
         verify(brain, times(maxRunsTillShutdown)).getRunProperty();
         verify(brain, times(maxRunsTillShutdown)).clearShortTermMemory();
-        verify(jsService, times(maxRunsTillShutdown)).init();
+        verify(jsConfig, times(maxRunsTillShutdown)).init();
         //one initial on start and one for every time where RELOAD_APP is returned
         verify(browserClient, times(maxRunsTillShutdown + 1)).navigateTo(targetUrl);
         verify(fileManager).deleteTempData();
     }
 
-    private SimpleBot getBot(){
+    private SimpleBot createBot(int maxRunsTillShutdown) {
         return new SimpleBot(
-                jsService,
+                jsConfig,
                 fileManager,
                 browserClient,
                 brain,
                 waveRunner,
+                systemExitWrapper,
+                metricService,
                 targetUrl,
                 maxRunsTillShutdown
         );
     }
+
 }

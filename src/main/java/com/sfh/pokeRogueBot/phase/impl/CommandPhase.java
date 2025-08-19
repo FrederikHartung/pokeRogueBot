@@ -3,15 +3,24 @@ package com.sfh.pokeRogueBot.phase.impl;
 import com.sfh.pokeRogueBot.model.decisions.AttackDecision;
 import com.sfh.pokeRogueBot.model.decisions.AttackDecisionForDoubleFight;
 import com.sfh.pokeRogueBot.model.decisions.AttackDecisionForPokemon;
+import com.sfh.pokeRogueBot.model.decisions.SwitchDecision;
 import com.sfh.pokeRogueBot.model.dto.WaveAndTurnDto;
 import com.sfh.pokeRogueBot.model.enums.*;
+import com.sfh.pokeRogueBot.model.exception.ActionUiModeNotSupportedException;
+import com.sfh.pokeRogueBot.model.exception.NoAttackMoveFoundException;
 import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
+import com.sfh.pokeRogueBot.model.exception.TemplateUiModeNotSupportedException;
+import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplate;
+import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplates;
 import com.sfh.pokeRogueBot.phase.AbstractPhase;
-import com.sfh.pokeRogueBot.phase.Phase;
+import com.sfh.pokeRogueBot.phase.UiPhase;
 import com.sfh.pokeRogueBot.phase.actions.PhaseAction;
 import com.sfh.pokeRogueBot.service.Brain;
-import com.sfh.pokeRogueBot.service.JsService;
+import com.sfh.pokeRogueBot.service.javascript.JsService;
+import com.sfh.pokeRogueBot.service.javascript.JsUiService;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedList;
@@ -19,17 +28,22 @@ import java.util.List;
 
 @Slf4j
 @Component
-public class CommandPhase extends AbstractPhase implements Phase {
+public class CommandPhase extends AbstractPhase implements UiPhase {
 
     public static final String NAME = "CommandPhase";
 
     private final Brain brain;
     private final JsService jsService;
+    private final JsUiService jsUiService;
     int lastWaveIndex = -1;
 
-    public CommandPhase(Brain brain, JsService jsService) {
+    public CommandPhase(Brain brain,
+                        JsService jsService,
+                        JsUiService jsUiService
+    ) {
         this.brain = brain;
         this.jsService = jsService;
+        this.jsUiService = jsUiService;
     }
 
     @Override
@@ -38,13 +52,9 @@ public class CommandPhase extends AbstractPhase implements Phase {
     }
 
     @Override
-    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws NotSupportedException {
+    public PhaseAction[] getActionsForUiMode(UiMode uiMode) throws ActionUiModeNotSupportedException {
 
         WaveAndTurnDto waveAndTurnDto = this.jsService.getWaveAndTurnIndex();
-
-        if (null == waveAndTurnDto) {
-            throw new IllegalStateException("waveAndTurnDto is null");
-        }
 
         //when a new run started
         if (brain.shouldResetWaveIndex()) {
@@ -96,10 +106,24 @@ public class CommandPhase extends AbstractPhase implements Phase {
                         this.pressSpace,
                 };
             }
-        } else if (uiMode == UiMode.FIGHT) { //which move to use
+        }
+        else if (uiMode == UiMode.FIGHT) { //which move to use
 
             log.debug("GameMode.FIGHT, getting attackDecision");
-            AttackDecision attackDecision = brain.getAttackDecision();
+            AttackDecision attackDecision;
+            try{
+                attackDecision = brain.getAttackDecision();
+            }
+            catch (NoAttackMoveFoundException e){
+                log.debug("no attack move found, going to switch pokemon screen");
+                return new PhaseAction[]{
+                        this.pressBackspace,
+                        this.waitBriefly,
+                        this.pressArrowDown,
+                        this.waitBriefly,
+                        this.pressSpace,
+                };
+            }
 
             if (null == attackDecision && brain.tryToCatchPokemon()) {
                 log.debug("CapturePokemon decision chosen because attackDecision is null and is capture pokemon");
@@ -149,16 +173,16 @@ public class CommandPhase extends AbstractPhase implements Phase {
             }
 
             throw new NotSupportedException("AttackDecision not supported in CommandPhase: " + attackDecision);
-        } else if (uiMode == UiMode.BALL) {
+        }
+        else if (uiMode == UiMode.BALL) {
             log.debug("GameMode.BALL, choosing strongest pokeball");
-            jsService.addBallToInventory(); //add the ball to the inventory
             int pokeballIndex = brain.selectStrongestPokeball();
             log.debug("Selected pokeball index: " + pokeballIndex);
             if (pokeballIndex == -1) {
                 throw new IllegalStateException("No pokeballs left");
             }
 
-            boolean success = jsService.setPokeBallCursor(pokeballIndex);
+            boolean success = jsUiService.setPokeBallCursor(pokeballIndex);
             if (success) {
                 return new PhaseAction[]{
                         this.pressSpace,
@@ -166,15 +190,24 @@ public class CommandPhase extends AbstractPhase implements Phase {
             }
 
             throw new IllegalStateException("Could not set pokeball cursor to index: " + pokeballIndex);
-        } else if (uiMode == UiMode.MESSAGE) {
-            log.warn("GameMode.MESSAGE detected in CommandPhase. Expecting error...");
-            return new PhaseAction[]{
-                    this.pressSpace,
-                    this.waitEvenLonger
-            };
+        }
+        else if (uiMode == UiMode.PARTY) {
+            SwitchDecision switchDecision = brain.getPokemonSwitchDecision(true);
+            boolean switchSuccessful = jsUiService.setPartyCursor(switchDecision.getIndex());
+
+            if (switchSuccessful) {
+                return new PhaseAction[]{
+                        this.waitBriefly,
+                        this.pressSpace, //choose the pokemon
+                        this.waitBriefly, //render confirm button
+                        this.pressSpace //confirm the switch
+                };
+            } else {
+                throw new IllegalStateException("Could not set cursor to party pokemon");
+            }
         }
 
-        throw new NotSupportedException("GameMode not supported in CommandPhase: " + uiMode);
+        throw new ActionUiModeNotSupportedException(uiMode, getPhaseName());
     }
 
     private void addActionsToList(OwnAttackIndex ownAttackIndex, SelectedTarget selectedTarget, List<PhaseAction> actionList, MoveTargetAreaType moveTarget) {
@@ -229,5 +262,13 @@ public class CommandPhase extends AbstractPhase implements Phase {
                 actionList.add(this.pressSpace);
                 break;
         }
+    }
+
+    @Override
+    public @NotNull PhaseUiTemplate getPhaseUiTemplateForUiMode(@NotNull UiMode uiMode) throws TemplateUiModeNotSupportedException {
+        return switch (uiMode) {
+            case UiMode.COMMAND -> PhaseUiTemplates.INSTANCE.getCommandWithCommand();
+            default -> throw new TemplateUiModeNotSupportedException(uiMode, getPhaseName());
+        };
     }
 }

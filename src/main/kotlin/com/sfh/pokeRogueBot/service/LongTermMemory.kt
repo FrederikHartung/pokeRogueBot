@@ -77,7 +77,7 @@ class LongTermMemory(
             val rememberedUiValidatedPhases: List<String> = gson.fromJson(json, listType)
             rememberedUiValidatedPhases.forEach { item -> uiValidatedPhases.add(item) }
 
-            log.debug("Remembered {} ui validated phases found", uiValidatedPhases)
+            log.debug("Remembered ui validated phases")
         }
 
     }

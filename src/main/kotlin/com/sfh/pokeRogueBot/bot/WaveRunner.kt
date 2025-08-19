@@ -8,8 +8,9 @@ import com.sfh.pokeRogueBot.phase.PhaseProvider
 import com.sfh.pokeRogueBot.phase.impl.ReturnToTitlePhase
 import com.sfh.pokeRogueBot.phase.impl.TitlePhase
 import com.sfh.pokeRogueBot.service.Brain
-import com.sfh.pokeRogueBot.service.JsService
 import com.sfh.pokeRogueBot.service.WaitingService
+import com.sfh.pokeRogueBot.service.javascript.JsService
+import com.sfh.pokeRogueBot.service.javascript.JsUiService
 import org.openqa.selenium.JavascriptException
 import org.openqa.selenium.NoSuchWindowException
 import org.openqa.selenium.remote.UnreachableBrowserException
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Component
 @Component
 class WaveRunner(
     private val jsService: JsService,
+    private val jsUiService: JsUiService,
     private val phaseProcessor: PhaseProcessor,
     private val brain: Brain,
     private val phaseProvider: PhaseProvider,
@@ -42,24 +44,43 @@ class WaveRunner(
         }
 
         try {
+            val isUiHandlerActive = jsService.isUiHandlerActive()
+            if (!isUiHandlerActive) {
+                waitingService.waitBriefly()
+                log.debug("uiHandlerActive is not active, skipping phase handling and wait for render")
+                return
+            }
+
             val phaseAsString = jsService.getCurrentPhaseAsString()
             val phase = phaseProvider.fromString(phaseAsString)
-            if (!(brain.phaseUiIsValidated(phase))) {
+            val uiMode = jsService.getUiMode()
+            if (uiMode == UiMode.MESSAGE) {
+                log.debug("uimode is message")
+                brain.memorize(phase.phaseName)
+                jsUiService.triggerMessageAdvance()
+                waitingService.waitBriefly()
+                return
+            }
+
+            if (!(brain.phaseUiIsValidated(phase, uiMode))) {
                 log.warn("Phase ${phaseAsString} is not validated, waiting...")
                 waitingService.waitEvenLonger()
                 brain.memorize(phase.phaseName)
                 return
             }
-            val uiMode = jsService.getUiMode()
 
             log.debug("phase detected: {}, gameMode: {}", phase.phaseName, uiMode)
             phaseProcessor.handlePhase(phase, uiMode)
             brain.memorize(phase.phaseName)
         } catch (e: Exception) {
             when (e) {
-                is JavascriptException, is NoSuchWindowException, is UnreachableBrowserException -> {
-                    log.error("Unexpected error, quitting app: ${e.message}")
-                    e.printStackTrace()
+                is JavascriptException -> {
+                    //logging of the exception happends in the ChromeBrowserClient
+                    System.exit(1)
+                }
+
+                is NoSuchWindowException, is UnreachableBrowserException -> {
+                    log.warn("Unexpected error, quitting app: ${e.message}")
                     System.exit(1)
                 }
                 else -> {
@@ -95,7 +116,12 @@ class WaveRunner(
                 log.error("unable to save and quit, we are not in title phase")
             }
         } catch (e: Exception) {
-            log.error("unable to save and quit: ${e.message}")
+            if(e.message?.startsWith("no such window: target window already closed") == true) {
+                log.warn("unable to save and quit: no such window: target window already closed")
+            }
+            else{
+                log.error("unable to save and quit: ${e.message}")
+            }
         }
 
         runProperty.status = RunStatus.RELOAD_APP

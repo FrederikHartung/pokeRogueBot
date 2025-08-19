@@ -5,6 +5,7 @@ import com.sfh.pokeRogueBot.model.dto.SaveSlotDto;
 import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
+import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.exception.StopRunException;
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem;
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
@@ -17,6 +18,8 @@ import com.sfh.pokeRogueBot.phase.NoUiPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
 import com.sfh.pokeRogueBot.phase.ScreenshotClient;
 import com.sfh.pokeRogueBot.phase.UiPhase;
+import com.sfh.pokeRogueBot.service.javascript.JsService;
+import com.sfh.pokeRogueBot.service.javascript.JsUiService;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -29,16 +32,17 @@ import java.util.List;
 public class Brain {
 
     private final JsService jsService;
+    private final JsUiService jsUiService;
     private final ShortTermMemory shortTermMemory;
     private final LongTermMemory longTermMemory;
     private final ScreenshotClient screenshotClient;
+    private final UiValidator uiValidator;
 
     private final SwitchPokemonNeuron switchPokemonNeuron;
     private final ChooseModifierNeuron chooseModifierNeuron;
     private final CombatNeuron combatNeuron;
     private final CapturePokemonNeuron capturePokemonNeuron;
     private final LearnMoveNeuron learnMoveNeuron;
-    private final UiValidator uiValidator;
 
     private RunProperty runProperty = null;
     private boolean waveIndexReset = false;
@@ -49,7 +53,9 @@ public class Brain {
 
     public Brain(
             JsService jsService,
-            ShortTermMemory shortTermMemory, LongTermMemory longTermMemory,
+            JsUiService jsUiService,
+            ShortTermMemory shortTermMemory,
+            LongTermMemory longTermMemory,
             ScreenshotClient screenshotClient,
             SwitchPokemonNeuron switchPokemonNeuron,
             ChooseModifierNeuron chooseModifierNeuron,
@@ -59,6 +65,7 @@ public class Brain {
             UiValidator uiValidator
     ) {
         this.jsService = jsService;
+        this.jsUiService = jsUiService;
         this.shortTermMemory = shortTermMemory;
         this.longTermMemory = longTermMemory;
         this.screenshotClient = screenshotClient;
@@ -70,7 +77,7 @@ public class Brain {
         this.uiValidator = uiValidator;
     }
 
-    public SwitchDecision getFaintedPokemonSwitchDecision(boolean ignoreFirstPokemon) {
+    public SwitchDecision getPokemonSwitchDecision(boolean ignoreFirstPokemon) {
         waveDto = jsService.getWaveDto(); //always update current state
         return switchPokemonNeuron.getBestSwitchDecision(waveDto, ignoreFirstPokemon);
     }
@@ -78,7 +85,7 @@ public class Brain {
     public MoveToModifierResult getModifierToPick() {
         if (null == chooseModifierDecision) { //get new decision
             this.waveDto = jsService.getWaveDto(); //always refresh money and pokemons before choosing the modifiers
-            ModifierShop shop = jsService.getModifierShop();
+            ModifierShop shop = jsUiService.getModifierShop();
             List<ChooseModifierItem> allItems = shop.getAllItems();
             longTermMemory.memorizeItems(allItems);
             this.chooseModifierDecision = chooseModifierNeuron.getModifierToPick(waveDto.getWavePokemon().getPlayerParty(), waveDto, shop);
@@ -156,6 +163,8 @@ public class Brain {
         this.waveDto = jsService.getWaveDto();
         this.chooseModifierDecision = null;
         runProperty.setWaveIndex(newWaveIndex);
+        runProperty.updateTeamSnapshot(waveDto.getWavePokemon().getPlayerParty());
+        runProperty.setMoney(waveDto.getMoney());
         log.debug("new wave: Waveindex: " + waveDto.getWaveIndex() + ", is trainer fight: " + waveDto.isTrainerFight());
 
         if (null != waveDto && waveDto.isWildPokemonFight()) {
@@ -166,19 +175,19 @@ public class Brain {
                     screenshotClient.persistScreenshot("shiny_pokemon_detected");
                     throw new StopRunException(message);
                 }
-                if (wildPokemon.getSpecies().isMythical()) {
+                if (wildPokemon.getSpecies().getMythical()) {
                     String message = "Mythical pokemon detected: " + wildPokemon.getName();
                     log.info(message);
                     screenshotClient.persistScreenshot("mythical_pokemon_detected");
                     throw new StopRunException(message);
                 }
-                if (wildPokemon.getSpecies().isLegendary()) {
+                if (wildPokemon.getSpecies().getLegendary()) {
                     String message = "Legendary pokemon detected: " + wildPokemon.getName();
                     log.info(message);
                     screenshotClient.persistScreenshot("legendary_pokemon_detected");
                     throw new StopRunException(message);
                 }
-                if (wildPokemon.getSpecies().isSubLegendary()) {
+                if (wildPokemon.getSpecies().getSubLegendary()) {
                     String message = "Sub Legendary pokemon detected: " + wildPokemon.getName();
                     log.info(message);
                     screenshotClient.persistScreenshot("sub_legendary_pokemon_detected");
@@ -197,6 +206,7 @@ public class Brain {
     }
 
     public void rememberLongTermMemories() {
+        log.debug("Remember long term memories");
         longTermMemory.rememberItems();
         longTermMemory.rememberUiValidatedPhases();
     }
@@ -228,7 +238,7 @@ public class Brain {
      */
     public int getSaveSlotIndexToLoad() {
         if (null == saveSlots) {
-            this.saveSlots = jsService.getSaveSlots();
+            this.saveSlots = jsUiService.getSaveSlots();
         }
 
         for (SaveSlotDto saveSlot : saveSlots) {
@@ -331,7 +341,7 @@ public class Brain {
         return false;
     }
 
-    public boolean phaseUiIsValidated(@NotNull Phase phase) {
+    public boolean phaseUiIsValidated(@NotNull Phase phase, @NotNull UiMode uiMode) {
         boolean isValidated = longTermMemory.isUiValidated(phase);
         if (isValidated) {
             return true;
@@ -342,7 +352,7 @@ public class Brain {
         }
         if (phase instanceof UiPhase uiPhase) {
             //validate phase and memorize or throw exception
-            PhaseUiTemplate template = uiPhase.getPhaseUiTemplate();
+            PhaseUiTemplate template = uiPhase.getPhaseUiTemplateForUiMode(uiMode);
             uiValidator.validateOrThrow(template, uiPhase.getPhaseName());
             longTermMemory.memorizePhase(uiPhase.getPhaseName());
             return true;
