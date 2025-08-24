@@ -1,6 +1,10 @@
 #Changelog
 
-## 3.0 WIP
+## 3.1
+- Remove all KeyToPress Actions and migrate to UI-Handler
+- Remove all CustomWaitTimes and migrate to WaitConfig
+
+## 3.0
 ### Features:
 - Added Config Option to choose Gender of Player Character
 - Added Config Option for GameSettings

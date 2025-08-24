@@ -8,32 +8,27 @@ import com.sfh.pokeRogueBot.service.javascript.JsUiService
 import org.springframework.stereotype.Component
 
 @Component
-class SwitchPhase(
+class CheckSwitchPhase(
     private val brain: Brain,
     private val jsUiService: JsUiService
 ) : UiPhase {
 
-    private var ignoreFirstPokemon = false
-
-    override val phaseName = "SwitchPhase"
+    override val phaseName: String = "CheckSwitchPhase"
 
     override fun handleUiMode(uiMode: UiMode) {
-        when (uiMode) {
-            UiMode.PARTY -> {
-                val switchDecision = brain.getPokemonSwitchDecision(ignoreFirstPokemon) // maybe an own pokemon fainted
-                ignoreFirstPokemon = false
-                jsUiService.setUiHandlerCursor(uiMode, switchDecision.index)
+        if (uiMode == UiMode.CONFIRM) {
+            val shouldSwitchPokemon = brain.shouldSwitchPokemon()
+
+            if (shouldSwitchPokemon) {
+                jsUiService.sendActionButton()
+                return
+            } else {
+                jsUiService.setUiHandlerCursor(uiMode, 1) //set to no
                 jsUiService.sendActionButton()
                 return
             }
-
-            UiMode.CONFIRM -> {
-                jsUiService.setUiHandlerCursor(uiMode, 0)
-                jsUiService.sendActionButton()
-                return
-            }
-
-            else -> throw UiModeException(uiMode)
         }
+
+        throw UiModeException(uiMode)
     }
 }

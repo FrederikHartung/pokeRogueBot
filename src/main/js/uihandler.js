@@ -1,45 +1,23 @@
 if(!window.poru) window.poru = {};
+const UiMode_MESSAGE = 0;
+const Button_ACTION = 6;
+const Button_CANCEL = 7;
+
 window.poru.uihandler = {
-    setPartyUiHandlerCursor: (pokemonIndex) => {
-        try {
-            var scene = window.poru.util.getBattleScene();
-            if (!scene || !scene.ui || !scene.ui.handlers) return false;
-
-            var partyUiHandler = scene.ui.handlers[8];
-            if(partyUiHandler && partyUiHandler.active) {
-                if(partyUiHandler.cursor === pokemonIndex) {
-                    return true; //no move needed
-                }
-                else{
-                    return partyUiHandler.setCursor(pokemonIndex);
-                }
-            }
-        } catch (e) {
-            console.error('Error in setPartyUiHandlerCursor:', e);
-        }
-
-        return false; //error or false state
-    },
 
     setModifierSelectUiHandlerCursor: (cursorColumn, cursorRow) => {
         try {
-            var scene = window.poru.util.getBattleScene();
-            if (!scene || !scene.ui || !scene.ui.handlers) return false;
-
-            var modifierSelectUiHandler = scene.ui.handlers[6];
+            const modifierSelectUiHandler = window.poru.uihandler.getUiHandler(6);
 
             if(modifierSelectUiHandler && modifierSelectUiHandler.active){
-                console.log("setting modifierSelectUiHandler cursors...");
 
                 if(modifierSelectUiHandler.rowCursor !== cursorRow){
                     modifierSelectUiHandler.setRowCursor(cursorRow);
                 }
-                console.log("modifierSelectUiHandler.rowCursor: " + modifierSelectUiHandler.rowCursor);
 
                 if(modifierSelectUiHandler.cursor !== cursorColumn){
                     modifierSelectUiHandler.setCursor(cursorColumn);
                 }
-                console.log("modifierSelectUiHandler.cursor: " + modifierSelectUiHandler.cursor);
 
                 return true; //moved
             }
@@ -148,13 +126,13 @@ window.poru.uihandler = {
 
     setTitleUiHandlerCursorToLoadGame : () => {
         try {
-            var scene = window.poru.util.getBattleScene();
+            const scene = window.poru.util.getBattleScene();
             if (!scene || !scene.ui || !scene.ui.handlers) return false;
 
-            var titleUiHandler = scene.ui.handlers[1];
+            const titleUiHandler = scene.ui.handlers[1];
             if(titleUiHandler && titleUiHandler.active){
-                var options = titleUiHandler.config.options;
-                var loadGameIndex = -1;
+                const options = titleUiHandler.config.options;
+                let loadGameIndex = -1;
                 for(let i = 0; i < options.length; i++){
                     if(options[i].label === "Load Game"){
                         loadGameIndex = i;
@@ -342,7 +320,7 @@ window.poru.uihandler = {
         return null
     },
 
-    getUiHandlerJson: (index) => {
+    getUiHandlerDtoJson: (index) => {
         const handler = window.poru.uihandler.getUiHandler(index)
         if(handler){
             const handlerDto = {
@@ -365,16 +343,12 @@ window.poru.uihandler = {
         return null
     },
 
-    setUiHandlerCursor: (handlerIndex, handlerName, cursorIndex) => {
+    //validated in kotlin code
+    setUiHandlerCursor: (handlerIndex, cursorIndex) => {
         const handler = window.poru.uihandler.getUiHandler(handlerIndex)
         if(handler){
-            const name = handler.constructor.name
-            if(handlerName === name){
-                handler.setCursor(cursorIndex)
-                return true
-            } else {
-                console.error(`Handler name mismatch: expected '${handlerName}', found '${name}' at index ${handlerIndex}`)
-            }
+            handler.setCursor(cursorIndex)
+            return true
         } else {
             console.error(`No handler found at index ${handlerIndex}`)
         }
@@ -383,8 +357,6 @@ window.poru.uihandler = {
     },
 
     triggerMessageAdvance: () => {
-        const UiMode_MESSAGE = 0;
-        const Button_ACTION = 6;
         // Check if Ui Mode is Message and awaitingActionInput
         const scene = window.poru.util.getBattleScene()
         if (scene) {
@@ -395,6 +367,65 @@ window.poru.uihandler = {
             }
         }
         return false; // No action taken (conditions not met)
+    },
+
+    sendCancelButton: () => {
+        const scene = window.poru.util.getBattleScene()
+        if (scene) {
+            if (scene.ui.getHandler().awaitingActionInput) {
+                scene.ui.processInput(Button_CANCEL);
+                return true; // Action was triggered
+            }
+        }
+        return false; // No action taken (conditions not met)
+    },
+
+    sendActionButton: () => {
+        const scene = window.poru.util.getBattleScene()
+        if (scene) {
+            if (scene.ui.getHandler().awaitingActionInput) {
+                scene.ui.processInput(Button_ACTION);
+                return true; // Action was triggered
+            }
+        }
+        return false; // No action taken (conditions not met)
+    },
+
+    setCursorToIndexAndConfirm: async (handlerIndex, handlerName, indexToSetCursorTo, waitTimeForRenderMs) => {
+        const handler = window.poru.uihandler.getUiHandler(handlerIndex)
+        if (handler) {
+            const name = handler.constructor.name
+            if (handlerName === name) {
+                handler.setCursor(indexToSetCursorTo)
+                //wait for waitTimeForRenderMs if value is not 0
+                if (waitTimeForRenderMs !== 0) {
+                    await new Promise(resolve => setTimeout(resolve, waitTimeForRenderMs));
+                }
+
+                //if handler is not waiting for action input (maybe because of rendering) wait for 200 ms and try again
+                if (!handler.awaitingActionInput) {
+                    console.log("setCursorToIndexAndConfirm: handler is not awaiting action input, trying again in 200ms")
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
+
+                if (!handler.awaitingActionInput) {
+                    console.log("setCursorToIndexAndConfirm: handler is not awaiting action input, returning false")
+                    return false
+                }
+                const scene = window.poru.util.getBattleScene()
+                if (scene) {
+                    scene.ui.processInput(Button_ACTION);
+                    return true
+                }
+
+            } else {
+                console.error(`Handler name mismatch: expected '${handlerName}', found '${name}' at index ${handlerIndex}`)
+            }
+        } else {
+            console.error(`No handler found at index ${handlerIndex}`)
+        }
+
+        return false
     }
 
 }

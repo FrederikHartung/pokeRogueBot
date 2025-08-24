@@ -5,7 +5,6 @@ import com.sfh.pokeRogueBot.model.enums.UiMode
 import com.sfh.pokeRogueBot.model.run.RunProperty
 import com.sfh.pokeRogueBot.phase.PhaseProcessor
 import com.sfh.pokeRogueBot.phase.PhaseProvider
-import com.sfh.pokeRogueBot.phase.impl.ReturnToTitlePhase
 import com.sfh.pokeRogueBot.phase.impl.TitlePhase
 import com.sfh.pokeRogueBot.service.Brain
 import com.sfh.pokeRogueBot.service.WaitingService
@@ -64,7 +63,7 @@ class WaveRunner(
 
             if (!(brain.phaseUiIsValidated(phase, uiMode))) {
                 log.warn("Phase ${phaseAsString} is not validated, waiting...")
-                waitingService.waitEvenLonger()
+                waitingService.waitLonger()
                 brain.memorize(phase.phaseName)
                 return
             }
@@ -101,15 +100,13 @@ class WaveRunner(
      */
     fun saveAndQuit(runProperty: RunProperty, lastExceptionType: String) {
         try {
-            val phase = phaseProvider.fromString(ReturnToTitlePhase.NAME)
-            if (phase is ReturnToTitlePhase) {
-                phase.lastExceptionType = lastExceptionType
-                log.debug("handling ReturnToTitlePhase")
-                phaseProcessor.handlePhase(phase, UiMode.TITLE)
-            }
-            waitingService.waitEvenLonger() // wait for render title
+            phaseProcessor.takeTempScreenshot("error_$lastExceptionType")
+            log.debug("Trying to save and quit")
+            jsUiService.saveAndQuit()
+
+            waitingService.waitLonger() // wait for render title
             val phaseAsString = jsService.getCurrentPhaseAsString()
-            if (phaseAsString == TitlePhase.NAME) {
+            if (phaseAsString == TitlePhase::class.simpleName) {
                 log.debug("we are in title phase, saving and quitting worked")
                 return
             } else {

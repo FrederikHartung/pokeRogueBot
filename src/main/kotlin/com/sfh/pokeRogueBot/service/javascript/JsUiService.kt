@@ -3,18 +3,25 @@ package com.sfh.pokeRogueBot.service.javascript
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.sfh.pokeRogueBot.browser.JsClient
-import com.sfh.pokeRogueBot.model.browser.gamejson.UiHandler
+import com.sfh.pokeRogueBot.model.browser.gamejson.UiHandlerDto
 import com.sfh.pokeRogueBot.model.dto.SaveSlotDto
+import com.sfh.pokeRogueBot.model.enums.UiMode
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItemDeserializer
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop
 import com.sfh.pokeRogueBot.model.poke.Pokemon
-import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplate
+import com.sfh.pokeRogueBot.model.ui.UiHandlerService
+import com.sfh.pokeRogueBot.model.ui.UiHandlerTemplate
+import com.sfh.pokeRogueBot.service.WaitingService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 @Service
-class JsUiService(private val jsClient: JsClient) {
+class JsUiService(
+    private val jsClient: JsClient,
+    private val uiHandlerService: UiHandlerService,
+    private val waitingService: WaitingService
+) {
 
     private val log = LoggerFactory.getLogger(JsUiService::class.java)
     private val GSON: Gson = GsonBuilder()
@@ -31,14 +38,6 @@ class JsUiService(private val jsClient: JsClient) {
         log.debug("Setting modifier options cursor to row: $rowIndex, column: $columnIndex")
         val result =
             jsClient.executeCommandAndGetResult("return window.poru.uihandler.setModifierSelectUiHandlerCursor(${columnIndex}, ${rowIndex})")
-                .toString()
-        return result.toBoolean()
-    }
-
-    fun setPartyCursor(index: Int): Boolean {
-        log.debug("Setting party cursor to index: $index")
-        val result =
-            jsClient.executeCommandAndGetResult("return window.poru.uihandler.setPartyUiHandlerCursor(${index})")
                 .toString()
         return result.toBoolean()
     }
@@ -102,30 +101,76 @@ class JsUiService(private val jsClient: JsClient) {
             .toString().toBoolean()
     }
 
-    fun getUiHandler(index: Int): UiHandler {
+    fun getUiHandlerDto(index: Int): UiHandlerDto {
         val json =
-            jsClient.executeCommandAndGetResult("return window.poru.uihandler.getUiHandlerJson(${index});").toString()
-        val uiHandler = GSON.fromJson(json, UiHandler::class.java)
-        return uiHandler
+            jsClient.executeCommandAndGetResult("return window.poru.uihandler.getUiHandlerDtoJson(${index});")
+                .toString()
+        val uiHandlerDto = GSON.fromJson(json, UiHandlerDto::class.java)
+        return uiHandlerDto
     }
 
-    fun setCursorToIndex(handlerIndex: Int, handlerName: String, indexToSetCursorTo: Int): Boolean {
-        val handler = getUiHandler(handlerIndex)
-        if (!handler.active) {
-            throw IllegalArgumentException("Handler $handlerName is not active")
-        }
+    fun setCursorToIndex(handlerDto: UiHandlerDto, indexToSetCursorTo: Int): Boolean {
         val result =
-            jsClient.executeCommandAndGetResult("return window.poru.uihandler.setUiHandlerCursor(${handlerIndex}, \"${handlerName}\", ${indexToSetCursorTo});")
+            jsClient.executeCommandAndGetResult("return window.poru.uihandler.setUiHandlerCursor(${handlerDto.index}, ${indexToSetCursorTo});")
                 .toString().toBoolean()
         return result
     }
 
-    fun setCursorToIndex(phaseUiTemplate: PhaseUiTemplate, indexToSetCursorTo: Int): Boolean {
-        return setCursorToIndex(phaseUiTemplate.handlerIndex, phaseUiTemplate.handlerName, indexToSetCursorTo)
+
+    fun setCursorToIndex(handlerIndex: Int, handlerName: String, indexToSetCursorTo: Int): Boolean {
+        val handler = getUiHandlerDto(handlerIndex)
+        if (!handler.active) {
+            throw IllegalStateException("Handler $handlerName is not active")
+        }
+        return setCursorToIndex(handler, indexToSetCursorTo)
     }
 
-    fun triggerMessageAdvance(): Boolean {
-        return jsClient.executeCommandAndGetResult("return window.poru.uihandler.triggerMessageAdvance();").toString()
+    fun setCursorToIndex(uiHandlerTemplate: UiHandlerTemplate, indexToSetCursorTo: Int): Boolean {
+        return setCursorToIndex(uiHandlerTemplate.handlerIndex, uiHandlerTemplate.handlerName, indexToSetCursorTo)
+    }
+
+    fun setCursorToIndexAndConfirm(
+        uiHandlerTemplate: UiHandlerTemplate,
+        indexToSetCursorTo: Int,
+        waitTimeForRenderMs: Int = 0
+    ): Boolean {
+        val handler = getUiHandlerDto(uiHandlerTemplate.handlerIndex)
+        if (!handler.active) {
+            throw IllegalStateException("Handler ${uiHandlerTemplate.handlerName} is not active")
+        }
+        val result =
+            jsClient.executeCommandAndGetResult("return window.poru.uihandler.setCursorToIndexAndConfirm(${uiHandlerTemplate.handlerIndex}, \"${uiHandlerTemplate.handlerName}\", ${indexToSetCursorTo}, ${waitTimeForRenderMs});")
+                .toString().toBoolean()
+        return result
+    }
+
+    fun triggerMessageAdvance() {
+        jsClient.executeCommandAndGetResult("return window.poru.uihandler.triggerMessageAdvance();").toString()
             .toBoolean()
+        waitingService.waitBriefly()
+    }
+
+    fun sendCancelButton() {
+        jsClient.executeCommandAndGetResult("return window.poru.uihandler.sendCancelButton();").toString()
+            .toBoolean()
+        waitingService.waitBriefly()
+    }
+
+    fun sendActionButton() {
+        jsClient.executeCommandAndGetResult("return window.poru.uihandler.sendActionButton();").toString()
+            .toBoolean()
+        waitingService.waitBriefly()
+    }
+
+    /**
+     * Validates correct UiHandler for UiMode is active and used for setting the cursor index
+     * Uses the waiting service to wait after setting the cursor to the new index
+     */
+    fun setUiHandlerCursor(uiMode: UiMode, newIndex: Int) {
+        val handlerTemplate = uiHandlerService.getHandlerForUiMode(uiMode)
+        val handlerDto = getUiHandlerDto(handlerTemplate.handlerIndex)
+        uiHandlerService.validateHandlerDtoOrThrow(handlerTemplate, handlerDto)
+        setCursorToIndex(handlerDto, newIndex)
+        waitingService.waitBriefly()
     }
 }

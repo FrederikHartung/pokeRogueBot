@@ -2,10 +2,8 @@ package com.sfh.pokeRogueBot.phase.impl
 
 import com.sfh.pokeRogueBot.browser.BrowserClient
 import com.sfh.pokeRogueBot.model.enums.UiMode
-import com.sfh.pokeRogueBot.model.exception.ActionUiModeNotSupportedException
-import com.sfh.pokeRogueBot.phase.AbstractPhase
+import com.sfh.pokeRogueBot.model.exception.UiModeException
 import com.sfh.pokeRogueBot.phase.NoUiPhase
-import com.sfh.pokeRogueBot.phase.actions.PhaseAction
 import com.sfh.pokeRogueBot.service.WaitingService
 import com.sfh.pokeRogueBot.service.javascript.JsUiService
 import org.slf4j.LoggerFactory
@@ -19,32 +17,29 @@ class LoginPhase(
     private val jsUIService: JsUiService,
     @Value("\${browser.userName}") private val userName: String,
     @Value("\${browser.password}") private val password: String
-) : AbstractPhase(), NoUiPhase {
+) : NoUiPhase {
 
     companion object {
-        const val NAME = "LoginPhase"
         private val log = LoggerFactory.getLogger(LoginPhase::class.java)
     }
 
-    override val phaseName: String
-        get() = NAME
+    override val phaseName = "LoginPhase"
 
-    @Throws(ActionUiModeNotSupportedException::class)
-    override fun getActionsForUiMode(uiMode: UiMode): Array<PhaseAction> {
+    override fun handleUiMode(uiMode: UiMode) {
         when (uiMode) {
             UiMode.LOADING -> {
-                return arrayOf(waitLonger)
+                return
             }
 
             UiMode.LOGIN_FORM -> {
-                waitingService.waitLonger()
+                waitingService.waitBriefly()
                 val enterUserDataSuccess = browserClient.enterUserData(userName, password)
                 if (enterUserDataSuccess) {
                     log.debug("entered user data successfully")
                     val userDataSubmitted = jsUIService.submitUserData()
                     if (userDataSubmitted) {
                         log.debug("submitted user data successfully")
-                        return arrayOf(waitBriefly)
+                        waitingService.waitBriefly()
                     } else {
                         log.error("could not submit user data")
                     }
@@ -53,14 +48,7 @@ class LoginPhase(
                 }
             }
 
-            UiMode.MESSAGE -> {
-                jsUIService.triggerMessageAdvance()
-                return arrayOf(waitBriefly)
-            }
-
-            else -> throw ActionUiModeNotSupportedException(uiMode, phaseName)
+            else -> throw UiModeException(uiMode)
         }
-
-        throw ActionUiModeNotSupportedException(uiMode, phaseName)
     }
 }

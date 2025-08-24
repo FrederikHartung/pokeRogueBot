@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.model.exception
 
-class UiValidationFailedException : RuntimeException {
+class UiHandlerValidationException : RuntimeException {
 
     constructor(message: String) : super(message)
 }

@@ -1,7 +1,6 @@
 package com.sfh.pokeRogueBot.service;
 
 import com.sfh.pokeRogueBot.config.WaitConfig;
-import com.sfh.pokeRogueBot.phase.Phase;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -16,17 +15,12 @@ public class WaitingService {
     }
 
     public void waitBriefly() {
-        int waitTime = waitConfig.getWaitTimeAfterAction();
+        int waitTime = waitConfig.getWaitBriefly();
         sleep(waitTime);
     }
 
     public void waitLonger() {
-        int waitTime = waitConfig.getWaitTimeForRenderingText();
-        sleep(waitTime);
-    }
-
-    public void waitEvenLonger() {
-        int waitTime = waitConfig.getWaitTimeForRenderingStages();
+        int waitTime = waitConfig.getWaitLonger();
         sleep(waitTime);
     }
 
@@ -36,9 +30,5 @@ public class WaitingService {
         } catch (InterruptedException e) {
             log.error("Error while waiting, error: " + e.getMessage());
         }
-    }
-
-    public void waitAfterPhase(Phase phase) {
-        sleep(phase.getWaitAfterStage2x());
     }
 }

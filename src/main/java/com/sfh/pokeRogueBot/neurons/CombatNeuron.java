@@ -124,13 +124,13 @@ public class CombatNeuron {
 
         if (null != playerPokemon1) {
             pokemon1Decision = pickForDouble(pokemon1Moves);
-            log.debug("Pokemon 1 decision: target: " + pokemon1Decision.getSelectedTarget() + ", move: " + pokemon1Decision.getOwnAttackIndex() + ", damage: " + pokemon1Decision.getExpectedDamage() + ", target health: " + (pokemon1Decision.getSelectedTarget() == SelectedTarget.LEFT_ENEMY ? enemyPokemon1.getHp() : enemyPokemon2.getHp()));
+            log.debug("Pokemon 1 decision: target: " + pokemon1Decision.getTarget() + ", move: " + pokemon1Decision.getAttackIndex() + ", damage: " + pokemon1Decision.getExpectedDamage() + ", target health: " + (pokemon1Decision.getTarget() == SelectedTarget.LEFT_ENEMY ? enemyPokemon1.getHp() : enemyPokemon2.getHp()));
 
         }
 
         if (null != playerPokemon2) {
             pokemon2Decision = pickForDouble(pokemon2Moves);
-            log.debug("Pokemon 2 decision: target: " + pokemon2Decision.getSelectedTarget() + ", move: " + pokemon2Decision.getOwnAttackIndex() + ", damage: " + pokemon2Decision.getExpectedDamage() + ", target health: " + (pokemon2Decision.getSelectedTarget() == SelectedTarget.LEFT_ENEMY ? enemyPokemon1.getHp() : enemyPokemon2.getHp()));
+            log.debug("Pokemon 2 decision: target: " + pokemon2Decision.getTarget() + ", move: " + pokemon2Decision.getAttackIndex() + ", damage: " + pokemon2Decision.getExpectedDamage() + ", target health: " + (pokemon2Decision.getTarget() == SelectedTarget.LEFT_ENEMY ? enemyPokemon1.getHp() : enemyPokemon2.getHp()));
         }
 
         return new AttackDecisionForDoubleFight(pokemon1Decision, pokemon2Decision);

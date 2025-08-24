@@ -12,7 +12,6 @@ import com.sfh.pokeRogueBot.model.modifier.ModifierShop;
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
-import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplate;
 import com.sfh.pokeRogueBot.neurons.*;
 import com.sfh.pokeRogueBot.phase.NoUiPhase;
 import com.sfh.pokeRogueBot.phase.Phase;
@@ -36,7 +35,6 @@ public class Brain {
     private final ShortTermMemory shortTermMemory;
     private final LongTermMemory longTermMemory;
     private final ScreenshotClient screenshotClient;
-    private final UiValidator uiValidator;
 
     private final SwitchPokemonNeuron switchPokemonNeuron;
     private final ChooseModifierNeuron chooseModifierNeuron;
@@ -61,8 +59,7 @@ public class Brain {
             ChooseModifierNeuron chooseModifierNeuron,
             CombatNeuron combatNeuron,
             CapturePokemonNeuron capturePokemonNeuron,
-            LearnMoveNeuron learnMoveNeuron,
-            UiValidator uiValidator
+            LearnMoveNeuron learnMoveNeuron
     ) {
         this.jsService = jsService;
         this.jsUiService = jsUiService;
@@ -74,7 +71,6 @@ public class Brain {
         this.combatNeuron = combatNeuron;
         this.capturePokemonNeuron = capturePokemonNeuron;
         this.learnMoveNeuron = learnMoveNeuron;
-        this.uiValidator = uiValidator;
     }
 
     public SwitchDecision getPokemonSwitchDecision(boolean ignoreFirstPokemon) {
@@ -333,7 +329,7 @@ public class Brain {
         return learnMoveNeuron.getLearnMoveDecision(pokemon);
     }
 
-    public boolean shouldResetWaveIndex() {
+    public boolean shouldResetwaveIndex() {
         if (waveIndexReset) {
             waveIndexReset = false;
             return true;
@@ -341,6 +337,7 @@ public class Brain {
         return false;
     }
 
+    @Deprecated()
     public boolean phaseUiIsValidated(@NotNull Phase phase, @NotNull UiMode uiMode) {
         boolean isValidated = longTermMemory.isUiValidated(phase);
         if (isValidated) {
@@ -351,9 +348,6 @@ public class Brain {
             return true;
         }
         if (phase instanceof UiPhase uiPhase) {
-            //validate phase and memorize or throw exception
-            PhaseUiTemplate template = uiPhase.getPhaseUiTemplateForUiMode(uiMode);
-            uiValidator.validateOrThrow(template, uiPhase.getPhaseName());
             longTermMemory.memorizePhase(uiPhase.getPhaseName());
             return true;
         }

@@ -26,6 +26,9 @@ app:
     remember-ui-validated-phases: true
   metric:
     save-run-result-after-lost-run: false
+  wait-time:
+    wait-briefly: 200
+    wait-longer: 1000
 
 
 spring:

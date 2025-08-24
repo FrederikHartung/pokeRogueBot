@@ -1,16 +1,14 @@
 package com.sfh.pokeRogueBot.phase.impl
 
 import com.sfh.pokeRogueBot.model.enums.UiMode
-import com.sfh.pokeRogueBot.phase.AbstractPhase
 import com.sfh.pokeRogueBot.phase.NoUiPhase
-import com.sfh.pokeRogueBot.phase.actions.PhaseAction
 import org.springframework.stereotype.Component
 
-abstract class GenericWaitPhase() : AbstractPhase(), NoUiPhase {
-    override val phaseName = this::class.java.simpleName
+abstract class GenericWaitPhase() : NoUiPhase {
+    override val phaseName: String = this::class.java.simpleName
 
-    override fun getActionsForUiMode(uiMode: UiMode): Array<PhaseAction> {
-        return arrayOf(this.waitBriefly)
+    override fun handleUiMode(uiMode: UiMode) {
+        //nothing to do
     }
 }
 
@@ -49,3 +47,93 @@ class MysteryEncounterBattlePhase: GenericWaitPhase()
 
 @Component
 class PokemonAnimPhase: GenericWaitPhase()
+
+@Component
+class MessagePhase : GenericWaitPhase()
+
+@Component
+class GameOverPhase : GenericWaitPhase()
+
+@Component
+class BattleEndPhase : GenericWaitPhase()
+
+@Component
+class NextEncounterPhase : GenericWaitPhase()
+
+@Component
+class TrainerVictoryPhase : GenericWaitPhase()
+
+@Component
+class ToggleDoublePositionPhase : GenericWaitPhase()
+
+@Component
+class SwitchSummonPhase : GenericWaitPhase()
+
+@Component
+class SwitchBiomePhase : GenericWaitPhase()
+
+@Component
+class SummonPhase : GenericWaitPhase()
+
+@Component
+class StatChangePhase : GenericWaitPhase()
+
+@Component
+class ShowTrainerPhase : GenericWaitPhase()
+
+@Component
+class ShinySparklePhase : GenericWaitPhase()
+
+@Component
+class SelectTargetPhase : GenericWaitPhase()
+
+@Component
+class SelectBiomePhase : GenericWaitPhase()
+
+@Component
+class ReturnPhase : GenericWaitPhase()
+
+@Component
+class PostTurnStatusEffectPhase : GenericWaitPhase()
+
+@Component
+class PostGameOverPhase : GenericWaitPhase()
+
+@Component
+class PartyHealPhase : GenericWaitPhase()
+
+@Component
+class ObtainStatusEffectPhase : GenericWaitPhase()
+
+@Component
+class NewBiomeEncounterPhase : GenericWaitPhase()
+
+@Component
+class MoneyRewardPhase : GenericWaitPhase()
+
+@Component
+class ModifierRewardPhase : GenericWaitPhase()
+
+@Component
+class LevelUpPhase : GenericWaitPhase()
+
+@Component
+class FaintPhase : GenericWaitPhase()
+
+@Component
+class ExpPhase : GenericWaitPhase()
+
+@Component
+class EvolutionPhase : GenericWaitPhase()
+
+@Component
+class EndEvolutionPhase : GenericWaitPhase()
+
+@Component
+class EncounterPhase : GenericWaitPhase()
+
+@Component
+class EggHatchPhase : GenericWaitPhase()
+
+@Component
+class DamagePhase : GenericWaitPhase()
