@@ -1,8 +1,10 @@
 #Changelog
 
 ## 3.1
+### Technical Changes:
 - Remove all KeyToPress Actions and migrate to UI-Handler
 - Remove all CustomWaitTimes and migrate to WaitConfig
+- BugFixes for UI Handling
 
 ## 3.0
 ### Features:
