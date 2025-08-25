@@ -1,22 +1,16 @@
 package com.sfh.pokeRogueBot.phase.impl
 
 import com.sfh.pokeRogueBot.model.enums.UiMode
-import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplate
-import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplates
-import com.sfh.pokeRogueBot.phase.AbstractPhase
 import com.sfh.pokeRogueBot.phase.UiPhase
-import com.sfh.pokeRogueBot.phase.actions.PhaseAction
+import com.sfh.pokeRogueBot.service.javascript.JsUiService
 import org.springframework.stereotype.Component
 
 @Component
-class MysteryEncounterPhase : AbstractPhase(), UiPhase {
+class MysteryEncounterPhase(private val jsUiService: JsUiService) : UiPhase {
     override val phaseName = "MysteryEncounterPhase"
 
-    override fun getActionsForUiMode(uiMode: UiMode): Array<PhaseAction> {
-        return arrayOf(this.pressSpace)
-    }
-
-    override fun getPhaseUiTemplateForUiMode(uiMode: UiMode): PhaseUiTemplate {
-        return PhaseUiTemplates.mysteryEncounter
+    override fun handleUiMode(uiMode: UiMode) {
+        jsUiService.setUiHandlerCursor(uiMode, 1)
+        jsUiService.sendActionButton()
     }
 }

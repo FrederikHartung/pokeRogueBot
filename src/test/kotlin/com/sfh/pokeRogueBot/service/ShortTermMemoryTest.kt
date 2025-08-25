@@ -23,14 +23,14 @@ class ShortTermMemoryTest {
         // There is no loop check till the memory is full
         assertDoesNotThrow {
             repeat(memorySize / 2) {
-                shortTermMemory.memorizePhase(CommandPhase.NAME)
-                shortTermMemory.memorizePhase(SwitchPhase.NAME)
+                shortTermMemory.memorizePhase(CommandPhase::class.simpleName!!)
+                shortTermMemory.memorizePhase(SwitchPhase::class.simpleName!!)
             }
         }
 
         // if the first memory is added when the memory is full, the first check for loop is done
         assertThrows<ActionLoopDetectedException> {
-            shortTermMemory.memorizePhase(CommandPhase.NAME)
+            shortTermMemory.memorizePhase(CommandPhase::class.simpleName!!)
         }
     }
 
@@ -38,11 +38,11 @@ class ShortTermMemoryTest {
     fun `no loop is detected if different phases are present`() {
         assertDoesNotThrow {
             repeat(memorySize * 2) {
-                shortTermMemory.memorizePhase(CommandPhase.NAME)
-                shortTermMemory.memorizePhase(SwitchPhase.NAME)
-                shortTermMemory.memorizePhase(EggHatchPhase.NAME)
-                shortTermMemory.memorizePhase(CheckSwitchPhase.NAME)
-                shortTermMemory.memorizePhase(TitlePhase.NAME)
+                shortTermMemory.memorizePhase(CommandPhase::class.simpleName!!)
+                shortTermMemory.memorizePhase(SwitchPhase::class.simpleName!!)
+                shortTermMemory.memorizePhase(EggHatchPhase::class.simpleName!!)
+                shortTermMemory.memorizePhase(CheckSwitchPhase::class.simpleName!!)
+                shortTermMemory.memorizePhase(TitlePhase::class.simpleName!!)
             }
         }
     }
@@ -51,7 +51,7 @@ class ShortTermMemoryTest {
     fun `no check for loop should happen till the memory is full`() {
         assertDoesNotThrow {
             repeat(memorySize - 1) {
-                shortTermMemory.memorizePhase(CommandPhase.NAME)
+                shortTermMemory.memorizePhase(CommandPhase::class.simpleName!!)
             }
         }
     }
@@ -60,7 +60,7 @@ class ShortTermMemoryTest {
     fun `clearLastPhaseMemory resets the memory`() {
         assertDoesNotThrow {
             repeat(memorySize - 1) {
-                shortTermMemory.memorizePhase(CommandPhase.NAME)
+                shortTermMemory.memorizePhase(CommandPhase::class.simpleName!!)
             }
         }
 
@@ -68,7 +68,7 @@ class ShortTermMemoryTest {
 
         assertDoesNotThrow {
             repeat(memorySize - 1) {
-                shortTermMemory.memorizePhase(CommandPhase.NAME)
+                shortTermMemory.memorizePhase(CommandPhase::class.simpleName!!)
             }
         }
     }

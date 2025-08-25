@@ -1,23 +1,16 @@
 package com.sfh.pokeRogueBot.phase
 
 import com.sfh.pokeRogueBot.model.enums.UiMode
-import com.sfh.pokeRogueBot.model.exception.ActionUiModeNotSupportedException
-import com.sfh.pokeRogueBot.model.exception.TemplateUiModeNotSupportedException
-import com.sfh.pokeRogueBot.model.ui.PhaseUiTemplate
-import com.sfh.pokeRogueBot.phase.actions.PhaseAction
+import com.sfh.pokeRogueBot.model.exception.UnsupportedUiModeException
 
 interface Phase {
-    val waitAfterStage2x: Int
     val phaseName: String
 
-    @Throws(ActionUiModeNotSupportedException::class)
-    fun getActionsForUiMode(uiMode: UiMode): Array<PhaseAction>
+    @Throws(UnsupportedUiModeException::class)
+    fun handleUiMode(uiMode: UiMode)
 }
 
-interface UiPhase : Phase {
-    @Throws(TemplateUiModeNotSupportedException::class)
-    fun getPhaseUiTemplateForUiMode(uiMode: UiMode): PhaseUiTemplate
-}
+interface UiPhase : Phase
 
 interface NoUiPhase : Phase
 

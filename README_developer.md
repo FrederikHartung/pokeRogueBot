@@ -6,7 +6,7 @@ If a good idea comes up, write it down and implement it later. Focus on the curr
 Only refactor, when it's really necessary.
 
 ## Current Task:
-Let the bot loose 20 Runs in a row and then create new Release
+
 
 ## Open todo's with high priority:
 - [x] remove the db and spring data
@@ -16,7 +16,7 @@ Let the bot loose 20 Runs in a row and then create new Release
 - [x] when no pp are left, the attack can't be used
 - [x] hyper healer is not used as a revive item
 - [x] get in js the current form index and apply its data to the pokemon
-- [ ] make attack decision not in the attack menu
+- [x] make attack decision not in the attack menu
 - [ ] don't buy revive items before waveDto 10
 - [ ] getting the attack move from the summary ui handler
 - [ ] modifier shop refactoring
@@ -26,10 +26,10 @@ Let the bot loose 20 Runs in a row and then create new Release
 - [ ] learning of attacks
 - [ ] API for stopping the app or let it run again
 - [ ] ChooseRareModifierNeuron
-- [ ] remove getWaitAfterStage2x
-- [ ] move wait config to central service
-- [ ] remove all checks for ui-mode message from phases
-- [ ] optimise RunResult Data Class (less unused properties)
+- [x] remove getWaitAfterStage2x
+- [x] move wait config to central service
+- [x] remove all checks for ui-mode message from phases
+- [x] optimise RunResult Data Class (less unused properties)
 - [ ] Mystery Encounter Reward phase
 
 ## Open todo's with low priority:
@@ -40,16 +40,9 @@ Let the bot loose 20 Runs in a row and then create new Release
 - [x] Make PhaseProvider get the Phases with dependency injection
 - [x] MoveEffectPhase: check if waiting in message gamemode is correct or space has to be pressed
 - [x] ExpPhase: check if waiting in message gamemode is correct or space has to be pressed
-- [ ] Add getWaitTime() in Phase interface
 - [ ] Combine Start and fightconfig and remove the different configurations
 - [ ] Image Service refactoren
-- [ ] check which constants can be moved to the application.yml
-- [ ] add login infos from .txt to .yml in application-default
-- [ ] add an application-default.yml.backupp to the repo
-- [ ] remove all the template and stages stuff
+- [x] check which constants can be moved to the application.yml
 - [ ] merge file handler to one class and make it a component
-- [ ] SelectTargetPhase: select correct target
-- [ ] SimpleFightConfig: add configurable retry policy
 - [ ] pokemon status in js 
 - [ ] add .getMove() properties to moveset
-- [ ] FileManager: Refactor the bad OS dependent get temp Screenshot file path Implementation and corresponding Unit Tests

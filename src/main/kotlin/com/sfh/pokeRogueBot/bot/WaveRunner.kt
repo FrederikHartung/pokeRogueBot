@@ -5,7 +5,6 @@ import com.sfh.pokeRogueBot.model.enums.UiMode
 import com.sfh.pokeRogueBot.model.run.RunProperty
 import com.sfh.pokeRogueBot.phase.PhaseProcessor
 import com.sfh.pokeRogueBot.phase.PhaseProvider
-import com.sfh.pokeRogueBot.phase.impl.ReturnToTitlePhase
 import com.sfh.pokeRogueBot.phase.impl.TitlePhase
 import com.sfh.pokeRogueBot.service.Brain
 import com.sfh.pokeRogueBot.service.WaitingService
@@ -39,7 +38,7 @@ class WaveRunner(
     fun handlePhaseInWave(runProperty: RunProperty) {
         if (!isActive) {
             log.debug("WaveRunner is not active, skipping phase handling")
-            waitingService.sleep(WAIT_TIME_IF_WAVE_RUNNER_IS_NOT_ACTIVE)
+            waitingService.waitForNotActiveWaveRunner()
             return
         }
 
@@ -64,12 +63,12 @@ class WaveRunner(
 
             if (!(brain.phaseUiIsValidated(phase, uiMode))) {
                 log.warn("Phase ${phaseAsString} is not validated, waiting...")
-                waitingService.waitEvenLonger()
+                waitingService.waitLonger()
                 brain.memorize(phase.phaseName)
                 return
             }
 
-            log.debug("phase detected: {}, gameMode: {}", phase.phaseName, uiMode)
+            log.debug("phase detected: {}, uiMode: {}", phase.phaseName, uiMode)
             phaseProcessor.handlePhase(phase, uiMode)
             brain.memorize(phase.phaseName)
         } catch (e: Exception) {
@@ -101,15 +100,13 @@ class WaveRunner(
      */
     fun saveAndQuit(runProperty: RunProperty, lastExceptionType: String) {
         try {
-            val phase = phaseProvider.fromString(ReturnToTitlePhase.NAME)
-            if (phase is ReturnToTitlePhase) {
-                phase.lastExceptionType = lastExceptionType
-                log.debug("handling ReturnToTitlePhase")
-                phaseProcessor.handlePhase(phase, UiMode.TITLE)
-            }
-            waitingService.waitEvenLonger() // wait for render title
+            phaseProcessor.takeTempScreenshot("error_$lastExceptionType")
+            log.debug("Trying to save and quit")
+            jsUiService.saveAndQuit()
+
+            waitingService.waitLonger() // wait for render title
             val phaseAsString = jsService.getCurrentPhaseAsString()
-            if (phaseAsString == TitlePhase.NAME) {
+            if (phaseAsString == TitlePhase::class.simpleName) {
                 log.debug("we are in title phase, saving and quitting worked")
                 return
             } else {

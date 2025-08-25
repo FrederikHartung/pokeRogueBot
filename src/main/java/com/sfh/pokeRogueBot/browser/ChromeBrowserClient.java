@@ -1,12 +1,9 @@
 package com.sfh.pokeRogueBot.browser;
 
-import com.sfh.pokeRogueBot.model.enums.KeyToPress;
-import com.sfh.pokeRogueBot.model.exception.NotSupportedException;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.remote.UnreachableBrowserException;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.annotation.Value;
@@ -165,47 +162,6 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
         } catch (Exception e) {
             log.error("Error while executing JS command: " + jsCommand + ", error: " + e.getMessage());
             return null;
-        }
-    }
-
-    @Override
-    public void pressKey(KeyToPress keyToPress) {
-        Actions actions = new Actions(driver);
-        switch (keyToPress) {
-            case SPACE:
-                WebElement canvasElement = getCanvas();
-                actions.moveToElement(canvasElement)
-                        .sendKeys(Keys.SPACE)
-                        .perform();
-                break;
-            case ARROW_DOWN:
-                actions.sendKeys(Keys.ARROW_DOWN)
-                        .perform();
-                break;
-            case ARROW_LEFT:
-                actions.sendKeys(Keys.ARROW_LEFT)
-                        .perform();
-                break;
-            case ARROW_UP:
-                actions.sendKeys(Keys.ARROW_UP)
-                        .perform();
-                break;
-            case ARROW_RIGHT:
-                actions.sendKeys(Keys.ARROW_RIGHT)
-                        .perform();
-                break;
-            case BACK_SPACE:
-                actions.sendKeys(Keys.BACK_SPACE)
-                        .perform();
-                break;
-            case ESCAPE:
-                actions.sendKeys(Keys.ESCAPE)
-                        .perform();
-                break;
-
-            default:
-                log.error("Unknown key to press: " + keyToPress);
-                throw new NotSupportedException("Unknown key to press in browser: " + keyToPress);
         }
     }
 

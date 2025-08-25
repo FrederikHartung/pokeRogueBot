@@ -26,6 +26,15 @@ app:
     remember-ui-validated-phases: true
   metric:
     save-run-result-after-lost-run: false
+  retry:
+    set-ui-handler-cursor:
+      count: 3
+      intervall-ms: 200
+  wait-time:
+    wait-briefly: 200
+    wait-modifier-cursor: 600
+    wait-longer: 1000
+    wait-for-not-active-waverunner: 10000
 
 
 spring:
@@ -41,30 +50,9 @@ browser:
   userName:
   password:
 
-wait-time:
-  defaultWaitTime: 2000
-  gameSpeedModificator: 1
-  loginStageWaitTime: 1000
-  introStageWaitTime: 1000
-  mainmenuStageWaitTime: 1000
-  pokemonSelectionStageWaitTime: 2000
-  enemyFaintedStageWaitTime: 2000
-  fightStageWaitTime: 2000
-  savegameStageWaitTime: 2000
-  shopStageWaitTime: 2000
-  switchDecisionStageWaitTime: 2000
-  trainerFightStageWaitTime: 8000
-  waitTimeAfterAction: 200
-  waitTimeForRenderingText: 1000
-  waitTimeForRenderingStages: 2500
-  phaseDefault: 500
-  encounterPhase: 500
-  messagePhase: 100
-  learnMoveStageWaitTime: 500
-
 brain:
   shortTermMemory:
-    memorySize: 50
+    memorySize: 100
     minPhasesForLoop: 3
 
 bot:

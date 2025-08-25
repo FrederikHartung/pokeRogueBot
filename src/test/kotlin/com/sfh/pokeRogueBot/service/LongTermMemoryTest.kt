@@ -4,15 +4,8 @@ import com.sfh.pokeRogueBot.file.FileManager
 import com.sfh.pokeRogueBot.model.modifier.impl.ModifierItem
 import com.sfh.pokeRogueBot.phase.Phase
 import com.sfh.pokeRogueBot.phase.impl.TitlePhase
-import io.mockk.Runs
-import io.mockk.every
-import io.mockk.just
-import io.mockk.mockk
-import io.mockk.verify
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNotEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import io.mockk.*
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -127,7 +120,7 @@ class LongTermMemoryTest {
     @Test
     fun `destroy should write uiValidatedPhases to file when not empty and uiValidatedPhasesChanged`() {
         longTermMemory.rememberUiValidatedPhases() // Load initial phases
-        longTermMemory.memorizePhase(TitlePhase.NAME) //to set uiValidatedPhasesChanged to true
+        longTermMemory.memorizePhase(TitlePhase::class.simpleName!!) //to set uiValidatedPhasesChanged to true
         assertEquals(3, longTermMemory.getUiValidatedPhases().size)
         longTermMemory.destroy() // Simulate application shutdown
 
@@ -163,7 +156,7 @@ class LongTermMemoryTest {
         )
 
         longTermMemory.rememberUiValidatedPhases() // Load initial phases
-        longTermMemory.memorizePhase(TitlePhase.NAME) //to set uiValidatedPhasesChanged to true
+        longTermMemory.memorizePhase(TitlePhase::class.simpleName!!) //to set uiValidatedPhasesChanged to true
         assertEquals(0, longTermMemory.getUiValidatedPhases().size)
         longTermMemory.destroy() // Simulate application shutdown
 

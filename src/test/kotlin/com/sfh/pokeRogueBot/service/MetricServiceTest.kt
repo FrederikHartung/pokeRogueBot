@@ -1,12 +1,11 @@
 package com.sfh.pokeRogueBot.service
 
 import com.sfh.pokeRogueBot.file.FileManager
-import com.sfh.pokeRogueBot.model.poke.PokemonBenchmarkMetric
 import com.sfh.pokeRogueBot.model.run.*
 import io.mockk.*
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.Assertions.*
 import java.time.LocalDate
 
 class MetricServiceTest {
@@ -201,7 +200,6 @@ class MetricServiceTest {
     private fun createRunResult(header: RunResultHeader, waveIndex: Int): RunResult {
         val body = RunResultBody(
             money = 1000,
-            team = listOf(),
             waveIndex = waveIndex
         )
         return RunResult(

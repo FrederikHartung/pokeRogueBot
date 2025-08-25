@@ -5,7 +5,6 @@ import com.sfh.pokeRogueBot.config.JsConfig
 import com.sfh.pokeRogueBot.file.FileManager
 import com.sfh.pokeRogueBot.model.SystemExitWrapper
 import com.sfh.pokeRogueBot.model.enums.RunStatus
-import com.sfh.pokeRogueBot.model.poke.PokemonBenchmarkMetric
 import com.sfh.pokeRogueBot.model.run.*
 import com.sfh.pokeRogueBot.service.Brain
 import com.sfh.pokeRogueBot.service.MetricService
@@ -120,8 +119,6 @@ class SimpleBot(
     }
 
     private fun saveRunResult(runProperty: RunProperty, runResultType: RunResultType) {
-        val team = mutableListOf<PokemonBenchmarkMetric>()
-        runProperty.teamSnapshot.forEach { team.add(it) }
         val runResult = RunResult(
             runResultType,
             RunResultHeader(
@@ -131,7 +128,6 @@ class SimpleBot(
             ),
             RunResultBody(
                 money = runProperty.money,
-                team = team,
                 waveIndex = runProperty.waveIndex,
             )
         )
