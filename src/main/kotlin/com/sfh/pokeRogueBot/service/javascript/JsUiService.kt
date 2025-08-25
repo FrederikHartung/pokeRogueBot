@@ -3,9 +3,11 @@ package com.sfh.pokeRogueBot.service.javascript
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.sfh.pokeRogueBot.browser.JsClient
+import com.sfh.pokeRogueBot.model.browser.gamejson.Button
 import com.sfh.pokeRogueBot.model.browser.gamejson.UiHandlerDto
 import com.sfh.pokeRogueBot.model.dto.SaveSlotDto
 import com.sfh.pokeRogueBot.model.enums.UiMode
+import com.sfh.pokeRogueBot.model.exception.UiHandlerNotActiveException
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItemDeserializer
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop
@@ -20,13 +22,17 @@ import org.springframework.stereotype.Service
 class JsUiService(
     private val jsClient: JsClient,
     private val uiHandlerService: UiHandlerService,
-    private val waitingService: WaitingService
+    private val waitingService: WaitingService,
 ) {
 
-    private val log = LoggerFactory.getLogger(JsUiService::class.java)
+    companion object {
+        private val log = LoggerFactory.getLogger(JsUiService::class.java)
+    }
+
     private val GSON: Gson = GsonBuilder()
         .registerTypeAdapter(ChooseModifierItem::class.java, ChooseModifierItemDeserializer())
         .create()
+
 
     fun getModifierShop(): ModifierShop {
         val json =
@@ -144,33 +150,50 @@ class JsUiService(
         return result
     }
 
-    fun triggerMessageAdvance() {
-        jsClient.executeCommandAndGetResult("return window.poru.uihandler.triggerMessageAdvance();").toString()
+    fun triggerMessageAdvance(relaxed: Boolean = false) {
+        jsClient.executeCommandAndGetResult("return window.poru.uihandler.triggerMessageAdvance($relaxed);").toString()
             .toBoolean()
         waitingService.waitBriefly()
     }
 
     fun sendCancelButton() {
-        jsClient.executeCommandAndGetResult("return window.poru.uihandler.sendCancelButton();").toString()
+        jsClient.executeCommandAndGetResult("return window.poru.uihandler.sendButton(${Button.CANCEL});").toString()
             .toBoolean()
         waitingService.waitBriefly()
     }
 
-    fun sendActionButton() {
-        jsClient.executeCommandAndGetResult("return window.poru.uihandler.sendActionButton();").toString()
+    fun sendActionButton(): Boolean {
+        val result =
+            jsClient.executeCommandAndGetResult("return window.poru.uihandler.sendButton(${Button.ACTION});").toString()
             .toBoolean()
         waitingService.waitBriefly()
+        return result
     }
 
     /**
      * Validates correct UiHandler for UiMode is active and used for setting the cursor index
      * Uses the waiting service to wait after setting the cursor to the new index
+     * Returns true, when the index was set correctly
+     * Returns false, when relaxedForInActiveHandler is true and the uiHandler was not active
      */
-    fun setUiHandlerCursor(uiMode: UiMode, newIndex: Int) {
+    fun setUiHandlerCursor(
+        uiMode: UiMode,
+        newIndex: Int,
+        relaxedForInActiveHandler: Boolean = false,
+    ): Boolean {
         val handlerTemplate = uiHandlerService.getHandlerForUiMode(uiMode)
         val handlerDto = getUiHandlerDto(handlerTemplate.handlerIndex)
-        uiHandlerService.validateHandlerDtoOrThrow(handlerTemplate, handlerDto)
+        try {
+            uiHandlerService.validateHandlerDtoOrThrow(handlerTemplate, handlerDto)
+        } catch (e: UiHandlerNotActiveException) {
+            if (relaxedForInActiveHandler) {
+                //for some uiHandler it is possible, that they are not always active
+                //example: TargetSelect for Teamfights with only one Pokemon
+                return false
+            }
+        }
         setCursorToIndex(handlerDto, newIndex)
         waitingService.waitBriefly()
+        return true
     }
 }

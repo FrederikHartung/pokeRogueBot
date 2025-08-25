@@ -2,6 +2,7 @@ package com.sfh.pokeRogueBot.model.ui
 
 import com.sfh.pokeRogueBot.model.browser.gamejson.UiHandlerDto
 import com.sfh.pokeRogueBot.model.enums.UiMode
+import com.sfh.pokeRogueBot.model.exception.UiHandlerNotActiveException
 import com.sfh.pokeRogueBot.model.exception.UiHandlerValidationException
 import com.sfh.pokeRogueBot.model.exception.UiModeException
 import org.springframework.stereotype.Service
@@ -21,6 +22,18 @@ class UiHandlerService {
             2,
             "CommandUiHandler",
         ),
+        UiMode.FIGHT to UiHandlerTemplate(
+            3,
+            "FightUiHandler",
+        ),
+        UiMode.BALL to UiHandlerTemplate(
+            4,
+            "BallUiHandler",
+        ),
+        UiMode.TARGET_SELECT to UiHandlerTemplate(
+            5,
+            "TargetSelectUiHandler",
+        ),
         UiMode.MODIFIER_SELECT to UiHandlerTemplate(
             6,
             "ModifierSelectUiHandler",
@@ -32,6 +45,10 @@ class UiHandlerService {
         UiMode.PARTY to UiHandlerTemplate(
             8,
             "PartyUiHandler",
+        ),
+        UiMode.SUMMARY to UiHandlerTemplate(
+            9,
+            "SummaryUiHandler",
         ),
         UiMode.STARTER_SELECT to UiHandlerTemplate(
             10,
@@ -69,7 +86,7 @@ class UiHandlerService {
             throw UiHandlerValidationException("uiHandler.name does not match for" + uiHandlerTemplate.handlerName)
         }
         if (!uiHandlerDto.active) {
-            throw UiHandlerValidationException("uiHandler is not active: " + uiHandlerTemplate.handlerName)
+            throw UiHandlerNotActiveException("uiHandler is not active: " + uiHandlerTemplate.handlerName)
         }
     }
 }

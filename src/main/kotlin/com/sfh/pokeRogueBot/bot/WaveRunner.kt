@@ -68,7 +68,7 @@ class WaveRunner(
                 return
             }
 
-            log.debug("phase detected: {}, gameMode: {}", phase.phaseName, uiMode)
+            log.debug("phase detected: {}, uiMode: {}", phase.phaseName, uiMode)
             phaseProcessor.handlePhase(phase, uiMode)
             brain.memorize(phase.phaseName)
         } catch (e: Exception) {

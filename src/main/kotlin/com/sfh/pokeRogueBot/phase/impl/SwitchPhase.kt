@@ -1,7 +1,7 @@
 package com.sfh.pokeRogueBot.phase.impl
 
 import com.sfh.pokeRogueBot.model.enums.UiMode
-import com.sfh.pokeRogueBot.model.exception.UiModeException
+import com.sfh.pokeRogueBot.model.exception.UnsupportedUiModeException
 import com.sfh.pokeRogueBot.phase.UiPhase
 import com.sfh.pokeRogueBot.service.Brain
 import com.sfh.pokeRogueBot.service.javascript.JsUiService
@@ -24,16 +24,12 @@ class SwitchPhase(
                 ignoreFirstPokemon = false
                 jsUiService.setUiHandlerCursor(uiMode, switchDecision.index)
                 jsUiService.sendActionButton()
-                return
-            }
-
-            UiMode.CONFIRM -> {
-                jsUiService.setUiHandlerCursor(uiMode, 0)
+                //confirm sendout
                 jsUiService.sendActionButton()
                 return
             }
 
-            else -> throw UiModeException(uiMode)
+            else -> throw UnsupportedUiModeException(uiMode)
         }
     }
 }

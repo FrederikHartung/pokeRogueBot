@@ -124,9 +124,6 @@ class FaintPhase : GenericWaitPhase()
 class ExpPhase : GenericWaitPhase()
 
 @Component
-class EvolutionPhase : GenericWaitPhase()
-
-@Component
 class EndEvolutionPhase : GenericWaitPhase()
 
 @Component

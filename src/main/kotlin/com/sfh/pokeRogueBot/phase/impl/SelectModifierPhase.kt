@@ -1,9 +1,10 @@
 package com.sfh.pokeRogueBot.phase.impl
 
 import com.sfh.pokeRogueBot.model.enums.UiMode
-import com.sfh.pokeRogueBot.model.exception.UiModeException
+import com.sfh.pokeRogueBot.model.exception.UnsupportedUiModeException
 import com.sfh.pokeRogueBot.phase.UiPhase
 import com.sfh.pokeRogueBot.service.Brain
+import com.sfh.pokeRogueBot.service.WaitingService
 import com.sfh.pokeRogueBot.service.javascript.JsUiService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component
 class SelectModifierPhase(
     private val brain: Brain,
     private val jsUiService: JsUiService,
+    private val waitingService: WaitingService
 ) : UiPhase {
 
     companion object {
@@ -25,10 +27,12 @@ class SelectModifierPhase(
     override fun handleUiMode(uiMode: UiMode) {
         when (uiMode) {
             UiMode.MODIFIER_SELECT -> {
+                waitingService.waitLonger() //wait for render
                 val result = brain.getModifierToPick()
                 if (result == null) {
                     // cant choose item, so don't pick any
                     jsUiService.sendCancelButton()
+                    waitingService.waitModifierCursor()
                     jsUiService.setUiHandlerCursor(uiMode, 0)
                     jsUiService.sendActionButton()
                     return
@@ -42,20 +46,22 @@ class SelectModifierPhase(
                 }
 
                 log.debug("moved cursor to row: ${result.rowIndex}, column: ${result.columnIndex}")
+                waitingService.waitModifierCursor()
                 jsUiService.sendActionButton()
+                return
             }
 
             UiMode.PARTY -> {
+                //move to pokemon to apply
                 jsUiService.setUiHandlerCursor(uiMode, pokemonIndexToSwitchTo)
+                waitingService.waitModifierCursor()
                 jsUiService.sendActionButton()
+                //apply choice
+                jsUiService.sendActionButton()
+                return
             }
 
-            UiMode.CONFIRM -> {
-                jsUiService.setUiHandlerCursor(uiMode, 0)
-                jsUiService.sendActionButton()
-            }
-
-            else -> throw UiModeException(uiMode)
+            else -> throw UnsupportedUiModeException(uiMode)
         }
     }
 }

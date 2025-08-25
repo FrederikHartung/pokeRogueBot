@@ -356,12 +356,12 @@ window.poru.uihandler = {
         return false
     },
 
-    triggerMessageAdvance: () => {
+    triggerMessageAdvance: (relaxed) => {
         // Check if Ui Mode is Message and awaitingActionInput
         const scene = window.poru.util.getBattleScene()
         if (scene) {
-            if (scene.ui.getMode() === UiMode_MESSAGE && //message
-                scene.ui.getHandler().awaitingActionInput) {
+            const shouldSet = (scene.ui.getMode() === UiMode_MESSAGE || relaxed) && scene.ui.getHandler().awaitingActionInput
+            if (shouldSet) {
                 scene.ui.processInput(Button_ACTION);
                 return true; // Action was triggered
             }
@@ -380,11 +380,11 @@ window.poru.uihandler = {
         return false; // No action taken (conditions not met)
     },
 
-    sendActionButton: () => {
+    sendButton: (buttonEnumValue) => {
         const scene = window.poru.util.getBattleScene()
         if (scene) {
-            if (scene.ui.getHandler().awaitingActionInput) {
-                scene.ui.processInput(Button_ACTION);
+            if (scene.ui.getHandler()) {
+                scene.ui.processInput(buttonEnumValue);
                 return true; // Action was triggered
             }
         }

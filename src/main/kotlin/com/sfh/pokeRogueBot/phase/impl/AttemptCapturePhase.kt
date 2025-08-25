@@ -17,8 +17,8 @@ class AttemptCapturePhase(
         if (uiMode == UiMode.CONFIRM) { // todo: release the pokemon with the lowest level
             jsUiService.setUiHandlerCursor(uiMode, 3) // set to no
             jsUiService.sendActionButton()
+        } else {
+            throw UiModeException(uiMode)
         }
-
-        throw UiModeException(uiMode)
     }
 }

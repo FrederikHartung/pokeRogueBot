@@ -5,6 +5,7 @@ import com.sfh.pokeRogueBot.model.exception.UiModeException
 import com.sfh.pokeRogueBot.model.run.RunProperty
 import com.sfh.pokeRogueBot.phase.UiPhase
 import com.sfh.pokeRogueBot.service.Brain
+import com.sfh.pokeRogueBot.service.WaitingService
 import com.sfh.pokeRogueBot.service.javascript.JsService
 import com.sfh.pokeRogueBot.service.javascript.JsUiService
 import org.slf4j.LoggerFactory
@@ -15,6 +16,7 @@ class SelectStarterPhase(
     private val jsService: JsService,
     private val jsUiService: JsUiService,
     private val brain: Brain,
+    private val waitingService: WaitingService,
 ) : UiPhase {
 
     companion object {
@@ -30,20 +32,24 @@ class SelectStarterPhase(
                 when (numberOfSelectedStarters) {
                     0 -> {
                         jsUiService.setUiHandlerCursor(uiMode, 0)
+                        waitingService.waitBriefly()
                         jsUiService.sendActionButton()
                     }
 
                     1 -> {
                         jsUiService.setUiHandlerCursor(uiMode, 1)
+                        waitingService.waitBriefly()
                         jsUiService.sendActionButton()
                     }
 
                     2 -> {
                         jsUiService.setUiHandlerCursor(uiMode, 2)
+                        waitingService.waitBriefly()
                         jsUiService.sendActionButton()
                     }
                     3 -> {
                         jsUiService.confirmPokemonSelect()
+                        waitingService.waitBriefly()
                     }
                 }
 
@@ -62,6 +68,7 @@ class SelectStarterPhase(
                 val runProperty: RunProperty = brain.runProperty
                 log.debug("Setting Cursor to saveSlotIndex: {}", runProperty.saveSlotIndex)
                 jsUiService.setUiHandlerCursor(uiMode, runProperty.saveSlotIndex)
+                waitingService.waitBriefly()
                 jsUiService.sendActionButton()
                 //jsUiService.setCursorToIndexAndConfirm(template, runProperty.saveSlotIndex)
             }

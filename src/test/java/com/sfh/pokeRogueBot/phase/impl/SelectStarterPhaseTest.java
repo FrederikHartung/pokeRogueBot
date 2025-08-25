@@ -4,6 +4,7 @@ import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.exception.UiModeException;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
 import com.sfh.pokeRogueBot.service.Brain;
+import com.sfh.pokeRogueBot.service.WaitingService;
 import com.sfh.pokeRogueBot.service.javascript.JsService;
 import com.sfh.pokeRogueBot.service.javascript.JsUiService;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +19,7 @@ class SelectStarterPhaseTest {
     JsService jsService;
     JsUiService jsUiService;
     Brain brain;
+    WaitingService waitingService;
 
     final UiMode gameModeSaveSlot = UiMode.SAVE_SLOT;
 
@@ -28,7 +30,8 @@ class SelectStarterPhaseTest {
         jsService = mock(JsService.class);
         jsUiService = mock(JsUiService.class);
         brain = mock(Brain.class);
-        selectStarterPhase = new SelectStarterPhase(jsService, jsUiService, brain);
+        waitingService = mock(WaitingService.class);
+        selectStarterPhase = new SelectStarterPhase(jsService, jsUiService, brain, waitingService);
 
         runProperty = new RunProperty(1);
         doReturn(runProperty).when(brain).getRunProperty();
@@ -39,7 +42,7 @@ class SelectStarterPhaseTest {
         runProperty.setSaveSlotIndex(1);
 
         selectStarterPhase.handleUiMode(gameModeSaveSlot);
-        verify(jsUiService, times(1)).setUiHandlerCursor(UiMode.SAVE_SLOT, 1);
+        verify(jsUiService, times(1)).setUiHandlerCursor(UiMode.SAVE_SLOT, 1, false);
         verify(jsUiService, times(1)).sendActionButton();
     }
 

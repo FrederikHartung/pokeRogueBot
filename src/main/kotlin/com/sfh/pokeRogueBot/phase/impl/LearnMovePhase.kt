@@ -1,7 +1,7 @@
 package com.sfh.pokeRogueBot.phase.impl
 
 import com.sfh.pokeRogueBot.model.enums.UiMode
-import com.sfh.pokeRogueBot.model.exception.UiModeException
+import com.sfh.pokeRogueBot.model.exception.UnsupportedUiModeException
 import com.sfh.pokeRogueBot.phase.UiPhase
 import com.sfh.pokeRogueBot.service.Brain
 import com.sfh.pokeRogueBot.service.javascript.JsUiService
@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component
 @Component
 class LearnMovePhase(
     private val jsUiService: JsUiService,
-    private val brain: Brain
+    private val brain: Brain,
 ) : UiPhase {
 
     companion object {
@@ -24,12 +24,14 @@ class LearnMovePhase(
         when (uiMode) {
             UiMode.CONFIRM -> {
                 jsUiService.setUiHandlerCursor(uiMode, 0)
+                jsUiService.sendActionButton()
             }
 
-            //todo: check if this branch is still called
+            //Where all present and the new move are displayed
             UiMode.SUMMARY -> handleLearnMove()
+            UiMode.EVOLUTION_SCENE -> jsUiService.triggerMessageAdvance(true)
 
-            else -> throw UiModeException(uiMode)
+            else -> throw UnsupportedUiModeException(uiMode)
         }
     }
 

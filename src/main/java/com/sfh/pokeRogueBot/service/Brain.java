@@ -138,7 +138,6 @@ public class Brain {
                     enemyPokemon1,
                     enemyPokemon2
             );
-            forDoubleFight.setCatchable(capturePokemonNeuron.shouldCapturePokemon(waveDto, enemyPokemon1));
             return forDoubleFight;
         } else {
             //single fight

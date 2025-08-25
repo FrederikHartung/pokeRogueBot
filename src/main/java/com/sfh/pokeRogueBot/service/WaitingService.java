@@ -19,6 +19,11 @@ public class WaitingService {
         sleep(waitTime);
     }
 
+    public void waitModifierCursor() {
+        int waitTime = waitConfig.getWaitModifierCursor();
+        sleep(waitTime);
+    }
+
     public void waitLonger() {
         int waitTime = waitConfig.getWaitLonger();
         sleep(waitTime);

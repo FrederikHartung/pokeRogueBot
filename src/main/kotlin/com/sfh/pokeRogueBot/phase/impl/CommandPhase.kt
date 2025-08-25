@@ -1,13 +1,15 @@
 package com.sfh.pokeRogueBot.phase.impl
 
 import com.sfh.pokeRogueBot.model.decisions.AttackDecision
+import com.sfh.pokeRogueBot.model.decisions.AttackDecisionForDoubleFight
 import com.sfh.pokeRogueBot.model.decisions.AttackDecisionForPokemon
 import com.sfh.pokeRogueBot.model.decisions.SwitchDecision
 import com.sfh.pokeRogueBot.model.dto.WaveAndTurnDto
 import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision
+import com.sfh.pokeRogueBot.model.enums.SelectedTarget
 import com.sfh.pokeRogueBot.model.enums.UiMode
 import com.sfh.pokeRogueBot.model.exception.NoAttackMoveFoundException
-import com.sfh.pokeRogueBot.model.exception.UiModeException
+import com.sfh.pokeRogueBot.model.exception.UnsupportedUiModeException
 import com.sfh.pokeRogueBot.phase.UiPhase
 import com.sfh.pokeRogueBot.service.Brain
 import com.sfh.pokeRogueBot.service.javascript.JsService
@@ -89,7 +91,17 @@ class CommandPhase(
                 return
             } else {
                 log.debug("found attackDecision for double fight")
-                TODO()
+                val attackOne = (attackDecision as AttackDecisionForDoubleFight).pokemon1!!
+                executeMove(attackOne)
+
+                val attackTwo = (attackDecision as AttackDecisionForDoubleFight).pokemon2
+                if (null != attackTwo) {
+                    jsUiService.sendActionButton() //go from CommandMenu to FightMenu
+                    executeMove(attackTwo)
+                } else {
+                    log.warn("attack move 2 is null")
+                }
+                return
             }
         } else if (uiMode == UiMode.BALL) {
             log.debug("GameMode.BALL, choosing strongest pokeball")
@@ -108,6 +120,22 @@ class CommandPhase(
             return
         }
 
-        throw UiModeException(uiMode)
+        throw UnsupportedUiModeException(uiMode)
+    }
+
+    private fun executeMove(attack: AttackDecisionForPokemon) {
+        //set Cursor to selected move
+        jsUiService.setUiHandlerCursor(UiMode.FIGHT, attack.attackIndex)
+        jsUiService.sendActionButton()
+        //set Cursor to selected enemy
+        //0 = left player pokemon
+        //1 = right player pokemon
+        //2 = left enemy pokemon
+        //3 = right player pokemon
+        val targetOne: Int = if (attack.target == SelectedTarget.LEFT_ENEMY) 2 else 3
+        val setCursorSuccess = jsUiService.setUiHandlerCursor(UiMode.TARGET_SELECT, targetOne)
+        if (setCursorSuccess) {
+            jsUiService.sendActionButton()
+        }
     }
 }

@@ -36,8 +36,8 @@ class TitlePhaseTest {
 
         every { jsUiService.setCursorToLoadGame() } returns true
         every { jsUiService.setCursorToNewGame() } returns true
-        every { jsUiService.setUiHandlerCursor(any(), any()) } just Runs
-        every { jsUiService.sendActionButton() } just Runs
+        every { jsUiService.setUiHandlerCursor(any(), any()) } returns true
+        every { jsUiService.sendActionButton() } returns true
         every { jsUiService.sendCancelButton() } just Runs
     }
 
