@@ -7,4 +7,5 @@ data class WaitConfig(
     val waitBriefly: Int,
     val waitModifierCursor: Int,
     val waitLonger: Int,
+    val waitForNotActiveWaverunner: Int
 )

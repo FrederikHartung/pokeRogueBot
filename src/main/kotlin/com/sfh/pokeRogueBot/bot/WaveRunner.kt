@@ -38,7 +38,7 @@ class WaveRunner(
     fun handlePhaseInWave(runProperty: RunProperty) {
         if (!isActive) {
             log.debug("WaveRunner is not active, skipping phase handling")
-            waitingService.sleep(WAIT_TIME_IF_WAVE_RUNNER_IS_NOT_ACTIVE)
+            waitingService.waitForNotActiveWaveRunner()
             return
         }
 

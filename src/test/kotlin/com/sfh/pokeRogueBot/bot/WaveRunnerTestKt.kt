@@ -41,7 +41,7 @@ class WaveRunnerTestKt {
             true
         )
 
-        every { waitingService.sleep(any()) } just Runs
+        every { waitingService.waitForNotActiveWaveRunner() } just Runs
 
         every { jsService.isUiHandlerActive() } returns true
     }
@@ -63,7 +63,7 @@ class WaveRunnerTestKt {
         )
 
         waveRunner.handlePhaseInWave(runProperty)
-        verify { waitingService.sleep(any()) }
+        verify { waitingService.waitForNotActiveWaveRunner() }
         verify(exactly = 0) { jsService.isUiHandlerActive() }
     }
 

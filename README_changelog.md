@@ -5,6 +5,7 @@
 - Remove all KeyToPress Actions and migrate to UI-Handler
 - Remove all CustomWaitTimes and migrate to WaitConfig
 - BugFixes for UI Handling
+- Centralised all Waiting Constants to the WaitConfig
 
 ## 3.0
 ### Features:
