@@ -33,7 +33,7 @@ public class ChooseModifierNeuron {
 
         ModifierPriorityResult priorityItemExists = priorityItemExists(shop, waveDto);
 
-        List<MoveToModifierResult> itemsToBuy = buyItemsIfNeeded(shop, playerParty, priorityItemExists.isPriority());
+        List<MoveToModifierResult> itemsToBuy = buyItemsIfNeeded(shop, playerParty, priorityItemExists.getPriority());
 
         MoveToModifierResult freeItem = pickFreeItem(shop, waveDto, priorityItemExists);
         ChooseModifierDecision result = new ChooseModifierDecision(freeItem, itemsToBuy);
@@ -43,21 +43,28 @@ public class ChooseModifierNeuron {
     }
 
     private ModifierPriorityResult priorityItemExists(ModifierShop shop, WaveDto waveDto) {
-
-        ModifierPriorityResult result = new ModifierPriorityResult();
-        //if a egg voucher is available, pick it
+        //if an egg voucher is available, pick it
         if (shop.freeItemsContains(AddVoucherModifierItem.TARGET)) {
-            result.setVoucher(true);
-            result.setPriority(true);
+            return new ModifierPriorityResult(
+                    true,
+                    true,
+                    false
+            );
         }
 
         boolean pokeBallPriority = chosePokeBallModifierNeuron.priorityItemExists(shop, waveDto);
         if (pokeBallPriority) {
-            result.setBall(true);
-            result.setPriority(true);
+            return new ModifierPriorityResult(
+                    true,
+                    false,
+                    true
+            );
         }
-
-        return result;
+        return new ModifierPriorityResult(
+                false,
+                false,
+                false
+        );
     }
 
     private List<MoveToModifierResult> buyItemsIfNeeded(ModifierShop shop, Pokemon[] playerParty, boolean priorityItemExists) {
@@ -95,7 +102,7 @@ public class ChooseModifierNeuron {
 
     private MoveToModifierResult pickFreeItem(ModifierShop shop, WaveDto waveDto, ModifierPriorityResult modifierPriorityResult) {
 
-        Pokemon[] playerParty = waveDto.getWavePokemon().getPlayerParty();
+        List<Pokemon> playerParty = waveDto.getWavePokemon().getPlayerParty();
         //pick vouchers
         MoveToModifierResult voucherItem = pickItem(shop, AddVoucherModifierItem.TARGET);
         if (null != voucherItem) {
@@ -210,7 +217,7 @@ public class ChooseModifierNeuron {
         return null;
     }
 
-    private MoveToModifierResult pickReviveItemIfFreeAndNeeded(ModifierShop shop, Pokemon[] playerParty) {
+    private MoveToModifierResult pickReviveItemIfFreeAndNeeded(ModifierShop shop, List<Pokemon> playerParty) {
         ChooseModifierItem reviveItem = shop.getFreeItems().stream()
                 .filter(PokemonReviveModifierItem.class::isInstance)
                 .findFirst()
@@ -218,8 +225,8 @@ public class ChooseModifierNeuron {
 
         if (null != reviveItem) {
             int reviveIndex = -1;
-            for (int i = 0; i < playerParty.length; i++) {
-                if (playerParty[i].getHp() == 0) {
+            for (int i = 0; i < playerParty.size(); i++) {
+                if (playerParty.get(i).getHp() == 0) {
                     reviveIndex = i;
                     break;
                 }

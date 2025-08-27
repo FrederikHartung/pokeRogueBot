@@ -1,0 +1,3 @@
+package com.sfh.pokeRogueBot.model.modifier
+
+interface GeneratedPersistentModifierType

@@ -21,7 +21,7 @@ class PhaseProviderTest {
 
     @Test
     fun `fromString finds and returns a Phase`(){
-        val phase = TitlePhase(mockk(), mockk())
+        val phase = TitlePhase(mockk(), mockk(), mockk())
         phases.add(phase)
 
         val result = phaseProvider.fromString(phase.phaseName)

@@ -6,6 +6,7 @@ import com.sfh.pokeRogueBot.model.exception.NotSupportedException
 import com.sfh.pokeRogueBot.model.exception.UnsupportedUiModeException
 import com.sfh.pokeRogueBot.phase.UiPhase
 import com.sfh.pokeRogueBot.service.Brain
+import com.sfh.pokeRogueBot.service.WaitingService
 import com.sfh.pokeRogueBot.service.javascript.JsUiService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -13,7 +14,8 @@ import org.springframework.stereotype.Component
 @Component
 class TitlePhase(
     private val brain: Brain,
-    private val jsUiService: JsUiService
+    private val jsUiService: JsUiService,
+    private val waitingService: WaitingService
 ) : UiPhase {
 
     companion object {
@@ -24,7 +26,7 @@ class TitlePhase(
 
     @Throws(NotSupportedException::class)
     override fun handleUiMode(uiMode: UiMode) {
-        val runProperty = brain.runProperty
+        val runProperty = brain.getRunProperty()
 
         when (uiMode) {
             UiMode.TITLE -> {
@@ -38,13 +40,14 @@ class TitlePhase(
                     log.debug("opening load game screen.")
                     val setCursorToLoadGameSuccessful = jsUiService.setCursorToLoadGame()
                     if (setCursorToLoadGameSuccessful) {
+                        waitingService.waitBriefly()
                         jsUiService.sendActionButton()
                         return
                     }
                     throw IllegalStateException("Unable to set cursor to load game.")
                 }
 
-                val saveGameSlotIndex = brain.saveSlotIndexToSave
+                val saveGameSlotIndex = brain.getSaveSlotIndexToSave()
                 if (saveGameSlotIndex == -1) {
                     log.warn("No available save slot, closing app.")
                     runProperty.status = RunStatus.EXIT_APP
@@ -64,7 +67,7 @@ class TitlePhase(
             }
 
             UiMode.SAVE_SLOT -> {
-                val saveSlotIndexToLoad = brain.saveSlotIndexToLoad
+                val saveSlotIndexToLoad = brain.getSaveSlotIndexToLoad()
                 if (saveSlotIndexToLoad == -1) {
                     log.debug("No save slot to load, pressing backspace and returning to title.")
                     jsUiService.sendCancelButton()

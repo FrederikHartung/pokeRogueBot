@@ -13,7 +13,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 
 class CapturePokemonNeuronTest {
 
@@ -39,9 +40,8 @@ class CapturePokemonNeuronTest {
         species.setCatchRate(45);
         wildPokemon.setSpecies(species);
 
-        status = new Status();
+        status = new Status(StatusEffect.NONE, 3);
         wildPokemon.setStatus(status);
-        status.setEffect(StatusEffect.NONE);
 
         wildPokemonStats = Stats.Companion.createDefault();
         wildPokemon.setStats(wildPokemonStats);

@@ -10,7 +10,7 @@ class MysteryEncounterPhase(private val jsUiService: JsUiService) : UiPhase {
     override val phaseName = "MysteryEncounterPhase"
 
     override fun handleUiMode(uiMode: UiMode) {
-        jsUiService.setUiHandlerCursor(uiMode, 1)
+        jsUiService.setUiHandlerCursor(uiMode, 0)
         jsUiService.sendActionButton()
     }
 }

@@ -65,7 +65,7 @@ class SelectStarterPhase(
             }
 
             UiMode.SAVE_SLOT -> {
-                val runProperty: RunProperty = brain.runProperty
+                val runProperty: RunProperty = brain.getRunProperty()
                 log.debug("Setting Cursor to saveSlotIndex: {}", runProperty.saveSlotIndex)
                 jsUiService.setUiHandlerCursor(uiMode, runProperty.saveSlotIndex)
                 waitingService.waitBriefly()

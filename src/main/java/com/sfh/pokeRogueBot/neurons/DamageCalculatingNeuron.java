@@ -61,8 +61,8 @@ public class DamageCalculatingNeuron {
         int defenseStat = move.getCategory() == MoveCategory.SPECIAL ? defender.getStats().getSpecialDefense() : defender.getStats().getDefense();
         int power = move.getPower();
 
-        double typeEffectiveness1 = PokeType.getTypeDamageMultiplier(move.getType(), defender.getSpecies().getType1());
-        double typeEffectiveness2 = defender.getSpecies().getType2() != null ? PokeType.getTypeDamageMultiplier(move.getType(), defender.getSpecies().getType2()) : 1.0f;
+        double typeEffectiveness1 = PokeType.Companion.getTypeDamageMultiplier(move.getType(), defender.getSpecies().getType1());
+        double typeEffectiveness2 = defender.getSpecies().getType2() != null ? PokeType.Companion.getTypeDamageMultiplier(move.getType(), defender.getSpecies().getType2()) : 1.0f;
 
         //if the attacking pokemon has the same type as the move, it gets a STAB bonus
         double stab = move.getType() == attacker.getSpecies().getType1() || move.getType() == attacker.getSpecies().getType2() ? 1.5 : 1.0;
@@ -77,10 +77,10 @@ public class DamageCalculatingNeuron {
     }
 
     public float calcDamageMultiplier(PokeType attackTyp, PokeType defTyp1, PokeType defTyp2) {
-        double typeEffectiveness1 = PokeType.getTypeDamageMultiplier(attackTyp, defTyp1);
+        double typeEffectiveness1 = PokeType.Companion.getTypeDamageMultiplier(attackTyp, defTyp1);
         double typeEffectiveness2 = 1;
         if (defTyp2 != null) {
-            typeEffectiveness2 = PokeType.getTypeDamageMultiplier(attackTyp, defTyp2);
+            typeEffectiveness2 = PokeType.Companion.getTypeDamageMultiplier(attackTyp, defTyp2);
         }
         return (float) (typeEffectiveness1 * typeEffectiveness2);
     }
