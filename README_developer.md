@@ -6,17 +6,18 @@ If a good idea comes up, write it down and implement it later. Focus on the curr
 Only refactor, when it's really necessary.
 
 ## Current Task:
-Load Game is not opened on Game Start in Title Phase
+Fill ModifierSelectState with data: reviewitems and lure are not handled
 
 ## Open todo's with high priority:
-- [x] remove the db and spring data
-- [x] if an exception is thrown, save and go back to title screen
-- [x] load the first save game 
-- [x] add handle if an enemy move forces the player to switch pokemon
-- [x] when no pp are left, the attack can't be used
-- [x] hyper healer is not used as a revive item
-- [x] get in js the current form index and apply its data to the pokemon
-- [x] make attack decision not in the attack menu
+- [ ] migrate Waitingservice to jsService
+- [ ] merge jsServices?
+
+## Open todo's with low priority:
+- [ ] Combine Start and fightconfig and remove the different configurations
+- [ ] Image Service refactoren
+- [ ] merge file handler to one class and make it a component
+- [ ] pokemon status in js 
+- [ ] add .getMove() properties to moveset
 - [ ] don't buy revive items before waveDto 10
 - [ ] getting the attack move from the summary ui handler
 - [ ] modifier shop refactoring
@@ -26,23 +27,4 @@ Load Game is not opened on Game Start in Title Phase
 - [ ] learning of attacks
 - [ ] API for stopping the app or let it run again
 - [ ] ChooseRareModifierNeuron
-- [x] remove getWaitAfterStage2x
-- [x] move wait config to central service
-- [x] remove all checks for ui-mode message from phases
-- [x] optimise RunResult Data Class (less unused properties)
 - [ ] Mystery Encounter Reward phase
-
-## Open todo's with low priority:
-- [x] make the h2 database as default
-- [x] PokemonNatureChangeModifierItem: Add Nature
-- [x] AddVoucherModifierItem: Add Voucher
-- [x] BerryModifierItem: Add Berry
-- [x] Make PhaseProvider get the Phases with dependency injection
-- [x] MoveEffectPhase: check if waiting in message gamemode is correct or space has to be pressed
-- [x] ExpPhase: check if waiting in message gamemode is correct or space has to be pressed
-- [ ] Combine Start and fightconfig and remove the different configurations
-- [ ] Image Service refactoren
-- [x] check which constants can be moved to the application.yml
-- [ ] merge file handler to one class and make it a component
-- [ ] pokemon status in js 
-- [ ] add .getMove() properties to moveset

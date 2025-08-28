@@ -12,6 +12,7 @@ import com.sfh.pokeRogueBot.model.enums.UiMode
 import com.sfh.pokeRogueBot.model.exception.StopRunException
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult
 import com.sfh.pokeRogueBot.model.poke.Pokemon
+import com.sfh.pokeRogueBot.model.rl.ModifierSelectState
 import com.sfh.pokeRogueBot.model.run.RunProperty
 import com.sfh.pokeRogueBot.neurons.*
 import com.sfh.pokeRogueBot.phase.NoUiPhase
@@ -56,6 +57,17 @@ class Brain(
         if (chooseModifierDecision == null) {
             this.waveDto = jsService.getWaveDto()
             val shop = jsUiService.getModifierShop()
+
+            //create ModifierSelectState
+            ModifierSelectState.create(
+                pokemons = waveDto.wavePokemon.playerParty,
+                waveIndex = waveDto.waveIndex,
+                money = waveDto.money,
+                freeItems = shop.freeItems,
+                shopItems = shop.shopItems,
+                pokeballCount = waveDto.pokeballCount
+            )
+
             val allItems = shop.allItems
             longTermMemory.memorizeItems(allItems)
             this.chooseModifierDecision = chooseModifierNeuron.getModifierToPick(
@@ -196,7 +208,6 @@ class Brain(
      *
      * @return which save slot index should be loaded or -1 if no save slot should be loaded
      */
-    //todo: maybe broken and old savegames are not loaded
     fun getSaveSlotIndexToLoad(): Int {
         if (saveSlots == null) {
             this.saveSlots = jsUiService.getSaveSlots()
