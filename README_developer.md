@@ -6,11 +6,11 @@ If a good idea comes up, write it down and implement it later. Focus on the curr
 Only refactor, when it's really necessary.
 
 ## Current Task:
-Fill ModifierSelectState with data: reviewitems and lure are not handled
+
 
 ## Open todo's with high priority:
-- [ ] migrate Waitingservice to jsService
-- [ ] merge jsServices?
+- Add good properties to ModifierOutcome
+- Add better Rewards to ModifierRewardCalculator
 
 ## Open todo's with low priority:
 - [ ] Combine Start and fightconfig and remove the different configurations

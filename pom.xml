@@ -93,6 +93,23 @@
             <scope>provided</scope>
         </dependency>
 
+		<!-- _____________ RL _____________ -->
+		<dependency>
+			<groupId>org.deeplearning4j</groupId>
+			<artifactId>rl4j-core</artifactId>
+			<version>1.0.0-M1.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.deeplearning4j</groupId>
+			<artifactId>rl4j-api</artifactId>
+			<version>1.0.0-M1.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.nd4j</groupId>
+			<artifactId>nd4j-native-platform</artifactId>
+			<version>1.0.0-M2.1</version>
+		</dependency>
+
 		<!-- _____________ Kotlin Dependencies _____________ -->
 		<dependency>
 			<groupId>org.jetbrains.kotlin</groupId>

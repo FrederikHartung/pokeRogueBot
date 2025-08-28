@@ -6,11 +6,12 @@ This document outlines the plan to implement Reinforcement Learning (RL) for bet
 ## Current Context & Completed Work
 
 ### ✅ Completed (Current State)
-1. **ModifierSelectState Model** (`src/main/kotlin/com/sfh/pokeRogueBot/model/rl/ModifierSelectState.kt`)
-   - Complete RL state representation with normalized values (0.0-1.0)
-   - Includes: HP%, PP%, fainted count, wave index, money, item availability, pokeball counts
-   - Factory method `create()` for easy instantiation
-   - Comprehensive unit tests in `ModifierSelectStateTest.kt`
+1. **SmallModifierSelectState Model** (`src/main/kotlin/com/sfh/pokeRogueBot/model/rl/SmallModifierSelectState.kt`)
+   - Simplified RL state representation with normalized values (0.0-1.0)
+   - Includes: HP% (6 elements), canAffordPotion, freePotionAvailable (total 8 dimensions)
+   - Implements Encodable interface with toArray(), getData(), isSkipped(), dup() methods
+   - Factory method `create()` for easy instantiation from game state
+   - Comprehensive documentation explaining RL design rationale
 
 2. **ModifierTypeCategory Enum** (`src/main/kotlin/com/sfh/pokeRogueBot/model/rl/ModifierTypeCategory.kt`)
    - 15 categories including specific high-value items (Amulet Coin, EXP All, etc.)
@@ -21,7 +22,7 @@ This document outlines the plan to implement Reinforcement Learning (RL) for bet
    - `ModifierSelectState` instance created in `getModifierToPick()` function
    - All necessary data sources connected (WaveDto, shop, pokeball counts)
 
-4. **Helper Functions** (All in ModifierSelectState companion object)
+4. **Helper Functions** (In SmallModifierSelectState companion object)
    ```kotlin
    - createHpPercent(pokemons) -> DoubleArray[6]      // Team HP status
    - createFaintedCount(pokemons) -> Double           // Emergency indicator
@@ -52,18 +53,18 @@ This document outlines the plan to implement Reinforcement Learning (RL) for bet
 
 ### Phase 1: Foundation Setup (Week 1-2)
 
-#### Task 1.1: Add RL4J Dependencies
+#### ✅ Task 1.1: Add RL4J Dependencies (COMPLETED)
 ```xml
-<!-- Add to pom.xml -->
+<!-- Added to pom.xml -->
 <dependency>
     <groupId>org.deeplearning4j</groupId>
     <artifactId>rl4j-core</artifactId>
-    <version>1.0.0-M2.1</version>
+    <version>1.0.0-M1.1</version>
 </dependency>
 <dependency>
     <groupId>org.deeplearning4j</groupId>
     <artifactId>rl4j-api</artifactId>
-    <version>1.0.0-M2.1</version>
+    <version>1.0.0-M1.1</version>
 </dependency>
 <dependency>
     <groupId>org.nd4j</groupId>
@@ -71,38 +72,41 @@ This document outlines the plan to implement Reinforcement Learning (RL) for bet
     <version>1.0.0-M2.1</version>
 </dependency>
 ```
+**Note**: Used M1.1 versions for rl4j dependencies as M2.1 was not available
 
-#### Task 1.2: Design Action Space
-Create `ModifierAction.kt`:
+#### ✅ Task 1.2: Design Action Space (COMPLETED)
+Created `ModifierAction.kt`:
 ```kotlin
 enum class ModifierAction(val actionId: Int) {
-    BUY_SHOP_ITEM_0(0),    // Buy first shop item
-    BUY_SHOP_ITEM_1(1),    // Buy second shop item  
-    BUY_SHOP_ITEM_2(2),    // Buy third shop item
-    BUY_SHOP_ITEM_3(3),    // Buy fourth shop item
-    BUY_SHOP_ITEM_4(4),    // Buy fifth shop item
-    TAKE_FREE_ITEM_0(5),   // Take first free item (ENDS PHASE)
-    TAKE_FREE_ITEM_1(6),   // Take second free item (ENDS PHASE)
-    TAKE_FREE_ITEM_2(7),   // Take third free item (ENDS PHASE)
-    SKIP_ALL(8);           // Skip everything (ENDS PHASE)
+    BUY_POTION(0),         // Buy potion from shop
+    TAKE_FREE_POTION(1),   // Take free potion (ENDS PHASE)
+    SKIP(2);               // Skip everything (ENDS PHASE)
     
     companion object {
-        fun fromId(id: Int) = values().find { it.actionId == id }
+        fun fromId(id: Int) = entries.find { it.actionId == id }
     }
 }
 ```
+**Changes made**: Simplified to 3 potion-focused actions for initial implementation
 
-#### Task 1.3: Create RL Environment
-Create `ModifierSelectionEnvironment.kt`:
+#### ✅ Task 1.3: Create RL Environment (COMPLETED)
+Created `ModifierSelectionEnvironment.kt`:
 ```kotlin
-class ModifierSelectionEnvironment : MDP<ModifierSelectState, Integer, DiscreteSpace> {
-    override fun step(action: Integer): StepReply<ModifierSelectState>
-    override fun reset(): ModifierSelectState
-    override fun isDone(): Boolean
-    override fun getActionSpace(): DiscreteSpace
-    override fun getObservationSpace(): ArrayObservationSpace<ModifierSelectState>
+class ModifierSelectionEnvironment : MDP<SmallModifierSelectState, Int, DiscreteSpace> {
+    override fun step(action: Int): StepReply<SmallModifierSelectState> // TODO: implement
+    override fun reset(): SmallModifierSelectState // TODO: implement
+    override fun isDone(): Boolean // TODO: implement
+    override fun getActionSpace(): DiscreteSpace // TODO: implement
+    override fun getObservationSpace(): ObservationSpace<SmallModifierSelectState> // TODO: implement
+    override fun close() // Implemented
+    override fun newInstance(): MDP<SmallModifierSelectState, Int, DiscreteSpace> // Implemented
 }
 ```
+**Changes made**:
+- Used `SmallModifierSelectState` instead of full `ModifierSelectState`
+- Changed action type from `Integer` to `Int` for Kotlin compatibility
+- Added required `close()` and `newInstance()` methods
+- Used `ObservationSpace` instead of `ArrayObservationSpace` for type compatibility
 
 ### Phase 2: Reward System (Week 2-3)
 
@@ -314,12 +318,12 @@ Training Data Logging
 ```
 src/main/kotlin/com/sfh/pokeRogueBot/
 ├── model/rl/
-│   ├── ModifierSelectState.kt          ✅ DONE
+│   ├── SmallModifierSelectState.kt     ✅ DONE (simplified version)
 │   ├── ModifierTypeCategory.kt         ✅ DONE
-│   ├── ModifierAction.kt               🚧 TODO
+│   ├── ModifierAction.kt               ✅ DONE
+│   ├── ModifierSelectionEnvironment.kt ✅ DONE (skeleton implementation)
 │   └── Experience.kt                   🚧 TODO
-├── rl/
-│   ├── ModifierSelectionEnvironment.kt 🚧 TODO
+├── rl/ (future RL agent implementations)
 │   ├── ModifierDQNAgent.kt            🚧 TODO
 │   ├── ModifierRewardCalculator.kt    🚧 TODO
 │   ├── ModifierDecisionLogger.kt      🚧 TODO
@@ -411,11 +415,22 @@ rl:
 
 ---
 
-## Next Immediate Steps
+## Implementation Status Update
 
-1. **Start with Phase 1, Task 1.1**: Add RL4J dependencies to pom.xml
-2. **Create ModifierAction enum** with proper action space design
-3. **Set up basic RL environment interface** 
-4. **Begin reward function design** based on existing game metrics
+### ✅ Recently Completed
+- **RL4J Dependencies**: Added to pom.xml with compatible versions (M1.1 for rl4j, M2.1 for nd4j)
+- **SmallModifierSelectState**: Simplified state model with Encodable implementation
+- **ModifierSelectionEnvironment**: Basic MDP skeleton with proper type compatibility
+- **ModifierAction**: Action space enum for modifier decisions
 
-The foundation (`ModifierSelectState`) is solid and ready for RL integration. The next phase focuses on defining the action space and environment interface.
+### 🚧 Current Phase: Environment Implementation
+**Next Immediate Steps:**
+1. **Implement ModifierSelectionEnvironment methods** (step, reset, isDone, etc.)
+2. **Create reward calculation system** for training feedback
+3. **Begin data collection pipeline** for training experiences
+4. **Test integration** with existing Brain/ChooseModifierNeuron
+
+**Key Changes Made:**
+- Simplified state to 8 dimensions (6 HP + 2 resource flags) for better RL performance
+- Used available RL4J version 1.0.0-M1.1 instead of non-existent M2.1
+- Made state model fully compatible with RL4J's Encodable interface requirements

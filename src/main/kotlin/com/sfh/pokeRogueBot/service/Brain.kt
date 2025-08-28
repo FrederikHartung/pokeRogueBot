@@ -12,7 +12,7 @@ import com.sfh.pokeRogueBot.model.enums.UiMode
 import com.sfh.pokeRogueBot.model.exception.StopRunException
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult
 import com.sfh.pokeRogueBot.model.poke.Pokemon
-import com.sfh.pokeRogueBot.model.rl.ModifierSelectState
+import com.sfh.pokeRogueBot.model.rl.SmallModifierSelectState
 import com.sfh.pokeRogueBot.model.run.RunProperty
 import com.sfh.pokeRogueBot.neurons.*
 import com.sfh.pokeRogueBot.phase.NoUiPhase
@@ -59,13 +59,19 @@ class Brain(
             val shop = jsUiService.getModifierShop()
 
             //create ModifierSelectState
-            ModifierSelectState.create(
+//            ModifierSelectState.create(
+//                pokemons = waveDto.wavePokemon.playerParty,
+//                waveIndex = waveDto.waveIndex,
+//                money = waveDto.money,
+//                freeItems = shop.freeItems,
+//                shopItems = shop.shopItems,
+//                pokeballCount = waveDto.pokeballCount
+//            )
+            SmallModifierSelectState.create(
                 pokemons = waveDto.wavePokemon.playerParty,
-                waveIndex = waveDto.waveIndex,
-                money = waveDto.money,
-                freeItems = shop.freeItems,
                 shopItems = shop.shopItems,
-                pokeballCount = waveDto.pokeballCount
+                freeItems = shop.freeItems,
+                currentMoney = waveDto.money
             )
 
             val allItems = shop.allItems
