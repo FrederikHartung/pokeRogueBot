@@ -1,6 +1,7 @@
 package com.sfh.pokeRogueBot.service;
 
 import com.sfh.pokeRogueBot.model.dto.SaveSlotDto;
+import com.sfh.pokeRogueBot.model.dto.WaveDto;
 import com.sfh.pokeRogueBot.model.enums.RunStatus;
 import com.sfh.pokeRogueBot.model.enums.UiMode;
 import com.sfh.pokeRogueBot.model.run.RunProperty;
@@ -25,7 +26,7 @@ class BrainTest {
     JsUiService jsUiService;
     ShortTermMemory shortTermMemory;
     LongTermMemory longTermMemory;
-    ChooseModifierNeuron chooseModifierNeuron;
+    ModifierRLNeuron modifierRLNeuron;
     CombatNeuron combatNeuron;
     SwitchPokemonNeuron switchPokemonNeuron;
     CapturePokemonNeuron capturePokemonNeuron;
@@ -45,7 +46,7 @@ class BrainTest {
         phase = new SelectGenderPhase("Male", jsUiService);
         shortTermMemory = mock(ShortTermMemory.class);
         longTermMemory = mock(LongTermMemory.class);
-        chooseModifierNeuron = mock(ChooseModifierNeuron.class);
+        modifierRLNeuron = mock(ModifierRLNeuron.class);
         combatNeuron = mock(CombatNeuron.class);
         switchPokemonNeuron = mock(SwitchPokemonNeuron.class);
         screenshotClient = mock(ScreenshotClient.class);
@@ -58,10 +59,10 @@ class BrainTest {
                 longTermMemory,
                 screenshotClient,
                 switchPokemonNeuron,
-                chooseModifierNeuron,
                 combatNeuron,
                 capturePokemonNeuron,
-                learnMoveNeuron
+                learnMoveNeuron,
+                modifierRLNeuron
         );
 
         runProperty = new RunProperty(1);
@@ -74,6 +75,11 @@ class BrainTest {
             saveSlots[i] = saveSlotDto;
         }
         ReflectionTestUtils.setField(brain, "saveSlots", saveSlots);
+
+        // Mock waveDto to prevent initialization errors
+        WaveDto mockWaveDto = mock(WaveDto.class);
+        when(mockWaveDto.getWaveIndex()).thenReturn(1);
+        ReflectionTestUtils.setField(brain, "waveDto", mockWaveDto);
     }
 
     /**
