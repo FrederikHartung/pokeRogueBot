@@ -1,7 +1,6 @@
 package com.sfh.pokeRogueBot.service
 
 import com.sfh.pokeRogueBot.model.decisions.AttackDecision
-import com.sfh.pokeRogueBot.model.decisions.ChooseModifierDecision
 import com.sfh.pokeRogueBot.model.decisions.LearnMoveDecision
 import com.sfh.pokeRogueBot.model.decisions.SwitchDecision
 import com.sfh.pokeRogueBot.model.dto.SaveSlotDto
@@ -12,7 +11,7 @@ import com.sfh.pokeRogueBot.model.enums.UiMode
 import com.sfh.pokeRogueBot.model.exception.StopRunException
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult
 import com.sfh.pokeRogueBot.model.poke.Pokemon
-import com.sfh.pokeRogueBot.model.rl.SmallModifierSelectState
+import com.sfh.pokeRogueBot.model.rl.*
 import com.sfh.pokeRogueBot.model.run.RunProperty
 import com.sfh.pokeRogueBot.neurons.*
 import com.sfh.pokeRogueBot.phase.NoUiPhase
@@ -32,10 +31,10 @@ class Brain(
     private val longTermMemory: LongTermMemory,
     private val screenshotClient: ScreenshotClient,
     private val switchPokemonNeuron: SwitchPokemonNeuron,
-    private val chooseModifierNeuron: ChooseModifierNeuron,
     private val combatNeuron: CombatNeuron,
     private val capturePokemonNeuron: CapturePokemonNeuron,
-    private val learnMoveNeuron: LearnMoveNeuron
+    private val learnMoveNeuron: LearnMoveNeuron,
+    private val modifierRLNeuron: ModifierRLNeuron
 ) {
 
     companion object {
@@ -45,53 +44,66 @@ class Brain(
     private var runProperty: RunProperty? = null
     private var waveIndexReset = false
     private lateinit var waveDto: WaveDto
-    private var chooseModifierDecision: ChooseModifierDecision? = null
     private var saveSlots: Array<SaveSlotDto>? = null
+
+    // Episode-based RL components
+    private val episodeManager = ModifierEpisodeManager()
+    private val decisionLogger = ModifierDecisionLogger()
+    private var currentModifierState: SmallModifierSelectState? = null
 
     fun getPokemonSwitchDecision(ignoreFirstPokemon: Boolean): SwitchDecision {
         waveDto = jsService.getWaveDto()
         return switchPokemonNeuron.getBestSwitchDecision(waveDto, ignoreFirstPokemon)
     }
 
+    /**
+     * 1. Get State
+     * 2. Get Available Actions
+     * 3. RL Agent selects action
+     * 4. Convert action to game result
+     * 5. Log experience for training
+     */
     fun getModifierToPick(): MoveToModifierResult? {
-        if (chooseModifierDecision == null) {
-            this.waveDto = jsService.getWaveDto()
-            val shop = jsUiService.getModifierShop()
+        this.waveDto = jsService.getWaveDto()
+        val shop = jsUiService.getModifierShop()
 
-            //create ModifierSelectState
-//            ModifierSelectState.create(
-//                pokemons = waveDto.wavePokemon.playerParty,
-//                waveIndex = waveDto.waveIndex,
-//                money = waveDto.money,
-//                freeItems = shop.freeItems,
-//                shopItems = shop.shopItems,
-//                pokeballCount = waveDto.pokeballCount
-//            )
-            SmallModifierSelectState.create(
-                pokemons = waveDto.wavePokemon.playerParty,
-                shopItems = shop.shopItems,
-                freeItems = shop.freeItems,
-                currentMoney = waveDto.money
-            )
+        // Step 1: Create state for RL logging
+        currentModifierState = SmallModifierSelectState.create(
+            pokemons = waveDto.wavePokemon.playerParty,
+            shopItems = shop.shopItems,
+            freeItems = shop.freeItems,
+            currentMoney = waveDto.money
+        )
+        longTermMemory.memorizeItems(shop.allItems)
 
-            val allItems = shop.allItems
-            longTermMemory.memorizeItems(allItems)
-            this.chooseModifierDecision = chooseModifierNeuron.getModifierToPick(
-                waveDto.wavePokemon.playerParty.toTypedArray(),
-                waveDto,
-                shop
-            )
-        }
+        // Step 2: Get available actions for RL agent
+        val availableActions = modifierRLNeuron.getAvailableActions(
+            shop = shop,
+            currentMoney = waveDto.money,
+            playerParty = waveDto.wavePokemon.playerParty
+        )
 
-        if (chooseModifierDecision!!.itemsToBuy.isNotEmpty()) {
-            val result = chooseModifierDecision!!.itemsToBuy[0]
-            chooseModifierDecision!!.itemsToBuy.removeAt(0)
-            return result
-        }
+        // Step 3: RL agent selects action (currently defaults to SKIP)
+        val selectedAction = modifierRLNeuron.selectAction(
+            state = currentModifierState!!,
+            availableActions = availableActions
+        )
 
-        val freeItem = chooseModifierDecision!!.freeItemToPick
-        chooseModifierDecision = null
-        return freeItem
+        // Step 4: Convert RL action to game-executable result
+        val result = modifierRLNeuron.convertActionToResult(
+            action = selectedAction,
+            shop = shop
+        )
+
+        // Step 5: Add step to current RL episode
+        addStepToCurrentEpisode(selectedAction, currentModifierState!!)
+
+        log.info(
+            "RL modifier decision: action={}, result={}, availableActions={}",
+            selectedAction, result?.toString() ?: "SKIP", availableActions
+        )
+
+        return result
     }
 
     fun getCommandDecision(): CommandPhaseDecision {
@@ -139,7 +151,11 @@ class Brain(
 
     fun informWaveEnded(newWaveIndex: Int) {
         this.waveDto = jsService.getWaveDto()
-        this.chooseModifierDecision = null
+
+        // Episode continues - no action needed here
+        // Episodes are completed only when runs end (team wipe/victory)
+
+        // chooseModifierDecision cleared (removed old field reference)
         runProperty!!.waveIndex = newWaveIndex
         runProperty!!.updateTeamSnapshot(waveDto.wavePokemon.playerParty)
         runProperty!!.money = waveDto.money
@@ -253,6 +269,7 @@ class Brain(
             log.debug("runProperty is null, creating new one")
             runProperty = RunProperty(1)
             waveIndexReset = true
+            startNewRLEpisode() // Start new RL episode for the new run
             return runProperty!!
         }
 
@@ -270,16 +287,23 @@ class Brain(
                 if (runProperty!!.saveSlotIndex != -1) {
                     log.debug("Error occurred, setting error to save slot: ${runProperty!!.saveSlotIndex}")
                     saveSlots!![runProperty!!.saveSlotIndex].isErrorOccurred = true
+                    // Complete current RL episode with error outcome
+                    completeCurrentEpisode(RunTerminalOutcome.ERROR_OCCURRED, waveDto.waveIndex)
                 } else {
                     log.debug("Save slot index is -1, so error occurred before starting a run.")
                 }
                 runProperty = RunProperty(runProperty!!.runNumber + 1)
                 waveIndexReset = true
+                startNewRLEpisode() // Start new episode for the restart
                 runProperty!!
             }
 
             RunStatus.LOST -> {
                 log.debug("Lost battle, setting data present to false for save slot: ${runProperty!!.saveSlotIndex}")
+
+                // Complete current RL episode with team wipe outcome
+                completeCurrentEpisode(RunTerminalOutcome.TEAM_WIPE, waveDto.waveIndex)
+
                 saveSlots!![runProperty!!.saveSlotIndex].isErrorOccurred = false
                 saveSlots!![runProperty!!.saveSlotIndex].isDataPresent = false
                 runProperty = RunProperty(runProperty!!.runNumber + 1)
@@ -318,6 +342,108 @@ class Brain(
             return true
         }
         return false
+    }
+
+    /**
+     * Adds a modifier decision step to the current RL episode.
+     * Each step will receive rewards when the episode terminates.
+     */
+    private fun addStepToCurrentEpisode(action: ModifierAction, state: SmallModifierSelectState) {
+        episodeManager.getCurrentEpisode()
+            ?: episodeManager.startNewEpisode()
+
+        val step = ModifierRLStep(
+            state = state,
+            action = action,
+            immediateReward = 0.0, // Small immediate rewards could be added here
+            nextState = null, // Will be updated if there are multiple steps
+            waveNumber = waveDto.waveIndex,
+            isTerminal = false,
+            terminalReward = 0.0
+        )
+
+        episodeManager.addStepToCurrentEpisode(step)
+        log.info(
+            "Added RL step to episode: wave={}, action={}, state=HP buckets: {}",
+            waveDto.waveIndex, action, state.hpBuckets.contentToString()
+        )
+    }
+
+    /**
+     * Completes the current RL episode when a run ends.
+     * This triggers terminal reward calculation and episode logging.
+     */
+    private fun completeCurrentEpisode(outcome: RunTerminalOutcome, waveReached: Int) {
+        episodeManager.getCurrentEpisode()?.let { episode ->
+            episodeManager.completeCurrentEpisode(outcome, waveReached)
+
+            // Log all episode experiences for training
+            val allExperiences = episode.getAllExperiences()
+            allExperiences.forEach { experience ->
+                decisionLogger.logDecision(
+                    experience.state,
+                    experience.action,
+                    experience.reward,
+                    experience.nextState,
+                    experience.done
+                )
+            }
+
+            log.info(
+                "Completed RL episode: outcome={}, waveReached={}, steps={}, finalReward={}",
+                outcome, waveReached, episode.getStepCount(), episode.finalReward
+            )
+
+            // Save training data periodically
+            val bufferStats = decisionLogger.getBufferStats()
+            val bufferSize = bufferStats["bufferSize"] as Int
+            if (bufferSize >= 50) { // Batch size for episodes
+                log.info(
+                    "Saving training batch of {} experiences from {} episodes",
+                    bufferSize, episodeManager.getEpisodeCount()
+                )
+                decisionLogger.saveTrainingBatch()
+            }
+        }
+    }
+
+    /**
+     * Starts a new RL episode when a new run begins.
+     * Called when the run property is created or reset.
+     */
+    fun startNewRLEpisode() {
+        val newEpisode = episodeManager.startNewEpisode()
+        log.info("Started new RL episode: runId={}", newEpisode.runId)
+    }
+
+    /**
+     * Completes the current episode with victory outcome.
+     * Should be called when a run is successfully completed.
+     */
+    fun onRunCompleted(waveReached: Int) {
+        completeCurrentEpisode(RunTerminalOutcome.VICTORY, waveReached)
+    }
+
+    /**
+     * Completes the current episode with error outcome.
+     * Should be called when technical errors terminate the run.
+     */
+    fun onRunError(waveReached: Int) {
+        completeCurrentEpisode(RunTerminalOutcome.ERROR_OCCURRED, waveReached)
+    }
+
+    /**
+     * Get statistics about collected RL episodes and training data.
+     */
+    fun getTrainingDataStats(): String {
+        val loggerStats = decisionLogger.getBufferStats()
+        val episodeCount = episodeManager.getEpisodeCount()
+        val currentEpisode = episodeManager.getCurrentEpisode()
+        val currentSteps = currentEpisode?.getStepCount() ?: 0
+
+        return "Episodes completed: $episodeCount, Current episode steps: $currentSteps, " +
+                "Buffered experiences: ${loggerStats["bufferSize"]}, " +
+                "Average reward: ${loggerStats["averageReward"]}"
     }
 
     @Deprecated("")

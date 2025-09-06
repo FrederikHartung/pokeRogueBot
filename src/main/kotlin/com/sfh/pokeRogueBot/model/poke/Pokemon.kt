@@ -60,4 +60,8 @@ data class Pokemon(
     fun isAlive(): Boolean {
         return hp > 0
     }
+
+    fun isHurt(): Boolean {
+        return hp > 0 && hp < stats.hp
+    }
 }

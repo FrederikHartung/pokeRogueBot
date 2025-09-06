@@ -30,65 +30,53 @@ class ModifierRewardCalculator {
     ): Double {
         var reward = 0.0
 
-        // Critical survival rewards/penalties
-        if (outcome.survivedWave) {
-            reward += 100.0
-        }
-        if (outcome.teamWiped) {
-            reward -= 200.0
-        }
+        when (outcome.phaseEnded) {
+            true -> {
+                //rewards only after the SelectModifierPhase ended or Run is Lost
 
-        // Health improvement rewards
-        if (outcome.healthImproved) {
-            reward += 20.0
-
-            // Bonus for emergency healing when team was low on health
-            val avgHp = prevState.hpPercent.average()
-            if (avgHp < 0.3) {
-                reward += 30.0 // Emergency response bonus
-            }
-        }
-
-        // Action-specific rewards
-        when (action) {
-            ModifierAction.BUY_POTION -> {
-                if (prevState.canAffordPotion > 0.0 && outcome.healthImproved) {
-                    reward += 15.0 // Good economic decision
-                } else if (prevState.canAffordPotion == 0.0) {
-                    reward -= 10.0 // Tried to buy when couldn't afford
-                }
-            }
-
-            ModifierAction.TAKE_FREE_POTION -> {
-                if (prevState.freePotionAvailable > 0.0 && outcome.healthImproved) {
-                    reward += 25.0 // Excellent - free healing
-                } else if (prevState.freePotionAvailable == 0.0) {
-                    reward -= 5.0 // Invalid action
-                }
-            }
-
-            ModifierAction.SKIP -> {
-                // Neutral action - small penalty if emergency situation was ignored
-                val avgHp = prevState.hpPercent.average()
-                if (avgHp < 0.2 && (prevState.canAffordPotion > 0.0 || prevState.freePotionAvailable > 0.0)) {
-                    reward -= 15.0 // Should have healed in emergency
+                // Critical survival rewards/penalties
+                if (outcome.survivedWave) {
+                    reward += 100.0
                 } else {
-                    reward += 2.0 // Reasonable choice in non-emergency
+                    reward -= 200.0
                 }
             }
-        }
 
-        // Economic efficiency
-        if (outcome.moneySpent > 0) {
-            // Penalty for spending without benefit
-            if (!outcome.healthImproved) {
-                reward -= 5.0
+            false -> {
+                // Action-specific rewards
+                when (action) {
+                    ModifierAction.BUY_POTION -> {
+                        // Shop item purchase rewards
+                        if (outcome.fullPotionUsed) {
+                            reward += 15.0 // Good economic decision
+                        }
+                        // Add more item-specific rewards here as needed
+                    }
+
+                    ModifierAction.TAKE_FREE_POTION -> {
+                        // Free item selection rewards
+                        reward += 5.0 // Excellent - free healing
+                        // Add more item-specific rewards here as needed
+                    }
+
+                    ModifierAction.SKIP -> {
+                        //Penalty when a Pokemon was hurt and no FreePotion was taken
+                        val lowestHp = prevState.hpBuckets.filter { hp -> hp > 0 }.minOrNull() ?: 1.0
+                        if (lowestHp < 1 && prevState.freePotionAvailable > 0.0) {
+                            reward -= 15.0 // Should take free Potion
+                        } else {
+                            reward += 2.0 // Reasonable choice in non-emergency
+                        }
+
+                        //Penalty when a Pokemon was lower than 0.8 Health when a Potion was buyable
+                        if (lowestHp < 0.8 && prevState.canAffordPotion > 0.0) {
+                            reward -= 15.0 // Should buy Potion
+                        } else {
+                            reward += 2.0 // Reasonable choice when healing not needed
+                        }
+                    }
+                }
             }
-        }
-
-        // Phase management
-        if (outcome.phaseEnded && outcome.emergencyResolved) {
-            reward += 10.0 // Successfully handled critical situation
         }
 
         return reward
