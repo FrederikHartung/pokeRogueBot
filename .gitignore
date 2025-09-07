@@ -43,3 +43,4 @@ src/main/resources/application-default.yml.backupp
 data/uiValidatedPhases.json
 data/runMetrics.json
 data/runBenchmarks.json
+/training_data
