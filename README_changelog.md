@@ -1,5 +1,11 @@
 #Changelog
 
+## 4.0
+### Features:
+- Added ModifierDQNAgent to choose best Items in SelectModifierPhase
+### Technical Changes:
+- Removed old hard coded ModifierSelection
+
 ## 3.1
 ### Features:
 - Added ModifierSelectState Model Class for later RL
