@@ -6,10 +6,12 @@ If a good idea comes up, write it down and implement it later. Focus on the curr
 Only refactor, when it's really necessary.
 
 ## Current Task:
-- Do a Benchmark with 20 Runs for the current RL Implementation
+- Train the ModifierAgent on offline Data
 
 ## Open todo's with high priority:
+- Use the trained ModifierAgent
 - Add "isFullPotionApplyable" to pokemon class and use it in RL reward
+- Reset all User Data before a new Run to start always fresh
 
 ## Open todo's with low priority:
 - [ ] Combine Start and fightconfig and remove the different configurations
