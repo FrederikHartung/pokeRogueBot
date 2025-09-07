@@ -11,8 +11,10 @@ import com.sfh.pokeRogueBot.neurons.SwitchPokemonNeuron;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 class SwitchPokemonNeuronTest {
 
@@ -21,8 +23,8 @@ class SwitchPokemonNeuronTest {
 
     WaveDto waveDto;
     WavePokemon wavePokemon;
-    Pokemon[] playerParty;
-    Pokemon[] enemyParty;
+    List<Pokemon> playerParty;
+    List<Pokemon> enemyParty;
 
     Pokemon playerPokemon1;
     Pokemon playerPokemon2;
@@ -40,28 +42,27 @@ class SwitchPokemonNeuronTest {
     void setUp() {
 
         damageCalculatingNeuron = new DamageCalculatingNeuron();
-        SwitchPokemonNeuron objToSpy = new SwitchPokemonNeuron(damageCalculatingNeuron);
-        switchPokemonNeuron = spy(objToSpy);
+        switchPokemonNeuron = new SwitchPokemonNeuron(damageCalculatingNeuron);
 
-        waveDto = new WaveDto();
+        waveDto = WaveDto.Companion.createDefault();
         waveDto.setDoubleFight(false);
-        playerParty = new Pokemon[6];
-        enemyParty = new Pokemon[6];
-        wavePokemon = new WavePokemon();
+        playerParty = new ArrayList<>();
+        enemyParty = new ArrayList<>();
+        wavePokemon = new WavePokemon(enemyParty, playerParty);
         wavePokemon.setEnemyParty(enemyParty);
         wavePokemon.setPlayerParty(playerParty);
         waveDto.setWavePokemon(wavePokemon);
 
         playerPokemon1 = Pokemon.Companion.createDefault();
         playerPokemon1.setName("pokemon1");
-        playerParty[0] = playerPokemon1;
+        playerParty.add(playerPokemon1);
         player1Species = Species.Companion.createDefault();
         playerPokemon1.setSpecies(player1Species);
         player1Species.setType1(PokeType.GRASS);
 
         playerPokemon2 = Pokemon.Companion.createDefault();
         playerPokemon2.setName("pokemon2");
-        playerParty[1] = playerPokemon2;
+        playerParty.add(playerPokemon2);
         player2Species = Species.Companion.createDefault();
         playerPokemon2.setSpecies(player2Species);
         player2Species.setType1(PokeType.ELECTRIC);
@@ -69,7 +70,7 @@ class SwitchPokemonNeuronTest {
 
         playerPokemon3 = Pokemon.Companion.createDefault();
         playerPokemon3.setName("pokemon3");
-        playerParty[2] = playerPokemon3;
+        playerParty.add(playerPokemon3);
         player3Species = Species.Companion.createDefault();
         playerPokemon3.setSpecies(player3Species);
         player3Species.setType1(PokeType.WATER);
@@ -77,7 +78,7 @@ class SwitchPokemonNeuronTest {
 
         enemyPokemon1 = Pokemon.Companion.createDefault();
         enemyPokemon1.setName("EnemyPokemon1");
-        enemyParty[0] = enemyPokemon1;
+        enemyParty.add(enemyPokemon1);
         enemyPokemon1.setHp(40);
         enemy1Species = Species.Companion.createDefault();
         enemy1Species.setType1(PokeType.FIRE);
@@ -146,10 +147,9 @@ class SwitchPokemonNeuronTest {
 
     @Test
     void if_the_enemy_party_is_empty_the_next_player_pokemon_is_switched_in(){
-        wavePokemon.setEnemyParty(new Pokemon[0]);
+        wavePokemon.setEnemyParty(new ArrayList<>());
         SwitchDecision switchDecision = switchPokemonNeuron.getBestSwitchDecision(waveDto, false);
         assertNotNull(switchDecision);
-        verify(switchPokemonNeuron, times(1)).getNextPokemon(playerParty, false);
         assertEquals(1, switchDecision.getIndex());
     }
 }

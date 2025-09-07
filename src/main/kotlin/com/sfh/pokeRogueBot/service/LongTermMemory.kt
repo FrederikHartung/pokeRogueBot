@@ -34,6 +34,7 @@ class LongTermMemory(
         .setPrettyPrinting()
         .create()
 
+    //used to store all encountered modifier items with their Group, Name and more Data
     val itemsPath: Path = Paths.get(".", "data", "modifierItems.json")
     private val knownItems: MutableMap<String, ChooseModifierItem> = HashMap()
     private var knownItemsChanged: Boolean = false

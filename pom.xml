@@ -5,12 +5,12 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.3</version>
+		<version>3.5.5</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.sfh</groupId>
 	<artifactId>pokeRogueBot</artifactId>
-	<version>3.1</version>
+	<version>4.0</version>
 	<name>pokeRogueBot</name>
 	<description>A simple Bot for the pokeRogue Game</description>
 	<properties>
@@ -92,6 +92,23 @@
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
         </dependency>
+
+		<!-- _____________ RL _____________ -->
+		<dependency>
+			<groupId>org.deeplearning4j</groupId>
+			<artifactId>rl4j-core</artifactId>
+			<version>1.0.0-M1.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.deeplearning4j</groupId>
+			<artifactId>rl4j-api</artifactId>
+			<version>1.0.0-M1.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.nd4j</groupId>
+			<artifactId>nd4j-native-platform</artifactId>
+			<version>1.0.0-M2.1</version>
+		</dependency>
 
 		<!-- _____________ Kotlin Dependencies _____________ -->
 		<dependency>

@@ -37,8 +37,8 @@ class SimpleBot(
     companion object {
         private val log = LoggerFactory.getLogger(SimpleBot::class.java)
         val name = "SimpleBot"
-        val botVersion = "3.0"
-        val benchmarkLabel = "First Benchmark"
+        val botVersion = "4.0"
+        val benchmarkLabel = "RL Training 1"
     }
 
     private var runNumber = 1

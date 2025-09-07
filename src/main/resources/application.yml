@@ -61,6 +61,12 @@ bot:
   maxRunsTillShutdown: -1
   startBotOnStartup: true
 
+rl:
+  modifier-selection:
+    enabled: false
+    model-path: "models/modifier-dqn.zip"
+    training-mode: false
+
 logging:
   level:
     ROOT: INFO

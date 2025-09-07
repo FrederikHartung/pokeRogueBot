@@ -6,7 +6,6 @@ import com.sfh.pokeRogueBot.model.poke.PokeBallCatchRate;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.service.javascript.JsService;
 import lombok.extern.slf4j.Slf4j;
-import net.bytebuddy.asm.Advice;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -84,7 +83,7 @@ public class CapturePokemonNeuron {
 
     public int getCaptureChance(Pokemon wildPokemon, PokeBallType pokeBallType) {
 
-        float pokeBallCatchRate = PokeBallCatchRate.forBall(pokeBallType).getCatchRate();
+        float pokeBallCatchRate = PokeBallCatchRate.Companion.forBall(pokeBallType).getCatchRate();
 
         float pokemonMaxHp = wildPokemon.getStats().getHp();
         float currentHp = wildPokemon.getHp();

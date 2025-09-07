@@ -25,13 +25,13 @@ class TitlePhaseTest {
     fun setUp() {
         brain = mockk()
         jsUiService = mockk()
-        titlePhase = TitlePhase(brain, jsUiService)
+        titlePhase = TitlePhase(brain, jsUiService, mockk(relaxed = true))
 
         runProperty = RunProperty(1)
 
-        every { brain.runProperty } returns runProperty
-        every { brain.saveSlotIndexToLoad } returns 0
-        every { brain.saveSlotIndexToSave } returns 0
+        every { brain.getRunProperty() } returns runProperty
+        every { brain.getSaveSlotIndexToLoad() } returns 0
+        every { brain.getSaveSlotIndexToSave() } returns 0
         every { brain.shouldLoadGame() } returns true
 
         every { jsUiService.setCursorToLoadGame() } returns true
@@ -90,7 +90,7 @@ class TitlePhaseTest {
     @Test
     fun `When saveSlotIndexToSave returns -1 the runstatus is set to RunStatus EXITAPP`() {
         every { brain.shouldLoadGame() } returns false
-        every { brain.saveSlotIndexToSave } returns -1
+        every { brain.getSaveSlotIndexToSave() } returns -1
 
         titlePhase.handleUiMode(UiMode.TITLE)
 
@@ -127,7 +127,7 @@ class TitlePhaseTest {
      */
     @Test
     fun `a Cancel Button should be send when no Savegame is found`() {
-        every { brain.saveSlotIndexToLoad } returns -1
+        every { brain.getSaveSlotIndexToLoad() } returns -1
 
         titlePhase.handleUiMode(UiMode.SAVE_SLOT)
 

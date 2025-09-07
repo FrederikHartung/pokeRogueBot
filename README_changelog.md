@@ -1,11 +1,14 @@
 #Changelog
 
 ## 3.1
+### Features:
+- Added ModifierSelectState Model Class for later RL
 ### Technical Changes:
 - Remove all KeyToPress Actions and migrate to UI-Handler
 - Remove all CustomWaitTimes and migrate to WaitConfig
 - BugFixes for UI Handling
 - Centralised all Waiting Constants to the WaitConfig
+- Migrated all Java Model Classes to Kotlin
 
 ## 3.0
 ### Features:

@@ -5,7 +5,7 @@ import com.sfh.pokeRogueBot.model.poke.Pokemon
 import com.sfh.pokeRogueBot.model.poke.PokemonBenchmarkMetric
 
 class RunProperty(val runNumber: Int) {
-    fun updateTeamSnapshot(playerParty: Array<Pokemon>) {
+    fun updateTeamSnapshot(playerParty: List<Pokemon>) {
         teamSnapshot.clear()
         for (pokemon in playerParty) {
             teamSnapshot.add(PokemonBenchmarkMetric.toSnapshotMetric(pokemon))

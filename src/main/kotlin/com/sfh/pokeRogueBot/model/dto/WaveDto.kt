@@ -3,12 +3,11 @@ package com.sfh.pokeRogueBot.model.dto
 import com.google.gson.annotations.SerializedName
 import com.sfh.pokeRogueBot.model.enums.BattleStyle
 import com.sfh.pokeRogueBot.model.enums.BattleType
-import com.sfh.pokeRogueBot.model.poke.Pokemon
 import com.sfh.pokeRogueBot.model.run.Arena
 import com.sfh.pokeRogueBot.model.run.WavePokemon
 
 data class WaveDto(
-    var wavePokemon: WavePokemon? = null,
+    var wavePokemon: WavePokemon,
     var arena: Arena? = null,
     var battleStyle: BattleStyle? = null,
     var battleScore: Int = 0,
@@ -21,8 +20,17 @@ data class WaveDto(
     var playerFaints: Int = 0,
     var turn: Int = 0,
     var waveIndex: Int = 0,
-    var pokeballCount: IntArray? = null
+    var pokeballCount: IntArray
 ) {
+
+    companion object {
+        fun createDefault(): WaveDto {
+            return WaveDto(
+                WavePokemon(mutableListOf(), mutableListOf()),
+                pokeballCount = IntArray(5)
+            )
+        }
+    }
 
     fun isTrainerFight(): Boolean {
         return battleType == BattleType.TRAINER
@@ -41,7 +49,7 @@ data class WaveDto(
             return true
         }
 
-        val enemies = wavePokemon?.enemyParty ?: return true
+        val enemies = wavePokemon.enemyParty
         var alivePokemons = 0
         for (enemy in enemies) {
             if (enemy.hp > 0) {
@@ -53,12 +61,8 @@ data class WaveDto(
     }
 
     fun hasPokeBalls(): Boolean {
-        pokeballCount?.let { ballCounts ->
-            for (ballCount in ballCounts) {
-                if (ballCount > 0) {
-                    return true
-                }
-            }
+        pokeballCount.forEach { ballCount ->
+            if (ballCount > 0) return true
         }
         return false
     }

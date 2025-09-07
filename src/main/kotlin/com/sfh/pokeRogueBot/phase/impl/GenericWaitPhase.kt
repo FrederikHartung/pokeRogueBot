@@ -134,3 +134,6 @@ class EggHatchPhase : GenericWaitPhase()
 
 @Component
 class DamagePhase : GenericWaitPhase()
+
+@Component
+class MoveChargePhase : GenericWaitPhase()
