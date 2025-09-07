@@ -61,6 +61,9 @@ data class Pokemon(
         return hp > 0
     }
 
+    /**
+     * Returns if a Pokemon has less than 100% Health and is not fainted
+     */
     fun isHurt(): Boolean {
         return hp > 0 && hp < stats.hp
     }

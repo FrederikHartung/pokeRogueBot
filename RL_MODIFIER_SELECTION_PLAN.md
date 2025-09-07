@@ -641,3 +641,101 @@ rl:
 - **Model Management**: Automatic save/load with configurable paths
 
 **The RL system is now fully functional and ready to replace the existing neuron-based modifier selection!**
+
+---
+
+## ✅ **INTERRUPTED RUNS HANDLING IMPLEMENTATION (COMPLETED)**
+
+### **🔧 Problem Identified:**
+When a run is interrupted (technical errors, manual shutdown) and resumed from a save game where `waveIndex > 1`, the RL agent would create corrupted training data:
+
+- **Missing episode context**: RL agent loses all previous decisions from waves 1 to current wave
+- **Incorrect reward attribution**: Terminal rewards only attributed to post-reload decisions  
+- **Incomplete training data**: Agent learns from partial episodes lacking early-game context
+
+### **✅ Solution Implemented:**
+
+#### **1. Smart Episode Creation Detection (`Brain.kt:351-363`)**
+```kotlin
+private fun addStepToCurrentEpisode(action: ModifierAction, state: SmallModifierSelectState, waveIndex: Int) {
+    val currentEpisode = episodeManager.getCurrentEpisode()
+    if (currentEpisode == null) {
+        // No current episode - start a new one and check if it's a resumed run
+        val isResumedRun = waveIndex > 1
+        episodeManager.startNewEpisode(isResumedRun)
+        
+        if (isResumedRun) {
+            log.warn("Started new RL episode for RESUMED run at wave {} - Training data will be marked as invalid", waveIndex)
+        } else {
+            log.info("Started new RL episode at wave {}", waveIndex)
+        }
+    }
+}
+```
+
+#### **2. Episode Validity Tracking (`ModifierRLEpisode.kt:27`)**
+```kotlin
+data class ModifierRLEpisode(
+    // ... other fields ...
+    val isValidForTraining: Boolean = true  // False for resumed runs (waveIndex > 1)
+)
+```
+
+#### **3. Invalid Episode Handling (`ModifierEpisodeManager.kt:148-154`)**
+```kotlin
+fun startNewEpisode(isResumedRun: Boolean = false): ModifierRLEpisode {
+    val runId = generateRunId()
+    currentEpisode = ModifierRLEpisode(
+        runId = runId,
+        isValidForTraining = !isResumedRun  // Invalid if resumed
+    )
+    return currentEpisode!!
+}
+```
+
+#### **4. Training Data Filtering & Immediate Persistence (`Brain.kt:390-421`)**
+```kotlin
+if (episode.isValidForTraining) {
+    // Only log experiences for valid episodes (not resumed runs)
+    val allExperiences = episode.getAllExperiences()
+    allExperiences.forEach { experience ->
+        decisionLogger.logDecision(/* ... experience data ... */)
+    }
+    
+    log.info("Completed VALID RL episode: outcome={}, waveReached={}, steps={}, finalReward={}")
+    
+    // Save training data after each completed episode and clear buffer
+    val bufferStats = decisionLogger.getBufferStats()
+    val bufferSize = bufferStats["bufferSize"] as Int
+    log.info("Saving training data: {} experiences from episode {}", bufferSize, episodeCount)
+    decisionLogger.saveAndClearBuffer()  // Immediate persistence + buffer cleanup
+} else {
+    log.warn("Completed INVALID RL episode (resumed run): ... - EXCLUDED from training")
+}
+```
+
+#### **5. Experience Collection Filtering (`ModifierEpisodeManager.kt:195-197`)**
+```kotlin
+fun getAllTrainingExperiences(): List<Experience> {
+    return getValidCompletedEpisodes().flatMap { it.getAllExperiences() }
+}
+```
+
+### **🎯 Benefits of This Implementation:**
+
+1. **Training Data Integrity**: Only complete episodes (starting from wave 1) are used for training
+2. **Immediate Persistence**: Training data saved and buffer cleared after each episode completion
+3. **Optimal Timing**: Detection occurs during actual gameplay, not during initialization
+4. **Reliable Detection**: Uses real wave data from active modifier decisions rather than potentially uninitialized data
+5. **Clear Logging**: Distinct log messages for valid vs invalid episodes for debugging
+6. **Memory Management**: Buffer cleared after each episode prevents unbounded memory growth
+7. **Zero Performance Impact**: Filtering happens only during episode completion
+8. **Backward Compatibility**: Existing complete episodes remain unaffected
+9. **Robust Architecture**: Avoids initialization timing issues by checking data when it's actually available
+
+### **📊 Behavior:**
+- **Fresh Runs** (waveIndex = 1): `isValidForTraining = true` → Training data collected
+- **Resumed Runs** (waveIndex > 1): `isValidForTraining = false` → Training data excluded
+- **System Logs**: Clear distinction between valid and invalid episodes for monitoring
+
+**This ensures the RL agent only learns from complete, uncorrupted episode data, maintaining training quality and preventing performance degradation from partial episodes.**

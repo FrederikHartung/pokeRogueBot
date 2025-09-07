@@ -6,11 +6,10 @@ If a good idea comes up, write it down and implement it later. Focus on the curr
 Only refactor, when it's really necessary.
 
 ## Current Task:
-- Check all RL Classes for outdated Documentation
+- Do a Benchmark with 20 Runs for the current RL Implementation
 
 ## Open todo's with high priority:
-- Check if "PotionFullyUsed" is correctly filled with data
-- Check the Brain class for current RL impl
+- Add "isFullPotionApplyable" to pokemon class and use it in RL reward
 
 ## Open todo's with low priority:
 - [ ] Combine Start and fightconfig and remove the different configurations

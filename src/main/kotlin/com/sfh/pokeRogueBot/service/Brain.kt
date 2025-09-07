@@ -8,7 +8,6 @@ import com.sfh.pokeRogueBot.model.dto.WaveDto
 import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision
 import com.sfh.pokeRogueBot.model.enums.RunStatus
 import com.sfh.pokeRogueBot.model.enums.UiMode
-import com.sfh.pokeRogueBot.model.exception.StopRunException
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult
 import com.sfh.pokeRogueBot.model.poke.Pokemon
 import com.sfh.pokeRogueBot.model.rl.*
@@ -16,7 +15,6 @@ import com.sfh.pokeRogueBot.model.run.RunProperty
 import com.sfh.pokeRogueBot.neurons.*
 import com.sfh.pokeRogueBot.phase.NoUiPhase
 import com.sfh.pokeRogueBot.phase.Phase
-import com.sfh.pokeRogueBot.phase.ScreenshotClient
 import com.sfh.pokeRogueBot.phase.UiPhase
 import com.sfh.pokeRogueBot.service.javascript.JsService
 import com.sfh.pokeRogueBot.service.javascript.JsUiService
@@ -29,12 +27,12 @@ class Brain(
     private val jsUiService: JsUiService,
     private val shortTermMemory: ShortTermMemory,
     private val longTermMemory: LongTermMemory,
-    private val screenshotClient: ScreenshotClient,
     private val switchPokemonNeuron: SwitchPokemonNeuron,
     private val combatNeuron: CombatNeuron,
     private val capturePokemonNeuron: CapturePokemonNeuron,
     private val learnMoveNeuron: LearnMoveNeuron,
-    private val modifierRLNeuron: ModifierRLNeuron
+    private val modifierRLNeuron: ModifierRLNeuron,
+    private val rewardCalculator: ModifierRewardCalculator
 ) {
 
     companion object {
@@ -83,7 +81,7 @@ class Brain(
             playerParty = waveDto.wavePokemon.playerParty
         )
 
-        // Step 3: RL agent selects action (currently defaults to SKIP)
+        // Step 3: RL agent selects action
         val selectedAction = modifierRLNeuron.selectAction(
             state = currentModifierState!!,
             availableActions = availableActions
@@ -92,11 +90,12 @@ class Brain(
         // Step 4: Convert RL action to game-executable result
         val result = modifierRLNeuron.convertActionToResult(
             action = selectedAction,
-            shop = shop
+            shop = shop,
+            team = waveDto.wavePokemon.playerParty
         )
 
         // Step 5: Add step to current RL episode
-        addStepToCurrentEpisode(selectedAction, currentModifierState!!)
+        addStepToCurrentEpisode(selectedAction, currentModifierState!!, waveDto.waveIndex)
 
         log.info(
             "RL modifier decision: action={}, result={}, availableActions={}",
@@ -160,35 +159,6 @@ class Brain(
         runProperty!!.updateTeamSnapshot(waveDto.wavePokemon.playerParty)
         runProperty!!.money = waveDto.money
         log.debug("new wave: Waveindex: ${waveDto.waveIndex}, is trainer fight: ${waveDto.isTrainerFight()}")
-
-        if (waveDto.isWildPokemonFight()) {
-            for (wildPokemon in waveDto.wavePokemon.enemyParty) {
-                if (wildPokemon.isShiny) {
-                    val message = "Shiny pokemon detected: ${wildPokemon.name}"
-                    log.info(message)
-                    screenshotClient.persistScreenshot("shiny_pokemon_detected")
-                    throw StopRunException(message)
-                }
-                if (wildPokemon.species.mythical) {
-                    val message = "Mythical pokemon detected: ${wildPokemon.name}"
-                    log.info(message)
-                    screenshotClient.persistScreenshot("mythical_pokemon_detected")
-                    throw StopRunException(message)
-                }
-                if (wildPokemon.species.legendary) {
-                    val message = "Legendary pokemon detected: ${wildPokemon.name}"
-                    log.info(message)
-                    screenshotClient.persistScreenshot("legendary_pokemon_detected")
-                    throw StopRunException(message)
-                }
-                if (wildPokemon.species.subLegendary) {
-                    val message = "Sub Legendary pokemon detected: ${wildPokemon.name}"
-                    log.info(message)
-                    screenshotClient.persistScreenshot("sub_legendary_pokemon_detected")
-                    throw StopRunException(message)
-                }
-            }
-        }
     }
 
     fun memorize(phase: String) {
@@ -269,7 +239,7 @@ class Brain(
             log.debug("runProperty is null, creating new one")
             runProperty = RunProperty(1)
             waveIndexReset = true
-            startNewRLEpisode() // Start new RL episode for the new run
+
             return runProperty!!
         }
 
@@ -294,7 +264,7 @@ class Brain(
                 }
                 runProperty = RunProperty(runProperty!!.runNumber + 1)
                 waveIndexReset = true
-                startNewRLEpisode() // Start new episode for the restart
+                startNewRLEpisode(false) // Start new episode for the restart (fresh run)
                 runProperty!!
             }
 
@@ -348,16 +318,28 @@ class Brain(
      * Adds a modifier decision step to the current RL episode.
      * Each step will receive rewards when the episode terminates.
      */
-    private fun addStepToCurrentEpisode(action: ModifierAction, state: SmallModifierSelectState) {
-        episodeManager.getCurrentEpisode()
-            ?: episodeManager.startNewEpisode()
+    private fun addStepToCurrentEpisode(action: ModifierAction, state: SmallModifierSelectState, waveIndex: Int) {
+        val currentEpisode = episodeManager.getCurrentEpisode()
+        if (currentEpisode == null) {
+            // No current episode - start a new one and check if it's a resumed run
+            val isResumedRun = waveIndex > 1
+            episodeManager.startNewEpisode(isResumedRun)
+
+            if (isResumedRun) {
+                log.warn("Started new RL episode for RESUMED run at wave {} - Training data will be marked as invalid", waveIndex)
+            } else {
+                log.info("Started new RL episode at wave {}", waveIndex)
+            }
+        }
+
+        val reward = rewardCalculator.calculateReward(state, action)
 
         val step = ModifierRLStep(
             state = state,
             action = action,
-            immediateReward = 0.0, // Small immediate rewards could be added here
+            immediateReward = reward, // Small immediate rewards could be added here
             nextState = null, // Will be updated if there are multiple steps
-            waveNumber = waveDto.waveIndex,
+            waveNumber = waveIndex,
             isTerminal = false,
             terminalReward = 0.0
         )
@@ -365,7 +347,7 @@ class Brain(
         episodeManager.addStepToCurrentEpisode(step)
         log.info(
             "Added RL step to episode: wave={}, action={}, state=HP buckets: {}",
-            waveDto.waveIndex, action, state.hpBuckets.contentToString()
+            waveIndex, action, state.hpBuckets.contentToString()
         )
     }
 
@@ -377,32 +359,37 @@ class Brain(
         episodeManager.getCurrentEpisode()?.let { episode ->
             episodeManager.completeCurrentEpisode(outcome, waveReached)
 
-            // Log all episode experiences for training
-            val allExperiences = episode.getAllExperiences()
-            allExperiences.forEach { experience ->
-                decisionLogger.logDecision(
-                    experience.state,
-                    experience.action,
-                    experience.reward,
-                    experience.nextState,
-                    experience.done
-                )
-            }
+            if (episode.isValidForTraining) {
+                // Only log experiences for valid episodes (not resumed runs)
+                val allExperiences = episode.getAllExperiences()
+                allExperiences.forEach { experience ->
+                    decisionLogger.logDecision(
+                        experience.state,
+                        experience.action,
+                        experience.reward,
+                        experience.nextState,
+                        experience.done
+                    )
+                }
 
-            log.info(
-                "Completed RL episode: outcome={}, waveReached={}, steps={}, finalReward={}",
-                outcome, waveReached, episode.getStepCount(), episode.finalReward
-            )
-
-            // Save training data periodically
-            val bufferStats = decisionLogger.getBufferStats()
-            val bufferSize = bufferStats["bufferSize"] as Int
-            if (bufferSize >= 50) { // Batch size for episodes
                 log.info(
-                    "Saving training batch of {} experiences from {} episodes",
+                    "Completed VALID RL episode: outcome={}, waveReached={}, steps={}, finalReward={}",
+                    outcome, waveReached, episode.getStepCount(), episode.finalReward
+                )
+
+                // Save training data after each completed episode and clear buffer
+                val bufferStats = decisionLogger.getBufferStats()
+                val bufferSize = bufferStats["bufferSize"] as Int
+                log.info(
+                    "Saving training data: {} experiences from episode {}",
                     bufferSize, episodeManager.getEpisodeCount()
                 )
-                decisionLogger.saveTrainingBatch()
+                decisionLogger.saveAndClearBuffer()
+            } else {
+                log.warn(
+                    "Completed INVALID RL episode (resumed run): outcome={}, waveReached={}, steps={} - EXCLUDED from training",
+                    outcome, waveReached, episode.getStepCount()
+                )
             }
         }
     }
@@ -410,10 +397,16 @@ class Brain(
     /**
      * Starts a new RL episode when a new run begins.
      * Called when the run property is created or reset.
+     *
+     * @param isResumedRun true if this run is resumed from a save game (waveIndex > 1)
      */
-    fun startNewRLEpisode() {
-        val newEpisode = episodeManager.startNewEpisode()
-        log.info("Started new RL episode: runId={}", newEpisode.runId)
+    fun startNewRLEpisode(isResumedRun: Boolean = false) {
+        val newEpisode = episodeManager.startNewEpisode(isResumedRun)
+        if (isResumedRun) {
+            log.warn("Started new RL episode for RESUMED run: runId={} - Training data will be marked as invalid", newEpisode.runId)
+        } else {
+            log.info("Started new RL episode: runId={}", newEpisode.runId)
+        }
     }
 
     /**

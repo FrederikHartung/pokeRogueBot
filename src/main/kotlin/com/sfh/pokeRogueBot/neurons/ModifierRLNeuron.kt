@@ -131,33 +131,21 @@ class ModifierRLNeuron(
 
     /**
      * Fallback rule-based logic for when DQN is disabled or fails.
-     * Uses simple heuristics based on team health needs.
      */
     private fun fallbackRuleBasedAction(
         state: SmallModifierSelectState,
         availableActions: List<ModifierAction>
     ): ModifierAction {
-        // Check for critical healing needs (HP buckets 0.0-0.3)
-        val criticallyHurt = state.hpBuckets.any { it <= 0.3 && it > 0.0 }
-        val fainted = state.hpBuckets.any { it == 0.0 }
-
         return when {
-            // Emergency: fainted Pokemon and free healing available
-            fainted && availableActions.contains(ModifierAction.TAKE_FREE_POTION) -> {
-                log.info("Rule-based: Taking free potion for fainted Pokemon")
-                ModifierAction.TAKE_FREE_POTION
-            }
 
-            // Critical: low HP and free healing available
-            criticallyHurt && availableActions.contains(ModifierAction.TAKE_FREE_POTION) -> {
-                log.info("Rule-based: Taking free potion for critically hurt Pokemon")
-                ModifierAction.TAKE_FREE_POTION
-            }
-
-            // Moderate: low HP and can afford to buy healing
-            criticallyHurt && availableActions.contains(ModifierAction.BUY_POTION) -> {
-                log.info("Rule-based: Buying potion for critically hurt Pokemon")
+            availableActions.contains(ModifierAction.BUY_POTION) -> {
+                log.info("Rule-based: Buying full potion for hurt Pokemon")
                 ModifierAction.BUY_POTION
+            }
+
+            availableActions.contains(ModifierAction.TAKE_FREE_POTION) -> {
+                log.info("Rule-based: Taking free potion for hurt Pokemon")
+                ModifierAction.TAKE_FREE_POTION
             }
 
             // Default: skip if no immediate healing needs
@@ -213,21 +201,25 @@ class ModifierRLNeuron(
      * @param shop The current modifier shop for item lookup
      * @return MoveToModifierResult that can be executed by the game, or null for SKIP
      */
-    fun convertActionToResult(action: ModifierAction, shop: ModifierShop): MoveToModifierResult? {
+    fun convertActionToResult(action: ModifierAction, shop: ModifierShop, team: List<Pokemon>): MoveToModifierResult? {
         return when (action) {
             ModifierAction.BUY_POTION -> {
                 val potionToBuy = shop.shopItems.firstOrNull { isPotionItem(it.typeName) }
                 potionToBuy?.let { item ->
-                    log.debug("Converting BUY_POTION to game result: {}", item.name)
-                    MoveToModifierResult(item.y, item.x, 0, item.name)
+                    val indexToMoveTo = getLowestNonFaintedPokemonIndex(team)
+                    val pokemon = team[indexToMoveTo]
+                    log.debug("Converting BUY_POTION to game result: {}, pokemon index {}, health percentage {}", item.name, indexToMoveTo, pokemon.hp.toDouble() / pokemon.stats.hp.toDouble())
+                    MoveToModifierResult(item.y, item.x, indexToMoveTo, item.name)
                 }
             }
 
             ModifierAction.TAKE_FREE_POTION -> {
                 val freePotion = shop.freeItems.firstOrNull { isPotionItem(it.typeName) }
                 freePotion?.let { item ->
-                    log.debug("Converting TAKE_FREE_POTION to game result: {}", item.name)
-                    MoveToModifierResult(item.y, item.x, 0, item.name)
+                    val indexToMoveTo = getLowestNonFaintedPokemonIndex(team)
+                    val pokemon = team[indexToMoveTo]
+                    log.debug("Converting TAKE_FREE_POTION to game result: {}, pokemon.index{}, health.percentage {}", item.name, indexToMoveTo, pokemon.hp.toDouble() / pokemon.stats.hp.toDouble())
+                    MoveToModifierResult(item.y, item.x, indexToMoveTo, item.name)
                 }
             }
 
@@ -236,6 +228,13 @@ class ModifierRLNeuron(
                 null
             }
         }
+    }
+
+    private fun getLowestNonFaintedPokemonIndex(team: List<Pokemon>): Int {
+        return team.withIndex()
+            .filter { (_, pokemon) -> pokemon.isHurt() }
+            .minByOrNull { (_, pokemon) -> pokemon.hp.toDouble() / pokemon.stats.hp.toDouble() }
+            ?.index ?: -1
     }
 
     /**

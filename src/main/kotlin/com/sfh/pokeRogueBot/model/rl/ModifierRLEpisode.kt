@@ -23,7 +23,8 @@ data class ModifierRLEpisode(
     var terminalOutcome: RunTerminalOutcome? = null,
     var finalReward: Double = 0.0,
     var waveReached: Int = 0,
-    var startTimestamp: Long = System.currentTimeMillis()
+    var startTimestamp: Long = System.currentTimeMillis(),
+    val isValidForTraining: Boolean = true  // False for resumed runs (waveIndex > 1)
 ) {
 
     /**
@@ -72,11 +73,11 @@ data class ModifierRLEpisode(
             }
 
             RunTerminalOutcome.VICTORY -> {
-                100.0 + (waveReached * 2.0) // Big bonus for victory, more for longer runs
+                10000.0 // Big bonus for victory
             }
 
             RunTerminalOutcome.RUN_ABANDONED -> {
-                -10.0 // Small penalty for abandoned runs
+                0.0 // Neutral for abandoned runs
             }
 
             RunTerminalOutcome.ERROR_OCCURRED -> {
@@ -141,10 +142,15 @@ class ModifierEpisodeManager {
 
     /**
      * Starts a new episode (new run).
+     * 
+     * @param isResumedRun true if this episode is from a resumed run (waveIndex > 1)
      */
-    fun startNewEpisode(): ModifierRLEpisode {
+    fun startNewEpisode(isResumedRun: Boolean = false): ModifierRLEpisode {
         val runId = generateRunId()
-        currentEpisode = ModifierRLEpisode(runId = runId)
+        currentEpisode = ModifierRLEpisode(
+            runId = runId,
+            isValidForTraining = !isResumedRun  // Invalid if resumed
+        )
         return currentEpisode!!
     }
 
@@ -176,10 +182,18 @@ class ModifierEpisodeManager {
     }
 
     /**
-     * Gets all training experiences from completed episodes.
+     * Gets all valid completed episodes for training (excludes resumed runs).
+     */
+    fun getValidCompletedEpisodes(): List<ModifierRLEpisode> {
+        return episodes.filter { it.isComplete && it.isValidForTraining }
+    }
+
+    /**
+     * Gets all training experiences from valid completed episodes only.
+     * Excludes experiences from resumed runs to prevent corrupted training data.
      */
     fun getAllTrainingExperiences(): List<Experience> {
-        return getCompletedEpisodes().flatMap { it.getAllExperiences() }
+        return getValidCompletedEpisodes().flatMap { it.getAllExperiences() }
     }
 
     /**
