@@ -5,12 +5,12 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.3</version>
+		<version>3.5.5</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.sfh</groupId>
 	<artifactId>pokeRogueBot</artifactId>
-	<version>3.1</version>
+	<version>4.0</version>
 	<name>pokeRogueBot</name>
 	<description>A simple Bot for the pokeRogue Game</description>
 	<properties>
