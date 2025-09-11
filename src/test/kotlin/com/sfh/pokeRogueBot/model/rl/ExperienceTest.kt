@@ -8,9 +8,9 @@ class ExperienceTest {
     @Test
     fun `toMap should serialize experience correctly`() {
         // Arrange
-        val state = createTestState(doubleArrayOf(1.0, 0.8, 0.6, 0.4, 0.2, 0.0, 1.0, 0.0))
-        val nextState = createTestState(doubleArrayOf(1.0, 0.9, 0.6, 0.4, 0.2, 0.0, 1.0, 0.0))
-        val experience = Experience(
+        val state = createTestState(doubleArrayOf(1.0, 0.8, 0.6, 0.4, 0.2, 0.0, 1.0, 0.0, 0.5, 0.0, 1.0))
+        val nextState = createTestState(doubleArrayOf(1.0, 0.9, 0.6, 0.4, 0.2, 0.0, 1.0, 0.0, 0.5, 0.0, 1.0))
+        val selectModifierExperience = SelectModifierExperience(
             state = state,
             action = ModifierAction.BUY_POTION,
             reward = 25.0,
@@ -20,13 +20,13 @@ class ExperienceTest {
         )
 
         // Act
-        val result = experience.toMap()
+        val result = selectModifierExperience.toMap()
 
         // Assert
-        assertEquals(listOf(1.0, 0.8, 0.6, 0.4, 0.2, 0.0, 1.0, 0.0), result["state"])
+        assertEquals(listOf(1.0, 0.8, 0.6, 0.4, 0.2, 0.0, 1.0, 0.0, 0.5, 0.0, 1.0), result["state"])
         assertEquals(0, result["action"]) // BUY_POTION actionId
         assertEquals(25.0, result["reward"])
-        assertEquals(listOf(1.0, 0.9, 0.6, 0.4, 0.2, 0.0, 1.0, 0.0), result["nextState"])
+        assertEquals(listOf(1.0, 0.9, 0.6, 0.4, 0.2, 0.0, 1.0, 0.0, 0.5, 0.0, 1.0), result["nextState"])
         assertEquals(false, result["done"])
         assertEquals(1640995200000L, result["timestamp"])
     }
@@ -34,8 +34,8 @@ class ExperienceTest {
     @Test
     fun `toMap should handle null nextState`() {
         // Arrange
-        val state = createTestState(doubleArrayOf(1.0, 0.8, 0.6, 0.4, 0.2, 0.0, 1.0, 0.0))
-        val experience = Experience(
+        val state = createTestState(doubleArrayOf(1.0, 0.8, 0.6, 0.4, 0.2, 0.0, 1.0, 0.0, 0.5, 0.0, 1.0))
+        val selectModifierExperience = SelectModifierExperience(
             state = state,
             action = ModifierAction.SKIP,
             reward = -5.0,
@@ -44,7 +44,7 @@ class ExperienceTest {
         )
 
         // Act
-        val result = experience.toMap()
+        val result = selectModifierExperience.toMap()
 
         // Assert
         assertNull(result["nextState"])
@@ -56,22 +56,22 @@ class ExperienceTest {
     fun `fromMap should deserialize experience correctly`() {
         // Arrange
         val map = mapOf(
-            "state" to listOf(1.0, 0.8, 0.6, 0.4, 0.2, 0.0, 1.0, 0.0),
+            "state" to listOf(1.0, 0.8, 0.6, 0.4, 0.2, 0.0, 1.0, 0.0, 0.5, 0.0, 1.0),
             "action" to 1, // TAKE_FREE_POTION
             "reward" to 30.0,
-            "nextState" to listOf(1.0, 1.0, 0.6, 0.4, 0.2, 0.0, 1.0, 0.0),
+            "nextState" to listOf(1.0, 1.0, 0.6, 0.4, 0.2, 0.0, 1.0, 0.0, 0.5, 0.0, 1.0),
             "done" to false,
             "timestamp" to 1640995200000L
         )
 
         // Act
-        val result = Experience.fromMap(map)
+        val result = SelectModifierExperience.fromMap(map)
 
         // Assert
-        assertArrayEquals(doubleArrayOf(1.0, 0.8, 0.6, 0.4, 0.2, 0.0, 1.0, 0.0), result.state.toArray(), 0.001)
+        assertArrayEquals(doubleArrayOf(1.0, 0.8, 0.6, 0.4, 0.2, 0.0, 1.0, 0.0, 0.5, 0.0, 1.0), result.state.toArray(), 0.001)
         assertEquals(ModifierAction.TAKE_FREE_POTION, result.action)
         assertEquals(30.0, result.reward, 0.001)
-        assertArrayEquals(doubleArrayOf(1.0, 1.0, 0.6, 0.4, 0.2, 0.0, 1.0, 0.0), result.nextState?.toArray(), 0.001)
+        assertArrayEquals(doubleArrayOf(1.0, 1.0, 0.6, 0.4, 0.2, 0.0, 1.0, 0.0, 0.5, 0.0, 1.0), result.nextState?.toArray(), 0.001)
         assertEquals(false, result.done)
         assertEquals(1640995200000L, result.timestamp)
     }
@@ -80,7 +80,7 @@ class ExperienceTest {
     fun `fromMap should handle null nextState`() {
         // Arrange
         val map = mapOf(
-            "state" to listOf(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            "state" to listOf(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
             "action" to 2, // SKIP
             "reward" to -10.0,
             "nextState" to null,
@@ -89,7 +89,7 @@ class ExperienceTest {
         )
 
         // Act
-        val result = Experience.fromMap(map)
+        val result = SelectModifierExperience.fromMap(map)
 
         // Assert
         assertNull(result.nextState)
@@ -101,7 +101,7 @@ class ExperienceTest {
     fun `fromMap should throw exception for invalid action ID`() {
         // Arrange
         val map = mapOf(
-            "state" to listOf(1.0, 0.8, 0.6, 0.4, 0.2, 0.0, 1.0, 0.0),
+            "state" to listOf(1.0, 0.8, 0.6, 0.4, 0.2, 0.0, 1.0, 0.0, 0.5, 0.0, 1.0),
             "action" to 99, // Invalid action ID
             "reward" to 0.0,
             "nextState" to null,
@@ -111,7 +111,7 @@ class ExperienceTest {
 
         // Act & Assert
         val exception = assertThrows(IllegalArgumentException::class.java) {
-            Experience.fromMap(map)
+            SelectModifierExperience.fromMap(map)
         }
         assertTrue(exception.message?.contains("Invalid action ID: 99") == true)
     }
@@ -119,9 +119,9 @@ class ExperienceTest {
     @Test
     fun `roundtrip serialization should preserve experience`() {
         // Arrange
-        val originalState = createTestState(doubleArrayOf(0.5, 0.7, 0.3, 0.9, 0.1, 0.8, 0.0, 1.0))
-        val originalNextState = createTestState(doubleArrayOf(0.6, 0.8, 0.4, 1.0, 0.2, 0.9, 0.0, 1.0))
-        val original = Experience(
+        val originalState = createTestState(doubleArrayOf(0.5, 0.7, 0.3, 0.9, 0.1, 0.8, 0.0, 1.0, 0.5, 0.0, 1.0))
+        val originalNextState = createTestState(doubleArrayOf(0.6, 0.8, 0.4, 1.0, 0.2, 0.9, 0.0, 1.0, 0.5, 0.0, 1.0))
+        val original = SelectModifierExperience(
             state = originalState,
             action = ModifierAction.BUY_POTION,
             reward = 42.5,
@@ -131,7 +131,7 @@ class ExperienceTest {
 
         // Act
         val map = original.toMap()
-        val recreated = Experience.fromMap(map)
+        val recreated = SelectModifierExperience.fromMap(map)
 
         // Assert
         assertArrayEquals(original.state.toArray(), recreated.state.toArray(), 0.001)
@@ -145,11 +145,11 @@ class ExperienceTest {
     @Test
     fun `constructor should use current time by default`() {
         // Arrange
-        val state = createTestState(doubleArrayOf(1.0, 0.8, 0.6, 0.4, 0.2, 0.0, 1.0, 0.0))
+        val state = createTestState(doubleArrayOf(1.0, 0.8, 0.6, 0.4, 0.2, 0.0, 1.0, 0.0, 0.5, 0.0, 1.0))
         val beforeTime = System.currentTimeMillis()
 
         // Act
-        val experience = Experience(
+        val selectModifierExperience = SelectModifierExperience(
             state = state,
             action = ModifierAction.SKIP,
             reward = 0.0,
@@ -158,8 +158,8 @@ class ExperienceTest {
 
         // Assert
         val afterTime = System.currentTimeMillis()
-        assertTrue(experience.timestamp >= beforeTime)
-        assertTrue(experience.timestamp <= afterTime)
+        assertTrue(selectModifierExperience.timestamp >= beforeTime)
+        assertTrue(selectModifierExperience.timestamp <= afterTime)
     }
 
     private fun createTestState(array: DoubleArray): SmallModifierSelectState {

@@ -1,5 +1,6 @@
 package com.sfh.pokeRogueBot.model.rl
 
+import com.sfh.pokeRogueBot.util.FileSystemWrapper
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -60,12 +61,12 @@ class ModifierDecisionLoggerWithMockTest {
             "timestamp": "20250830_120000",
             "sessionId": "test",
             "experienceCount": 1,
-            "stateSize": 8,
+            "stateSize": 11,
             "actionCount": 3
           },
           "experiences": [
             {
-              "state": [1.0, 0.8, 0.6, 0.4, 0.2, 0.0, 1.0, 0.0],
+              "state": [1.0, 0.8, 0.6, 0.4, 0.2, 0.0, 1.0, 0.0, 0.5, 0.0, 1.0],
               "action": 0,
               "reward": 25.0,
               "nextState": null,
@@ -100,7 +101,7 @@ class ModifierDecisionLoggerWithMockTest {
         val result = logger.loadExperiences(filePath)
 
         // Assert
-        assertEquals(emptyList<Experience>(), result)
+        assertEquals(emptyList<SelectModifierExperience>(), result)
         verify { mockFileSystem.exists(filePath) }
         verify(exactly = 0) { mockFileSystem.readString(any()) }
     }
@@ -164,7 +165,10 @@ class ModifierDecisionLoggerWithMockTest {
         return SmallModifierSelectState(
             hpBuckets = doubleArrayOf(1.0, 0.8, 0.6, 0.4, 0.2, 0.0),
             canAffordPotion = 1.0,
-            freePotionAvailable = 0.0
+            freePotionAvailable = 0.0,
+            canAffordRevive = 0.0,
+            freeReviveAvailable = 0.0,
+            sacredAshAvailable = 0.0
         )
     }
 }

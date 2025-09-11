@@ -61,10 +61,18 @@ bot:
   maxRunsTillShutdown: -1
   startBotOnStartup: true
 
+# Reinforcement Learning Configuration
+# Controls AI agent behavior for automated decision making during gameplay
 rl:
   modifier-selection:
-    enabled: false
-    model-path: "models/modifier-dqn.zip"
+    # Path to the trained DQN model file
+    # The agent will load this model for making decisions
+    # If file doesn't exist, a new model will be initialized for training
+    model-path: "data/models/modifier-dqn-best.zip"
+    
+    # Training mode toggle
+    # When true: Agent explores more, collects training data, and learns from experiences
+    # When false: Agent uses pure exploitation for optimal gameplay performance
     training-mode: false
 
 logging:

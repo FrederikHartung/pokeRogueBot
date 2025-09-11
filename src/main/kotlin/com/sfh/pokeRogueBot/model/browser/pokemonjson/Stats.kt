@@ -19,9 +19,9 @@ data class Stats(
                 5
             )
         }
+    }
 
-        fun getBaseTotal(stats: Stats): Int {
-            return stats.hp + stats.attack + stats.defense + stats.specialAttack + stats.specialDefense + stats.speed
-        }
+    fun getBaseTotal(): Int {
+        return hp + attack + defense + specialAttack + specialDefense + speed
     }
 }

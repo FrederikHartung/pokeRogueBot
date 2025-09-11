@@ -2,10 +2,6 @@ package com.sfh.pokeRogueBot.model.rl
 
 /**
  * Represents all possible actions in the modifier selection phase.
- *
- * The phase is multi-step:
- * 1. Shop Phase: Can buy multiple items (doesn't end phase)
- * 2. Final Phase: Choose free item or skip (ends phase immediately)
  */
 enum class ModifierAction(val actionId: Int) {
 
@@ -16,7 +12,14 @@ enum class ModifierAction(val actionId: Int) {
     TAKE_FREE_POTION(1),
 
     // Skip action (ends phase)
-    SKIP(2);
+    SKIP(2),
+
+    TAKE_SACRET_ASH(3),
+    TAKE_FREE_REVIVE(4),
+    BUY_REVIVE(5),
+    TAKE_FREE_MAX_REVIVE(6),
+    BUY_MAX_REVIVE(7),
+    ;
 
     companion object {
         /**

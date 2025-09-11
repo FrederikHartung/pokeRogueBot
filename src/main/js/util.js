@@ -244,6 +244,29 @@ window.poru.util = {
             }
         }
         console.log("set hp not successfully")
-    }
+    },
+
+    resetStarterToDefault: () => {
+        const scene = window.poru.util.getBattleScene()
+        if(scene){
+            const playerParty = scene.party
+            if(playerParty && playerParty.length > 0){
+                let resetCount = 0
+                for(const pokemon of playerParty){
+                    if(pokemon){
+                        pokemon.pokerus = false
+                        pokemon.shiny = false
+                        pokemon.luck = 0
+                        pokemon.ivs = [10, 10, 10, 10, 10, 10]
+                        resetCount++
+                    }
+                }
+                console.log(`resetStarterToDefault ok - reset ${resetCount} pokemon`)
+                return resetCount > 0
+            }
+        }
+        console.log("resetStarterToDefault failed")
+        return false
+    },
 
 };

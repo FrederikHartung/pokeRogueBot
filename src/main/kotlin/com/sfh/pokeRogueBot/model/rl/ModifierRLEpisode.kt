@@ -89,12 +89,12 @@ data class ModifierRLEpisode(
     /**
      * Gets all experiences for training, with proper terminal rewards applied.
      */
-    fun getAllExperiences(): List<Experience> {
+    fun getAllExperiences(): List<SelectModifierExperience> {
         return steps.map { step ->
             val totalReward = step.immediateReward +
                     if (step.isTerminal) step.terminalReward else 0.0
 
-            Experience(
+            SelectModifierExperience(
                 state = step.state,
                 action = step.action,
                 reward = totalReward,
@@ -142,7 +142,7 @@ class ModifierEpisodeManager {
 
     /**
      * Starts a new episode (new run).
-     * 
+     *
      * @param isResumedRun true if this episode is from a resumed run (waveIndex > 1)
      */
     fun startNewEpisode(isResumedRun: Boolean = false): ModifierRLEpisode {
@@ -175,6 +175,17 @@ class ModifierEpisodeManager {
     }
 
     /**
+     * Discards the current episode without persisting it.
+     * Used when a run is terminated due to errors or user interruption.
+     */
+    fun discardCurrentEpisode() {
+        val episode = currentEpisode
+            ?: throw IllegalStateException("No active episode to discard")
+        
+        currentEpisode = null
+    }
+
+    /**
      * Gets all completed episodes for training.
      */
     fun getCompletedEpisodes(): List<ModifierRLEpisode> {
@@ -192,7 +203,7 @@ class ModifierEpisodeManager {
      * Gets all training experiences from valid completed episodes only.
      * Excludes experiences from resumed runs to prevent corrupted training data.
      */
-    fun getAllTrainingExperiences(): List<Experience> {
+    fun getAllTrainingExperiences(): List<SelectModifierExperience> {
         return getValidCompletedEpisodes().flatMap { it.getAllExperiences() }
     }
 

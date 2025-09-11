@@ -64,8 +64,7 @@ class BrainTest {
                 combatNeuron,
                 capturePokemonNeuron,
                 learnMoveNeuron,
-                modifierRLNeuron,
-                modifierRewardCalculator
+                modifierRLNeuron
         );
 
         runProperty = new RunProperty(1);

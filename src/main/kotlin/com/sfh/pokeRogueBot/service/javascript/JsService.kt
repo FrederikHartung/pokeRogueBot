@@ -88,4 +88,9 @@ class JsService(private val jsClient: JsClient) {
         return jsClient.executeCommandAndGetResult("return window.poru.util.currentBattleHasEnemyTrainer();").toString()
             .toBoolean()
     }
+
+    fun resetStarterToDefault(): Boolean {
+        return jsClient.executeCommandAndGetResult("return window.poru.util.resetStarterToDefault();").toString()
+            .toBoolean()
+    }
 }

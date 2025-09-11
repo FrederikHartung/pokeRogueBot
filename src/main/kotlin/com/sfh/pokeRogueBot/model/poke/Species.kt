@@ -39,7 +39,7 @@ data class Species(
                 baseExp = 5,
                 baseFriendship = 0,
                 baseStats = stats,
-                baseTotal = Stats.getBaseTotal(stats),
+                baseTotal = stats.getBaseTotal(),
                 canChangeForm = false,
                 catchRate = 10,
                 generation = 1,
