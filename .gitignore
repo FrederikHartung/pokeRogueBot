@@ -44,3 +44,4 @@ data/uiValidatedPhases.json
 data/runMetrics.json
 data/runBenchmarks.json
 /training_data
+/data/training_data
