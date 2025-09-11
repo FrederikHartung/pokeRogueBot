@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.rl
 
-import com.sfh.pokeRogueBot.model.rl.Experience
+import com.sfh.pokeRogueBot.model.rl.SelectModifierExperience
 import com.sfh.pokeRogueBot.model.rl.ModifierAction
 import com.sfh.pokeRogueBot.model.rl.SmallModifierSelectState
 import org.deeplearning4j.nn.conf.MultiLayerConfiguration
@@ -29,9 +29,9 @@ import kotlin.random.Random
  * 4. Using action masking to prevent invalid decisions
  *
  * Network Architecture:
- * Input: 8D state vector (6 HP buckets + 2 resource flags)
+ * Input: 11D state vector (6 HP buckets + 5 resource flags)
  * Hidden: 64 → 32 neurons (ReLU activation)
- * Output: 3 Q-values (BUY_POTION, TAKE_FREE_POTION, SKIP)
+ * Output: 8 Q-values (BUY_POTION, TAKE_FREE_POTION, SKIP, TAKE_SACRET_ASH, TAKE_FREE_REVIVE, BUY_REVIVE, TAKE_FREE_MAX_REVIVE, BUY_MAX_REVIVE)
  */
 class ModifierDQNAgent(
     private val learningRate: Double = 0.001,
@@ -44,13 +44,13 @@ class ModifierDQNAgent(
 
     companion object {
         private val log = LoggerFactory.getLogger(ModifierDQNAgent::class.java)
-        private const val INPUT_SIZE = 8  // SmallModifierSelectState dimensions
-        private const val OUTPUT_SIZE = 3 // Number of ModifierAction values
+        private const val INPUT_SIZE = 11  // SmallModifierSelectState dimensions (6 HP buckets + 5 resource flags)
+        private const val OUTPUT_SIZE = 8 // Number of ModifierAction values (BUY_POTION, TAKE_FREE_POTION, SKIP, TAKE_SACRET_ASH, TAKE_FREE_REVIVE, BUY_REVIVE, TAKE_FREE_MAX_REVIVE, BUY_MAX_REVIVE)
     }
 
     private val qNetwork: MultiLayerNetwork
     private val targetNetwork: MultiLayerNetwork
-    private val experienceReplay = mutableListOf<Experience>()
+    private val selectModifierExperienceReplay = mutableListOf<SelectModifierExperience>()
     private var stepCount = 0
 
     init {
@@ -153,12 +153,12 @@ class ModifierDQNAgent(
     /**
      * Adds experience to replay buffer for training.
      */
-    fun addExperience(experience: Experience) {
-        experienceReplay.add(experience)
+    fun addExperience(selectModifierExperience: SelectModifierExperience) {
+        selectModifierExperienceReplay.add(selectModifierExperience)
 
         // Keep buffer size manageable
-        if (experienceReplay.size > replayBufferSize) {
-            experienceReplay.removeAt(0)
+        if (selectModifierExperienceReplay.size > replayBufferSize) {
+            selectModifierExperienceReplay.removeAt(0)
         }
     }
 
@@ -166,12 +166,12 @@ class ModifierDQNAgent(
      * Trains the DQN on a batch of experiences from replay buffer.
      */
     fun trainStep() {
-        if (experienceReplay.size < batchSize) {
+        if (selectModifierExperienceReplay.size < batchSize) {
             return // Not enough experiences yet
         }
 
         // Sample random batch from experience replay
-        val batch = experienceReplay.shuffled().take(batchSize)
+        val batch = selectModifierExperienceReplay.shuffled().take(batchSize)
 
         // Prepare training data
         val states = Nd4j.zeros(batchSize, INPUT_SIZE)
@@ -226,20 +226,20 @@ class ModifierDQNAgent(
 
         log.debug(
             "DQN training step completed: batch_size={}, buffer_size={}",
-            batchSize, experienceReplay.size
+            batchSize, selectModifierExperienceReplay.size
         )
     }
 
     /**
      * Trains on a batch of collected experiences (for offline training).
      */
-    fun trainOnBatch(experiences: List<Experience>) {
-        experiences.forEach { addExperience(it) }
+    fun trainOnBatch(selectModifierExperiences: List<SelectModifierExperience>) {
+        selectModifierExperiences.forEach { addExperience(it) }
 
         // Train multiple times on the new data
         repeat(10) { trainStep() }
 
-        log.info("Trained on batch of {} experiences", experiences.size)
+        log.info("Trained on batch of {} experiences", selectModifierExperiences.size)
     }
 
     /**
@@ -285,7 +285,7 @@ class ModifierDQNAgent(
     fun getTrainingStats(): Map<String, Any> {
         return mapOf(
             "stepCount" to stepCount,
-            "bufferSize" to experienceReplay.size,
+            "bufferSize" to selectModifierExperienceReplay.size,
             "explorationRate" to explorationRate,
             "lastScore" to (qNetwork.score() ?: 0.0)
         )

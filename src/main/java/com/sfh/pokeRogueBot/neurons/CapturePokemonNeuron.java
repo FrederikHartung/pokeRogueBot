@@ -55,10 +55,6 @@ public class CapturePokemonNeuron {
             }
         }
 
-        if (wildPokemon.isShiny()) {
-            throw new IllegalStateException("Shiny pokemon should be captured manually");
-        }
-
         if (((double) wildPokemon.getHp() / wildPokemon.getStats().getHp()) > 0.9) {
             log.debug("can't capture: pokemon is too healthy");
             return false;

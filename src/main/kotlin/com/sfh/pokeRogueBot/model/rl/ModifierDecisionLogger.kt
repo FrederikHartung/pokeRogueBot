@@ -1,6 +1,8 @@
 package com.sfh.pokeRogueBot.model.rl
 
 import com.google.gson.GsonBuilder
+import com.sfh.pokeRogueBot.util.FileSystemWrapper
+import com.sfh.pokeRogueBot.util.RealFileSystemWrapper
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.nio.file.Path
@@ -30,12 +32,12 @@ import java.util.concurrent.ConcurrentLinkedQueue
 @Component
 class ModifierDecisionLogger(
     private val maxBufferSize: Int = 10000,
-    private val outputDirectory: String = "training_data",
+    private val outputDirectory: String = "data/training_data",
     private val fileSystem: FileSystemWrapper = RealFileSystemWrapper()
 ) {
     private val logger = LoggerFactory.getLogger(ModifierDecisionLogger::class.java)
     private val gson = GsonBuilder().setPrettyPrinting().create()
-    private val experiences = ConcurrentLinkedQueue<Experience>()
+    private val selectModifierExperiences = ConcurrentLinkedQueue<SelectModifierExperience>()
 
     init {
         // Ensure output directory exists
@@ -66,15 +68,15 @@ class ModifierDecisionLogger(
         nextState: SmallModifierSelectState? = null,
         done: Boolean = false
     ) {
-        val experience = Experience(state, action, reward, nextState, done)
-        experiences.offer(experience)
+        val selectModifierExperience = SelectModifierExperience(state, action, reward, nextState, done)
+        selectModifierExperiences.offer(selectModifierExperience)
 
         // Prevent unbounded memory growth
-        if (experiences.size > maxBufferSize) {
+        if (selectModifierExperiences.size > maxBufferSize) {
             logger.warn("Experience buffer exceeded maximum size ($maxBufferSize), removing oldest experiences")
             val removeCount = kotlin.math.max(1, maxBufferSize / 10) // Remove at least 1, up to 10% of buffer
             repeat(removeCount) {
-                experiences.poll()
+                selectModifierExperiences.poll()
             }
         }
 
@@ -106,8 +108,8 @@ class ModifierDecisionLogger(
                     "timestamp" to timestamp,
                     "sessionId" to sessionId,
                     "experienceCount" to experienceList.size,
-                    "stateSize" to 8, // SmallModifierSelectState size
-                    "actionCount" to 3 // BuyShopItem, TakeFreeItem, Skip
+                    "stateSize" to 11, // SmallModifierSelectState size
+                    "actionCount" to 8 // All ModifierAction enum values: BUY_POTION, TAKE_FREE_POTION, SKIP, TAKE_SACRET_ASH, TAKE_FREE_REVIVE, BUY_REVIVE, TAKE_FREE_MAX_REVIVE, BUY_MAX_REVIVE
                 ),
                 "experiences" to serializedExperiences
             )
@@ -128,7 +130,7 @@ class ModifierDecisionLogger(
      * @param filePath Path to the JSON file containing experiences
      * @return List of loaded experiences, or empty list if loading failed
      */
-    fun loadExperiences(filePath: Path): List<Experience> {
+    fun loadExperiences(filePath: Path): List<SelectModifierExperience> {
         return try {
             if (!fileSystem.exists(filePath)) {
                 logger.warn("Experience file does not exist: $filePath")
@@ -139,9 +141,9 @@ class ModifierDecisionLogger(
             val jsonData = gson.fromJson(jsonText, Map::class.java) as Map<String, Any>
             val experienceData = jsonData["experiences"] as List<Map<String, Any>>
 
-            val experiences = experienceData.map { Experience.fromMap(it) }
-            logger.info("Loaded ${experiences.size} experiences from $filePath")
-            experiences
+            val selectModifierExperiences = experienceData.map { SelectModifierExperience.fromMap(it) }
+            logger.info("Loaded ${selectModifierExperiences.size} experiences from $filePath")
+            selectModifierExperiences
         } catch (e: Exception) {
             logger.error("Failed to load experiences from $filePath", e)
             emptyList()
@@ -153,8 +155,8 @@ class ModifierDecisionLogger(
      *
      * @return Immutable list of experiences in the buffer
      */
-    fun getExperienceBuffer(): List<Experience> {
-        return experiences.toList()
+    fun getExperienceBuffer(): List<SelectModifierExperience> {
+        return selectModifierExperiences.toList()
     }
 
     /**
@@ -163,8 +165,8 @@ class ModifierDecisionLogger(
      * @return Number of experiences that were cleared
      */
     fun clearBuffer(): Int {
-        val clearedCount = experiences.size
-        experiences.clear()
+        val clearedCount = selectModifierExperiences.size
+        selectModifierExperiences.clear()
         logger.info("Cleared $clearedCount experiences from buffer")
         return clearedCount
     }
@@ -175,12 +177,12 @@ class ModifierDecisionLogger(
      * @return Map containing buffer size, memory usage, and other metrics
      */
     fun getBufferStats(): Map<String, Any> {
-        val bufferSize = experiences.size
+        val bufferSize = selectModifierExperiences.size
         val avgReward = if (bufferSize > 0) {
-            experiences.map { it.reward }.average()
+            selectModifierExperiences.map { it.reward }.average()
         } else 0.0
 
-        val actionCounts = experiences.groupingBy { it.action }.eachCount()
+        val actionCounts = selectModifierExperiences.groupingBy { it.action }.eachCount()
 
         return mapOf(
             "bufferSize" to bufferSize,

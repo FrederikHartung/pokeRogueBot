@@ -1,4 +1,4 @@
-package com.sfh.pokeRogueBot.model.rl
+package com.sfh.pokeRogueBot.util
 
 import java.nio.file.Files
 import java.nio.file.Path

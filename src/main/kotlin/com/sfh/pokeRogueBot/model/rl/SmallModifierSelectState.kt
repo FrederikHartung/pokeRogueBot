@@ -14,9 +14,9 @@ import org.nd4j.linalg.factory.Nd4j
  * to reduce dimensionality while capturing essential survival and resource information.
  *
  * RL Design Rationale:
- * - Fixed-size state vector (8 elements) enables consistent neural network input
+ * - Fixed-size state vector (11 elements) enables consistent neural network input
  * - HP buckets (6 elements) represent discrete party health states for better learning
- * - Resource availability (2 elements) enables economic decision making
+ * - Resource availability (5 elements) enables economic decision making for healing and revival
  *
  * HP Bucket System:
  * Critical for RL: 1.0 bucket ONLY for exactly 100% HP to ensure healing decisions:
@@ -32,18 +32,30 @@ import org.nd4j.linalg.factory.Nd4j
  * - 0.9: Excellent (81-99% HP) - near full (99% HP still gets 0.9!)
  * - 1.0: Perfect (exactly 100% HP) - no healing needed
  *
+ * Revival System (Tri-State Variables):
+ * Encodes both availability and healing power in single variables:
+ * - 0.0: Not available
+ * - 0.5: Revive available (revives + 50% HP healing)
+ * - 1.0: Max Revive available (revives + 100% HP healing)
+ *
  * @param hpBuckets HP bucket values per Pokémon (0.0-1.0 in 0.1 increments, fixed array of 6 elements)
  * @param canAffordPotion Binary indicator (0.0/1.0) if player can afford healing items
  * @param freePotionAvailable Binary indicator (0.0/1.0) if free healing items are available
+ * @param canAffordRevive Tri-state indicator (0.0/0.5/1.0) for buyable revive items
+ * @param freeReviveAvailable Tri-state indicator (0.0/0.5/1.0) for free revive items
+ * @param sacredAshAvailable Binary indicator (0.0/1.0) if Sacred Ash is available (revives all fainted Pokémon)
  */
 data class SmallModifierSelectState(
     val hpBuckets: DoubleArray, // HP bucket values per Pokémon (0.0-1.0 in 0.1 increments, up to 6 Pokémon)
-    val canAffordPotion: Double,
-    val freePotionAvailable: Double
+    val canAffordPotion: Double, // Binary: 0.0/1.0 for potion affordability
+    val freePotionAvailable: Double, // Binary: 0.0/1.0 for free potion availability
+    val canAffordRevive: Double, // Tri-state: 0.0=none, 0.5=Revive, 1.0=Max Revive
+    val freeReviveAvailable: Double, // Tri-state: 0.0=none, 0.5=Revive, 1.0=Max Revive
+    val sacredAshAvailable: Double // Binary: 0.0/1.0 for Sacred Ash availability
 ) : Encodable {
 
     override fun toArray(): DoubleArray {
-        return hpBuckets + doubleArrayOf(canAffordPotion, freePotionAvailable)
+        return hpBuckets + doubleArrayOf(canAffordPotion, freePotionAvailable, canAffordRevive, freeReviveAvailable, sacredAshAvailable)
     }
 
     override fun getData(): INDArray {
@@ -101,32 +113,57 @@ data class SmallModifierSelectState(
             currentMoney: Int
         ): SmallModifierSelectState {
             val hpBuckets = createHpBuckets(pokemons)
-            val canAffordPotion = shopItems.any { item -> item.name == "Potion" && item.cost <= currentMoney }
-            val freePotionAvailable = freeItems.any { item -> item.name == "Potion" }
+            
+            // Potion availability (binary)
+            val canAffordPotion = shopItems.any { item -> item.name == HandledModifiers.POTION.modifierName && item.cost <= currentMoney }
+            val freePotionAvailable = freeItems.any { item -> item.name == HandledModifiers.POTION.modifierName }
+            
+            // Revive availability (tri-state: prioritize Max Revive over Revive)
+            val canAffordRevive = when {
+                shopItems.any { item -> item.name == HandledModifiers.MAX_REVIVE.modifierName && item.cost <= currentMoney } -> 1.0
+                shopItems.any { item -> item.name == HandledModifiers.REVIVE.modifierName && item.cost <= currentMoney } -> 0.5
+                else -> 0.0
+            }
+            
+            val freeReviveAvailable = when {
+                freeItems.any { item -> item.name == HandledModifiers.MAX_REVIVE.modifierName } -> 1.0
+                freeItems.any { item -> item.name == HandledModifiers.REVIVE.modifierName } -> 0.5
+                else -> 0.0
+            }
+            
+            // Sacred Ash availability (binary, rare item only appears as free)
+            val sacredAshAvailable = freeItems.any { item -> item.name == HandledModifiers.SACRET_ASH.modifierName }
+            
             return SmallModifierSelectState(
                 hpBuckets,
                 canAffordPotion = if (canAffordPotion) 1.0 else 0.0,
-                freePotionAvailable = if (freePotionAvailable) 1.0 else 0.0
+                freePotionAvailable = if (freePotionAvailable) 1.0 else 0.0,
+                canAffordRevive = canAffordRevive,
+                freeReviveAvailable = freeReviveAvailable,
+                sacredAshAvailable = if (sacredAshAvailable) 1.0 else 0.0
             )
         }
 
         /**
          * Creates a SmallModifierSelectState instance from a serialized array.
          *
-         * @param array DoubleArray containing state data [6 HP bucket values, canAffordPotion, freePotionAvailable]
+         * @param array DoubleArray containing state data [6 HP bucket values, canAffordPotion, freePotionAvailable, canAffordRevive, freeReviveAvailable, sacredAshAvailable]
          * @return SmallModifierSelectState instance
-         * @throws IllegalArgumentException if array doesn't have exactly 8 elements
+         * @throws IllegalArgumentException if array doesn't have exactly 11 elements
          */
         fun fromArray(array: DoubleArray): SmallModifierSelectState {
-            if (array.size != 8) {
-                throw IllegalArgumentException("Array must have exactly 8 elements, got ${array.size}")
+            if (array.size != 11) {
+                throw IllegalArgumentException("Array must have exactly 11 elements, got ${array.size}")
             }
 
             val hpBuckets = array.sliceArray(0..5)
             val canAffordPotion = array[6]
             val freePotionAvailable = array[7]
+            val canAffordRevive = array[8]
+            val freeReviveAvailable = array[9]
+            val sacredAshAvailable = array[10]
 
-            return SmallModifierSelectState(hpBuckets, canAffordPotion, freePotionAvailable)
+            return SmallModifierSelectState(hpBuckets, canAffordPotion, freePotionAvailable, canAffordRevive, freeReviveAvailable, sacredAshAvailable)
         }
     }
 }

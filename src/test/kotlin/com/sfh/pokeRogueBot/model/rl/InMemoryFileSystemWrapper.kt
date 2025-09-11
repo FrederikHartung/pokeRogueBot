@@ -1,5 +1,6 @@
 package com.sfh.pokeRogueBot.model.rl
 
+import com.sfh.pokeRogueBot.util.FileSystemWrapper
 import java.nio.file.Path
 import java.nio.file.Paths
 

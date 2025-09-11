@@ -1,5 +1,6 @@
 package com.sfh.pokeRogueBot.model.rl
 
+import com.sfh.pokeRogueBot.TestUtils
 import com.sfh.pokeRogueBot.model.browser.pokemonjson.Stats
 import com.sfh.pokeRogueBot.model.enums.Gender
 import com.sfh.pokeRogueBot.model.enums.ModifierTier
@@ -120,13 +121,20 @@ class SmallModifierSelectStateTest {
     fun `toArray should return correct size and values`() {
         // Arrange
         val hpBuckets = doubleArrayOf(1.0, 0.8, 0.6, 0.4, 0.2, 0.0)
-        val state = SmallModifierSelectState(hpBuckets, 1.0, 0.0)
+        val state = TestUtils.createSmallModifierSelectStateWithHurtPokemon(
+            hpBuckets = hpBuckets,
+            canAffordPotion =  1.0,
+            freePotionAvailable =  0.0,
+            canAffordRevive = 0.5,
+            freeReviveAvailable = 1.0,
+            sacredAshAvailable = 0.0
+        )
 
         // Act
         val result = state.toArray()
 
         // Assert
-        assertEquals(8, result.size)
+        assertEquals(11, result.size)
         assertEquals(1.0, result[0], 0.001)
         assertEquals(0.8, result[1], 0.001)
         assertEquals(0.6, result[2], 0.001)
@@ -135,12 +143,15 @@ class SmallModifierSelectStateTest {
         assertEquals(0.0, result[5], 0.001)
         assertEquals(1.0, result[6], 0.001) // canAffordPotion
         assertEquals(0.0, result[7], 0.001) // freePotionAvailable
+        assertEquals(0.5, result[8], 0.001) // canAffordRevive
+        assertEquals(1.0, result[9], 0.001) // freeReviveAvailable
+        assertEquals(0.0, result[10], 0.001) // sacredAshAvailable
     }
 
     @Test
     fun `fromArray should recreate SmallModifierSelectState correctly`() {
         // Arrange
-        val originalArray = doubleArrayOf(1.0, 0.8, 0.6, 0.4, 0.2, 0.0, 1.0, 0.0)
+        val originalArray = doubleArrayOf(1.0, 0.8, 0.6, 0.4, 0.2, 0.0, 1.0, 0.0, 0.5, 1.0, 0.0)
 
         // Act
         val result = SmallModifierSelectState.fromArray(originalArray)
@@ -154,18 +165,21 @@ class SmallModifierSelectStateTest {
         assertEquals(0.0, result.hpBuckets[5], 0.001)
         assertEquals(1.0, result.canAffordPotion, 0.001)
         assertEquals(0.0, result.freePotionAvailable, 0.001)
+        assertEquals(0.5, result.canAffordRevive, 0.001)
+        assertEquals(1.0, result.freeReviveAvailable, 0.001)
+        assertEquals(0.0, result.sacredAshAvailable, 0.001)
     }
 
     @Test
     fun `fromArray should throw exception for invalid array size`() {
         // Arrange
-        val invalidArray = doubleArrayOf(1.0, 0.8, 0.6) // Only 3 elements instead of 8
+        val invalidArray = doubleArrayOf(1.0, 0.8, 0.6) // Only 3 elements instead of 11
 
         // Act & Assert
         val exception = assertThrows(IllegalArgumentException::class.java) {
             SmallModifierSelectState.fromArray(invalidArray)
         }
-        assertTrue(exception.message?.contains("exactly 8 elements") == true)
+        assertTrue(exception.message?.contains("exactly 11 elements") == true)
     }
 
     @Test
@@ -173,6 +187,9 @@ class SmallModifierSelectStateTest {
         // Arrange
         val original = SmallModifierSelectState(
             doubleArrayOf(1.0, 0.75, 0.5, 0.25, 0.0, 0.9),
+            1.0,
+            0.0,
+            1.0,
             1.0,
             0.0
         )
@@ -185,33 +202,28 @@ class SmallModifierSelectStateTest {
         assertArrayEquals(original.hpBuckets, recreated.hpBuckets, 0.001)
         assertEquals(original.canAffordPotion, recreated.canAffordPotion, 0.001)
         assertEquals(original.freePotionAvailable, recreated.freePotionAvailable, 0.001)
+        assertEquals(original.freeReviveAvailable, recreated.freeReviveAvailable, 0.001)
+        assertEquals(original.canAffordRevive, recreated.canAffordRevive, 0.001)
+        assertEquals(original.sacredAshAvailable, recreated.sacredAshAvailable, 0.001)
     }
 
     @Test
     fun `getData should return valid INDArray`() {
         // Arrange
-        val state = SmallModifierSelectState(
-            doubleArrayOf(1.0, 0.8, 0.6, 0.4, 0.2, 0.0),
-            1.0,
-            0.0
-        )
+        val state = TestUtils.createSmallModifierSelectStateWithHurtPokemon()
 
         // Act
         val result = state.data
 
         // Assert
         assertNotNull(result)
-        assertEquals(8, result.length())
+        assertEquals(11, result.length())
     }
 
     @Test
     fun `isSkipped should always return false`() {
         // Arrange
-        val state = SmallModifierSelectState(
-            doubleArrayOf(1.0, 0.8, 0.6, 0.4, 0.2, 0.0),
-            1.0,
-            0.0
-        )
+        val state = TestUtils.createSmallModifierSelectStateWithHurtPokemon()
 
         // Act & Assert
         assertFalse(state.isSkipped)
@@ -223,7 +235,10 @@ class SmallModifierSelectStateTest {
         val original = SmallModifierSelectState(
             doubleArrayOf(1.0, 0.8, 0.6, 0.4, 0.2, 0.0),
             1.0,
-            0.0
+            0.0,
+            1.0,
+            1.0,
+            1.0
         )
 
         // Act
@@ -233,6 +248,9 @@ class SmallModifierSelectStateTest {
         assertArrayEquals(original.hpBuckets, duplicate.hpBuckets, 0.001)
         assertEquals(original.canAffordPotion, duplicate.canAffordPotion, 0.001)
         assertEquals(original.freePotionAvailable, duplicate.freePotionAvailable, 0.001)
+        assertEquals(original.freeReviveAvailable, duplicate.freeReviveAvailable, 0.001)
+        assertEquals(original.canAffordRevive, duplicate.canAffordRevive, 0.001)
+        assertEquals(original.sacredAshAvailable, duplicate.sacredAshAvailable, 0.001)
     }
 
     // Helper functions for creating test objects

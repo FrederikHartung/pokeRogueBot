@@ -19,7 +19,7 @@ package com.sfh.pokeRogueBot.model.rl
  * @param done Whether this experience represents a terminal state
  * @param timestamp When this experience occurred (for debugging and analysis)
  */
-data class Experience(
+data class SelectModifierExperience(
     val state: SmallModifierSelectState,
     val action: ModifierAction,
     val reward: Double,
@@ -50,7 +50,7 @@ data class Experience(
          * @param map The serialized experience data
          * @return Experience instance reconstructed from the map
          */
-        fun fromMap(map: Map<String, Any?>): Experience {
+        fun fromMap(map: Map<String, Any?>): SelectModifierExperience {
             // Handle numeric types that Gson might deserialize as different types
             val stateList = map["state"] as List<*>
             val stateArray = stateList.map {
@@ -89,7 +89,7 @@ data class Experience(
                 else -> timestampValue as Long
             }
 
-            return Experience(state, action, reward, nextState, done, timestamp)
+            return SelectModifierExperience(state, action, reward, nextState, done, timestamp)
         }
     }
 }

@@ -28,11 +28,13 @@ class LongTermMemory(
     @Value("\${app.long-term-memory.remember-ui-validated-phases}") private val rememberUiValidatedPhases: Boolean,
 ) : DisposableBean {
 
-    private val log = LoggerFactory.getLogger(LongTermMemory::class.java)
-    private val gson: Gson = GsonBuilder()
-        .registerTypeAdapter(ChooseModifierItem::class.java, ChooseModifierItemDeserializer())
-        .setPrettyPrinting()
-        .create()
+    companion object{
+        private val log = LoggerFactory.getLogger(LongTermMemory::class.java)
+        private val gson: Gson = GsonBuilder()
+            .registerTypeAdapter(ChooseModifierItem::class.java, ChooseModifierItemDeserializer())
+            .setPrettyPrinting()
+            .create()
+    }
 
     //used to store all encountered modifier items with their Group, Name and more Data
     val itemsPath: Path = Paths.get(".", "data", "modifierItems.json")

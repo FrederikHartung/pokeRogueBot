@@ -1,7 +1,6 @@
 package com.sfh.pokeRogueBot.model.rl
 
 import org.slf4j.LoggerFactory
-import org.springframework.stereotype.Component
 
 /**
  * Calculates reward signals for reinforcement learning based on modifier selection outcomes.
@@ -16,12 +15,9 @@ import org.springframework.stereotype.Component
  * - Penalties for wasteful spending and team wipes
  * - Bonus rewards for resolving critical situations (low HP, fainted Pokemon)
  */
-@Component
-class ModifierRewardCalculator {
+object ModifierRewardCalculator {
 
-    companion object{
-        private val log = LoggerFactory.getLogger(ModifierRewardCalculator::class.java)
-    }
+    private val log = LoggerFactory.getLogger(ModifierRewardCalculator::class.java)
 
     /**
      * Calculates the reward for a modifier selection decision.
@@ -38,30 +34,30 @@ class ModifierRewardCalculator {
 
         // Action-specific rewards
         val lowestHp = prevState.hpBuckets.filter { hp -> hp > 0 }.minOrNull() ?: 1.0
+        val faintedPokemonAvailable = prevState.hpBuckets.any { hp -> hp == 0.0 }
         when (action) {
-            ModifierAction.BUY_POTION -> {
-                // Shop item purchase rewards
-                if (lowestHp <= 0.8) {
-                    reward += 2.0 // Good economic decision
-                }
-            }
-
-            ModifierAction.TAKE_FREE_POTION -> {
-                // Free item selection rewards
-                reward += 1.0 // Excellent - free healing
-            }
-
             ModifierAction.SKIP -> {
                 //Penalty when a Pokemon was hurt and no FreePotion was taken
                 if (lowestHp < 1 && prevState.freePotionAvailable > 0.0) {
                     reward -= 2.0 // Should take free Potion
                 }
 
-                //Penalty when a Pokemon was lower than 0.8 Health when a Potion was buyable
-                if (lowestHp < 0.8 && prevState.canAffordPotion > 0.0) {
-                    reward -= 2.0 // Should buy Potion
+                //Penalty when a Pokemon is fainted and a free revive Item was offered
+                if(faintedPokemonAvailable && prevState.freeReviveAvailable == 0.5){
+                    reward -= 5.0 // Should take free Revive
+                }
+
+                //Penalty when a Pokemon is fainted and a free max revive Item was offered
+                if(faintedPokemonAvailable && prevState.freeReviveAvailable > 0.5){
+                    reward -= 10.0 // Should take free Max Revive
+                }
+
+                //Penalty when a Pokemon is fainted and a free Sacret Ash was offered
+                if(faintedPokemonAvailable && prevState.sacredAshAvailable > 0.0){
+                    reward -= 15.0 // Should take free Sacret Ash
                 }
             }
+            else -> reward += 0.0 //no Penalty/Reward
         }
 
         log.debug("immediate reward: {}", reward)

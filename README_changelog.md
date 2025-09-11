@@ -1,5 +1,12 @@
 #Changelog
 
+## 4.1
+### Features:
+- Added Reset of chosen Starter Pokemon to non Pokerus and IVS with Value 10
+- Added Handling for Revive, Max Revive and Sacret Ash Items
+### Technical Changes:
+- 
+
 ## 4.0
 ### Features:
 - Added ModifierDQNAgent to choose best Items in SelectModifierPhase

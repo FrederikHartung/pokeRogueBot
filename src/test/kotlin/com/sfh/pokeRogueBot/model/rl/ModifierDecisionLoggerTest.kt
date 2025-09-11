@@ -149,7 +149,7 @@ class ModifierDecisionLoggerTest {
         val result = logger.loadExperiences(nonexistentPath)
 
         // Assert
-        assertEquals(emptyList<Experience>(), result)
+        assertEquals(emptyList<SelectModifierExperience>(), result)
     }
 
     @Test
@@ -222,7 +222,10 @@ class ModifierDecisionLoggerTest {
         return SmallModifierSelectState(
             hpBuckets = doubleArrayOf(1.0, 0.8, 0.6, 0.4, 0.2, 0.0), // Using HP buckets now
             canAffordPotion = 1.0,
-            freePotionAvailable = 0.0
+            freePotionAvailable = 0.0,
+            canAffordRevive = 0.0,
+            freeReviveAvailable = 0.0,
+            sacredAshAvailable = 0.0
         )
     }
 }

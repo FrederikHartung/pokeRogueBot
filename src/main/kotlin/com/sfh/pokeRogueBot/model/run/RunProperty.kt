@@ -17,4 +17,5 @@ class RunProperty(val runNumber: Int) {
     var waveIndex: Int = 0
     val teamSnapshot: MutableList<PokemonBenchmarkMetric> = mutableListOf()
     var money: Int = 0
+    var newRunStarted: Boolean = false
 }

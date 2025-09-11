@@ -242,11 +242,14 @@ class SmallModifierSelectStateHpBucketTest {
         val state = SmallModifierSelectState(
             hpBuckets = originalBuckets,
             canAffordPotion = 1.0,
-            freePotionAvailable = 0.0
+            freePotionAvailable = 0.0,
+            canAffordRevive = 0.0,
+            freeReviveAvailable = 0.0,
+            sacredAshAvailable = 0.0
         )
 
         val array = state.toArray()
-        assertEquals(8, array.size, "Array should have 8 elements")
+        assertEquals(11, array.size, "Array should have 11 elements")
 
         // Verify bucket values are preserved
         repeat(6) { index ->
@@ -254,6 +257,9 @@ class SmallModifierSelectStateHpBucketTest {
         }
         assertEquals(1.0, array[6], "canAffordPotion should be preserved")
         assertEquals(0.0, array[7], "freePotionAvailable should be preserved")
+        assertEquals(0.0, array[8], "canAffordRevive should be preserved")
+        assertEquals(0.0, array[9], "freeReviveAvailable should be preserved")
+        assertEquals(0.0, array[10], "sacredAshAvailable should be preserved")
 
         // Test round-trip serialization
         val reconstructed = SmallModifierSelectState.fromArray(array)

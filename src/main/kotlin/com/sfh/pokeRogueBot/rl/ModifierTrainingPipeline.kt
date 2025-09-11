@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.rl
 
-import com.sfh.pokeRogueBot.model.rl.Experience
+import com.sfh.pokeRogueBot.model.rl.SelectModifierExperience
 import com.sfh.pokeRogueBot.model.rl.ModifierDecisionLogger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -23,8 +23,8 @@ class ModifierTrainingPipeline(
 
     companion object {
         private val log = LoggerFactory.getLogger(ModifierTrainingPipeline::class.java)
-        private const val TRAINING_DATA_DIR = "training_data"
-        private const val MODELS_DIR = "models"
+        private const val TRAINING_DATA_DIR = "data/training_data"
+        private const val MODELS_DIR = "data/models"
         private const val MIN_EXPERIENCES_FOR_TRAINING = 100
     }
 
@@ -155,13 +155,13 @@ class ModifierTrainingPipeline(
      * Evaluates a DQN agent on a set of validation experiences.
      * Returns average reward achieved by the agent's predictions.
      */
-    private fun evaluateAgent(agent: ModifierDQNAgent, validationExperiences: List<Experience>): Double {
-        if (validationExperiences.isEmpty()) return 0.0
+    private fun evaluateAgent(agent: ModifierDQNAgent, validationSelectModifierExperiences: List<SelectModifierExperience>): Double {
+        if (validationSelectModifierExperiences.isEmpty()) return 0.0
 
         var totalReward = 0.0
         var correctPredictions = 0
 
-        validationExperiences.forEach { experience ->
+        validationSelectModifierExperiences.forEach { experience ->
             // Get agent's predicted action
             val availableActions = listOf(experience.action) // Simplification for evaluation
             val predictedAction = agent.selectAction(experience.state, availableActions, training = false)
@@ -173,8 +173,8 @@ class ModifierTrainingPipeline(
             }
         }
 
-        val accuracy = correctPredictions.toDouble() / validationExperiences.size
-        val avgReward = totalReward / validationExperiences.size
+        val accuracy = correctPredictions.toDouble() / validationSelectModifierExperiences.size
+        val avgReward = totalReward / validationSelectModifierExperiences.size
 
         log.debug(
             "Evaluation: {}% accuracy, avg reward: {:.4f}",
@@ -187,19 +187,19 @@ class ModifierTrainingPipeline(
     /**
      * Loads all training experiences from saved files.
      */
-    private fun loadAllTrainingExperiences(): List<Experience> {
+    private fun loadAllTrainingExperiences(): List<SelectModifierExperience> {
         val trainingDir = File(TRAINING_DATA_DIR)
         if (!trainingDir.exists()) {
             log.warn("Training data directory does not exist: {}", TRAINING_DATA_DIR)
             return emptyList()
         }
 
-        val allExperiences = mutableListOf<Experience>()
+        val allSelectModifierExperiences = mutableListOf<SelectModifierExperience>()
 
         trainingDir.listFiles { file -> file.name.endsWith(".json") }?.forEach { file ->
             try {
                 val experiences = decisionLogger.loadExperiences(file.toPath())
-                allExperiences.addAll(experiences)
+                allSelectModifierExperiences.addAll(experiences)
                 log.debug("Loaded {} experiences from {}", experiences.size, file.name)
             } catch (e: Exception) {
                 log.warn("Failed to load experiences from {}: {}", file.name, e.message)
@@ -208,10 +208,10 @@ class ModifierTrainingPipeline(
 
         log.info(
             "Loaded total {} experiences from {} files",
-            allExperiences.size, trainingDir.listFiles()?.size ?: 0
+            allSelectModifierExperiences.size, trainingDir.listFiles()?.size ?: 0
         )
 
-        return allExperiences
+        return allSelectModifierExperiences
     }
 
     /**
@@ -250,9 +250,9 @@ class ModifierTrainingPipeline(
      */
     fun performABTesting(
         dqnModelPath: String,
-        testExperiences: List<Experience>
+        testSelectModifierExperiences: List<SelectModifierExperience>
     ): ABTestResults {
-        if (testExperiences.isEmpty()) {
+        if (testSelectModifierExperiences.isEmpty()) {
             return ABTestResults(
                 dqnScore = 0.0,
                 ruleBasedScore = 0.0,
@@ -274,7 +274,7 @@ class ModifierTrainingPipeline(
         var ruleBasedTotalReward = 0.0
         var dqnWins = 0
 
-        testExperiences.forEach { experience ->
+        testSelectModifierExperiences.forEach { experience ->
             // DQN prediction
             val availableActions = listOf(experience.action) // Simplified for testing
             val dqnAction = dqnAgent.selectAction(experience.state, availableActions, training = false)
@@ -290,16 +290,16 @@ class ModifierTrainingPipeline(
             if (dqnReward > ruleBasedReward) dqnWins++
         }
 
-        val dqnScore = dqnTotalReward / testExperiences.size
-        val ruleBasedScore = ruleBasedTotalReward / testExperiences.size
-        val winRate = dqnWins.toDouble() / testExperiences.size
+        val dqnScore = dqnTotalReward / testSelectModifierExperiences.size
+        val ruleBasedScore = ruleBasedTotalReward / testSelectModifierExperiences.size
+        val winRate = dqnWins.toDouble() / testSelectModifierExperiences.size
 
         log.info(
             "A/B Test Results - DQN: {:.4f}, Rule-based: {:.4f}, DQN Win Rate: {:.2f}%",
             dqnScore, ruleBasedScore, winRate * 100
         )
 
-        return ABTestResults(dqnScore, ruleBasedScore, winRate, testExperiences.size)
+        return ABTestResults(dqnScore, ruleBasedScore, winRate, testSelectModifierExperiences.size)
     }
 
     /**
