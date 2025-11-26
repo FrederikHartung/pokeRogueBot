@@ -74,7 +74,7 @@ class WaveRunner(
         } catch (e: Exception) {
             when (e) {
                 is JavascriptException -> {
-                    //logging of the exception happends in the ChromeBrowserClient
+                    //logging of the exception happends in the ChromeBrowserService
                     System.exit(1)
                 }
 

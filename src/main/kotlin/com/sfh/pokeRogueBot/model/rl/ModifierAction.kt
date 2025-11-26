@@ -1,9 +1,11 @@
 package com.sfh.pokeRogueBot.model.rl
 
+import com.sfh.pokeRogueBot.rl.base.SerializableAction
+
 /**
  * Represents all possible actions in the modifier selection phase.
  */
-enum class ModifierAction(val actionId: Int) {
+enum class ModifierAction(override val actionId: Int) : SerializableAction {
 
     // Shop actions (don't end phase)
     BUY_POTION(0),

@@ -31,7 +31,7 @@ class Brain(
     private val combatNeuron: CombatNeuron,
     private val capturePokemonNeuron: CapturePokemonNeuron,
     private val learnMoveNeuron: LearnMoveNeuron,
-    private val modifierRLNeuron: ModifierRLNeuron,
+    private val modifierRLNeuron: ModifierRLNeuronRefactored,
 ) {
 
     companion object {
@@ -63,6 +63,7 @@ class Brain(
             runProperty!!.newRunStarted = true
         }
         waveDto = jsService.getWaveDto()
+
         return CommandPhaseDecision.ATTACK
     }
 

@@ -37,8 +37,8 @@ class SimpleBot(
     companion object {
         private val log = LoggerFactory.getLogger(SimpleBot::class.java)
         val name = "SimpleBot"
-        val botVersion = "4.0"
-        val benchmarkLabel = "RL Training 3 after first learn"
+        val botVersion = "5.0"
+        val benchmarkLabel = "4: Support for Revive, Max Revive and Sacret Ash"
     }
 
     private var runNumber = 1

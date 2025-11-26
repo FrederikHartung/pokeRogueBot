@@ -27,7 +27,7 @@ class BrainTest {
     JsUiService jsUiService;
     ShortTermMemory shortTermMemory;
     LongTermMemory longTermMemory;
-    ModifierRLNeuron modifierRLNeuron;
+    ModifierRLNeuronRefactored modifierRLNeuron;
     CombatNeuron combatNeuron;
     SwitchPokemonNeuron switchPokemonNeuron;
     CapturePokemonNeuron capturePokemonNeuron;
@@ -48,7 +48,7 @@ class BrainTest {
         phase = new SelectGenderPhase("Male", jsUiService);
         shortTermMemory = mock(ShortTermMemory.class);
         longTermMemory = mock(LongTermMemory.class);
-        modifierRLNeuron = mock(ModifierRLNeuron.class);
+        modifierRLNeuron = mock(ModifierRLNeuronRefactored.class);
         combatNeuron = mock(CombatNeuron.class);
         switchPokemonNeuron = mock(SwitchPokemonNeuron.class);
         screenshotClient = mock(ScreenshotClient.class);

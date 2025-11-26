@@ -2,6 +2,7 @@ package com.sfh.pokeRogueBot.model.rl
 
 import com.sfh.pokeRogueBot.model.modifier.ChooseModifierItem
 import com.sfh.pokeRogueBot.model.poke.Pokemon
+import com.sfh.pokeRogueBot.rl.base.SerializableState
 import org.deeplearning4j.rl4j.space.Encodable
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
@@ -52,7 +53,7 @@ data class SmallModifierSelectState(
     val canAffordRevive: Double, // Tri-state: 0.0=none, 0.5=Revive, 1.0=Max Revive
     val freeReviveAvailable: Double, // Tri-state: 0.0=none, 0.5=Revive, 1.0=Max Revive
     val sacredAshAvailable: Double // Binary: 0.0/1.0 for Sacred Ash availability
-) : Encodable {
+) : Encodable, SerializableState {
 
     override fun toArray(): DoubleArray {
         return hpBuckets + doubleArrayOf(canAffordPotion, freePotionAvailable, canAffordRevive, freeReviveAvailable, sacredAshAvailable)
@@ -68,6 +69,12 @@ data class SmallModifierSelectState(
 
     override fun dup(): Encodable {
         return this.copy()
+    }
+
+    override fun toMap(): Map<String, Any?> {
+        return mapOf(
+            "state" to toArray().toList()
+        )
     }
 
     companion object {

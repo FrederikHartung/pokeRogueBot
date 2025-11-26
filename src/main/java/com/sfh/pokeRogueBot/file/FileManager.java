@@ -43,7 +43,7 @@ public class FileManager {
                 try {
                     Files.deleteIfExists(file.toPath());
                 } catch (Exception e) {
-                    log.error("Could not delete file: " + file.getName());
+                    log.error("Could not delete file: {}", file.getName());
                 }
             }
         }
@@ -58,9 +58,9 @@ public class FileManager {
             }
             ImageIO.write(bufferedImage, IMAGE_IO_FILE_EXTENSION, new File(filePath));
             fileIndex++;
-            log.info("Temp Screenshot persisted: " + filePath);
+            log.info("Temp Screenshot persisted: {}", filePath);
         } catch (Exception e) {
-            log.error("Error while saving temp screenshot to: " + filePath + ", error: " + e.getMessage());
+            log.error("Error while saving temp screenshot to: {}, error: {}", filePath, e.getMessage());
         }
     }
 
@@ -73,9 +73,9 @@ public class FileManager {
             }
             ImageIO.write(bufferedImage, IMAGE_IO_FILE_EXTENSION, new File(filePath));
             fileIndex++;
-            log.info("Screenshot persisted: " + filePath);
+            log.info("Screenshot persisted: {}", filePath);
         } catch (Exception e) {
-            log.error("Error while saving screenshot to: " + filePath + ", error: " + e.getMessage());
+            log.error("Error while saving screenshot to: {}, error: {}", filePath, e.getMessage());
         }
     }
 
@@ -144,7 +144,7 @@ public class FileManager {
             //append the message to the file
             Files.writeString(FILE_HATCHED_POKEMON, message + System.lineSeparator(), java.nio.file.StandardOpenOption.APPEND);
         } catch (Exception e) {
-            log.error("Error while saving hatched pokemon, error: " + e.getMessage());
+            log.error("Error while saving hatched pokemon, error: {}", e.getMessage());
         }
     }
 
@@ -159,7 +159,7 @@ public class FileManager {
             try {
                 Files.createDirectories(itemsPath.getParent());
             } catch (Exception e) {
-                log.error("Could not create directory: " + itemsPath.getParent());
+                log.error("Could not create directory: {}", itemsPath.getParent());
                 return null;
             }
         }
@@ -169,7 +169,7 @@ public class FileManager {
             try {
                 Files.createFile(itemsPath);
             } catch (Exception e) {
-                log.error("Could not create file: " + itemsPath);
+                log.error("Could not create file: {}", itemsPath);
                 return null;
             }
         }
@@ -178,7 +178,7 @@ public class FileManager {
         try {
             return Files.readString(itemsPath);
         } catch (Exception e) {
-            log.error("Could not read file: " + itemsPath);
+            log.error("Could not read file: {}", itemsPath);
             return null;
         }
     }
@@ -189,7 +189,7 @@ public class FileManager {
             try {
                 Files.createDirectories(itemsPath.getParent());
             } catch (Exception e) {
-                log.error("Could not create directory: " + itemsPath.getParent());
+                log.error("Could not create directory: {}", itemsPath.getParent());
                 return;
             }
         }
@@ -199,7 +199,7 @@ public class FileManager {
             try {
                 Files.createFile(itemsPath);
             } catch (Exception e) {
-                log.error("Could not create file: " + itemsPath);
+                log.error("Could not create file: {}", itemsPath);
                 return;
             }
         }
@@ -208,7 +208,7 @@ public class FileManager {
         try {
             Files.writeString(itemsPath, json);
         } catch (Exception e) {
-            log.error("Could not write file: " + itemsPath);
+            log.error("Could not write file: {}", itemsPath);
         }
     }
 }

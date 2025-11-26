@@ -1,8 +1,8 @@
 package com.sfh.pokeRogueBot.phase
 
+import com.sfh.pokeRogueBot.browser.ImageService
 import com.sfh.pokeRogueBot.file.FileManager
 import com.sfh.pokeRogueBot.model.enums.UiMode
-import com.sfh.pokeRogueBot.service.ImageService
 import com.sfh.pokeRogueBot.service.WaitingService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -30,7 +30,7 @@ class PhaseProcessor(
 
     override fun takeTempScreenshot(prefix: String) {
         try {
-            fileManager.saveTempImage(imageService.takeScreenshot(prefix), prefix)
+            fileManager.saveTempImage(imageService.takeScreenshot(), prefix)
         } catch (e: Exception) {
             logger.error("error while taking temp screenshot: ${e.message}")
         }
@@ -38,7 +38,7 @@ class PhaseProcessor(
 
     override fun persistScreenshot(prefix: String) {
         try {
-            fileManager.persistImage(imageService.takeScreenshot(prefix), prefix)
+            fileManager.persistImage(imageService.takeScreenshot(), prefix)
         } catch (e: Exception) {
             logger.error("error while saving screenshot: ${e.message}")
         }

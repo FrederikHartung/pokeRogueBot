@@ -32,6 +32,9 @@ class ModifierRLNeuron(
     @Value("\${rl.modifier-selection.model-path:data/models/modifier-dqn-best.zip}")
     private val modelPath: String,
 
+    @Value("\${rl.modifier-selection.load-model}")
+    private val loadModel: Boolean,
+
     @Value("\${rl.modifier-selection.training-mode:false}")
     private val trainingMode: Boolean
 ) {
@@ -54,17 +57,23 @@ class ModifierRLNeuron(
             replayBufferSize = 10000
         )
 
-        // Try to load existing model
-        if (File(modelPath).exists()) {
-            try {
-                agent.loadModel(modelPath)
-                log.info("Loaded existing DQN model from {}", modelPath)
-            } catch (e: Exception) {
-                log.warn("Failed to load DQN model from {}, using fresh model: {}", modelPath, e.message)
+        if(loadModel){
+            // Try to load existing model
+            if (File(modelPath).exists()) {
+                try {
+                    agent.loadModel(modelPath)
+                    log.info("Loaded existing DQN model from {}", modelPath)
+                } catch (e: Exception) {
+                    log.warn("Failed to load DQN model from {}, using fresh model: {}", modelPath, e.message)
+                }
+            } else {
+                log.info("No existing DQN model found at {}, starting with fresh model", modelPath)
             }
-        } else {
-            log.info("No existing DQN model found at {}, starting with fresh model", modelPath)
         }
+        else{
+            log.info("load model is set to false, starting with fresh model")
+        }
+
 
         agent
     }

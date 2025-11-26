@@ -69,7 +69,11 @@ rl:
     # The agent will load this model for making decisions
     # If file doesn't exist, a new model will be initialized for training
     model-path: "data/models/modifier-dqn-best.zip"
-    
+
+    # True, if a Model should be loaded
+    # False, when a new Model should be created
+    load-model: true
+
     # Training mode toggle
     # When true: Agent explores more, collects training data, and learns from experiences
     # When false: Agent uses pure exploitation for optimal gameplay performance

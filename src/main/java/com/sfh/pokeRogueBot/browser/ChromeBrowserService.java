@@ -18,7 +18,7 @@ import java.nio.file.Path;
 
 @Slf4j
 @Component
-public class ChromeBrowserClient implements DisposableBean, BrowserClient, ImageClient, JsClient {
+public class ChromeBrowserService implements DisposableBean, BrowserClient, ImageService, JsClient {
 
     private final boolean closeOnExit;
     private final int waitTimeForRenderAfterNavigation;
@@ -31,10 +31,10 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
     private WebDriver driver;
 
 
-    public ChromeBrowserClient(@Value("${browser.closeOnExit:false}") boolean closeOnExit,
-                               @Value("${browser.waitTimeForRenderAfterNavigation:5000}") int waitTimeForRenderAfterNavigation,
-                               @Value("${browser.pathChromeUserDir}") String pathChromeUserDir,
-                               @Value("${browser.chromeProfile}") String chromeProfile
+    public ChromeBrowserService(@Value("${browser.closeOnExit:false}") boolean closeOnExit,
+                                @Value("${browser.waitTimeForRenderAfterNavigation:5000}") int waitTimeForRenderAfterNavigation,
+                                @Value("${browser.pathChromeUserDir}") String pathChromeUserDir,
+                                @Value("${browser.chromeProfile}") String chromeProfile
     ) {
         this.closeOnExit = closeOnExit;
         this.waitTimeForRenderAfterNavigation = waitTimeForRenderAfterNavigation;
@@ -105,7 +105,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
     }
 
     @Override
-    public BufferedImage takeScreenshotFromCanvas() throws IOException {
+    public BufferedImage takeScreenshot() throws IOException {
         // find the canvas element
         WebElement canvasElement = getCanvas();
 
@@ -141,10 +141,10 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
             JavascriptExecutor js = (JavascriptExecutor) driver;
             return js.executeScript(jsCommand);
         } catch (NoSuchWindowException e) {
-            log.error("browser window not found, error: " + e.getMessage());
+            log.error("browser window not found, error: {}", e.getMessage());
             throw e;
         } catch (UnreachableBrowserException e) {
-            log.error("browser unreachable, error: " + e.getMessage());
+            log.error("browser unreachable, error: {}", e.getMessage());
             throw e;
         } catch (JavascriptException e) {
             String message = e.getMessage();
@@ -160,7 +160,7 @@ public class ChromeBrowserClient implements DisposableBean, BrowserClient, Image
             }
             throw e;
         } catch (Exception e) {
-            log.error("Error while executing JS command: " + jsCommand + ", error: " + e.getMessage());
+            log.error("Error while executing JS command: {}, error: {}", jsCommand, e.getMessage());
             return null;
         }
     }
