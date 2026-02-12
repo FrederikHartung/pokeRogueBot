@@ -1,33 +1,30 @@
 package com.sfh.pokeRogueBot.neurons
 
 import com.sfh.pokeRogueBot.model.dto.WaveDto
-import com.sfh.pokeRogueBot.model.modifier.ModifierActionMapper
 import com.sfh.pokeRogueBot.model.modifier.ModifierActionMapper.convertActionToResult
 import com.sfh.pokeRogueBot.model.modifier.ModifierShop
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult
-import com.sfh.pokeRogueBot.model.poke.Pokemon
 import com.sfh.pokeRogueBot.model.rl.HandledModifiers
 import com.sfh.pokeRogueBot.model.rl.ModifierAction
-import com.sfh.pokeRogueBot.model.rl.ModifierDecisionLogger
-import com.sfh.pokeRogueBot.model.rl.ModifierEpisodeManager
-import com.sfh.pokeRogueBot.model.rl.ModifierRLStep
 import com.sfh.pokeRogueBot.model.rl.ModifierRewardCalculator
+import com.sfh.pokeRogueBot.model.rl.ModifierSelectionGameData
 import com.sfh.pokeRogueBot.model.rl.RunTerminalOutcome
 import com.sfh.pokeRogueBot.model.rl.SmallModifierSelectState
 import com.sfh.pokeRogueBot.rl.ModifierDQNAgent
-import com.sfh.pokeRogueBot.service.Brain
+import com.sfh.pokeRogueBot.rl.ModifierDQNAgentAdapter
+import com.sfh.pokeRogueBot.rl.base.BaseDQNAgent
+import com.sfh.pokeRogueBot.rl.base.BaseDecisionLogger
+import com.sfh.pokeRogueBot.rl.base.BaseRLNeuron
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
-import java.io.File
-import kotlin.text.get
 
 /**
- * Neural network component responsible for Reinforcement Learning decisions in modifier selection phases.
- * This neuron handles the RL-specific logic for determining available actions and making decisions
- * based on trained models, separate from the hardcoded logic in ChooseModifierNeuron.
+ * Refactored Neural network component responsible for Reinforcement Learning decisions in modifier selection phases.
+ * This neuron extends BaseRLNeuron to provide domain-specific logic for modifier selection while reusing
+ * the common RL infrastructure.
  */
-@Component
+@Component("modifierRLNeuronRefactored")
 class ModifierRLNeuron(
     @Value("\${rl.modifier-selection.model-path:data/models/modifier-dqn-best.zip}")
     private val modelPath: String,
@@ -37,155 +34,39 @@ class ModifierRLNeuron(
 
     @Value("\${rl.modifier-selection.training-mode:false}")
     private val trainingMode: Boolean
+) : BaseRLNeuron<SmallModifierSelectState, ModifierAction, MoveToModifierResult, ModifierSelectionGameData>(
+    modelPath, loadModel, trainingMode
 ) {
 
     companion object {
         private val log = LoggerFactory.getLogger(ModifierRLNeuron::class.java)
     }
 
-    // Episode-based RL components
-    private val episodeManager = ModifierEpisodeManager()
-    private val decisionLogger = ModifierDecisionLogger()
+    // Domain-specific implementations
 
-    private val dqnAgent: ModifierDQNAgent by lazy {
-        val agent = ModifierDQNAgent(
-            learningRate = 0.001,
-            discountFactor = 0.95,
-            explorationRate = if (trainingMode) 0.1 else 0.0, // No exploration in production
-            batchSize = 32,
-            targetUpdateFrequency = 1000,
-            replayBufferSize = 10000
-        )
-
-        if(loadModel){
-            // Try to load existing model
-            if (File(modelPath).exists()) {
-                try {
-                    agent.loadModel(modelPath)
-                    log.info("Loaded existing DQN model from {}", modelPath)
-                } catch (e: Exception) {
-                    log.warn("Failed to load DQN model from {}, using fresh model: {}", modelPath, e.message)
-                }
-            } else {
-                log.info("No existing DQN model found at {}, starting with fresh model", modelPath)
-            }
-        }
-        else{
-            log.info("load model is set to false, starting with fresh model")
-        }
-
-
-        agent
-    }
-
-    /**
-     * 1. Get State
-     * 2. Get Available Actions
-     * 3. RL Agent selects action
-     * 4. Convert action to game result
-     * 5. Log experience for training
-     */
-    fun getModifierToPick(waveDto: WaveDto, shop: ModifierShop): MoveToModifierResult?{
-        // Step 1: Create state for RL logging
-        val currentModifierState = SmallModifierSelectState.create(
-            pokemons = waveDto.wavePokemon.playerParty,
-            shopItems = shop.shopItems,
-            freeItems = shop.freeItems,
-            currentMoney = waveDto.money
-        )
-
-        // Step 2: Get available actions for RL agent
-        val availableActions = getAvailableActions(
-            shop = shop,
-            currentMoney = waveDto.money,
-            playerParty = waveDto.wavePokemon.playerParty
-        )
-
-        // Step 3: RL agent selects action
-        val selectedAction = selectAction(
-            state = currentModifierState,
-            availableActions = availableActions
-        )
-
-        // Step 4: Convert RL action to game-executable result
-        val result = convertActionToResult(
-            action = selectedAction,
-            shop = shop,
-            team = waveDto.wavePokemon.playerParty
-        )
-
-        // Step 5: Add step to current RL episode
-        addStepToCurrentEpisode(selectedAction, currentModifierState, waveDto.waveIndex)
-
-        log.info(
-            "RL modifier decision: action={}, result={}, availableActions={}",
-            selectedAction, result?.toString() ?: "SKIP", availableActions
-        )
-
-        return result
-    }
-
-    /**
-     * Adds a modifier decision step to the current RL episode.
-     * Each step will receive rewards when the episode terminates.
-     */
-    private fun addStepToCurrentEpisode(action: ModifierAction, state: SmallModifierSelectState, waveIndex: Int) {
-        val currentEpisode = episodeManager.getCurrentEpisode()
-        if (currentEpisode == null) {
-            // No current episode - start a new one and check if it's a resumed run
-            val isResumedRun = waveIndex > 1
-            episodeManager.startNewEpisode(isResumedRun)
-
-            if (isResumedRun) {
-                log.warn("Started new RL episode for RESUMED run at wave {} - Training data will be marked as invalid", waveIndex)
-            } else {
-                log.info("Started new RL episode at wave {}", waveIndex)
-            }
-        }
-
-        val reward = ModifierRewardCalculator.calculateReward(state, action)
-
-        val step = ModifierRLStep(
-            state = state,
-            action = action,
-            immediateReward = reward, // Small immediate rewards could be added here
-            nextState = null, // Will be updated if there are multiple steps
-            waveNumber = waveIndex,
-            isTerminal = false,
-            terminalReward = 0.0
-        )
-
-        episodeManager.addStepToCurrentEpisode(step)
-        log.info(
-            "Added RL step to episode: wave={}, action={}, state=HP buckets: {}",
-            waveIndex, action, state.hpBuckets.contentToString()
+    override fun createState(gameData: ModifierSelectionGameData): SmallModifierSelectState {
+        return SmallModifierSelectState.create(
+            pokemons = gameData.playerParty,
+            shopItems = gameData.shopItems,
+            freeItems = gameData.freeItems,
+            currentMoney = gameData.money
         )
     }
 
-    /**
-     * Determines all valid actions the RL agent can take given the current game state.
-     * This is crucial for action masking in RL to prevent the agent from choosing invalid actions.
-     *
-     * @param shop The current modifier shop containing available items
-     * @param currentMoney The player's current money amount
-     * @param playerParty The current player's Pokemon party
-     * @return List of valid ModifierAction enum values the agent can choose from
-     */
-    fun getAvailableActions(shop: ModifierShop, currentMoney: Int, playerParty: List<Pokemon>): List<ModifierAction> {
+    override fun getAvailableActions(gameData: ModifierSelectionGameData): List<ModifierAction> {
         val availableActions = mutableListOf<ModifierAction>()
 
         log.debug(
             "Determining available actions for money={}, shopItems={}, freeItems={}",
-            currentMoney, shop.shopItems.size, shop.freeItems.size
+            gameData.money, gameData.shopItems.size, gameData.freeItems.size
         )
 
         //Potion
-        val teamWasNonFaintedHurtPokemon: Boolean = playerParty.count { pokemon -> pokemon.isHurt() } > 0
+        val teamWasNonFaintedHurtPokemon: Boolean = gameData.playerParty.count { pokemon -> pokemon.isHurt() } > 0
         if (teamWasNonFaintedHurtPokemon) {
             // Check for affordable shop purchases
-            // BUY_POTION: Can buy if there are potion items in shop and player can afford them
-            val affordablePotions = shop.shopItems.filter { item ->
-                item.cost <= currentMoney && item.isPotionItem()
+            val affordablePotions = gameData.shopItems.filter { item ->
+                item.cost <= gameData.money && item.isPotionItem()
             }
             if (affordablePotions.isNotEmpty()) {
                 availableActions.add(ModifierAction.BUY_POTION)
@@ -193,8 +74,7 @@ class ModifierRLNeuron(
             }
 
             // Check for free potion availability
-            // TAKE_FREE_POTION: Can take if there are free potion items available
-            val freePotions = shop.freeItems.filter { item ->
+            val freePotions = gameData.freeItems.filter { item ->
                 item.isPotionItem()
             }
             if (freePotions.isNotEmpty()) {
@@ -202,29 +82,29 @@ class ModifierRLNeuron(
                 log.debug("TAKE_FREE_POTION available - found {} free potions", freePotions.size)
             }
         } else {
-            log.debug("team has full health, so no potion will be choosen")
+            log.debug("team has full health, so no potion will be chosen")
         }
 
-        //Revive, Max Revive, Sacret Ash
-        if(playerParty.count { pokemon -> !pokemon.isAlive() } > 0){
+        //Revive, Max Revive, Sacred Ash
+        if(gameData.playerParty.count { pokemon -> !pokemon.isAlive() } > 0){
             //Revive
-            if(shop.freeItems.any { item -> item.isReviveItem() }) {
+            if(gameData.freeItems.any { item -> item.isReviveItem() }) {
                 availableActions.add(ModifierAction.TAKE_FREE_REVIVE)
             }
-            if(shop.shopItems.any { item -> item.cost <= currentMoney && item.isReviveItem() }) {
+            if(gameData.shopItems.any { item -> item.cost <= gameData.money && item.isReviveItem() }) {
                 availableActions.add(ModifierAction.BUY_REVIVE)
             }
 
             //Max Revive
-            if(shop.freeItems.any { item -> item.isMaxReviveItem() }) {
+            if(gameData.freeItems.any { item -> item.isMaxReviveItem() }) {
                 availableActions.add(ModifierAction.TAKE_FREE_MAX_REVIVE)
             }
-            if(shop.shopItems.any { item -> item.cost <= currentMoney && item.isMaxReviveItem() }) {
+            if(gameData.shopItems.any { item -> item.cost <= gameData.money && item.isMaxReviveItem() }) {
                 availableActions.add(ModifierAction.BUY_MAX_REVIVE)
             }
 
-            //Sacret Ash
-            if(shop.freeItems.any { item -> item.name == HandledModifiers.SACRET_ASH.modifierName }) {
+            //Sacred Ash
+            if(gameData.freeItems.any { item -> item.name == HandledModifiers.SACRET_ASH.modifierName }) {
                 availableActions.add(ModifierAction.TAKE_SACRET_ASH)
             }
         }
@@ -236,156 +116,88 @@ class ModifierRLNeuron(
         return availableActions
     }
 
-    /**
-     * Selects an action using the trained DQN agent.
-     *
-     * @param state The current game state representation for RL
-     * @param availableActions List of valid actions the agent can choose from
-     * @return The selected ModifierAction
-     * @throws IllegalStateException if the DQN agent fails to make a decision
-     */
-    fun selectAction(state: SmallModifierSelectState, availableActions: List<ModifierAction>): ModifierAction {
-        try {
-            val action = dqnAgent.selectAction(state, availableActions, training = trainingMode)
-            log.info("DQN selected action: {} from available: {}", action, availableActions)
-            return action
-        } catch (e: Exception) {
-            val errorMessage = "DQN agent failed to make decision: ${e.message}. " +
-                    "State: HP=${state.hpBuckets.contentToString()}, " +
-                    "Available actions: $availableActions"
-            log.error(errorMessage, e)
-            throw IllegalStateException(errorMessage, e)
-        }
+    override fun convertActionToResult(action: ModifierAction, gameData: ModifierSelectionGameData): MoveToModifierResult? {
+        return convertActionToResult(
+            action = action,
+            shop = gameData.shop,
+            team = gameData.playerParty
+        )
     }
 
-    /**
-     * Adds training experience to the DQN agent (when in training mode).
-     */
-    fun addTrainingExperience(selectModifierExperience: com.sfh.pokeRogueBot.model.rl.SelectModifierExperience) {
-        if (trainingMode) {
-            dqnAgent.addExperience(selectModifierExperience)
-            dqnAgent.trainStep()
-        }
+    override fun calculateImmediateReward(state: SmallModifierSelectState, action: ModifierAction): Double {
+        return ModifierRewardCalculator.calculateReward(state, action)
     }
 
-    /**
-     * Saves the current DQN model to disk.
-     */
-    fun saveModel() {
-        try {
-            // Ensure models directory exists
-            File(modelPath).parentFile?.mkdirs()
-            dqnAgent.saveModel(modelPath)
-            log.info("DQN model saved successfully to {}", modelPath)
-        } catch (e: Exception) {
-            log.error("Failed to save DQN model to {}", modelPath, e)
-        }
-    }
+    override fun calculateTerminalReward(outcome: RunTerminalOutcome, waveReached: Int): Double {
+        return when (outcome) {
+            RunTerminalOutcome.TEAM_WIPE -> {
+                // Negative reward scaled by how early the wipe occurred
+                -50.0 + (waveReached * 0.5) // Less penalty for later wipes
+            }
 
-    /**
-     * Gets DQN agent statistics for monitoring.
-     */
-    fun getDQNStats(): Map<String, Any> {
-        return dqnAgent.getTrainingStats()
-    }
+            RunTerminalOutcome.VICTORY -> {
+                10000.0 // Big bonus for victory
+            }
 
-    /**
-     * Completes the current RL episode when a run ends.
-     * This triggers terminal reward calculation and episode logging.
-     */
-    fun completeCurrentEpisode(outcome: RunTerminalOutcome, waveReached: Int) {
-        episodeManager.getCurrentEpisode()?.let { episode ->
-            episodeManager.completeCurrentEpisode(outcome, waveReached)
+            RunTerminalOutcome.RUN_ABANDONED -> {
+                0.0 // Neutral for abandoned runs
+            }
 
-            if (episode.isValidForTraining) {
-                // Only log experiences for valid episodes (not resumed runs)
-                val allExperiences = episode.getAllExperiences()
-                allExperiences.forEach { experience ->
-                    decisionLogger.logDecision(
-                        experience.state,
-                        experience.action,
-                        experience.reward,
-                        experience.nextState,
-                        experience.done
-                    )
-                }
-
-                log.info(
-                    "Completed VALID RL episode: outcome={}, waveReached={}, steps={}, finalReward={}",
-                    outcome, waveReached, episode.getStepCount(), episode.finalReward
-                )
-
-                // Save training data after each completed episode and clear buffer
-                val bufferStats = decisionLogger.getBufferStats()
-                val bufferSize = bufferStats["bufferSize"] as Int
-                log.info(
-                    "Saving training data: {} experiences from episode {}",
-                    bufferSize, episodeManager.getEpisodeCount()
-                )
-                decisionLogger.saveAndClearBuffer()
-            } else {
-                log.warn(
-                    "Completed INVALID RL episode (resumed run): outcome={}, waveReached={}, steps={} - EXCLUDED from training",
-                    outcome, waveReached, episode.getStepCount()
-                )
+            RunTerminalOutcome.ERROR_OCCURRED -> {
+                0.0 // Neutral for technical errors
             }
         }
     }
 
+    override fun createDQNAgent(): BaseDQNAgent<SmallModifierSelectState, ModifierAction> {
+        val modifierDqnAgent = ModifierDQNAgent(
+            learningRate = 0.001,
+            discountFactor = 0.95,
+            explorationRate = if (trainingMode) 0.1 else 0.0, // No exploration in production
+            batchSize = 32,
+            targetUpdateFrequency = 1000,
+            replayBufferSize = 10000
+        )
+        return ModifierDQNAgentAdapter(modifierDqnAgent)
+    }
+
+    override fun createDecisionLogger(): BaseDecisionLogger<SmallModifierSelectState, ModifierAction> {
+        return BaseDecisionLogger(
+            maxBufferSize = 10000,
+            outputDirectory = "data/training_data",
+            domainName = "modifier",
+            stateSize = 11, // SmallModifierSelectState size
+            actionCount = 8, // ModifierAction enum values
+            stateDeserializer = { map ->
+                val stateList = map["state"] as List<*>
+                val stateArray = stateList.map {
+                    when (it) {
+                        is Number -> it.toDouble()
+                        else -> it as Double
+                    }
+                }.toDoubleArray()
+                SmallModifierSelectState.fromArray(stateArray)
+            },
+            actionDeserializer = { id -> ModifierAction.fromId(id) }
+        )
+    }
+
+    override fun getWaveIndex(gameData: ModifierSelectionGameData): Int {
+        return gameData.waveIndex
+    }
+
+    // Public interface compatible with existing usage
+
     /**
-     * Starts a new RL episode when a new run begins.
-     * Called when the run property is created or reset.
+     * Main entry point for modifier selection decisions.
+     * This method maintains compatibility with the existing API while using the new BaseRLNeuron infrastructure.
      *
-     * @param isResumedRun true if this run is resumed from a save game (waveIndex > 1)
+     * @param waveDto The current wave data
+     * @param shop The current modifier shop
+     * @return The modifier result to execute, or null for no action
      */
-    fun startNewRLEpisode(isResumedRun: Boolean = false) {
-        val newEpisode = episodeManager.startNewEpisode(isResumedRun)
-        if (isResumedRun) {
-            log.warn("Started new RL episode for RESUMED run: runId={} - Training data will be marked as invalid", newEpisode.runId)
-        } else {
-            log.info("Started new RL episode: runId={}", newEpisode.runId)
-        }
-    }
-
-    /**
-     * Completes the current episode with victory outcome.
-     * Should be called when a run is successfully completed.
-     */
-    fun onRunCompleted(waveReached: Int) {
-        completeCurrentEpisode(RunTerminalOutcome.VICTORY, waveReached)
-    }
-
-    /**
-     * Discards the current episode without persisting it.
-     * Used when a run is terminated due to errors or user interruption.
-     */
-    fun discardCurrentEpisode() {
-        episodeManager.getCurrentEpisode()?.let {
-            episodeManager.discardCurrentEpisode()
-            log.info("Discarded RL episode due to error/interruption. Episode had ${it.getStepCount()} steps.")
-        }
-    }
-
-    /**
-     * Discards the current episode due to error.
-     * Should be called when technical errors terminate the run.
-     * Episodes with errors are discarded and not used for training.
-     */
-    fun onRunError(waveReached: Int) {
-        discardCurrentEpisode()
-    }
-
-    /**
-     * Get statistics about collected RL episodes and training data.
-     */
-    fun getTrainingDataStats(): String {
-        val loggerStats = decisionLogger.getBufferStats()
-        val episodeCount = episodeManager.getEpisodeCount()
-        val currentEpisode = episodeManager.getCurrentEpisode()
-        val currentSteps = currentEpisode?.getStepCount() ?: 0
-
-        return "Episodes completed: $episodeCount, Current episode steps: $currentSteps, " +
-                "Buffered experiences: ${loggerStats["bufferSize"]}, " +
-                "Average reward: ${loggerStats["averageReward"]}"
+    fun getModifierToPick(waveDto: WaveDto, shop: ModifierShop): MoveToModifierResult? {
+        val gameData = ModifierSelectionGameData(waveDto, shop)
+        return makeDecision(gameData)
     }
 }

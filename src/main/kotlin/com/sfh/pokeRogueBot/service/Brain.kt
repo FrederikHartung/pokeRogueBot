@@ -31,7 +31,7 @@ class Brain(
     private val combatNeuron: CombatNeuron,
     private val capturePokemonNeuron: CapturePokemonNeuron,
     private val learnMoveNeuron: LearnMoveNeuron,
-    private val modifierRLNeuron: ModifierRLNeuronRefactored,
+    private val modifierRLNeuron: ModifierRLNeuron,
 ) {
 
     companion object {
