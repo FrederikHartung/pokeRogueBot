@@ -98,8 +98,8 @@ This is a Spring Boot application (version 3.5.3) written in mixed Java/Kotlin t
 - Tests: Mixed Java/Kotlin with MockK for Kotlin testing
 
 **Game Integration:**
+- PokeRogue game is included as a git submodule in `pokerogue/` (pinned to v1.11.6, last stable release)
 - Requires local PokeRogue instance at `http://localhost:8000/`
-- Bot uses specific commit `965f92b` of PokeRogue repository
 - JavaScript-based state reading, Selenium for interactions
 - English language requirement for game
 
