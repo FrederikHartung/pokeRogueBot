@@ -1,3 +1,6 @@
+export {};
+declare const window: any;
+
 if(!window.poru) window.poru = {};
 const UiMode_MESSAGE = 0;
 const Button_ACTION = 6;
@@ -5,7 +8,7 @@ const Button_CANCEL = 7;
 
 window.poru.uihandler = {
 
-    setModifierSelectUiHandlerCursor: (cursorColumn, cursorRow) => {
+    setModifierSelectUiHandlerCursor: (cursorColumn: number, cursorRow: number) => {
         try {
             const modifierSelectUiHandler = window.poru.uihandler.getUiHandler(6);
 
@@ -28,7 +31,7 @@ window.poru.uihandler = {
         return false; //false state or error
     },
 
-    setBallUiHandlerCursor: (index) => {
+    setBallUiHandlerCursor: (index: number) => {
         try {
             var scene = window.poru.util.getBattleScene();
             if (!scene || !scene.ui || !scene.ui.handlers) return false;
@@ -49,7 +52,7 @@ window.poru.uihandler = {
         return false;
     },
 
-    setStarterSelectUiHandlerCursor: (speciesId) => {
+    setStarterSelectUiHandlerCursor: (speciesId: number) => {
         const starterSelectUiHandler = window.poru.uihandler.getUiHandler(10);
         if(!(starterSelectUiHandler && starterSelectUiHandler.active)){
             return false
@@ -105,7 +108,7 @@ window.poru.uihandler = {
         if(handler && handler.active){
             var sessionSlots = handler.sessionSlots;
             if(sessionSlots){
-                const sessionSlotsDto = [];
+                const sessionSlotsDto: any[] = [];
                 for(let i = 0; i < sessionSlots.length; i++){
                     sessionSlotsDto.push({
                         hasData: sessionSlots[i].hasData,
@@ -192,7 +195,7 @@ window.poru.uihandler = {
         return false;
     },
 
-    setPartyOptionsCursor: (cursor) => {
+    setPartyOptionsCursor: (cursor: number) => {
         const handler = window.poru.uihandler.getUiHandler(8);
         if(handler && handler.active){
 
@@ -229,7 +232,7 @@ window.poru.uihandler = {
         return JSON.stringify(window.poru.uihandler.getPokemonInLearnMovePhase());
     },
 
-    setLearnMoveCursor: (cursor) => {
+    setLearnMoveCursor: (cursor: number) => {
         const handler = window.poru.uihandler.getUiHandler(9);
         if(handler && handler.active){
             if(handler.moveCursor === cursor){
@@ -244,13 +247,13 @@ window.poru.uihandler = {
     getModifierShopItems: () => {
         const modifierSelectUiHandler = window.poru.uihandler.getUiHandler(6);
         if(modifierSelectUiHandler && modifierSelectUiHandler.active){
-            const freeItemsDtoArray = this.poru.modifier.getModifierItemDtoArray(modifierSelectUiHandler.options);
+            const freeItemsDtoArray = window.poru.modifier.getModifierItemDtoArray(modifierSelectUiHandler.options);
             const shopOptionsRows = modifierSelectUiHandler.shopOptionsRows;
 
-            const shopOptionsDtoArrayArray = [];
+            const shopOptionsDtoArrayArray: any[][] = [];
             for(let i = shopOptionsRows.length -1; i >= 0; i--){
                 const row = shopOptionsRows[i];
-                const rowDto = this.poru.modifier.getModifierItemDtoArray(row);
+                const rowDto = window.poru.modifier.getModifierItemDtoArray(row);
                 shopOptionsDtoArrayArray.push(rowDto);
             }
 
@@ -269,7 +272,7 @@ window.poru.uihandler = {
                 }
             }
 
-            shopOptions = [];
+            var shopOptions: any[] = [];
             for(let i = 0; i < shopOptionsDtoArrayArray.length; i++){
                 shopOptions = shopOptions.concat(shopOptionsDtoArrayArray[i]);
             }
@@ -288,11 +291,11 @@ window.poru.uihandler = {
         return JSON.stringify(window.poru.uihandler.getModifierShopItems());
     },
 
-    getAllActiveUiHandler: (index) => {
+    getAllActiveUiHandler: (index: number) => {
         const scene = window.poru.util.getBattleScene()
         if(scene){
             const handlers = scene.ui?.handlers
-            const activeHandlers = []
+            const activeHandlers: any[] = []
             if(handlers){
                 for (const handler of handlers) {
                     if(handler && handler.active){
@@ -306,7 +309,7 @@ window.poru.uihandler = {
         return null
     },
 
-    getUiHandler: (index) => {
+    getUiHandler: (index: number) => {
         const scene = window.poru.util.getBattleScene()
         if(scene){
             const handlers = scene.ui?.handlers
@@ -320,10 +323,10 @@ window.poru.uihandler = {
         return null
     },
 
-    getUiHandlerDtoJson: (index) => {
+    getUiHandlerDtoJson: (index: number) => {
         const handler = window.poru.uihandler.getUiHandler(index)
         if(handler){
-            const handlerDto = {
+            const handlerDto: any = {
                 active: handler.active,
                 awaitingActionInput: handler.awaitingActionInput,
                 index: index,
@@ -344,7 +347,7 @@ window.poru.uihandler = {
     },
 
     //validated in kotlin code
-    setUiHandlerCursor: (handlerIndex, cursorIndex) => {
+    setUiHandlerCursor: (handlerIndex: number, cursorIndex: number) => {
         const handler = window.poru.uihandler.getUiHandler(handlerIndex)
         if(handler){
             handler.setCursor(cursorIndex)
@@ -356,7 +359,7 @@ window.poru.uihandler = {
         return false
     },
 
-    triggerMessageAdvance: (relaxed) => {
+    triggerMessageAdvance: (relaxed: boolean) => {
         // Check if Ui Mode is Message and awaitingActionInput
         const scene = window.poru.util.getBattleScene()
         if (scene) {
@@ -380,7 +383,7 @@ window.poru.uihandler = {
         return false; // No action taken (conditions not met)
     },
 
-    sendButton: (buttonEnumValue) => {
+    sendButton: (buttonEnumValue: number) => {
         const scene = window.poru.util.getBattleScene()
         if (scene) {
             if (scene.ui.getHandler()) {
@@ -391,7 +394,7 @@ window.poru.uihandler = {
         return false; // No action taken (conditions not met)
     },
 
-    setCursorToIndexAndConfirm: async (handlerIndex, handlerName, indexToSetCursorTo, waitTimeForRenderMs) => {
+    setCursorToIndexAndConfirm: async (handlerIndex: number, handlerName: string, indexToSetCursorTo: number, waitTimeForRenderMs: number) => {
         const handler = window.poru.uihandler.getUiHandler(handlerIndex)
         if (handler) {
             const name = handler.constructor.name

@@ -1,55 +1,28 @@
+import { ModifierTier, PokeballType, enumToString } from "./enums";
+
+declare const window: any;
+
 if(!window.poru) window.poru = {};
 window.poru.modifier = {
 
-    getModifierTierEnumString: (tier) => {
-        const tierMapping = {
-          0: "COMMON",
-          1: "GREAT",
-          2: "ULTRA",
-          3: "ROGUE",
-          4: "MASTER",
-          5: "LUXURY"
-        };
-
-        return tierMapping[tier] || "COMMON";
+    getModifierTierEnumString: (tier: number) => {
+        return enumToString(ModifierTier, tier, "COMMON");
     },
 
-    getModifierTierEnumString: (tier) => {
-        const tierMapping = {
-          0: "COMMON",
-          1: "GREAT",
-          2: "ULTRA",
-          3: "ROGUE",
-          4: "MASTER",
-          5: "LUXURY"
-        };
-
-        return tierMapping[tier] || "COMMON";
+    getPokeBallTypeEnumString: (pokeBallIndex: number) => {
+        return enumToString(PokeballType, pokeBallIndex, "POKEBALL");
     },
 
-    getPokeBallTypeEnumString: (pokeBallIndex) => {
-        const pokeBallMapping = {
-            0: "POKEBALL",
-            1: "GREAT_BALL",
-            2: "ULTRA_BALL",
-            3: "ROGUE_BALL",
-            4: "MASTER_BALL",
-            5: "LUXURY_BALL"
-        };
-
-        return pokeBallMapping[pokeBallIndex] || "POKEBALL";
-    },
-
-    filterShopItems: (container, modifierOption) => {
+    filterShopItems: (container: any, modifierOption: Set<any>) => {
         if (container.type === "Text" && container.parentContainer.constructor.name === "ModifierOption") {
             modifierOption.add(container.parentContainer);
         } else if (container.type === "Container" && container.list) {
-            container.list.forEach(subElement => window.poru.modifier.filterShopItems(subElement, modifierOption));
+            container.list.forEach((subElement: any) => window.poru.modifier.filterShopItems(subElement, modifierOption));
         }
     },
 
-    buildResult: (container, resultArray) => {
-        let option = {
+    buildResult: (container: any, resultArray: any[]) => {
+        let option: any = {
             //ModifierType
             id: container.modifierTypeOption.type.id,
             group: container.modifierTypeOption.type.group,
@@ -96,15 +69,15 @@ window.poru.modifier = {
 
     getSelectModifiers: () => {
         var uiElements = window.poru.util.getBattleScene().ui.getAll();
-        var activeAndVisibleElements = uiElements.filter(element => element._visible && element.active);
+        var activeAndVisibleElements = uiElements.filter((element: any) => element._visible && element.active);
         var modifierOption =  new Set();
-        var resultArray = [];
+        var resultArray: any[] = [];
 
-        activeAndVisibleElements.forEach(element => {
+        activeAndVisibleElements.forEach((element: any) => {
             window.poru.modifier.filterShopItems(element, modifierOption);
         });
 
-        modifierOption.forEach(element => {
+        modifierOption.forEach((element: any) => {
             window.poru.modifier.buildResult(element, resultArray);
         });
 
@@ -115,11 +88,11 @@ window.poru.modifier = {
         return JSON.stringify(window.poru.modifier.getSelectModifiers());
     },
 
-    getModifierItemDtoArray: (modifierItemArray) => {
-        var modifierItemDtoArray = [];
+    getModifierItemDtoArray: (modifierItemArray: any[]) => {
+        var modifierItemDtoArray: any[] = [];
         for(let i = 0; i < modifierItemArray.length; i++){
             var modifierTypeOption = modifierItemArray[i].modifierTypeOption;
-            option = {
+            var option: any = {
                 group: modifierTypeOption.type.group,
                 id: modifierTypeOption.type.id,
                 tier: modifierTypeOption.type.tier,

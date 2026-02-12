@@ -45,3 +45,9 @@ data/runMetrics.json
 data/runBenchmarks.json
 /training_data
 /data/training_data
+
+# Node
+node_modules/
+
+# Generated JS bridge files (source of truth is src/main/ts/)
+src/main/js/*.js

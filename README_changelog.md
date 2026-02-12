@@ -5,7 +5,12 @@
 - Added Reset of chosen Starter Pokemon to non Pokerus and IVS with Value 10
 - Added Handling for Revive, Max Revive and Sacret Ash Items
 ### Technical Changes:
-- 
+- Added esbuild pipeline to compile TypeScript JS bridge files (`src/main/ts/`) into plain JS (`src/main/js/`)
+- Game enums (AbilityId, Nature, PokemonType, BiomeId, etc.) are now imported from the PokeRogue submodule instead of hardcoded arrays
+- Fixed duplicate `getModifierTierEnumString` definition in modifier bridge
+- Fixed `this.poru` bug in uihandler bridge (now consistently uses `window.poru`)
+- Maven `generate-sources` phase automatically triggers JS bridge build via exec-maven-plugin
+
 
 ## 4.0
 ### Features:

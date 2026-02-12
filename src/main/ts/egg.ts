@@ -1,3 +1,6 @@
+export {};
+declare const window: any;
+
 if(!window.poru) window.poru = {};
 window.poru.egg = {
     getHatchedPokemon: () => {

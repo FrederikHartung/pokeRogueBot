@@ -1,3 +1,7 @@
+export {};
+declare const window: any;
+declare const Phaser: any;
+
 if(!window.poru) window.poru = {};
 
 // Helper to get the current battle scene
@@ -45,7 +49,7 @@ window.poru.util = {
         return scene?.party?.[0] ?? null;
     },
 
-    getPlayerPokemonOnIndex: (index) => {
+    getPlayerPokemonOnIndex: (index: number) => {
         const scene = getScene();
         return scene?.party?.[index] ?? null;
     },
@@ -56,7 +60,7 @@ window.poru.util = {
         return scene?.modifiers ?? null;
     },
 
-    setGameSettings: (newGameSettings) => {
+    setGameSettings: (newGameSettings: any) => {
         const scene = window.poru.util.getBattleScene()
         if(!scene){
             return { success: false, error: "Battle scene not available" }
@@ -224,7 +228,7 @@ window.poru.util = {
         return false
     },
 
-    fixFaintedEnemyBug: (index) => {
+    fixFaintedEnemyBug: (index: number) => {
         const scene = window.poru.util.getBattleScene()
         if(scene){
             const currentBattle = scene.currentBattle
