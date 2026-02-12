@@ -1,4 +1,5 @@
 import { BiomeId, BattleType, BattleStyle, enumToString } from "./enums";
+import type { BattleScene } from "../../../pokerogue/src/battle-scene";
 
 declare const window: any;
 
@@ -31,7 +32,7 @@ window.poru.wave = {
         };
     },
 
-    getArena: (battleScene: any) => {
+    getArena: (battleScene: BattleScene) => {
 
         if(battleScene && battleScene.arena){
             return {

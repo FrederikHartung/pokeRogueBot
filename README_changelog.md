@@ -1,5 +1,11 @@
 #Changelog
 
+## 4.2
+### Technical Changes:
+- Added `import type` for PokeRogue game classes (Pokemon, Move, BattleScene, PokemonSpecies, etc.) in JS bridge TypeScript files for IDE autocomplete and compile-time checks
+- Expanded `tsconfig.json` with all PokeRogue path aliases (`#app/*`, `#field/*`, `#data/*`, `#modifiers/*`, etc.) so transitive type resolution works
+- Type-only imports are fully erased by esbuild — zero runtime impact
+
 ## 4.1
 ### Features:
 - Added Reset of chosen Starter Pokemon to non Pokerus and IVS with Value 10

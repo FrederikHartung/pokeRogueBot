@@ -2,6 +2,7 @@
   "compilerOptions": {
     "target": "ES2023",
     "module": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "moduleResolution": "bundler",
     "strict": false,
     "esModuleInterop": true,
@@ -9,7 +10,44 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "#enums/*": ["../../../pokerogue/src/enums/*"]
+      "#enums/*": ["../../../pokerogue/src/enums/*"],
+      "#app/*": ["../../../pokerogue/src/*.ts"],
+      "#field/*": ["../../../pokerogue/src/field/*.ts"],
+      "#data/*": ["../../../pokerogue/src/data/pokemon-forms/*.ts", "../../../pokerogue/src/data/pokemon/*.ts", "../../../pokerogue/src/data/*.ts"],
+      "#abilities/*": ["../../../pokerogue/src/data/abilities/*.ts"],
+      "#api/*": ["../../../pokerogue/src/plugins/api/*.ts"],
+      "#balance/*": ["../../../pokerogue/src/data/balance/*.ts"],
+      "#constants/*": ["../../../pokerogue/src/constants/*.ts"],
+      "#events/*": ["../../../pokerogue/src/events/*.ts"],
+      "#inputs/*": ["../../../pokerogue/src/configs/inputs/*.ts"],
+      "#modifiers/*": ["../../../pokerogue/src/modifier/*.ts"],
+      "#moves/*": ["../../../pokerogue/src/data/moves/*.ts"],
+      "#mystery-encounters/*": [
+        "../../../pokerogue/src/data/mystery-encounters/utils/*.ts",
+        "../../../pokerogue/src/data/mystery-encounters/encounters/*.ts",
+        "../../../pokerogue/src/data/mystery-encounters/requirements/*.ts",
+        "../../../pokerogue/src/data/mystery-encounters/*.ts"
+      ],
+      "#phases/*": ["../../../pokerogue/src/phases/*.ts"],
+      "#plugins/*": ["../../../pokerogue/src/plugins/vite/*.ts", "../../../pokerogue/src/plugins/*.ts"],
+      "#sprites/*": ["../../../pokerogue/src/sprites/*.ts"],
+      "#system/*": [
+        "../../../pokerogue/src/system/settings/*.ts",
+        "../../../pokerogue/src/system/version-migration/versions/*.ts",
+        "../../../pokerogue/src/system/version-migration/*.ts",
+        "../../../pokerogue/src/system/*.ts"
+      ],
+      "#trainers/*": ["../../../pokerogue/src/data/trainers/*.ts"],
+      "#types/*": ["../../../pokerogue/src/@types/*.ts"],
+      "#ui/*": [
+        "../../../pokerogue/src/ui/battle-info/*.ts",
+        "../../../pokerogue/src/ui/containers/*.ts",
+        "../../../pokerogue/src/ui/handlers/*.ts",
+        "../../../pokerogue/src/ui/settings/*.ts",
+        "../../../pokerogue/src/ui/utils/*.ts",
+        "../../../pokerogue/src/ui/*.ts"
+      ],
+      "#utils/*": ["../../../pokerogue/src/utils/*.ts"]
     }
   },
   "include": ["./**/*.ts"],

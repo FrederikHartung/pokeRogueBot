@@ -19,7 +19,7 @@ After getting to a Result, the bot calculates which buttons are to press and sen
 6. This Bot only works with the english version of the game. Make sure to set the language to english in the game settings before starting.
 7. Open this repository in Intellij Idea and run the Application class. The bot should start and connect to the browser.
 
-Note: The JS bridge files (`src/main/js/*.js`) are generated from TypeScript sources in `src/main/ts/`. Maven automatically rebuilds them during compilation. The TypeScript files import game enums directly from the PokeRogue submodule, so they stay in sync with the game version.
+Note: The JS bridge files (`src/main/js/*.js`) are generated from TypeScript sources in `src/main/ts/`. Maven automatically rebuilds them during compilation. The TypeScript files import game enums and use `import type` for game classes (Pokemon, BattleScene, Move, etc.) directly from the PokeRogue submodule, so they stay in sync with the game version. For full IDE type support (autocomplete, type checking), install the submodule's dependencies: `cd pokerogue && pnpm install`.
 
 ## Hows does the bot work
 Currently the bot implementation is very simple. It choses the first attack and tries to pick a potion item and apply it to the first pokemon in the team. This is done, till the player team is beaten.  

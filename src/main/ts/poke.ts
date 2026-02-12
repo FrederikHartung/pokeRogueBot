@@ -1,4 +1,9 @@
 import { AbilityId, MoveTarget, Nature, PokemonType, Gender, StatusEffect, MoveCategory, enumToString } from "./enums";
+import type { Pokemon } from "../../../pokerogue/src/field/pokemon";
+import type { PokemonMove } from "../../../pokerogue/src/data/moves/pokemon-move";
+import type { Move } from "../../../pokerogue/src/data/moves/move";
+import type { PokemonSpecies } from "../../../pokerogue/src/data/pokemon-species";
+import type { PokemonSpeciesForm } from "../../../pokerogue/src/data/pokemon-species";
 
 declare const window: any;
 
@@ -33,7 +38,7 @@ window.poru.poke = {
         return enumToString(MoveCategory, id);
     },
 
-    getStatus: (pokemon: any) => {
+    getStatus: (pokemon: Pokemon) => {
         if (!pokemon) {
             return null;
         }
@@ -57,7 +62,7 @@ window.poru.poke = {
         };
     },
 
-    getMoveDto: (move: any, isUsable: boolean, ppUsed: number) => {
+    getMoveDto: (move: Move, isUsable: boolean, ppUsed: number) => {
         if (!move) {
             return;
         }
@@ -82,7 +87,7 @@ window.poru.poke = {
         return moveDto;
     },
 
-    getMovesetDto: (pokemon: any) => {
+    getMovesetDto: (pokemon: Pokemon) => {
         if (!pokemon || !pokemon.moveset) {
             return [];
         }
@@ -107,7 +112,7 @@ window.poru.poke = {
         return movesetDto;
     },
 
-    getFormDto: (form: any) => {
+    getFormDto: (form: PokemonSpeciesForm) => {
         if(form){
             return {
                 baseStats: {
@@ -134,7 +139,7 @@ window.poru.poke = {
         return null;
     },
 
-    getFormsDto: (forms: any[]) => {
+    getFormsDto: (forms: PokemonSpeciesForm[]) => {
         if(forms){
             var formsDto: any[] = [];
             forms.forEach((form: any) => {
@@ -146,7 +151,7 @@ window.poru.poke = {
         return null;
     },
 
-    getSpeciesDto: (species: any, formIndex?: number) => {
+    getSpeciesDto: (species: PokemonSpecies, formIndex?: number) => {
         if(species){
             var speciesDto: any = {
                 ability1: window.poru.poke.getAbilityAsString(species.ability1), //String
@@ -212,7 +217,7 @@ window.poru.poke = {
         return null;
     },
 
-    getBattleStats: (pokemon: any) => {
+    getBattleStats: (pokemon: Pokemon) => {
         if (!pokemon || !pokemon.summonData) {
             return null;
         }
@@ -231,7 +236,7 @@ window.poru.poke = {
         return null;
     },
 
-    getPokemonDto: (pokemon: any) => {
+    getPokemonDto: (pokemon: Pokemon) => {
 
         let dto: any = {
             active: pokemon.active, //boolean

@@ -1,4 +1,5 @@
 import { ModifierTier, PokeballType, enumToString } from "./enums";
+import type { ModifierTypeOption } from "../../../pokerogue/src/modifier/modifier-type";
 
 declare const window: any;
 

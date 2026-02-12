@@ -66,6 +66,8 @@ This is a Spring Boot application (version 3.5.3) written in mixed Java/Kotlin t
 **JavaScript Bridge (src/main/ts/ → src/main/js/):**
 - TypeScript source files in `src/main/ts/` are compiled to plain JS in `src/main/js/` via esbuild
 - `src/main/ts/enums.ts` imports PokeRogue enums (AbilityId, Nature, PokemonType, BiomeId, etc.) directly from the `pokerogue/` submodule
+- Bridge files use `import type` to reference PokeRogue game classes (Pokemon, Move, BattleScene, etc.) for IDE autocomplete and compile-time checks — these are fully erased by esbuild and produce zero runtime code
+- The `tsconfig.json` mirrors all of PokeRogue's path aliases (`#app/*`, `#field/*`, `#data/*`, `#modifiers/*`, etc.) so transitive type resolution works
 - esbuild bundles each TS file into a self-contained IIFE (no import/export/require in output)
 - The generated JS is injected into the browser by Selenium and attached to `window.poru.*` namespace
 - This namespace organization (e.g., `window.poru.uihandler`, `window.poru.util`) makes debugging easier
@@ -109,7 +111,8 @@ This is a Spring Boot application (version 3.5.3) written in mixed Java/Kotlin t
 
 **Game Integration:**
 - PokeRogue game is included as a git submodule in `pokerogue/` (pinned to v1.11.6, last stable release)
-- The submodule is also used at build time: the JS bridge TypeScript files import enum definitions directly from `pokerogue/src/enums/`
+- The submodule is used at build time: JS bridge TypeScript files import enum definitions from `pokerogue/src/enums/` and use `import type` for game classes (Pokemon, BattleScene, Move, etc.) from the submodule source
+- For full type resolution in the bridge files, install the pokerogue submodule's dependencies: `cd pokerogue && pnpm install` (resolves transitive types like Phaser)
 - Requires local PokeRogue instance at `http://localhost:8000/`
 - JavaScript-based state reading, Selenium for interactions
 - English language requirement for game
