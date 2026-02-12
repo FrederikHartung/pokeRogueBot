@@ -67,4 +67,14 @@ data class Pokemon(
     fun isHurt(): Boolean {
         return hp > 0 && hp < stats.hp
     }
+
+    /**
+     * A potion heals 10% Health or 20 HP
+     * Returns true when >= 20 HP or >= 10% Health of the Pokemon are missing
+     */
+    fun fullPotionCanBeUsed(): Boolean{
+        val percentagesUsed = hp.toDouble() / stats.hp <= 0.9
+        val fixedUsed = stats.hp - hp >= 20
+        return percentagesUsed || fixedUsed
+    }
 }

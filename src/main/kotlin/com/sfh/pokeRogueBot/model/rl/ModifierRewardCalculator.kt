@@ -31,14 +31,14 @@ object ModifierRewardCalculator {
         action: ModifierAction,
     ): Double {
         var reward = 0.0
+        val lowestHp = prevState.hpBuckets.filter { hp -> hp > 0 }.minOrNull() ?: 1.0
 
         // Action-specific rewards
-        val lowestHp = prevState.hpBuckets.filter { hp -> hp > 0 }.minOrNull() ?: 1.0
         val faintedPokemonAvailable = prevState.hpBuckets.any { hp -> hp == 0.0 }
         when (action) {
             ModifierAction.SKIP -> {
                 //Penalty when a Pokemon was hurt and no FreePotion was taken
-                if (lowestHp < 1 && prevState.freePotionAvailable > 0.0) {
+                if (lowestHp < 1.0 && prevState.freePotionAvailable > 0.0) {
                     reward -= 2.0 // Should take free Potion
                 }
 
@@ -55,6 +55,12 @@ object ModifierRewardCalculator {
                 //Penalty when a Pokemon is fainted and a free Sacret Ash was offered
                 if(faintedPokemonAvailable && prevState.sacredAshAvailable > 0.0){
                     reward -= 15.0 // Should take free Sacret Ash
+                }
+            }
+            ModifierAction.BUY_POTION,
+            ModifierAction.TAKE_FREE_POTION -> {
+                if(lowestHp <= 0.5){
+                    reward += 1.0 //Reward healing a Pokemon
                 }
             }
             else -> reward += 0.0 //no Penalty/Reward

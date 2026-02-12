@@ -3,7 +3,7 @@ package com.sfh.pokeRogueBot.browser;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 
-public interface ImageClient {
+public interface ImageService {
 
-    BufferedImage takeScreenshotFromCanvas() throws IOException;
+    BufferedImage takeScreenshot() throws IOException;
 }

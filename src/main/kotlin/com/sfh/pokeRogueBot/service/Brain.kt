@@ -63,6 +63,7 @@ class Brain(
             runProperty!!.newRunStarted = true
         }
         waveDto = jsService.getWaveDto()
+
         return CommandPhaseDecision.ATTACK
     }
 
