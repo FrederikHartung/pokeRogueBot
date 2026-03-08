@@ -39,7 +39,8 @@ class ChromeBrowserClient(
      */
     private var driver: WebDriver? = null
 
-    override fun navigateTo(targetUrl: String) {
+    override fun navigateTo(targetUrl: String?) {
+        val url = requireNotNull(targetUrl) { "targetUrl must not be null" }
         if (driver == null) {
             val options = ChromeOptions()
 
@@ -64,8 +65,8 @@ class ChromeBrowserClient(
             log.debug("Chrome driver created")
         }
 
-        driver!!.get(targetUrl)
-        log.debug("Navigated to {}", targetUrl)
+        driver!!.get(url)
+        log.debug("Navigated to {}", url)
 
         try {
             Thread.sleep(waitTimeForRenderAfterNavigation.toLong())
@@ -95,7 +96,7 @@ class ChromeBrowserClient(
     }
 
     @Throws(IOException::class)
-    override fun takeScreenshotFromCanvas(): BufferedImage {
+    override fun takeScreenshot(): BufferedImage {
         // find the canvas element
         val canvasElement = getCanvas()
 
