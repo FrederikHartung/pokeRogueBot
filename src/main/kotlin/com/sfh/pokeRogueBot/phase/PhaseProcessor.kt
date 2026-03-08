@@ -1,6 +1,6 @@
 package com.sfh.pokeRogueBot.phase
 
-import com.sfh.pokeRogueBot.browser.ImageService
+import com.sfh.pokeRogueBot.browser.ImageClient
 import com.sfh.pokeRogueBot.file.FileManager
 import com.sfh.pokeRogueBot.model.enums.UiMode
 import com.sfh.pokeRogueBot.service.WaitingService
@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component
 @Component
 class PhaseProcessor(
     private val waitingService: WaitingService,
-    private val imageService: ImageService,
+    private val imageService: ImageClient,
     private val fileManager: FileManager
 ) : ScreenshotClient {
 
