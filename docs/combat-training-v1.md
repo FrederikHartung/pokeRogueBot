@@ -221,12 +221,22 @@ Day 5:
   - command: `npm run rl:eval:dqn:poc`
   - metrics: win rate, avg reward, avg turns
   - output report: `data/rl/combat/eval-dqn-benchmarked-report.json`
+- Policy baseline compare pipeline:
+  - command: `npm run rl:eval:compare`
+  - policies: `random`, `always_move_0`, `dqn` (external command)
+  - output report: `data/rl/combat/eval-policy-compare-report.json`
+  - latest result (Mar 8, 2026): DQN under baseline
+    - `random`: win rate `0.500`, avg reward `2.6714`, avg turns `7.33`
+    - `always_move_0`: win rate `0.667`, avg reward `3.6235`, avg turns `6.50`
+    - `dqn`: win rate `0.500`, avg reward `1.5549`, avg turns `7.17`
 - Dataset inspector (Streamlit POC):
   - requirements: `python3 -m pip install -r data/rl/requirements-inspector.txt`
   - command: `npm run rl:inspect:dataset`
   - views: sample viewer, episode summary, distributions, action/mask quality
 - Collector robustness + extended episodes:
   - robust step advance with timeout and terminal-phase handling in collector
+  - configurable test timeout (`test_timeout_ms`) for longer compare/eval runs
+  - deterministic baseline mode `first_valid` for `always_move_0`
   - benchmark collector currently uses `max_steps_per_episode: 30` with `switch_action_weight: 0.15`
   - verified benchmark run completion: 6 episodes, 43 transitions, 0 timeout outcomes
 

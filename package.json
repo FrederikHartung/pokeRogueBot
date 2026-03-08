@@ -10,6 +10,7 @@
     "rl:check:dataset": "node scripts/run-rl-dataset-sanity.mjs",
     "rl:train:dqn:poc": "python3 scripts/train_dqn_offline.py --config ./data/rl/train-dqn-offline-poc.json",
     "rl:eval:dqn:poc": "python3 scripts/eval_dqn_policy.py",
+    "rl:eval:compare": "python3 scripts/eval_policy_compare.py",
     "rl:inspect:dataset": "python3 -m streamlit run scripts/streamlit_rl_dataset_inspector.py"
   },
   "devDependencies": {

@@ -51,6 +51,9 @@ const seeds = Array.isArray(config.seeds) && config.seeds.length > 0
 const episodesPerSeed = Number.isInteger(config.episodes_per_seed) ? config.episodes_per_seed : 1;
 const maxStepsPerEpisode = Number.isInteger(config.max_steps_per_episode) ? config.max_steps_per_episode : 64;
 const policy = config.policy ?? { type: "random", epsilon: 1.0 };
+const testTimeoutMs = Number.isInteger(config.test_timeout_ms) && config.test_timeout_ms > 0
+  ? config.test_timeout_ms
+  : 120000;
 const appendOutput = config.append_output !== false;
 
 mkdirSync(path.dirname(outputPath), { recursive: true });
@@ -76,6 +79,7 @@ const EPISODES_PER_SEED = ${episodesPerSeed};
 const MAX_STEPS_PER_EPISODE = ${maxStepsPerEpisode};
 const POLICY = ${JSON.stringify(policy)};
 const OUTPUT_PATH = ${JSON.stringify(outputPath)};
+const TEST_TIMEOUT_MS = ${testTimeoutMs};
 const STEP_TIMEOUT_MS = Number.isFinite(POLICY.step_timeout_ms) && POLICY.step_timeout_ms > 0
   ? POLICY.step_timeout_ms
   : 15000;
@@ -307,6 +311,10 @@ function selectActionFromMask(state: any, actionMask: number[], globalEpisodeInd
     if (Math.random() < epsilon) {
       return sampleWeightedAction(valid);
     }
+    return valid[0];
+  }
+
+  if (POLICY.type === "first_valid") {
     return valid[0];
   }
 
@@ -579,7 +587,7 @@ describe("external combat batch collector", () => {
 
     console.log(\`Collected episodes: \${totalEpisodes}\`);
     console.log(\`Collected transitions: \${totalTransitions}\`);
-  }, 120000);
+  }, TEST_TIMEOUT_MS);
 });
 `;
 
