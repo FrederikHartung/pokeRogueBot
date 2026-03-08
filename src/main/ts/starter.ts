@@ -1,10 +1,13 @@
+export {};
+declare const window: any;
+
 if(!window.poru) window.poru = {};
 window.poru.starter = {
     getPossibleStarter: () => {
         const starterSelectUiHandler = window.poru.uihandler.getUiHandler(10);
 
         if(starterSelectUiHandler) {
-            const starters = [];
+            const starters: any[] = [];
             const dexData = window.poru.util.getDexData();
 
             const genSpecies = starterSelectUiHandler.genSpecies;
@@ -14,7 +17,7 @@ window.poru.starter = {
                     const dexEntry = dexData[species.speciesId];
 
                     if(dexEntry && dexEntry.caughtAttr && dexEntry.caughtAttr > 0n) {
-                        starterCost = starterSelectUiHandler.scene.gameData.getSpeciesStarterValue(species.speciesId);
+                        const starterCost = starterSelectUiHandler.scene.gameData.getSpeciesStarterValue(species.speciesId);
                         const starter = {
                             speciesId: species.speciesId,
                             generation: generation,

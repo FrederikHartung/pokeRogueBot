@@ -5,10 +5,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build and Development Commands
 
 **Maven Commands:**
-- Build project: `mvn clean compile`
+- Build project: `mvn clean compile` (automatically triggers JS bridge build via exec-maven-plugin)
 - Run tests: `mvn test`
 - Run application: `mvn spring-boot:run`
 - Package JAR: `mvn clean package`
+
+**JS Bridge Build (standalone):**
+- Install dependencies: `npm install`
+- Build JS bridge files: `npm run build:js` or `node build-js.mjs`
+- This compiles `src/main/ts/*.ts` → `src/main/js/*.js` via esbuild
+- Maven runs this automatically during `generate-sources` phase
 
 **Test Commands:**
 - Run all tests: `mvn test`
@@ -24,11 +30,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is a Spring Boot application (version 3.5.3) written in mixed Java/Kotlin that automates playing the PokeRogue browser game.
 
 ### Technology Stack
-- **Runtime:** Java 21, Kotlin 2.2.0
-- **Framework:** Spring Boot 3.5.3 with Spring Retry
+- **Runtime:** Java 21, Kotlin 2.1.0
+- **Framework:** Spring Boot 3.5.5 with Spring Retry
 - **Browser Automation:** Selenium WebDriver (Chrome)
+- **JS Bridge Build:** esbuild (TypeScript → IIFE JavaScript)
 - **Testing:** JUnit 5, MockK (for Kotlin), Spring Boot Test
-- **Build:** Maven with mixed Java/Kotlin compilation
+- **Build:** Maven with mixed Java/Kotlin compilation + esbuild for JS bridge
 
 ### Core Architecture Components
 
@@ -56,12 +63,17 @@ This is a Spring Boot application (version 3.5.3) written in mixed Java/Kotlin t
 - `ImageClient`: Screenshot capture for debugging
 - JavaScript bridge reads game state without modifying it
 
-**JavaScript Integration (bin/js/):**
-- Custom JavaScript code is injected into the browser and attached to `window.poru.*` namespace
+**JavaScript Bridge (src/main/ts/ → src/main/js/):**
+- TypeScript source files in `src/main/ts/` are compiled to plain JS in `src/main/js/` via esbuild
+- `src/main/ts/enums.ts` imports PokeRogue enums (AbilityId, Nature, PokemonType, BiomeId, etc.) directly from the `pokerogue/` submodule
+- Bridge files use `import type` to reference PokeRogue game classes (Pokemon, Move, BattleScene, etc.) for IDE autocomplete and compile-time checks — these are fully erased by esbuild and produce zero runtime code
+- The `tsconfig.json` mirrors all of PokeRogue's path aliases (`#app/*`, `#field/*`, `#data/*`, `#modifiers/*`, etc.) so transitive type resolution works
+- esbuild bundles each TS file into a self-contained IIFE (no import/export/require in output)
+- The generated JS is injected into the browser by Selenium and attached to `window.poru.*` namespace
 - This namespace organization (e.g., `window.poru.uihandler`, `window.poru.util`) makes debugging easier
 - Developers and users can manually call functions in the browser console for testing: `window.poru.uihandler.getUiHandler(15)`
-- All bot JavaScript functions are easily accessible and discoverable through the organized namespace structure
-- Enables manual debugging and testing of game state interactions directly in browser DevTools
+- **Source of truth is `src/main/ts/`** — the `src/main/js/*.js` files are generated output (gitignored)
+- To rebuild after editing TS files: `node build-js.mjs` (or `mvn compile` triggers it automatically)
 
 **Phase System (src/main/java/com/sfh/pokeRogueBot/phase/):**
 - `Phase`: Abstract base for all game states
@@ -98,8 +110,10 @@ This is a Spring Boot application (version 3.5.3) written in mixed Java/Kotlin t
 - Tests: Mixed Java/Kotlin with MockK for Kotlin testing
 
 **Game Integration:**
+- PokeRogue game is included as a git submodule in `pokerogue/` (pinned to v1.11.6, last stable release)
+- The submodule is used at build time: JS bridge TypeScript files import enum definitions from `pokerogue/src/enums/` and use `import type` for game classes (Pokemon, BattleScene, Move, etc.) from the submodule source
+- For full type resolution in the bridge files, install the pokerogue submodule's dependencies: `cd pokerogue && pnpm install` (resolves transitive types like Phaser)
 - Requires local PokeRogue instance at `http://localhost:8000/`
-- Bot uses specific commit `965f92b` of PokeRogue repository
 - JavaScript-based state reading, Selenium for interactions
 - English language requirement for game
 
