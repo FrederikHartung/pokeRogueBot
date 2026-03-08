@@ -17,6 +17,9 @@ except ModuleNotFoundError as exc:
     ) from exc
 
 
+ACTION_DIM = 10  # 0..3 move slots, 4..9 party switch targets
+
+
 @dataclass
 class TransitionBatch:
     states: torch.Tensor
@@ -88,9 +91,27 @@ def encode_state(state: Dict) -> Tuple[List[float], List[float]]:
         move_eff = move_effectiveness[i] if i < len(move_effectiveness) else 0.0
         features.append(_safe_num(move_eff, 0.0))
 
+    party_slots = state.get("party_slots") if isinstance(state.get("party_slots"), list) else []
+    for slot_index in range(6):
+        slot = party_slots[slot_index] if slot_index < len(party_slots) and isinstance(party_slots[slot_index], dict) else {}
+        slot_types = slot.get("types") if isinstance(slot.get("types"), list) else []
+        slot_type_1 = _safe_num(slot_types[0], -1.0) if len(slot_types) > 0 else -1.0
+        slot_type_2 = _safe_num(slot_types[1], -1.0) if len(slot_types) > 1 else -1.0
+        features.extend(
+            [
+                _safe_num(slot.get("present"), 0.0),
+                _safe_num(slot.get("active"), 0.0),
+                _safe_num(slot.get("fainted"), 0.0),
+                _safe_num(slot.get("hp_ratio"), 0.0),
+                _safe_num(slot.get("level"), 0.0),
+                slot_type_1,
+                slot_type_2,
+            ]
+        )
+
     action_mask = state.get("action_mask") if isinstance(state.get("action_mask"), list) else [1, 1, 1, 1]
     mask: List[float] = []
-    for i in range(4):
+    for i in range(ACTION_DIM):
         value = action_mask[i] if i < len(action_mask) else 0
         mask.append(1.0 if value == 1 else 0.0)
 
@@ -119,7 +140,7 @@ def load_dataset(path: str) -> TransitionBatch:
 
             if not isinstance(state, dict) or not isinstance(next_state, dict):
                 raise ValueError(f"Invalid state/next_state in line {line_no}")
-            if not isinstance(action, int) or action < 0 or action > 3:
+            if not isinstance(action, int) or action < 0 or action >= ACTION_DIM:
                 raise ValueError(f"Invalid action in line {line_no}: {action}")
 
             state_vec, _ = encode_state(state)
@@ -158,7 +179,7 @@ def train(config: Dict) -> None:
     dataset_size = batch.states.size(0)
 
     input_dim = batch.states.size(1)
-    output_dim = 4
+    output_dim = ACTION_DIM
 
     hidden_dims = list(config.get("hidden_dims", [128, 128]))
     gamma = float(config.get("gamma", 0.99))

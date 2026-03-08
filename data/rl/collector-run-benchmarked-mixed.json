@@ -10,11 +10,12 @@
   "output_path": "./combat/train-benchmarked-mixed.jsonl",
   "append_output": false,
   "episodes_per_seed": 1,
-  "max_steps_per_episode": 10,
+  "max_steps_per_episode": 30,
   "policy": {
     "type": "epsilon_random",
     "start_epsilon": 1.0,
     "end_epsilon": 0.2,
-    "decay_episodes": 100
+    "decay_episodes": 100,
+    "switch_action_weight": 0.15
   }
 }

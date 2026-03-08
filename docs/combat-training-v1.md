@@ -7,7 +7,7 @@ Build a first reliable training loop for combat decisions (move selection) with 
 Scope of v1:
 
 - Single battles only
-- Action space limited to move slot selection
+- Action space includes move selection + party switch decisions
 - Deterministic data generation with fixed seeds
 - Offline training from logged transitions
 
@@ -44,11 +44,12 @@ Transition tuple (mandatory):
 Discrete actions:
 
 - `0`, `1`, `2`, `3` = move slot index
+- `4`, `5`, `6`, `7`, `8`, `9` = switch to party slot `0..5`
 
 Constraints:
 
 - Invalid actions are blocked via action mask.
-- Each transition must include `action_mask: [0|1, 0|1, 0|1, 0|1]`.
+- Each transition must include `action_mask` with action-space length (`>=4`, currently `10`).
 
 ## Observation Space (v1)
 
@@ -71,7 +72,9 @@ Minimal stable feature set:
 - `move_effectiveness[4]`:
   - effectiveness multiplier per move slot against current enemy (`0/0.25/0.5/1/2/4/...`)
   - computed from Pokerogue battle engine (`target.getMoveEffectiveness(...)`) to avoid drift
-- `action_mask[4]`
+- `party_slots[6]`:
+  - `present`, `active`, `fainted`, `hp_ratio`, `level`, `types`
+- `action_mask[10]` (4 move actions + 6 switch actions)
 
 ## Reward (v1)
 
@@ -214,6 +217,18 @@ Day 5:
   - config: `data/rl/train-dqn-offline-poc.json`
   - command: `npm run rl:train:dqn:poc`
   - output checkpoint: `data/rl/models/dqn-combat-poc.pt`
+- Offline eval + reporting pipeline:
+  - command: `npm run rl:eval:dqn:poc`
+  - metrics: win rate, avg reward, avg turns
+  - output report: `data/rl/combat/eval-dqn-benchmarked-report.json`
+- Dataset inspector (Streamlit POC):
+  - requirements: `python3 -m pip install -r data/rl/requirements-inspector.txt`
+  - command: `npm run rl:inspect:dataset`
+  - views: sample viewer, episode summary, distributions, action/mask quality
+- Collector robustness + extended episodes:
+  - robust step advance with timeout and terminal-phase handling in collector
+  - benchmark collector currently uses `max_steps_per_episode: 30` with `switch_action_weight: 0.15`
+  - verified benchmark run completion: 6 episodes, 43 transitions, 0 timeout outcomes
 
 ## Prerequisites
 

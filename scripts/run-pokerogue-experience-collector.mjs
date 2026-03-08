@@ -61,6 +61,7 @@ if (!appendOutput && existsSync(outputPath)) {
 const testSource = `
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync as spawnSyncChild } from "node:child_process";
 import { BattlerIndex } from "#enums/battler-index";
 import { Command } from "#enums/command";
 import { MoveUseMode } from "#enums/move-use-mode";
@@ -75,6 +76,12 @@ const EPISODES_PER_SEED = ${episodesPerSeed};
 const MAX_STEPS_PER_EPISODE = ${maxStepsPerEpisode};
 const POLICY = ${JSON.stringify(policy)};
 const OUTPUT_PATH = ${JSON.stringify(outputPath)};
+const STEP_TIMEOUT_MS = Number.isFinite(POLICY.step_timeout_ms) && POLICY.step_timeout_ms > 0
+  ? POLICY.step_timeout_ms
+  : 15000;
+const MOVE_ACTIONS = 4;
+const SWITCH_ACTIONS = 6;
+const ACTION_DIM = MOVE_ACTIONS + SWITCH_ACTIONS;
 
 function getHpRatio(hp: number, maxHp: number): number {
   if (maxHp <= 0) return 0;
@@ -112,11 +119,44 @@ function buildObservation(game: GameManager) {
     };
   });
 
-  const actionMask = [0, 0, 0, 0];
+  const actionMask = Array.from({ length: ACTION_DIM }, () => 0);
   for (let idx = 0; idx < moves.length; idx += 1) {
-    // v1 conservative mask: every present move slot is selectable
-    actionMask[idx] = 1;
+    actionMask[idx] = moves[idx].pp_left > 0 ? 1 : 0;
   }
+
+  const party = game.scene.getPlayerParty();
+  const partySlots = Array.from({ length: 6 }, (_, slot) => {
+    const member = party[slot];
+    if (!member) {
+      return {
+        present: 0,
+        active: 0,
+        fainted: 0,
+        hp_ratio: 0,
+        level: 0,
+        types: [],
+      };
+    }
+
+    const hpRatio = getHpRatio(member.hp, member.getMaxHp());
+    const types = member
+      .getTypes(true, true)
+      .filter(type => Number.isInteger(type) && type >= 0)
+      .slice(0, 2);
+
+    const canSwitch = !member.isOnField() && !member.isFainted() && member.isAllowedInBattle();
+    actionMask[MOVE_ACTIONS + slot] = canSwitch ? 1 : 0;
+
+    return {
+      present: 1,
+      active: member.isOnField() ? 1 : 0,
+      fainted: member.isFainted() ? 1 : 0,
+      hp_ratio: hpRatio,
+      level: member.level,
+      types,
+    };
+  });
+
   const moveEffectiveness = [0, 0, 0, 0];
   for (let idx = 0; idx < moveSet.length; idx += 1) {
     const moveData = moveSet[idx].getMove();
@@ -135,15 +175,18 @@ function buildObservation(game: GameManager) {
     enemy_types: enemyTypes,
     moves,
     move_effectiveness: moveEffectiveness,
+    party_slots: partySlots,
     action_mask: actionMask,
   };
 }
 
-function deriveTerminalNextState(state: any, enemyFainted: boolean, playerFainted: boolean) {
+function deriveTerminalNextState(state: any, enemyTeamDefeated: boolean, playerTeamDefeated: boolean) {
+  const terminalMask = Array.from({ length: ACTION_DIM }, () => 0);
   return {
     ...state,
-    player_hp_ratio: playerFainted ? 0 : state.player_hp_ratio,
-    enemy_hp_ratio: enemyFainted ? 0 : state.enemy_hp_ratio,
+    player_hp_ratio: playerTeamDefeated ? 0 : state.player_hp_ratio,
+    enemy_hp_ratio: enemyTeamDefeated ? 0 : state.enemy_hp_ratio,
+    action_mask: terminalMask,
   };
 }
 
@@ -166,6 +209,10 @@ function selectMoveByIndex(game: GameManager, actionIndex: number) {
   game.selectTarget(actionIndex, BattlerIndex.ENEMY);
 }
 
+function selectSwitchByPartyIndex(game: GameManager, partyIndex: number) {
+  game.doSwitchPokemon(partyIndex);
+}
+
 function computeScheduledEpsilon(globalEpisodeIndex: number): number {
   if (POLICY.type !== "epsilon_random") {
     return Number.isFinite(POLICY.epsilon) ? POLICY.epsilon : 1.0;
@@ -181,7 +228,67 @@ function computeScheduledEpsilon(globalEpisodeIndex: number): number {
   return start + (end - start) * progress;
 }
 
-function selectActionFromMask(actionMask: number[], globalEpisodeIndex: number): number {
+function sampleWeightedAction(valid: number[]): number {
+  const switchWeight = Number.isFinite(POLICY.switch_action_weight) && POLICY.switch_action_weight >= 0
+    ? POLICY.switch_action_weight
+    : 0.25;
+
+  const weights = valid.map(action => (action < MOVE_ACTIONS ? 1.0 : switchWeight));
+  const weightSum = weights.reduce((acc, value) => acc + value, 0);
+  if (weightSum <= 0) {
+    return valid[Math.floor(Math.random() * valid.length)];
+  }
+
+  let roll = Math.random() * weightSum;
+  for (let i = 0; i < valid.length; i += 1) {
+    roll -= weights[i];
+    if (roll <= 0) {
+      return valid[i];
+    }
+  }
+  return valid[valid.length - 1];
+}
+
+function runExternalPolicy(state: any, actionMask: number[]): number {
+  if (!Array.isArray(POLICY.command) || POLICY.command.length === 0) {
+    throw new Error("POLICY.command must be a non-empty string array for external_command");
+  }
+
+  const [command, ...args] = POLICY.command;
+  const timeoutMs = Number.isFinite(POLICY.timeout_ms) && POLICY.timeout_ms > 0
+    ? POLICY.timeout_ms
+    : 5000;
+  const env = typeof POLICY.env === "object" && POLICY.env !== null
+    ? { ...process.env, ...POLICY.env }
+    : process.env;
+  const result = spawnSyncChild(command, args, {
+    input: JSON.stringify({ state, action_mask: actionMask }),
+    encoding: "utf8",
+    env,
+    timeout: timeoutMs,
+  });
+
+  if (result.error) {
+    throw result.error;
+  }
+  if (result.status !== 0) {
+    throw new Error(
+      "External policy command failed with status " + result.status + ": " + (result.stderr ?? ""),
+    );
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(result.stdout ?? "");
+  } catch (error) {
+    throw new Error("Failed to parse external policy response as JSON: " + String(error));
+  }
+
+  const action = parsed?.action;
+  return Number.isInteger(action) ? action : -1;
+}
+
+function selectActionFromMask(state: any, actionMask: number[], globalEpisodeIndex: number): number {
   const valid = actionMask
     .map((value, index) => ({ value, index }))
     .filter(entry => entry.value === 1)
@@ -192,18 +299,128 @@ function selectActionFromMask(actionMask: number[], globalEpisodeIndex: number):
   }
 
   if (POLICY.type === "random") {
-    return valid[Math.floor(Math.random() * valid.length)];
+    return sampleWeightedAction(valid);
   }
 
   if (POLICY.type === "epsilon_random") {
     const epsilon = computeScheduledEpsilon(globalEpisodeIndex);
     if (Math.random() < epsilon) {
-      return valid[Math.floor(Math.random() * valid.length)];
+      return sampleWeightedAction(valid);
+    }
+    return valid[0];
+  }
+
+  if (POLICY.type === "external_command") {
+    const action = runExternalPolicy(state, actionMask);
+    if (valid.includes(action)) {
+      return action;
     }
     return valid[0];
   }
 
   return valid[0];
+}
+
+function executeAction(game: GameManager, action: number) {
+  if (action < MOVE_ACTIONS) {
+    selectMoveByIndex(game, action);
+    return;
+  }
+  const switchIndex = action - MOVE_ACTIONS;
+  selectSwitchByPartyIndex(game, switchIndex);
+}
+
+function hasRemainingPlayerTeam(game: GameManager): boolean {
+  return game.scene.getPlayerParty().some(member => !member.isFainted() && member.isAllowedInBattle());
+}
+
+function isVictorySafe(game: GameManager): boolean {
+  const battle = game.scene.currentBattle;
+  if (!battle || !Array.isArray(battle.enemyParty)) {
+    return false;
+  }
+  return battle.enemyParty.every(pokemon => pokemon.isFainted());
+}
+
+function currentWaveIndexSafe(game: GameManager, fallback: number = -1): number {
+  const battle = game.scene.currentBattle;
+  if (battle && Number.isFinite(battle.waveIndex)) {
+    return battle.waveIndex;
+  }
+  return fallback;
+}
+
+function resolveForcedSwitchIfNeeded(game: GameManager) {
+  if (!game.isCurrentPhase("SwitchPhase")) {
+    return;
+  }
+  const party = game.scene.getPlayerParty();
+  const nextIndex = party.findIndex(member => !member.isFainted() && !member.isOnField() && member.isAllowedInBattle());
+  if (nextIndex >= 0) {
+    game.doSelectPartyPokemon(nextIndex);
+  }
+}
+
+function isHardTerminalPhase(game: GameManager): boolean {
+  return game.isCurrentPhase("GameOverPhase") || game.isCurrentPhase("TitlePhase");
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutHandle = setTimeout(() => reject(new Error("Timeout while waiting for " + label)), timeoutMs);
+  });
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle);
+    }
+  }
+}
+
+async function advanceAfterAction(game: GameManager): Promise<"ok" | "terminal" | "timeout"> {
+  try {
+    await withTimeout(game.toEndOfTurn(), STEP_TIMEOUT_MS, "end of turn");
+  } catch {
+    if (isHardTerminalPhase(game)) {
+      return "terminal";
+    }
+    return "timeout";
+  }
+
+  if (isHardTerminalPhase(game)) {
+    return "terminal";
+  }
+
+  resolveForcedSwitchIfNeeded(game);
+  queueSkipOptionalCheckSwitchPrompt(game);
+
+  try {
+    await withTimeout(game.toNextTurn(), STEP_TIMEOUT_MS, "next turn");
+  } catch {
+    if (isHardTerminalPhase(game)) {
+      return "terminal";
+    }
+    return "timeout";
+  }
+
+  if (isHardTerminalPhase(game)) {
+    return "terminal";
+  }
+  return "ok";
+}
+
+function queueSkipOptionalCheckSwitchPrompt(game: GameManager) {
+  game.onNextPrompt(
+    "CheckSwitchPhase",
+    UiMode.CONFIRM,
+    () => {
+      game.setMode(UiMode.MESSAGE);
+      game.endPhase();
+    },
+    () => game.isCurrentPhase("CommandPhase") || game.isCurrentPhase("TurnInitPhase"),
+  );
 }
 
 function applyScenarioOverrides(game: GameManager, scenario: any, seedOverride: string | null) {
@@ -290,7 +507,7 @@ describe("external combat batch collector", () => {
 
             for (let stepIndex = 0; stepIndex < MAX_STEPS_PER_EPISODE; stepIndex += 1) {
               const state = buildObservation(game);
-              const action = selectActionFromMask(state.action_mask, globalEpisodeIndex);
+              const action = selectActionFromMask(state, state.action_mask, globalEpisodeIndex);
               if (action < 0) {
                 break;
               }
@@ -298,25 +515,27 @@ describe("external combat batch collector", () => {
               const prevEnemyHp = state.enemy_hp_ratio;
               const prevPlayerHp = state.player_hp_ratio;
 
-              selectMoveByIndex(game, action);
-              await game.toEndOfTurn();
+              executeAction(game, action);
+              const advanceStatus = await advanceAfterAction(game);
 
               const enemyPokemon = game.scene.getEnemyPokemon();
               const playerPokemon = game.scene.getPlayerPokemon();
               const enemyFainted = !enemyPokemon || enemyPokemon.hp <= 0 || enemyPokemon.isFainted();
               const playerFainted = !playerPokemon || playerPokemon.hp <= 0 || playerPokemon.isFainted();
-              let done = enemyFainted || playerFainted || game.isVictory();
-
-              if (!done) {
-                await game.toNextTurn();
-              }
+              const enemyTeamDefeated = isVictorySafe(game);
+              const playerTeamDefeated = !hasRemainingPlayerTeam(game);
+              const hardTerminalPhase = isHardTerminalPhase(game);
+              const timeoutTruncated = advanceStatus === "timeout";
+              let done = enemyTeamDefeated || playerTeamDefeated || hardTerminalPhase || timeoutTruncated;
 
               const nextState = done
-                ? deriveTerminalNextState(state, enemyFainted, playerFainted)
+                ? deriveTerminalNextState(state, enemyTeamDefeated, playerTeamDefeated)
                 : buildObservation(game);
               let reward = (prevEnemyHp - nextState.enemy_hp_ratio) * 2.0 - (prevPlayerHp - nextState.player_hp_ratio) * 1.5;
               if (enemyFainted) reward += 1.5;
               if (playerFainted) reward -= 1.5;
+              if (enemyTeamDefeated) reward += 2.5;
+              if (playerTeamDefeated) reward -= 2.5;
 
               if (!done && stepIndex === MAX_STEPS_PER_EPISODE - 1) {
                 done = true;
@@ -332,9 +551,10 @@ describe("external combat batch collector", () => {
                 done,
                 meta: {
                   seed: effectiveSeed,
-                  wave: game.scene.currentBattle.waveIndex,
+                  wave: currentWaveIndexSafe(game, state.wave_index),
                   battle_type: "single",
                   scenario: scenario.__scenario_name,
+                  outcome: enemyTeamDefeated ? "win" : playerTeamDefeated ? "loss" : timeoutTruncated ? "timeout" : "truncated",
                 },
                 timestamp: Date.now(),
               };
@@ -359,7 +579,7 @@ describe("external combat batch collector", () => {
 
     console.log(\`Collected episodes: \${totalEpisodes}\`);
     console.log(\`Collected transitions: \${totalTransitions}\`);
-  });
+  }, 120000);
 });
 `;
 

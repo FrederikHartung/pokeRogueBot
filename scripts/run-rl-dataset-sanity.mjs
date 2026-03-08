@@ -51,10 +51,10 @@ for (let i = 0; i < lines.length; i += 1) {
   }
 
   const mask = row?.state?.action_mask;
-  if (!Array.isArray(mask) || mask.length !== 4 || mask.some(v => v !== 0 && v !== 1)) {
+  if (!Array.isArray(mask) || mask.length < 4 || mask.some(v => v !== 0 && v !== 1)) {
     issues.push(`[line ${lineNo}] invalid action_mask`);
-  } else if (Number.isInteger(row.action) && (row.action < 0 || row.action >= 4)) {
-    issues.push(`[line ${lineNo}] action out of range [0..3]`);
+  } else if (Number.isInteger(row.action) && (row.action < 0 || row.action >= mask.length)) {
+    issues.push(`[line ${lineNo}] action out of range [0..${mask.length - 1}]`);
   } else if (Number.isInteger(row.action) && mask[row.action] !== 1) {
     issues.push(`[line ${lineNo}] action not allowed by action_mask`);
   }
