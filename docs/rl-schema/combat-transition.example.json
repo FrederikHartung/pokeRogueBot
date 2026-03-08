@@ -8,6 +8,8 @@
     "enemy_hp_ratio": 0.58,
     "player_level": 16,
     "enemy_level": 15,
+    "player_types": [12, 3],
+    "enemy_types": [10],
     "moves": [
       {
         "move_id": 33,
@@ -38,6 +40,7 @@
         "accuracy": 0
       }
     ],
+    "move_effectiveness": [0.5, 2, 1, 0],
     "action_mask": [1, 1, 1, 0]
   },
   "action": 1,
@@ -49,6 +52,8 @@
     "enemy_hp_ratio": 0.31,
     "player_level": 16,
     "enemy_level": 15,
+    "player_types": [12, 3],
+    "enemy_types": [10],
     "moves": [
       {
         "move_id": 33,
@@ -79,6 +84,7 @@
         "accuracy": 0
       }
     ],
+    "move_effectiveness": [0.5, 2, 1, 0],
     "action_mask": [1, 1, 1, 0]
   },
   "done": false,

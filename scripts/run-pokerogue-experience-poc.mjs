@@ -82,6 +82,16 @@ function buildObservation(game: GameManager) {
     throw new Error("Missing active battlers while building observation");
   }
 
+  const playerTypes = player
+    .getTypes(true, true)
+    .filter(type => Number.isInteger(type) && type >= 0)
+    .slice(0, 2);
+  const enemyTypes = enemy
+    .getTypes(true, true)
+    .filter(type => Number.isInteger(type) && type >= 0)
+    .slice(0, 2);
+
+  const moveSet = player.getMoveset().slice(0, 4);
   const moves = player.getMoveset().slice(0, 4).map(move => {
     const moveData = move.getMove();
     const ppMax = move.getMovePp();
@@ -100,6 +110,12 @@ function buildObservation(game: GameManager) {
   for (let idx = 0; idx < moves.length; idx += 1) {
     actionMask[idx] = 1;
   }
+  const moveEffectiveness = [0, 0, 0, 0];
+  for (let idx = 0; idx < moveSet.length; idx += 1) {
+    const moveData = moveSet[idx].getMove();
+    const effectiveness = enemy.getMoveEffectiveness(player, moveData, false, true);
+    moveEffectiveness[idx] = Number.isFinite(effectiveness) ? effectiveness : 1;
+  }
 
   return {
     wave_index: game.scene.currentBattle.waveIndex,
@@ -108,7 +124,10 @@ function buildObservation(game: GameManager) {
     enemy_hp_ratio: getHpRatio(enemy.hp, enemy.getMaxHp()),
     player_level: player.level,
     enemy_level: enemy.level,
+    player_types: playerTypes,
+    enemy_types: enemyTypes,
     moves,
+    move_effectiveness: moveEffectiveness,
     action_mask: actionMask,
   };
 }

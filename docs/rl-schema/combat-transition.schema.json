@@ -114,7 +114,10 @@
         "enemy_hp_ratio",
         "player_level",
         "enemy_level",
+        "player_types",
+        "enemy_types",
         "moves",
+        "move_effectiveness",
         "action_mask"
       ],
       "additionalProperties": false,
@@ -145,12 +148,39 @@
           "type": "integer",
           "minimum": 1
         },
+        "player_types": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "enemy_types": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
         "moves": {
           "type": "array",
           "minItems": 1,
           "maxItems": 4,
           "items": {
             "$ref": "#/$defs/move_state"
+          }
+        },
+        "move_effectiveness": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": 0
           }
         },
         "action_mask": {

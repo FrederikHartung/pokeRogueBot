@@ -60,12 +60,17 @@ Minimal stable feature set:
 - `enemy_hp_ratio`
 - `player_level`
 - `enemy_level`
+- `player_types` (enum ids, up to 2)
+- `enemy_types` (enum ids, up to 2)
 - `moves[0..3]`:
   - `move_id`
   - `pp_left`
   - `pp_max`
   - `power`
   - `accuracy`
+- `move_effectiveness[4]`:
+  - effectiveness multiplier per move slot against current enemy (`0/0.25/0.5/1/2/4/...`)
+  - computed from Pokerogue battle engine (`target.getMoveEffectiveness(...)`) to avoid drift
 - `action_mask[4]`
 
 ## Reward (v1)
@@ -197,6 +202,18 @@ Day 5:
 - Repository policy:
   - checked in: scripts/config/schema + small benchmark scenario set (`data/rl/scenarios/benchmarked`)
   - not checked in: bulk generated scenario folders (`data/rl/scenarios/generated-*`) and transition dumps (`data/rl/combat/*.jsonl`)
+- Reproducible mixed benchmark collector:
+  - config: `data/rl/collector-run-benchmarked-mixed.json`
+  - command: `npm run rl:collect:bench`
+  - output: `data/rl/combat/train-benchmarked-mixed.jsonl` (ignored by git)
+- Dataset sanity check:
+  - command: `npm run rl:check:dataset -- ./data/rl/combat/train-benchmarked-mixed.jsonl`
+  - validates JSON, `action_mask`, action validity, `next_state`, `reward`, `done`
+- Offline DQN POC trainer (PyTorch):
+  - requirements: `python3 -m pip install -r data/rl/requirements-pytorch.txt`
+  - config: `data/rl/train-dqn-offline-poc.json`
+  - command: `npm run rl:train:dqn:poc`
+  - output checkpoint: `data/rl/models/dqn-combat-poc.pt`
 
 ## Prerequisites
 
