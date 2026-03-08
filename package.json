@@ -7,6 +7,7 @@
     "rl:collect": "node scripts/run-pokerogue-experience-collector.mjs",
     "rl:gen:scenarios": "node scripts/run-pokerogue-scenario-generator.mjs",
     "rl:collect:bench": "node scripts/run-pokerogue-experience-collector.mjs ./data/rl/collector-run-benchmarked-mixed.json",
+    "rl:collect:5k": "node scripts/run-pokerogue-experience-collector.mjs ./data/rl/collector-run-5k-bootstrap.json",
     "rl:check:dataset": "node scripts/run-rl-dataset-sanity.mjs",
     "rl:train:dqn:poc": "python3 scripts/train_dqn_offline.py --config ./data/rl/train-dqn-offline-poc.json",
     "rl:eval:dqn:poc": "python3 scripts/eval_dqn_policy.py",

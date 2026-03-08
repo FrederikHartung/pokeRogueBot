@@ -1,0 +1,23 @@
+{
+  "scenario_files": [
+    "./scenarios/benchmarked/wild/auto-w1-gen-seed-001.json",
+    "./scenarios/benchmarked/wild/auto-w5-gen-seed-003.json",
+    "./scenarios/benchmarked/wild/auto-w10-gen-seed-002.json",
+    "./scenarios/benchmarked/trainer/trainer-w1-trainer-seed-001.json",
+    "./scenarios/benchmarked/trainer/trainer-w5-trainer-seed-003.json",
+    "./scenarios/benchmarked/trainer/trainer-w10-trainer-seed-002.json"
+  ],
+  "output_path": "./combat/train-5k-bootstrap.jsonl",
+  "append_output": false,
+  "episodes_per_seed": 120,
+  "max_steps_per_episode": 30,
+  "test_timeout_ms": 1800000,
+  "policy": {
+    "type": "epsilon_random",
+    "start_epsilon": 1.0,
+    "end_epsilon": 0.2,
+    "decay_episodes": 400,
+    "switch_action_weight": 0.15,
+    "step_timeout_ms": 15000
+  }
+}

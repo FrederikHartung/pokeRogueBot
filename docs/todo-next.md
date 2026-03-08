@@ -15,6 +15,9 @@
 - Zusätzliche Szenarien via Generator erzeugen (`wild` + `trainer`, mehr seeds/waves)
 - Collector-Runs batchweise ausführen und Datensätze zusammenführen
 - Sanity-Check nach jedem Batch laufen lassen (`npm run rl:check:dataset`)
+- Bootstrap-Run vorbereitet:
+- Config: `data/rl/collector-run-5k-bootstrap.json`
+- Command: `npm run rl:collect:5k`
 
 2. Prod-nahe State-Logging-Pipeline planen
 - Beim echten Bot pro Wave/Battle Snapshot-Contract definieren:
