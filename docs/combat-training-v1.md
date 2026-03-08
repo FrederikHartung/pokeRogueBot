@@ -237,6 +237,8 @@ Day 5:
   - robust step advance with timeout and terminal-phase handling in collector
   - configurable test timeout (`test_timeout_ms`) for longer compare/eval runs
   - deterministic baseline mode `first_valid` for `always_move_0`
+  - optional tester-progress pauses (every 10% with short pause) via env flags:
+    - `CI=1 COLLECTOR_PROGRESS_PAUSE=1 COLLECTOR_PROGRESS_TARGET=5000 COLLECTOR_PROGRESS_STEP=10 COLLECTOR_PROGRESS_PAUSE_MS=4000 npm run rl:collect:5k`
   - benchmark collector currently uses `max_steps_per_episode: 30` with `switch_action_weight: 0.15`
   - verified benchmark run completion: 6 episodes, 43 transitions, 0 timeout outcomes
 

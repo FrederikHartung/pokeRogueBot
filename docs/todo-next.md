@@ -18,6 +18,13 @@
 - Bootstrap-Run vorbereitet:
 - Config: `data/rl/collector-run-5k-bootstrap.json`
 - Command: `npm run rl:collect:5k`
+- Test-Run mit sichtbaren 10%-Zwischenständen (mit 4s Pause):
+- `CI=1 COLLECTOR_PROGRESS_PAUSE=1 COLLECTOR_PROGRESS_TARGET=5000 COLLECTOR_PROGRESS_STEP=10 COLLECTOR_PROGRESS_PAUSE_MS=4000 npm run rl:collect:5k`
+- Schneller Smoke-Run (~500 Transitions):
+- Config: `data/rl/collector-run-500-smoke.json`
+- Command: `npm run rl:collect:500`
+- Optional mit 10%-Pausen:
+- `CI=1 COLLECTOR_PROGRESS_PAUSE=1 COLLECTOR_PROGRESS_TARGET=500 COLLECTOR_PROGRESS_STEP=10 COLLECTOR_PROGRESS_PAUSE_MS=4000 npm run rl:collect:500`
 
 2. Prod-nahe State-Logging-Pipeline planen
 - Beim echten Bot pro Wave/Battle Snapshot-Contract definieren:

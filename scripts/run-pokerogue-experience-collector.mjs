@@ -54,6 +54,27 @@ const policy = config.policy ?? { type: "random", epsilon: 1.0 };
 const testTimeoutMs = Number.isInteger(config.test_timeout_ms) && config.test_timeout_ms > 0
   ? config.test_timeout_ms
   : 120000;
+const terminalOnEggLapse = config.terminal_on_egg_lapse !== false;
+const envProgressPauseEnabled = process.env.COLLECTOR_PROGRESS_PAUSE === "1";
+const envProgressPauseTargetTransitions = Number.parseInt(process.env.COLLECTOR_PROGRESS_TARGET ?? "", 10);
+const envProgressPausePercentStep = Number.parseInt(process.env.COLLECTOR_PROGRESS_STEP ?? "", 10);
+const envProgressPauseMs = Number.parseInt(process.env.COLLECTOR_PROGRESS_PAUSE_MS ?? "", 10);
+const progressPauseEnabled = config.progress_pause_enabled === true || envProgressPauseEnabled;
+const progressPauseTargetTransitions = Number.isInteger(envProgressPauseTargetTransitions) && envProgressPauseTargetTransitions > 0
+  ? envProgressPauseTargetTransitions
+  : Number.isInteger(config.progress_pause_target_transitions) && config.progress_pause_target_transitions > 0
+  ? config.progress_pause_target_transitions
+  : 0;
+const progressPausePercentStep = Number.isInteger(envProgressPausePercentStep) && envProgressPausePercentStep > 0
+  ? envProgressPausePercentStep
+  : Number.isInteger(config.progress_pause_percent_step) && config.progress_pause_percent_step > 0
+  ? config.progress_pause_percent_step
+  : 10;
+const progressPauseMs = Number.isInteger(envProgressPauseMs) && envProgressPauseMs >= 0
+  ? envProgressPauseMs
+  : Number.isInteger(config.progress_pause_ms) && config.progress_pause_ms >= 0
+  ? config.progress_pause_ms
+  : 4000;
 const appendOutput = config.append_output !== false;
 
 mkdirSync(path.dirname(outputPath), { recursive: true });
@@ -80,6 +101,11 @@ const MAX_STEPS_PER_EPISODE = ${maxStepsPerEpisode};
 const POLICY = ${JSON.stringify(policy)};
 const OUTPUT_PATH = ${JSON.stringify(outputPath)};
 const TEST_TIMEOUT_MS = ${testTimeoutMs};
+const TERMINAL_ON_EGG_LAPSE = ${terminalOnEggLapse};
+const PROGRESS_PAUSE_ENABLED = ${progressPauseEnabled};
+const PROGRESS_PAUSE_TARGET_TRANSITIONS = ${progressPauseTargetTransitions};
+const PROGRESS_PAUSE_PERCENT_STEP = ${progressPausePercentStep};
+const PROGRESS_PAUSE_MS = ${progressPauseMs};
 const STEP_TIMEOUT_MS = Number.isFinite(POLICY.step_timeout_ms) && POLICY.step_timeout_ms > 0
   ? POLICY.step_timeout_ms
   : 15000;
@@ -358,19 +384,51 @@ function currentWaveIndexSafe(game: GameManager, fallback: number = -1): number 
   return fallback;
 }
 
-function resolveForcedSwitchIfNeeded(game: GameManager) {
+function resolveForcedSwitchIfNeeded(game: GameManager): "not_switch_phase" | "selected" | "no_candidate" {
   if (!game.isCurrentPhase("SwitchPhase")) {
-    return;
+    return "not_switch_phase";
   }
   const party = game.scene.getPlayerParty();
   const nextIndex = party.findIndex(member => !member.isFainted() && !member.isOnField() && member.isAllowedInBattle());
   if (nextIndex >= 0) {
     game.doSelectPartyPokemon(nextIndex);
+    return "selected";
   }
+  return "no_candidate";
 }
 
 function isHardTerminalPhase(game: GameManager): boolean {
   return game.isCurrentPhase("GameOverPhase") || game.isCurrentPhase("TitlePhase");
+}
+
+function currentPhaseNameSafe(game: GameManager): string {
+  return game.scene.phaseManager.getCurrentPhase()?.constructor?.name ?? "UnknownPhase";
+}
+
+const TERMINAL_PHASE_NAMES = [
+  "GameOverPhase",
+  "PostGameOverPhase",
+  "TitlePhase",
+  "BattleEndPhase",
+  "SelectModifierPhase",
+  "EggLapsePhase",
+];
+
+function hasLoggedTerminalPhaseSince(game: GameManager, fromIndex: number): boolean {
+  const phaseLog = Array.isArray(game.phaseInterceptor.log) ? game.phaseInterceptor.log : [];
+  for (let idx = Math.max(0, fromIndex); idx < phaseLog.length; idx += 1) {
+    if (TERMINAL_PHASE_NAMES.includes(String(phaseLog[idx]))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function isCollectorEpisodeTerminalPhase(game: GameManager): boolean {
+  return isHardTerminalPhase(game)
+    || game.isCurrentPhase("BattleEndPhase")
+    || game.isCurrentPhase("SelectModifierPhase")
+    || (TERMINAL_ON_EGG_LAPSE && game.isCurrentPhase("EggLapsePhase"));
 }
 
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
@@ -387,36 +445,78 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
   }
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function advanceAfterAction(game: GameManager): Promise<"ok" | "terminal" | "timeout"> {
+  const terminalPhasesForTurnAdvance = [
+    "GameOverPhase",
+    "PostGameOverPhase",
+    "TitlePhase",
+    "BattleEndPhase",
+    "SelectModifierPhase",
+    "EggLapsePhase",
+  ];
   try {
     await withTimeout(game.toEndOfTurn(), STEP_TIMEOUT_MS, "end of turn");
   } catch {
-    if (isHardTerminalPhase(game)) {
+    if (isCollectorEpisodeTerminalPhase(game)) {
       return "terminal";
     }
     return "timeout";
   }
 
-  if (isHardTerminalPhase(game)) {
+  if (isCollectorEpisodeTerminalPhase(game)) {
     return "terminal";
   }
 
-  resolveForcedSwitchIfNeeded(game);
+  const switchResolveStatus = resolveForcedSwitchIfNeeded(game);
+  if (switchResolveStatus === "no_candidate") {
+    return "terminal";
+  }
   queueSkipOptionalCheckSwitchPrompt(game);
-
-  try {
-    await withTimeout(game.toNextTurn(), STEP_TIMEOUT_MS, "next turn");
-  } catch {
-    if (isHardTerminalPhase(game)) {
-      return "terminal";
-    }
-    return "timeout";
-  }
-
-  if (isHardTerminalPhase(game)) {
+  if (!hasRemainingPlayerTeam(game) || isVictorySafe(game)) {
     return "terminal";
   }
-  return "ok";
+
+  const phaseLogStart = Array.isArray(game.phaseInterceptor.log) ? game.phaseInterceptor.log.length : 0;
+  let nextTurnResolved = false;
+  let nextTurnTerminal = false;
+  let nextTurnFailed = false;
+  const nextTurnPromise = game
+    .toNextTurn(terminalPhasesForTurnAdvance)
+    .then(result => {
+      if (result === "terminal") {
+        nextTurnTerminal = true;
+      } else {
+        nextTurnResolved = true;
+      }
+    })
+    .catch(() => {
+      nextTurnFailed = true;
+    });
+
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < STEP_TIMEOUT_MS) {
+    if (nextTurnTerminal || isCollectorEpisodeTerminalPhase(game) || hasLoggedTerminalPhaseSince(game, phaseLogStart)) {
+      return "terminal";
+    }
+    if (nextTurnResolved) {
+      return "ok";
+    }
+    if (nextTurnFailed) {
+      return isCollectorEpisodeTerminalPhase(game) || hasLoggedTerminalPhaseSince(game, phaseLogStart) ? "terminal" : "timeout";
+    }
+    await sleep(25);
+  }
+
+  if (isCollectorEpisodeTerminalPhase(game) || hasLoggedTerminalPhaseSince(game, phaseLogStart)) {
+    return "terminal";
+  }
+  // Prevent unhandled rejection if toNextTurn fails after timeout return path.
+  void nextTurnPromise;
+  return "timeout";
 }
 
 function queueSkipOptionalCheckSwitchPrompt(game: GameManager) {
@@ -496,9 +596,12 @@ describe("external combat batch collector", () => {
   });
 
   it("collects multi-step transitions across scenarios", async () => {
+    const runStartedAt = Date.now();
     let totalTransitions = 0;
     let totalEpisodes = 0;
     let globalEpisodeIndex = 0;
+    const plannedEpisodes = SCENARIOS.length * SEEDS.length * EPISODES_PER_SEED;
+    let nextProgressPausePercent = PROGRESS_PAUSE_PERCENT_STEP;
 
     for (const scenario of SCENARIOS) {
       for (const seedOverride of SEEDS) {
@@ -523,8 +626,10 @@ describe("external combat batch collector", () => {
               const prevEnemyHp = state.enemy_hp_ratio;
               const prevPlayerHp = state.player_hp_ratio;
 
+              const stepStartAt = Date.now();
               executeAction(game, action);
               const advanceStatus = await advanceAfterAction(game);
+              const stepMs = Date.now() - stepStartAt;
 
               const enemyPokemon = game.scene.getEnemyPokemon();
               const playerPokemon = game.scene.getPlayerPokemon();
@@ -532,10 +637,9 @@ describe("external combat batch collector", () => {
               const playerFainted = !playerPokemon || playerPokemon.hp <= 0 || playerPokemon.isFainted();
               const enemyTeamDefeated = isVictorySafe(game);
               const playerTeamDefeated = !hasRemainingPlayerTeam(game);
-              const hardTerminalPhase = isHardTerminalPhase(game);
+              const hardTerminalPhase = isCollectorEpisodeTerminalPhase(game);
               const timeoutTruncated = advanceStatus === "timeout";
               let done = enemyTeamDefeated || playerTeamDefeated || hardTerminalPhase || timeoutTruncated;
-
               const nextState = done
                 ? deriveTerminalNextState(state, enemyTeamDefeated, playerTeamDefeated)
                 : buildObservation(game);
@@ -570,14 +674,34 @@ describe("external combat batch collector", () => {
               fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
               fs.appendFileSync(OUTPUT_PATH, \`\${JSON.stringify(record)}\\n\`, { encoding: "utf8" });
               totalTransitions += 1;
+              if (
+                PROGRESS_PAUSE_ENABLED
+                && PROGRESS_PAUSE_TARGET_TRANSITIONS > 0
+                && nextProgressPausePercent <= 100
+              ) {
+                const currentPercent = Math.floor((totalTransitions / PROGRESS_PAUSE_TARGET_TRANSITIONS) * 100);
+                if (currentPercent >= nextProgressPausePercent) {
+                  console.log(
+                    \`[collector-progress-pause] transitions=\${totalTransitions}/\${PROGRESS_PAUSE_TARGET_TRANSITIONS} reached=\${nextProgressPausePercent}% pausing_ms=\${PROGRESS_PAUSE_MS}\`,
+                  );
+                  if (PROGRESS_PAUSE_MS > 0) {
+                    await sleep(PROGRESS_PAUSE_MS);
+                  }
+                  nextProgressPausePercent += PROGRESS_PAUSE_PERCENT_STEP;
+                }
+              }
 
               if (done) {
+                if (timeoutTruncated) {
+                  console.log(\`[collector-timeout] episode=\${episodeId} step=\${stepIndex} phase=\${currentPhaseNameSafe(game)} advance_status=\${advanceStatus} step_ms=\${stepMs}\`);
+                }
                 break;
               }
             }
 
             totalEpisodes += 1;
             globalEpisodeIndex += 1;
+            console.log(\`[collector-progress] episodes=\${totalEpisodes}/\${plannedEpisodes} transitions=\${totalTransitions}\`);
           } finally {
             game.phaseInterceptor.restoreOg();
           }
@@ -587,6 +711,15 @@ describe("external combat batch collector", () => {
 
     console.log(\`Collected episodes: \${totalEpisodes}\`);
     console.log(\`Collected transitions: \${totalTransitions}\`);
+    const totalRuntimeMs = Date.now() - runStartedAt;
+    console.log(\`Collector runtime ms: \${totalRuntimeMs}\`);
+    if (PROGRESS_PAUSE_TARGET_TRANSITIONS > 0) {
+      if (totalTransitions >= PROGRESS_PAUSE_TARGET_TRANSITIONS) {
+        console.log(\`Collector target reached: \${PROGRESS_PAUSE_TARGET_TRANSITIONS} transitions\`);
+      } else {
+        console.log(\`Collector target not reached: \${totalTransitions}/\${PROGRESS_PAUSE_TARGET_TRANSITIONS} transitions\`);
+      }
+    }
   }, TEST_TIMEOUT_MS);
 });
 `;
