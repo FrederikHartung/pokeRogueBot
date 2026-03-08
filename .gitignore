@@ -51,3 +51,7 @@ node_modules/
 
 # Generated JS bridge files (source of truth is src/main/ts/)
 src/main/js/*.js
+
+# RL generated artifacts
+data/rl/scenarios/generated-*/
+data/rl/combat/*.jsonl

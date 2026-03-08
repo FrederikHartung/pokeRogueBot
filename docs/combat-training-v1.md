@@ -190,6 +190,13 @@ Day 5:
   - output directory: `data/rl/scenarios/generated-w1-20`
   - 86 single-battle scenarios generated from a 5x20 sweep
   - 14 scenarios skipped due to double battles (expected under v1 scope)
+- Verified trainer-only sweep result:
+  - output directory: `data/rl/scenarios/generated-trainer-w1-20`
+  - 53 single-battle trainer scenarios generated from a 3x20 sweep
+  - 7 scenarios skipped due to double battles (expected under v1 scope)
+- Repository policy:
+  - checked in: scripts/config/schema + small benchmark scenario set (`data/rl/scenarios/benchmarked`)
+  - not checked in: bulk generated scenario folders (`data/rl/scenarios/generated-*`) and transition dumps (`data/rl/combat/*.jsonl`)
 
 ## Prerequisites
 

@@ -1,6 +1,6 @@
 {
-  "seed": "gen-seed-002",
-  "wave": 8,
+  "seed": "trainer-seed-003",
+  "wave": 5,
   "battle_type": "single",
   "player_team": [
     {
@@ -56,10 +56,10 @@
     }
   ],
   "enemy": {
-    "species_id": 656,
-    "level": 7,
+    "species_id": 504,
+    "level": 4,
     "nature": 0,
-    "ability_index": 0,
+    "ability_index": 1,
     "ivs": [
       31,
       31,
@@ -69,9 +69,8 @@
       31
     ],
     "moveset": [
-      55,
-      45,
-      1
+      33,
+      43
     ]
   }
 }

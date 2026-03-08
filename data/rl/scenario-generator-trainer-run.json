@@ -1,0 +1,14 @@
+{
+  "output_dir": "./scenarios/generated-trainer-w1-20",
+  "clear_output_dir": true,
+  "battle_mode": "trainer",
+  "skip_double_battles": true,
+  "seeds": [
+    "trainer-seed-001",
+    "trainer-seed-002",
+    "trainer-seed-003"
+  ],
+  "wave_start": 1,
+  "wave_end": 20,
+  "team_species": [1, 4, 7]
+}
