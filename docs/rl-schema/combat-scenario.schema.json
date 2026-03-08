@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/combat-scenario.schema.json",
+  "title": "CombatScenarioV1",
+  "type": "object",
+  "required": [
+    "seed",
+    "wave",
+    "player_team",
+    "enemy",
+    "battle_type"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "seed": {
+      "type": "string",
+      "minLength": 1
+    },
+    "wave": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "battle_type": {
+      "type": "string",
+      "enum": [
+        "single"
+      ]
+    },
+    "player_team": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "items": {
+        "$ref": "#/$defs/team_member"
+      }
+    },
+    "enemy": {
+      "$ref": "#/$defs/enemy_config"
+    }
+  },
+  "$defs": {
+    "moveset": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "items": {
+        "type": "integer",
+        "minimum": 1
+      }
+    },
+    "ivs": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 31
+      }
+    },
+    "held_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "team_member": {
+      "type": "object",
+      "required": [
+        "species_id",
+        "level",
+        "moveset"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "species_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "nature": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ability_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ivs": {
+          "$ref": "#/$defs/ivs"
+        },
+        "moveset": {
+          "$ref": "#/$defs/moveset"
+        },
+        "held_items": {
+          "$ref": "#/$defs/held_items"
+        }
+      }
+    },
+    "enemy_config": {
+      "type": "object",
+      "required": [
+        "species_id",
+        "level",
+        "moveset"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "species_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "nature": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ability_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ivs": {
+          "$ref": "#/$defs/ivs"
+        },
+        "moveset": {
+          "$ref": "#/$defs/moveset"
+        },
+        "held_items": {
+          "$ref": "#/$defs/held_items"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "output_dir": "./scenarios/generated-w1-20",
+  "clear_output_dir": true,
+  "battle_mode": "auto",
+  "disable_trainer_waves": false,
+  "skip_double_battles": true,
+  "seeds": [
+    "gen-seed-001",
+    "gen-seed-002",
+    "gen-seed-003",
+    "gen-seed-004",
+    "gen-seed-005"
+  ],
+  "wave_start": 1,
+  "wave_end": 20,
+  "team_species": [1, 4, 7]
+}

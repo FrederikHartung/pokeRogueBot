@@ -1,0 +1,17 @@
+{
+  "scenario_dir": "./scenarios",
+  "output_path": "./combat/train.jsonl",
+  "append_output": false,
+  "seeds": [
+    "batch-seed-001",
+    "batch-seed-002"
+  ],
+  "episodes_per_seed": 1,
+  "max_steps_per_episode": 6,
+  "policy": {
+    "type": "epsilon_random",
+    "start_epsilon": 1.0,
+    "end_epsilon": 0.1,
+    "decay_episodes": 50
+  }
+}

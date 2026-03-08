@@ -1,0 +1,76 @@
+{
+  "seed": "gen-seed-001",
+  "wave": 9,
+  "battle_type": "single",
+  "player_team": [
+    {
+      "species_id": 1,
+      "level": 5,
+      "nature": 0,
+      "ability_index": 0,
+      "ivs": [
+        31,
+        31,
+        31,
+        31,
+        31,
+        31
+      ],
+      "moveset": [
+        33
+      ]
+    },
+    {
+      "species_id": 4,
+      "level": 5,
+      "nature": 0,
+      "ability_index": 0,
+      "ivs": [
+        31,
+        31,
+        31,
+        31,
+        31,
+        31
+      ],
+      "moveset": [
+        33
+      ]
+    },
+    {
+      "species_id": 7,
+      "level": 5,
+      "nature": 0,
+      "ability_index": 0,
+      "ivs": [
+        31,
+        31,
+        31,
+        31,
+        31,
+        31
+      ],
+      "moveset": [
+        33
+      ]
+    }
+  ],
+  "enemy": {
+    "species_id": 283,
+    "level": 7,
+    "nature": 0,
+    "ability_index": 0,
+    "ivs": [
+      31,
+      31,
+      31,
+      31,
+      31,
+      31
+    ],
+    "moveset": [
+      55,
+      98
+    ]
+  }
+}

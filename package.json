@@ -1,7 +1,11 @@
 {
   "private": true,
   "scripts": {
-    "build:js": "node build-js.mjs"
+    "build:js": "node build-js.mjs",
+    "rl:poc:experience": "node scripts/run-pokerogue-experience-poc.mjs",
+    "rl:dump:starters": "node scripts/dump-pokerogue-starter-defaults.mjs",
+    "rl:collect": "node scripts/run-pokerogue-experience-collector.mjs",
+    "rl:gen:scenarios": "node scripts/run-pokerogue-scenario-generator.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.25.0"
