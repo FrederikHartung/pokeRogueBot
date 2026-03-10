@@ -216,3 +216,59 @@ Kurzfazit:
 - Der Reward-Exploit aus `Run 7` ist deutlich eingedaemmt; der DQN liegt nicht mehr durch kuenstlich aufgepumpte Switch-Rewards vorne.
 - Gegen `random` verbessert sich der DQN klar, gegen `always_move_0` bleibt er aber weiterhin beim `Avg Reward` und bei der Effizienz zurueck.
 - `truncated_rate` lag fuer alle Policies weiterhin bei `0.000`.
+
+## Run 9
+
+- Datum: 2026-03-10
+- Beschreibung: Erster echter Wave-Library-V2-Lauf mit neuem Deep-Datensatz und neuem V2-Benchmark-Set fuer Waves 1-8
+- Laufnummer: 9
+- Trainingsdaten: `2906` Transitions aus `data/rl/combat/train-wave-library-deep-w1-8.jsonl`
+- Checkpoint: `data/rl/models/dqn-combat-wave-library-v2-deep.pt`
+- Benchmark-Report: `data/rl/combat/eval-policy-compare-wave-library-v2-deep-report.json`
+
+Ergebnisse:
+
+| Policy | Win Rate | Avg Reward | Avg Turns | Benchmark-Transitions |
+| --- | ---: | ---: | ---: | ---: |
+| `random` | 0.875 | 7.3228 | 7.25 | 58 |
+| `always_move_0` | 0.875 | 7.6773 | 5.62 | 45 |
+| `dqn` | 0.125 | -39.7410 | 36.38 | 291 |
+
+Delta:
+
+- `dqn_vs_random`: win_rate `-0.750`, avg_reward `-47.0638`, avg_turns `+29.13`
+- `dqn_vs_always_move_0`: win_rate `-0.750`, avg_reward `-47.4183`, avg_turns `+30.75`
+
+Kurzfazit:
+
+- Der erste V2-DQN ist auf dem neuen Wave-Library-V2-Benchmark klar regressiv.
+- Besonders auffaellig sind massiv laengere Kaempfe und sehr viele zusaetzliche Transitionen, was auf unguenstiges Switchen und schwache Abschlussentscheidungen hindeutet.
+- `truncated_rate` lag trotz des schlechten Verhaltens fuer alle Policies bei `0.000`; das Problem ist also Policy-Qualitaet, nicht Benchmark-Stabilitaet.
+
+## Run 10
+
+- Datum: 2026-03-11
+- Beschreibung: Zweiter Wave-Library-V2-Lauf nach Haertung der Datengenerierung mit relativer Epsilon-Steuerung, reproduzierbarem per-wave Sampling und deutlich hoeherer Switch-Exploration
+- Laufnummer: 10
+- Trainingsdaten: `3050` Transitions aus `data/rl/combat/train-wave-library-deep-w1-8.jsonl`
+- Checkpoint: `data/rl/models/dqn-combat-wave-library-v2-deep.pt`
+- Benchmark-Report: `data/rl/combat/eval-policy-compare-wave-library-v2-deep-report.json`
+
+Ergebnisse:
+
+| Policy | Win Rate | Avg Reward | Avg Turns | Benchmark-Transitions |
+| --- | ---: | ---: | ---: | ---: |
+| `random` | 0.875 | 7.4021 | 7.00 | 56 |
+| `always_move_0` | 0.875 | 7.6773 | 5.62 | 45 |
+| `dqn` | 0.750 | -51.6208 | 37.50 | 300 |
+
+Delta:
+
+- `dqn_vs_random`: win_rate `-0.125`, avg_reward `-59.0229`, avg_turns `+30.50`
+- `dqn_vs_always_move_0`: win_rate `-0.125`, avg_reward `-59.2981`, avg_turns `+31.88`
+
+Kurzfazit:
+
+- Gegenueber `Run 9` verbessert sich die `win_rate` des DQN deutlich von `0.125` auf `0.750`, der Agent verliert also nicht mehr fast alle V2-Benchmark-Kaempfe.
+- Das Kernproblem bleibt aber bestehen: der DQN erzeugt weiterhin extrem lange Kaempfe und sehr schlechten kumulativen Reward, also weiter legale, aber ineffiziente Entscheidungsfolgen.
+- `truncated_rate` blieb erneut fuer alle Policies bei `0.000`; die V2-Benchmark-Stabilitaet ist also gegeben, die Policy-Qualitaet noch nicht.

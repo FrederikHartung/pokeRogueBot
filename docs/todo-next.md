@@ -246,6 +246,9 @@ Verbindlicher Schema-Hinweis:
 - persistierte produktive Snapshot-Daten fuer Waves `9`/`10` erzeugen oder aus bestehendem Material nachziehen
 - danach den V2-Pfad auch fuer diese beiden `hard`-Wellen materialisieren und validieren
 - erst im Anschluss Held-Items und globale Modifier materialisieren
+- Selektionslogik fuer mehrere Snapshots derselben Welle erweitern:
+- wenn pro `wave_index` mehr Kandidaten vorliegen als `max_scenarios_per_wave`, soll die Auswahl nicht immer deterministisch die ersten Eintraege nehmen
+- statt dessen konfigurierbares zufaelliges Sampling pro Welle einfuehren, idealerweise reproduzierbar ueber einen festen Selection-Seed
 
 6. State- und Switch-Abdeckung auswerten
 - Verteilung der neuen `state_variant`-Profile im Datensatz prüfen
@@ -270,3 +273,24 @@ Verbindlicher Schema-Hinweis:
 - Aktuelle Bench-Metriken
 - Neue Startzustands-Varianten fuer HP-/Switch-Training
 - Risiken/Nächste Schritte
+
+10. Wave-Library V2 Datengenerierung weiter haerten
+- Review-Befund vom `2026-03-10` festhalten:
+- Datengenerierung war der groesste V2-Mismatch, Training methodisch noch POC, Benchmarking noch zu klein
+- Bereits umgesetzt:
+- reproduzierbares `random_per_wave`-Sampling im Profil-Runner
+- relative Explorationssteuerung ueber `decay_fraction` im Collector
+- V2-Profile mit hoeherer Switch-Exploration (`switch_action_weight = 0.5`) statt altem V1-Wert `0.15`
+- Bereits verifiziert am `2026-03-11`:
+- neuer Deep-Datensatz erzeugt: `450` Episoden, `3050` Transitionen, ca. `242s` Collector-Laufzeit
+- Switch-Quote im Datensatz von `1.27%` auf `6.92%` gestiegen
+- neues V2-Training + V2-Benchmark gelaufen
+- `Run 10` in `docs/benchmark-history.md` dokumentiert
+- Offene naechste Schritte:
+- Training haerten; Datengenerierung ist nicht mehr der primaere Engpass
+- zuerst pragmatisch mit weniger Epochen, Checkpoint-Selektion oder frueherem Stopp experimentieren
+- falls das DQN weiter in Switch-/Loop-Muster kippt:
+- konservativere Offline-RL-Strategie oder zusaetzliche Policy-Guardrails pruefen
+- Benchmarking spaeter verbreitern:
+- mehr als ein V2-Szenario pro Welle
+- zusaetzliche Diagnosemetriken fuer Loop-/Switch-Verhalten

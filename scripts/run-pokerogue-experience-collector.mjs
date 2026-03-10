@@ -120,6 +120,7 @@ const stateVariants = Array.isArray(config.state_variants) && config.state_varia
   ? config.state_variants.map(String)
   : [];
 const quietGameLogs = config.quiet_game_logs === true || process.env.COLLECTOR_QUIET_GAME_LOGS === "1";
+const plannedEpisodes = scenarios.length * seeds.length * episodesPerSeed;
 
 mkdirSync(path.dirname(outputPath), { recursive: true });
 if (!appendOutput && existsSync(outputPath)) {
@@ -181,6 +182,7 @@ const PROGRESS_PAUSE_PERCENT_STEP = ${progressPausePercentStep};
 const PROGRESS_PAUSE_MS = ${progressPauseMs};
 const STATE_VARIANTS = ${JSON.stringify(stateVariants)};
 const QUIET_GAME_LOGS = ${quietGameLogs};
+const PLANNED_EPISODES = ${plannedEpisodes};
 const STEP_TIMEOUT_MS = Number.isFinite(POLICY.step_timeout_ms) && POLICY.step_timeout_ms > 0
   ? POLICY.step_timeout_ms
   : 15000;
@@ -903,7 +905,12 @@ function computeScheduledEpsilon(globalEpisodeIndex: number): number {
 
   const start = Number.isFinite(POLICY.start_epsilon) ? POLICY.start_epsilon : 1.0;
   const end = Number.isFinite(POLICY.end_epsilon) ? POLICY.end_epsilon : 0.05;
-  const decayEpisodes = Number.isFinite(POLICY.decay_episodes) && POLICY.decay_episodes > 0
+  const decayFraction = Number.isFinite(POLICY.decay_fraction) && POLICY.decay_fraction > 0
+    ? Number(POLICY.decay_fraction)
+    : null;
+  const decayEpisodes = decayFraction != null
+    ? Math.max(1, Math.round(PLANNED_EPISODES * Math.min(1, decayFraction)))
+    : Number.isFinite(POLICY.decay_episodes) && POLICY.decay_episodes > 0
     ? POLICY.decay_episodes
     : 100;
 
@@ -1510,7 +1517,6 @@ describe("external combat batch collector", () => {
     let totalTransitions = 0;
     let totalEpisodes = 0;
     let globalEpisodeIndex = 0;
-    const plannedEpisodes = SCENARIOS.length * SEEDS.length * EPISODES_PER_SEED;
     let nextProgressPausePercent = PROGRESS_PAUSE_PERCENT_STEP;
 
     for (const scenario of SCENARIOS) {
@@ -1660,7 +1666,7 @@ describe("external combat batch collector", () => {
 
             totalEpisodes += 1;
             globalEpisodeIndex += 1;
-            console.log(\`[collector-progress] episodes=\${totalEpisodes}/\${plannedEpisodes} transitions=\${totalTransitions}\`);
+            console.log(\`[collector-progress] episodes=\${totalEpisodes}/\${PLANNED_EPISODES} transitions=\${totalTransitions}\`);
           } finally {
             game.phaseInterceptor.restoreOg();
           }

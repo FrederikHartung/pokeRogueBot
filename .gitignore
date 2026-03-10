@@ -54,6 +54,7 @@ src/main/js/*.js
 
 # RL generated artifacts
 data/rl/scenarios/generated-*/
+data/rl/generated/*.json
 data/rl/combat/*.jsonl
 data/rl/combat/*-report.json
 data/rl/models/*.pt
