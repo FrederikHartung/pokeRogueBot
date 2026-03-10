@@ -25,9 +25,14 @@ class WaveBridgeContractTest {
         assertEquals(1, waveDto.turn)
         assertEquals(120, waveDto.money)
         assertEquals("PLAINS", waveDto.arena?.biome?.name)
+        assertEquals("DEFAULT", waveDto.battleSpec)
         assertEquals("SWITCH", waveDto.battleStyle?.name)
         assertEquals("WILD", waveDto.battleType?.name)
         assertFalse(waveDto.isDoubleFight)
+        assertEquals(null, waveDto.trainerType)
+        assertEquals(null, waveDto.mysteryEncounterType)
+        assertTrue(waveDto.playerGlobalModifiers.isEmpty())
+        assertTrue(waveDto.enemyGlobalModifiers.isEmpty())
         assertEquals(5, waveDto.pokeballCount[0])
         assertEquals(1, waveDto.wavePokemon.enemyParty.size)
         assertEquals(1, waveDto.wavePokemon.playerParty.size)
@@ -57,6 +62,9 @@ class WaveBridgeContractTest {
         require(waveDto.money >= 0) { "money must not be negative" }
         require(waveDto.enemyFaints >= 0) { "enemyFaints must not be negative" }
         require(waveDto.playerFaints >= 0) { "playerFaints must not be negative" }
+        require(waveDto.battleSpec != null) { "battleSpec must not be null" }
+        require(waveDto.playerGlobalModifiers.none { it.typeId.isBlank() }) { "playerGlobalModifiers must not contain blank typeId" }
+        require(waveDto.enemyGlobalModifiers.none { it.typeId.isBlank() }) { "enemyGlobalModifiers must not contain blank typeId" }
         require(waveDto.pokeballCount.size == 5) { "pokeballCount must contain exactly 5 entries" }
         require(waveDto.pokeballCount.all { it >= 0 }) { "pokeballCount entries must not be negative" }
         require(waveDto.wavePokemon.enemyParty.isNotEmpty()) { "enemyParty must not be empty" }

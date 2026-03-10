@@ -4,6 +4,7 @@ import type { PokemonMove } from "../../../pokerogue/src/data/moves/pokemon-move
 import type { Move } from "../../../pokerogue/src/data/moves/move";
 import type { PokemonSpecies } from "../../../pokerogue/src/data/pokemon-species";
 import type { PokemonSpeciesForm } from "../../../pokerogue/src/data/pokemon-species";
+import type { PokemonHeldItemModifier } from "../../../pokerogue/src/modifier/modifier";
 
 type StatusDto = {
     effect: string;
@@ -99,12 +100,27 @@ type PokemonDto = {
     species: SpeciesDto | null;
     stats: StatsDto;
     status: StatusDto | null;
+    currentAbilityId: number;
+    currentAbilityName: string;
+    passiveAbilityId: number;
+    passiveAbilityName: string;
+    abilitySuppressed: boolean;
+    heldItems: HeldItemDto[];
     battleStats: StatsDto | null;
+    statStages: number[];
     variant: number;
     boss: boolean;
     bossSegments: number;
     player: boolean;
     compatibleTms?: number[];
+};
+
+type HeldItemDto = {
+    typeId: string;
+    name: string;
+    modifierClass: string;
+    stackCount: number;
+    isTransferable: boolean;
 };
 
 type PokeApi = {
@@ -116,12 +132,14 @@ type PokeApi = {
     getStatusEffectAsString: (id: number) => string;
     getCategoryAsString: (id: number) => string;
     getStatus: (pokemon: Pokemon) => StatusDto | null;
+    getHeldItems: (pokemon: Pokemon) => HeldItemDto[];
     getMoveDto: (move: Move, isUsable: boolean, ppUsed: number) => MoveDto | undefined;
     getMovesetDto: (pokemon: Pokemon) => MoveDto[];
     getFormDto: (form: PokemonSpeciesForm) => FormDto | null;
     getFormsDto: (forms: PokemonSpeciesForm[]) => FormDto[] | null;
     getSpeciesDto: (species: PokemonSpecies, formIndex?: number) => SpeciesDto | null;
     getBattleStats: (pokemon: Pokemon) => StatsDto | null;
+    getStatStages: (pokemon: Pokemon) => number[];
     getPokemonDto: (pokemon: Pokemon) => PokemonDto;
 };
 
@@ -181,6 +199,20 @@ const pokeApi: PokeApi = {
             effect: pokeApi.getStatusEffectAsString(status.effect), // String
             turnCount: status.sleepTurnsRemaining ?? status.toxicTurnCount ?? 0, // Integer
         };
+    },
+
+    getHeldItems: (pokemon: Pokemon) => {
+        if (!pokemon) {
+            return [];
+        }
+
+        return pokemon.getHeldItems().map((item: PokemonHeldItemModifier) => ({
+            typeId: item.type.id,
+            name: item.type.name,
+            modifierClass: item.constructor.name,
+            stackCount: item.stackCount,
+            isTransferable: item.isTransferable,
+        }));
     },
 
     getMoveDto: (move: Move, isUsable: boolean, ppUsed: number) => {
@@ -379,6 +411,14 @@ const pokeApi: PokeApi = {
         };
     },
 
+    getStatStages: (pokemon: Pokemon) => {
+        if (!pokemon) {
+            return [];
+        }
+
+        return [...pokemon.getStatStages()];
+    },
+
     getPokemonDto: (pokemon: Pokemon) => {
 
         const dto: PokemonDto = {
@@ -419,7 +459,14 @@ const pokeApi: PokeApi = {
                 speed: pokemon.stats[5], //integer
             },
             status: pokeApi.getStatus(pokemon), //object
+            currentAbilityId: pokemon.getAbility().id, //integer
+            currentAbilityName: pokemon.getAbility().name, //string
+            passiveAbilityId: pokemon.getPassiveAbility().id, //integer
+            passiveAbilityName: pokemon.getPassiveAbility().name, //string
+            abilitySuppressed: pokemon.summonData.abilitySuppressed, //boolean
+            heldItems: pokeApi.getHeldItems(pokemon), //array of objects
             battleStats: pokeApi.getBattleStats(pokemon), //object
+            statStages: pokeApi.getStatStages(pokemon), //array of integers
             variant: pokemon.variant, //integer
 
             //battleInfo

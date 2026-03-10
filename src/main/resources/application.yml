@@ -61,6 +61,11 @@ bot:
   maxRunsTillShutdown: -1
   startBotOnStartup: true
   combat-policy-mode: random_move
+  productive-wave-library:
+    enabled: true
+    output-dir: "data/offline-wave-library"
+    snapshot-file-name: "productive-wave-snapshots-v1.jsonl"
+    fingerprint-file-name: "productive-wave-fingerprints-v1.txt"
   dqn:
     python-command: python3
     infer-script: scripts/dqn_policy_infer.py

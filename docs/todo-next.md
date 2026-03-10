@@ -19,6 +19,8 @@ Prioritaetswechsel fuer die naechste Session:
 - neues Spiel kann gestartet werden
 - drei Starter-Pokemon koennen ausgewaehlt werden
 - der eigentliche Run kann gestartet werden
+- Live-Run erreicht wieder fruehe Kampfphasen
+- `random_move` waehlt in `CommandPhase` wieder pro Turn eine frische zufaellige legale Attacke statt eine gecachte Altentscheidung zu wiederholen
 - zentrale Bridge-Dateien wurden bereits auf den aktuellen Submodul-Stand nachgezogen (`util.ts`, `wave.ts`, `uihandler.ts`, `poke.ts`)
 - erste Drift-/Contract-Guardrails fuer die Bridge sind bereits vorhanden:
 - `UiModeDriftTest`
@@ -30,7 +32,7 @@ Prioritaetswechsel fuer die naechste Session:
 - `BridgeContractCoverageGuardTest`
 - Noch offen fuer echte End-to-End-Bestaetigung:
 - Browser-/Game-Live-Run ueber die ersten aktiven Kampf-/Wave-Phasen hinaus ohne JS-Bridge-Fehler
-- systematische Typisierung und Reparatur der restlichen bzw. noch nicht verifizierten Bridge-Dateien
+- verbleibende Contract-Abdeckung fuer noch nicht verifizierte Bridge-Endpunkte
 
 0. Status: `lead_1hp`-Training + Benchmark nach Reward-Umbau ist erledigt (10. Maerz 2026)
 - Command: `npm run rl:eval:compare:lead-1hp`
@@ -56,21 +58,21 @@ Verbindlicher Schema-Hinweis:
 - Ziel: alle zentralen Bridge-Einstiegspunkte in `src/main/ts/` an echte PokeRogue-Typen anbinden
 - Fokus:
 - verbleibende nicht vertraglich abgedeckte Bridge-Endpunkte (`SaveSlotDto`, `ModifierShop`, `WaveAndTurnDto`, weitere primitive Endpunkte) mit Fixtures + Contract-Tests absichern
-- `getBattleScene()` und alle davon abhaengigen Methoden nicht mehr als implizites `any` behandeln
-- gedriftete Zugriffe auf `BattleScene`, `UI`, `PhaseManager`, `Pokemon`, `Arena` und verwandte Typen identifizieren und auf die aktuelle API umstellen
-- wo moeglich oeffentliche Methoden statt direkter Feldzugriffe verwenden
+- Reststellen in `src/main/ts/` weiter gegen den aktuellen Submodul-Stand pruefen, auch wenn aktuell kein `any` mehr im Bridge-Code verbleibt
+- verbleibende gedriftete Zugriffe auf `BattleScene`, `UI`, `PhaseManager`, `Pokemon`, `Arena` und verwandte Typen identifizieren und auf die aktuelle API umstellen
+- wo moeglich weiterhin oeffentliche Methoden statt direkter Feldzugriffe verwenden
 - Abschlusskriterium:
 - die wichtigsten Bridge-Dateien sind typisiert und die aktuell bekannten Laufzeitfehler in fruehen Spielphasen sind beseitigt
 - naechster Fokus innerhalb dieses Punkts: Kampf-/Wave-nahe Bridge-Aufrufe im echten Run weiter pruefen
 
-2. Live-Bot wieder lauffaehig machen: `random_move`
-- Ziel: Anwendung wieder stabil startbar und im echten Run mit minimaler Combat-Policy betreibbar machen
+2. Live-Bot mit `random_move` weiter stabilisieren
+- Ziel: den jetzt wieder funktionierenden `random_move`-Pfad ueber laengere Runs absichern
 - Fokus:
-- nach der aktuellen Bridge-Stabilisierung Config-/Enum-Pfad fuer `random_move` verifizieren
-- Brain/CommandPhase/Policy-Auswahl so verdrahten, dass Single-Battle-Attacken zufaellig aus legalen Moves gewaehlt werden
-- bestehende Fallbacks fuer Sonderfaelle (keine legalen Moves, Double Battle, erzwungener Switch) intakt lassen
+- laengere Live-Runs beobachten und verbleibende UI-/Bridge-Sonderfaelle dokumentieren
+- bestehende Fallbacks fuer Sonderfaelle (keine legalen Moves, Double Battle, erzwungener Switch) weiter absichern
+- falls neue UI-Drift auftritt, passende Guardrails oder Contract-Fixtures nachziehen
 - Abschlusskriterium:
-- Anwendung startet, ein Run kann bis in aktive Kampfphasen laufen und `random_move` kann als Combat-Policy ohne offensichtlichen Laufzeitfehler ausgewaehlt werden
+- Anwendung laeuft reproduzierbar ueber mehrere fruehe Waves ohne offensichtlichen UI-/Bridge- oder Policy-Fehler
 
 3. Kotlin-Bot-Varianten fuer Combat-/Switch-Policies ausbauen
 - Ziel: statt nur `SimpleBot` drei klar unterscheidbare Bot-Varianten bzw. drei Combat-Policy-Modi bereitstellen
@@ -133,12 +135,52 @@ Verbindlicher Schema-Hinweis:
 - Optional mit 10%-Pausen:
 - `CI=1 COLLECTOR_PROGRESS_PAUSE=1 COLLECTOR_PROGRESS_TARGET=500 COLLECTOR_PROGRESS_STEP=10 COLLECTOR_PROGRESS_PAUSE_MS=4000 npm run rl:collect:500`
 
-5. Prod-nahe State-Logging-Pipeline planen
-- Beim echten Bot pro Wave/Battle Snapshot-Contract definieren:
-- eigenes Team + gegnerisches Team
-- wild vs trainer
-- Bälle/Inventar
-- Ziel: realistische State-Library für Domain-Shift-Analyse
+5. Prod-nahe Wave-Library fuer Offline-Headless-Runs aufbauen
+- Status: V1 ist umgesetzt (10. Maerz 2026)
+- Implementiert:
+- Feature ist ueber `bot.productive-wave-library.*` in `application.yml` konfigurierbar
+- Persistierung passiert beim echten Bot an neuer Wave ueber den bestehenden Hook `CommandPhase` -> `brain.informWaveEnded(...)`
+- eigener Collector-Service `ProductiveWaveSnapshotService` vorhanden
+- Ausgabe als deduplizierte JSONL-Library + Fingerprint-Datei unter `data/offline-wave-library/`
+- Deduplikation ueber kanonischen Snapshot + `sha256`
+- dedizierte Dokumentation vorhanden: `docs/productive-wave-library-v1.md`
+- Live-Check erfolgreich:
+- Snapshot- und Fingerprint-Dateien werden beim echten Botlauf erzeugt und fortgeschrieben
+- zuletzt verifiziert mit wachsenden Eintragszahlen und plausiblen Wellen-Snapshots im lokalen Lauf
+- globale Modifier-Felder sind im aktuellen Fruehspiel-Datensatz ueberall leer, was fuer diese Runs plausibel ist und kein Fehlerbild darstellt
+- Aktuell bereits persistiert:
+- Wave-/Battle-Kontext:
+- `waveIndex`, `battleType`, `battleSpec`, `battleStyle`, `battleScore`, `isDoubleFight`
+- `biome`, `arenaLastTimeOfDay`, `turn`
+- `enemyFaints`, `playerFaints`, `money`, `moneyScattered`, `pokeballCount`
+- Trainer-/Encounter-Kontext:
+- `trainerType`, `trainerName`, `trainerDisplayName`, `trainerIsBoss`, `trainerSpecialtyType`
+- `mysteryEncounterType`, `mysteryEncounterMode`
+- globale persistente Modifier:
+- `playerGlobalModifiers`, `enemyGlobalModifiers` fuer nicht direkt pokemon-gebundene Modifier
+- Team-/Pokemon-Kontext:
+- komplettes Player-Team und Enemy-Team in Party-Reihenfolge
+- pro Pokemon u. a. `id`, `name`, `speciesId`, `speciesName`, `formIndex`, `level`, `gender`, `nature`
+- `hp`, `stats`, `battleStats`, `statStages`, `ivs`, `status`, `moveset`
+- `isBoss`, `bossSegments`, `isShiny`, `player`
+- Feldbelegung:
+- `isOnField`
+- `activeFieldSlotIndex`
+- Roh-/Debug-Felder weiterhin enthalten:
+- `active`, `fieldPosition`, `position`
+- diese Rohfelder sollen aktuell nicht als Primaerquelle fuer die echte Feldbelegung interpretiert werden
+- Wichtige fachliche Erkenntnis aus der Implementierung:
+- `pokemon.active` aus dem Submodul ist nicht gleichbedeutend mit "steht aktuell aktiv auf dem Feld"
+- die brauchbare Feldbelegung wird stattdessen explizit ueber `scene.getPlayerField(true)` und `scene.getEnemyField(true)` abgeleitet
+- dadurch sind `isOnField` und `activeFieldSlotIndex` jetzt die relevanten Felder fuer spaetere Reproduktion
+- Noch offen fuer den naechsten Ausbau:
+- Arena-Tags bzw. sonstige feldweite Effekte ausserhalb der globalen Modifier-Listen
+- genauere Trainer-/Encounter-Metadaten jenseits des aktuellen V1-Kontexts
+- weitere temporaere Kampfzustaende, falls fuer spaetere Headless-Reproduktion noetig
+- RNG-/Seed-nahe Informationen fuer echte 1:1-Reproduktion
+- Naechster Fokus innerhalb dieses Punkts:
+- V1 ist abgeschlossen
+- V2-/Repro-Gaps separat priorisieren
 
 6. State- und Switch-Abdeckung auswerten
 - Verteilung der neuen `state_variant`-Profile im Datensatz prüfen

@@ -29,6 +29,7 @@ class Brain(
     private val jsUiService: JsUiService,
     private val shortTermMemory: ShortTermMemory,
     private val longTermMemory: LongTermMemory,
+    private val productiveWaveSnapshotService: ProductiveWaveSnapshotService,
     private val combatSwitchPolicy: CombatSwitchPolicy,
     private val capturePokemonNeuron: CapturePokemonNeuron,
     private val learnMoveNeuron: LearnMoveNeuron,
@@ -98,6 +99,7 @@ class Brain(
 
     fun informWaveEnded(newWaveIndex: Int) {
         this.waveDto = jsService.getWaveDto()
+        productiveWaveSnapshotService.persistSnapshotIfNew(waveDto)
 
         // Episode continues - no action needed here
         // Episodes are completed only when runs end (team wipe/victory)

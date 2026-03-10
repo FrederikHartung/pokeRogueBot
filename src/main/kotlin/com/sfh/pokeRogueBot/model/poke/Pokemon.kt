@@ -8,11 +8,10 @@ import com.sfh.pokeRogueBot.model.enums.Gender
 import com.sfh.pokeRogueBot.model.enums.Nature
 
 data class Pokemon(
-    //every outcommented field is not used in the current version of the bot
-    //var active: Boolean = false,
+    var active: Boolean = false,
     //var aiType: Int? = null,
-    //var exclusive: Boolean = false,
-    //var fieldPosition: Int = 0,
+    var exclusive: Boolean = false,
+    var fieldPosition: Int = 0,
     var formIndex: Int? = null,
     var friendship: Int = 0,
     var gender: Gender,
@@ -26,15 +25,25 @@ data class Pokemon(
     var moveset: Array<Move>,
     var name: String,
     var nature: Nature,
-    //var passive: Boolean = false,
+    var passive: Boolean = false,
     var pokerus: Boolean = false,
-    //var position: Int = 0,
+    var position: Int = 0,
+    var isOnField: Boolean = false,
+    var activeFieldSlotIndex: Int? = null,
     @SerializedName("shiny")
     var isShiny: Boolean = false,
     var species: Species,
     var stats: Stats,
     var status: Status? = null,
-    //var variant: Int = 0,
+    var currentAbilityId: Int = 0,
+    var currentAbilityName: String = "",
+    var passiveAbilityId: Int = 0,
+    var passiveAbilityName: String = "",
+    var abilitySuppressed: Boolean = false,
+    var heldItems: List<HeldItemModifier> = emptyList(),
+    var battleStats: Stats? = null,
+    var statStages: IntArray = intArrayOf(),
+    var variant: Int = 0,
     @SerializedName("boss")
     var isBoss: Boolean = false,
     var bossSegments: Int = 0,
@@ -45,14 +54,30 @@ data class Pokemon(
         fun createDefault(): Pokemon {
 
             return Pokemon(
+                active = false,
+                exclusive = false,
+                fieldPosition = 0,
                 gender = Gender.MALE,
                 ivs = Iv.createDefault(),
                 moveset = arrayOf(Move.createDefault()),
                 name = "Bisasam",
                 nature = Nature.LAX,
+                passive = false,
                 pokerus = false,
+                position = 0,
+                isOnField = false,
+                activeFieldSlotIndex = null,
                 species = Species.createDefault(),
                 stats = Stats.createDefault(),
+                currentAbilityId = 0,
+                currentAbilityName = "",
+                passiveAbilityId = 0,
+                passiveAbilityName = "",
+                abilitySuppressed = false,
+                heldItems = emptyList(),
+                battleStats = null,
+                statStages = intArrayOf(),
+                variant = 0,
             )
         }
     }
