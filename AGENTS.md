@@ -132,6 +132,7 @@ This is a Spring Boot application (version 3.5.3) written in mixed Java/Kotlin t
 **Game Integration:**
 
 - PokeRogue game is included as a git submodule in `pokerogue/` (pinned to v1.11.6, last stable release)
+- Code im `pokerogue/`-Submodul darf nicht ohne vorherige Rueckfrage und explizite Zustimmung angepasst werden
 - The submodule is used at build time: JS bridge TypeScript files import enum definitions from `pokerogue/src/enums/` and use `import type` for game classes (Pokemon, BattleScene, Move, etc.) from the submodule source
 - For full type resolution in the bridge files, install the pokerogue submodule's dependencies: `cd pokerogue && pnpm install` (resolves transitive types like Phaser)
 - Requires local PokeRogue instance at `http://localhost:8000/`
@@ -151,6 +152,16 @@ This is a Spring Boot application (version 3.5.3) written in mixed Java/Kotlin t
 - Integration tests for file management
 - MockK used for Kotlin component testing
 - Spring Boot test framework integration
+- Wenn ein Benchmark ausgefuehrt wird, muss der Lauf in `docs/benchmark-history.md` dokumentiert werden
+
+**Combat RL State Schema:**
+
+- Fuer Offline-Training von Pokemon-Kaempfen und Switch-Entscheidungen gibt es genau einen verbindlichen State-Contract.
+- Die feste Dokumentationsstelle dafuer ist `docs/rl-schema/combat-transition.schema.json`.
+- Das dazu passende Beispiel muss in `docs/rl-schema/combat-transition.example.json` gepflegt werden.
+- Wenn das Combat-/Switch-State-Schema geaendert wird, muessen mit grosser Sorgfalt alle Consumer im selben Arbeitsschritt geprueft und bei Bedarf angepasst werden.
+- Dazu gehoeren insbesondere Collector, Dataset-Sanity-Checks, Offline-Training, Inferenz/Eval-Skripte und die zugehoerige Dokumentation.
+- Es darf kein stiller Drift zwischen dokumentiertem Schema, erzeugten JSONL-Daten und Python-/Node-Skripten entstehen.
 
 **Java to Kotlin Migration Guidelines:**
 
