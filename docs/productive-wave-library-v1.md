@@ -11,6 +11,7 @@ Der Fokus liegt bewusst auf realen Team-Kompositionen und Battle-Kontext, noch n
 - Default Output-Verzeichnis: `data/offline-wave-library`
 - Snapshot-Datei: `productive-wave-snapshots-v1.jsonl`
 - Fingerprint-Datei: `productive-wave-fingerprints-v1.txt`
+- die erzeugten JSONL-/Fingerprint-Dateien sind lokale Laufzeitartefakte und sollen nicht versioniert werden
 
 ## Aenderungsstand
 

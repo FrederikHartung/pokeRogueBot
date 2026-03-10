@@ -146,6 +146,12 @@ Schema artifacts:
 - Scenario schema: `docs/rl-schema/combat-scenario.schema.json`
 - Scenario example: `data/rl/scenarios/poc-battle.json`
 
+Legacy note:
+
+- `combat-scenario.schema.json` and the `seed x wave` generator remain the old POC path.
+- The new production-facing scenario path now starts from the productive wave library and is documented in `docs/combat-training-wave-library-v2.md`.
+- The first materialization step for that path is `npm run rl:gen:scenarios:wave-lib`.
+
 ## Evaluation Metrics (v1)
 
 Offline:

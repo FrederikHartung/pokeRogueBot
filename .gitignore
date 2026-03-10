@@ -57,3 +57,6 @@ data/rl/scenarios/generated-*/
 data/rl/combat/*.jsonl
 data/rl/combat/*-report.json
 data/rl/models/*.pt
+
+# Productive wave library runtime artifacts
+data/offline-wave-library/

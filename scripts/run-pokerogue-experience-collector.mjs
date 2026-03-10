@@ -130,12 +130,28 @@ const testSource = `
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync as spawnSyncChild } from "node:child_process";
+import { getGameMode } from "#app/game-mode";
+import overrides from "#app/overrides";
+import { allAbilities } from "#data/data-lists";
+import { BattleStyle } from "#enums/battle-style";
+import { BattleType } from "#enums/battle-type";
 import { BattlerIndex } from "#enums/battler-index";
+import { Button } from "#enums/buttons";
 import { Command } from "#enums/command";
+import { GameModes } from "#enums/game-modes";
 import { MoveUseMode } from "#enums/move-use-mode";
+import { Nature } from "#enums/nature";
+import { StatusEffect } from "#enums/status-effect";
+import { TrainerSlot } from "#enums/trainer-slot";
+import { TrainerType } from "#enums/trainer-type";
 import { UiMode } from "#enums/ui-mode";
 import type { CommandPhase } from "#phases/command-phase";
+import { EncounterPhase } from "#phases/encounter-phase";
+import { SelectStarterPhase } from "#phases/select-starter-phase";
+import { PartyUiMode } from "#ui/party-ui-handler";
+import { getPokemonSpecies } from "#utils/pokemon-utils";
 import { GameManager } from "#test/test-utils/game-manager";
+import { generateStarters } from "#test/test-utils/game-manager-utils";
 import { beforeAll, describe, it } from "vitest";
 
 const SCENARIOS = ${JSON.stringify(scenarios)};
@@ -268,8 +284,63 @@ function countBucket(value: number): number {
   return 3;
 }
 
+function isScenarioV2(scenario: any): boolean {
+  return Number.isInteger(scenario?.wave_index)
+    && Array.isArray(scenario?.enemy_team)
+    && scenario?.source != null;
+}
+
+function getScenarioWaveIndex(scenario: any): number | null {
+  if (Number.isInteger(scenario?.wave_index)) {
+    return Number(scenario.wave_index);
+  }
+  if (Number.isInteger(scenario?.wave)) {
+    return Number(scenario.wave);
+  }
+  return null;
+}
+
+function getScenarioBattleTypeName(scenario: any): string {
+  if (typeof scenario?.battle_type === "string" && scenario.battle_type.length > 0) {
+    return scenario.battle_type.toUpperCase();
+  }
+  return "WILD";
+}
+
+function mapBattleTypeName(value: string): BattleType {
+  if (value === "TRAINER") {
+    return BattleType.TRAINER;
+  }
+  return BattleType.WILD;
+}
+
+function mapBattleStyleName(value: unknown): BattleStyle | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.toUpperCase();
+  if (normalized === "SET") {
+    return BattleStyle.SET;
+  }
+  if (normalized === "SWITCH") {
+    return BattleStyle.SWITCH;
+  }
+  return null;
+}
+
+function mapTrainerTypeName(value: unknown): TrainerType | null {
+  if (typeof value !== "string" || value.length === 0) {
+    return null;
+  }
+  const trainerType = TrainerType[value as keyof typeof TrainerType];
+  return Number.isInteger(trainerType) ? trainerType as TrainerType : null;
+}
+
 function inferScenarioTrainerBattle(scenario: any): boolean {
-  if (scenario?.battle_type === "trainer") {
+  const battleType = typeof scenario?.battle_type === "string"
+    ? scenario.battle_type.toLowerCase()
+    : "";
+  if (battleType === "trainer") {
     return true;
   }
 
@@ -324,6 +395,200 @@ function applyScenarioHpRatios(game: GameManager, scenario: any) {
   if (Number.isFinite(enemyRatio)) {
     setPokemonHpRatio(game.scene.getEnemyPokemon(), Number(enemyRatio));
   }
+}
+
+function applyScenarioMaterializedState(game: GameManager, scenario: any) {
+  if (!isScenarioV2(scenario)) {
+    return;
+  }
+
+  const playerParty = game.scene.getPlayerParty();
+  const enemyParty = Array.isArray(game.scene.currentBattle?.enemyParty)
+    ? game.scene.currentBattle.enemyParty
+    : [];
+  const scenarioPlayerTeam = Array.isArray(scenario.player_team) ? scenario.player_team : [];
+  const scenarioEnemyTeam = Array.isArray(scenario.enemy_team) ? scenario.enemy_team : [];
+
+  if (playerParty.length < scenarioPlayerTeam.length) {
+    throw new Error("Scenario player_team exceeds initialized player party size");
+  }
+  if (enemyParty.length < scenarioEnemyTeam.length) {
+    throw new Error("Scenario enemy_team exceeds initialized enemy party size");
+  }
+
+  const activePlayerSlots = scenarioPlayerTeam
+    .map((member: any, index: number) => member?.is_on_field === true ? index : -1)
+    .filter((index: number) => index >= 0);
+  const activeEnemySlots = scenarioEnemyTeam
+    .map((member: any, index: number) => member?.is_on_field === true ? index : -1)
+    .filter((index: number) => index >= 0);
+
+  if (activePlayerSlots.length !== 1 || activePlayerSlots[0] !== 0) {
+    throw new Error("V2 collector currently requires player active slot 0 in single battles");
+  }
+  if (activeEnemySlots.length !== 1 || activeEnemySlots[0] !== 0) {
+    throw new Error("V2 collector currently requires enemy active slot 0 in single battles");
+  }
+
+  for (let idx = 0; idx < scenarioPlayerTeam.length; idx += 1) {
+    patchPokemonFromScenario(playerParty[idx], scenarioPlayerTeam[idx], true);
+  }
+  for (let idx = 0; idx < scenarioEnemyTeam.length; idx += 1) {
+    patchPokemonFromScenario(enemyParty[idx], scenarioEnemyTeam[idx], false);
+  }
+}
+
+function buildEnemyPokemonFromScenario(game: GameManager, member: any) {
+  const species = getPokemonSpecies(Number(member.species_id));
+  const level = Number(member.level);
+  const enemyPokemon = game.scene.addEnemyPokemon(
+    species,
+    level,
+    TrainerSlot.TRAINER,
+    member?.is_boss === true,
+  );
+  patchPokemonFromScenario(enemyPokemon, member, false);
+  return enemyPokemon;
+}
+
+function prepareScenarioBattleBeforeEncounter(game: GameManager, scenario: any) {
+  if (!isScenarioV2(scenario)) {
+    return;
+  }
+
+  const battle = game.scene.currentBattle as any;
+  if (!battle) {
+    throw new Error("Missing current battle before EncounterPhase");
+  }
+
+  const playerParty = game.scene.getPlayerParty();
+  const scenarioPlayerTeam = Array.isArray(scenario.player_team) ? scenario.player_team : [];
+  if (playerParty.length < scenarioPlayerTeam.length) {
+    throw new Error("Scenario player_team exceeds initialized player party size before EncounterPhase");
+  }
+  for (let idx = 0; idx < scenarioPlayerTeam.length; idx += 1) {
+    patchPokemonFromScenario(playerParty[idx], scenarioPlayerTeam[idx], true);
+  }
+
+  if (battle.battleType !== BattleType.TRAINER) {
+    return;
+  }
+
+  const scenarioEnemyTeam = Array.isArray(scenario.enemy_team) ? scenario.enemy_team : [];
+  if (scenarioEnemyTeam.length === 0) {
+    throw new Error("Trainer scenario is missing enemy_team members");
+  }
+  if (!battle.trainer) {
+    throw new Error("Trainer scenario reached EncounterPhase without trainer instance");
+  }
+
+  const scenarioTrainerType = mapTrainerTypeName(scenario.trainer_type);
+  if (scenarioTrainerType != null && battle.trainer.config?.trainerType !== scenarioTrainerType) {
+    throw new Error(
+      "Trainer type mismatch before EncounterPhase: expected "
+      + String(scenario.trainer_type)
+      + ", got "
+      + String(TrainerType[battle.trainer.config?.trainerType] ?? battle.trainer.config?.trainerType),
+    );
+  }
+
+  battle.double = false;
+  battle.enemyLevels = scenarioEnemyTeam.map((member: any) => Number(member.level));
+  battle.enemyParty = [];
+  battle.trainer.genPartyMember = ((index: number) => {
+    const member = scenarioEnemyTeam[index];
+    if (!member) {
+      throw new Error("Missing scenario enemy_team member at index " + index);
+    }
+    return buildEnemyPokemonFromScenario(game, member);
+  }) as typeof battle.trainer.genPartyMember;
+}
+
+function patchPokemonFromScenario(pokemon: any, member: any, player: boolean) {
+  if (!pokemon || !member) {
+    return;
+  }
+
+  pokemon.id = Number(member.id);
+  pokemon.name = typeof member.name === "string" ? member.name : pokemon.name;
+  pokemon.species = getPokemonSpecies(Number(member.species_id));
+  pokemon.formIndex = Number.isInteger(member.form_index) ? Number(member.form_index) : 0;
+  pokemon.level = Number(member.level);
+  if (member.gender != null) {
+    pokemon.gender = member.gender;
+  }
+  pokemon.ivs = toStatArray(member.ivs);
+
+  const natureValue = typeof member.nature === "string"
+    ? Nature[member.nature as keyof typeof Nature]
+    : null;
+  if (Number.isInteger(natureValue)) {
+    pokemon.setNature(natureValue as Nature);
+  }
+
+  pokemon.passive = member.passive_ability_id != null;
+  pokemon.shiny = member.is_shiny === true;
+  pokemon.variant = pokemon.shiny ? (pokemon.variant ?? 0) : 0;
+  pokemon.calculateStats();
+  pokemon.hp = Number(member.hp);
+
+  pokemon.moveset = [];
+  if (Array.isArray(member.moveset)) {
+    member.moveset.slice(0, 4).forEach((move: any, index: number) => {
+      pokemon.setMove(index, Number(move.id));
+      if (pokemon.moveset[index]) {
+        pokemon.moveset[index].ppUsed = Number(move.pp_used ?? 0);
+      }
+    });
+  }
+
+  if (member.current_ability_id != null && allAbilities[Number(member.current_ability_id)]) {
+    pokemon.setTempAbility(allAbilities[Number(member.current_ability_id)]);
+  }
+  if (member.passive_ability_id != null && allAbilities[Number(member.passive_ability_id)]) {
+    pokemon.setTempAbility(allAbilities[Number(member.passive_ability_id)], true);
+  }
+  pokemon.summonData.abilitySuppressed = member.ability_suppressed === true;
+
+  pokemon.summonData.statStages = Array.isArray(member.stat_stages)
+    ? member.stat_stages.map((value: any) => Number(value))
+    : [0, 0, 0, 0, 0, 0, 0];
+  pokemon.summonData.stats = member.battle_stats != null
+    ? toStatArray(member.battle_stats)
+    : [0, 0, 0, 0, 0, 0];
+
+  if (member.status?.effect) {
+    const statusEffect = StatusEffect[member.status.effect as keyof typeof StatusEffect];
+    if (Number.isInteger(statusEffect)) {
+      if (statusEffect === StatusEffect.FAINT) {
+        pokemon.hp = 0;
+      }
+      pokemon.doSetStatus(statusEffect as StatusEffect, Number(member.status.turnCount ?? 0));
+    } else {
+      pokemon.status = null;
+    }
+  } else {
+    pokemon.status = null;
+  }
+
+  if (typeof pokemon.setBoss === "function") {
+    if (!player && member.is_boss === true) {
+      pokemon.setBoss(true, Number(member.boss_segments ?? 0));
+    } else if (!player) {
+      pokemon.setBoss(false, 0);
+    }
+  }
+}
+
+function toStatArray(stats: any): number[] {
+  return [
+    Number(stats?.hp ?? 0),
+    Number(stats?.attack ?? 0),
+    Number(stats?.defense ?? 0),
+    Number(stats?.specialAttack ?? 0),
+    Number(stats?.specialDefense ?? 0),
+    Number(stats?.speed ?? 0),
+  ];
 }
 
 function hashString(value: string): number {
@@ -773,16 +1038,56 @@ function currentWaveIndexSafe(game: GameManager, fallback: number = -1): number 
 }
 
 function resolveForcedSwitchIfNeeded(game: GameManager): "not_switch_phase" | "selected" | "no_candidate" {
+  const battle = game.scene.currentBattle as any;
   if (!game.isCurrentPhase("SwitchPhase")) {
+    if (battle && Object.prototype.hasOwnProperty.call(battle, "__collectorForcedSwitchQueued")) {
+      delete battle.__collectorForcedSwitchQueued;
+    }
     return "not_switch_phase";
   }
+  clearStalePromptsForForcedSwitch(game);
   const party = game.scene.getPlayerParty();
   const nextIndex = party.findIndex(member => !member.isFainted() && !member.isOnField() && member.isAllowedInBattle());
   if (nextIndex >= 0) {
-    game.doSelectPartyPokemon(nextIndex);
+    if (game.scene.ui?.getMode?.() === UiMode.PARTY) {
+      const handler = game.scene.ui.getHandler() as any;
+      if (typeof handler?.setCursor === "function") {
+        handler.setCursor(nextIndex);
+      }
+      if (typeof handler?.processInput === "function" && Number.isInteger(handler?.cursor) && handler.cursor !== nextIndex) {
+        const direction = handler.cursor < nextIndex ? Button.DOWN : Button.UP;
+        for (let attempts = 0; attempts < 8 && handler.cursor !== nextIndex; attempts += 1) {
+          handler.processInput(direction);
+        }
+      }
+      if (typeof handler?.processInput === "function") {
+        handler.processInput(Button.ACTION);
+        if (handler.optionsMode === true) {
+          handler.processInput(Button.ACTION);
+        }
+      }
+    } else if (battle?.__collectorForcedSwitchQueued !== nextIndex) {
+      game.doSelectPartyPokemon(nextIndex);
+      if (battle) {
+        battle.__collectorForcedSwitchQueued = nextIndex;
+      }
+    }
     return "selected";
   }
   return "no_candidate";
+}
+
+function resolveOptionalCheckSwitchIfNeeded(game: GameManager): "not_check_switch" | "skipped" {
+  if (!game.isCurrentPhase("CheckSwitchPhase")) {
+    return "not_check_switch";
+  }
+  if (game.scene.ui?.getMode?.() !== UiMode.CONFIRM) {
+    return "not_check_switch";
+  }
+  game.setMode(UiMode.MESSAGE);
+  game.endPhase();
+  clearStalePromptsForForcedSwitch(game);
+  return "skipped";
 }
 
 function isHardTerminalPhase(game: GameManager): boolean {
@@ -791,6 +1096,81 @@ function isHardTerminalPhase(game: GameManager): boolean {
 
 function currentPhaseNameSafe(game: GameManager): string {
   return game.scene.phaseManager.getCurrentPhase()?.constructor?.name ?? "UnknownPhase";
+}
+
+function currentUiModeNameSafe(game: GameManager): string {
+  const uiMode = game.scene.ui?.getMode?.();
+  if (typeof uiMode === "number" && UiMode[uiMode]) {
+    return String(UiMode[uiMode]);
+  }
+  return "UnknownUiMode";
+}
+
+function describePartyForDiagnostics(game: GameManager): string {
+  return game.scene
+    .getPlayerParty()
+    .map((member, index) => {
+      if (!member) {
+        return \`\${index}:empty\`;
+      }
+      return [
+        \`\${index}:\${member.name ?? member.species?.name ?? "unknown"}\`,
+        \`hp=\${member.hp}/\${typeof member.getMaxHp === "function" ? member.getMaxHp() : "?"}\`,
+        \`fainted=\${member.isFainted?.() === true}\`,
+        \`onField=\${member.isOnField?.() === true}\`,
+        \`allowed=\${member.isAllowedInBattle?.() === true}\`,
+      ].join(",");
+    })
+    .join(" | ");
+}
+
+function describePartyUiHandlerForDiagnostics(game: GameManager): string {
+  const handler = game.scene.ui?.getHandler?.() as any;
+  if (!handler) {
+    return "handler=missing";
+  }
+
+  const partyUiMode = typeof handler.partyUiMode === "number" && PartyUiMode[handler.partyUiMode]
+    ? String(PartyUiMode[handler.partyUiMode])
+    : String(handler.partyUiMode ?? "unknown");
+
+  return [
+    "active=" + String(handler.active === true),
+    "partyUiMode=" + partyUiMode,
+    "cursor=" + String(handler.cursor ?? "unknown"),
+    "optionsMode=" + String(handler.optionsMode === true),
+    "options=" + String(Array.isArray(handler.options) ? handler.options.length : 0),
+    "optionsCursor=" + String(handler.optionsCursor ?? "unknown"),
+    "pendingPrompt=" + String(handler.pendingPrompt === true),
+    "blockInput=" + String(handler.blockInput === true),
+    "awaitingActionInput=" + String(handler.awaitingActionInput === true),
+  ].join(",");
+}
+
+function describePromptQueueForDiagnostics(game: GameManager): string {
+  const prompts = Array.isArray((game.phaseInterceptor as any)?.prompts)
+    ? (game.phaseInterceptor as any).prompts
+    : [];
+  return prompts
+    .slice(0, 3)
+    .map((prompt: any, index: number) => [
+      index,
+      String(prompt?.phaseTarget ?? "unknown"),
+      String(prompt?.mode ?? "unknown"),
+      String(prompt?.awaitingActionInput === true),
+    ].join(":"))
+    .join("|");
+}
+
+function clearStalePromptsForForcedSwitch(game: GameManager): void {
+  const interceptor = game.phaseInterceptor as any;
+  if (!Array.isArray(interceptor?.prompts) || interceptor.prompts.length === 0) {
+    return;
+  }
+
+  while (interceptor.prompts.length > 0 && interceptor.prompts[0]?.phaseTarget === "CheckSwitchPhase") {
+    interceptor.prompts.shift();
+  }
 }
 
 const TERMINAL_PHASE_NAMES = [
@@ -867,6 +1247,11 @@ async function waitForPromiseOrTerminal(game: GameManager, promise: Promise<unkn
 
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
+    resolveOptionalCheckSwitchIfNeeded(game);
+    const forcedSwitchStatus = resolveForcedSwitchIfNeeded(game);
+    if (forcedSwitchStatus === "no_candidate") {
+      return "terminal";
+    }
     if (isCollectorEpisodeTerminalPhase(game)) {
       return "terminal";
     }
@@ -902,6 +1287,30 @@ async function drainTerminalPhase(game: GameManager, timeoutMs: number): Promise
   return game.isCurrentPhase("TitlePhase") ? "settled" : "timeout";
 }
 
+async function waitForCommandOrTerminalAfterForcedSwitch(game: GameManager, timeoutMs: number): Promise<"ok" | "terminal" | "timeout"> {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    resolveOptionalCheckSwitchIfNeeded(game);
+    const forcedSwitchStatus = resolveForcedSwitchIfNeeded(game);
+    if (forcedSwitchStatus === "no_candidate") {
+      return "terminal";
+    }
+    if (isCollectorEpisodeTerminalPhase(game)) {
+      return "terminal";
+    }
+    if (game.isCurrentPhase("CommandPhase")) {
+      return "ok";
+    }
+    await sleep(25);
+  }
+
+  if (isCollectorEpisodeTerminalPhase(game)) {
+    return "terminal";
+  }
+
+  return "timeout";
+}
+
 async function advanceAfterAction(game: GameManager): Promise<"ok" | "terminal" | "timeout"> {
   const terminalPhasesForTurnAdvance = [
     "GameOverPhase",
@@ -916,6 +1325,9 @@ async function advanceAfterAction(game: GameManager): Promise<"ok" | "terminal" 
     withTimeout(game.toEndOfTurn(), STEP_TIMEOUT_MS, "end of turn"),
     STEP_TIMEOUT_MS,
   );
+  if (endOfTurnStatus === "timeout" && game.isCurrentPhase("SwitchPhase")) {
+    return waitForCommandOrTerminalAfterForcedSwitch(game, STEP_TIMEOUT_MS);
+  }
   if (endOfTurnStatus !== "ok") {
     return endOfTurnStatus;
   }
@@ -928,9 +1340,11 @@ async function advanceAfterAction(game: GameManager): Promise<"ok" | "terminal" 
   if (switchResolveStatus === "no_candidate") {
     return "terminal";
   }
-  queueSkipOptionalCheckSwitchPrompt(game);
   if (!hasRemainingPlayerTeam(game) || isVictorySafe(game)) {
     return "terminal";
+  }
+  if (game.isCurrentPhase("CommandPhase")) {
+    return "ok";
   }
 
   const phaseLogStart = Array.isArray(game.phaseInterceptor.log) ? game.phaseInterceptor.log.length : 0;
@@ -952,6 +1366,11 @@ async function advanceAfterAction(game: GameManager): Promise<"ok" | "terminal" 
 
   const startedAt = Date.now();
   while (Date.now() - startedAt < STEP_TIMEOUT_MS) {
+    resolveOptionalCheckSwitchIfNeeded(game);
+    const forcedSwitchStatus = resolveForcedSwitchIfNeeded(game);
+    if (forcedSwitchStatus === "no_candidate") {
+      return "terminal";
+    }
     if (nextTurnTerminal || isCollectorEpisodeTerminalPhase(game) || hasLoggedTerminalPhaseSince(game, phaseLogStart)) {
       return "terminal";
     }
@@ -972,19 +1391,30 @@ async function advanceAfterAction(game: GameManager): Promise<"ok" | "terminal" 
   return "timeout";
 }
 
-function queueSkipOptionalCheckSwitchPrompt(game: GameManager) {
-  game.onNextPrompt(
-    "CheckSwitchPhase",
-    UiMode.CONFIRM,
-    () => {
-      game.setMode(UiMode.MESSAGE);
-      game.endPhase();
-    },
-    () => game.isCurrentPhase("CommandPhase") || game.isCurrentPhase("TurnInitPhase"),
-  );
-}
-
 function applyScenarioOverrides(game: GameManager, scenario: any, seedOverride: string | null) {
+  if (isScenarioV2(scenario)) {
+    const effectiveSeed = seedOverride ?? scenario.seed ?? null;
+    const waveIndex = getScenarioWaveIndex(scenario);
+    const battleStyle = mapBattleStyleName(scenario.battle_style);
+    const battleType = mapBattleTypeName(getScenarioBattleTypeName(scenario));
+    const trainerType = battleType === BattleType.TRAINER ? mapTrainerTypeName(scenario.trainer_type) : null;
+
+    if (effectiveSeed) {
+      game.override.seed(effectiveSeed);
+    }
+    if (waveIndex != null) {
+      game.override.startingWave(waveIndex);
+    }
+    if (battleStyle != null) {
+      game.override.battleStyle(battleStyle);
+    }
+    game.override.battleType(battleType);
+    if (trainerType != null) {
+      game.override.randomTrainer({ trainerType });
+    }
+    return;
+  }
+
   const lead = scenario.player_team?.[0] ?? {};
   const enemy = scenario.enemy ?? {};
   const effectiveSeed = seedOverride ?? scenario.seed;
@@ -1041,6 +1471,33 @@ function applyScenarioOverrides(game: GameManager, scenario: any, seedOverride: 
   }
 }
 
+async function startScenarioBattle(game: GameManager, scenario: any, teamSpecies: number[]) {
+  if (!isScenarioV2(scenario)) {
+    await game.classicMode.startBattle(teamSpecies);
+    return;
+  }
+
+  await game.runToTitle();
+
+  game.onNextPrompt("TitlePhase", UiMode.TITLE, () => {
+    game.scene.gameMode = getGameMode(GameModes.CLASSIC);
+    const starters = generateStarters(game.scene, teamSpecies as any);
+    const selectStarterPhase = new SelectStarterPhase();
+    game.scene.phaseManager.pushPhase(new EncounterPhase(false));
+    selectStarterPhase.initBattle(starters);
+  });
+
+  await game.phaseInterceptor.to("EncounterPhase", false);
+
+  if (overrides.ENEMY_HELD_ITEMS_OVERRIDE.length === 0) {
+    game.removeEnemyHeldItems();
+  }
+
+  prepareScenarioBattleBeforeEncounter(game, scenario);
+
+  await game.phaseInterceptor.to("CommandPhase");
+}
+
 describe("external combat batch collector", () => {
   let phaserGame: Phaser.Game;
 
@@ -1064,7 +1521,8 @@ describe("external combat batch collector", () => {
             applyScenarioOverrides(game, scenario, seedOverride);
 
             const teamSpecies = scenario.player_team.map(member => member.species_id);
-            await game.classicMode.startBattle(teamSpecies);
+            await startScenarioBattle(game, scenario, teamSpecies);
+            applyScenarioMaterializedState(game, scenario);
 
             const episodeId = \`\${scenario.__scenario_name}::\${seedOverride ?? scenario.seed ?? "seedless"}::\${episodeIndex}\`;
             const effectiveSeed = seedOverride ?? scenario.seed ?? "seedless";
@@ -1192,7 +1650,9 @@ describe("external combat batch collector", () => {
                   console.log(\`[collector-terminal-drain-timeout] episode=\${episodeId} step=\${stepIndex} phase=\${currentPhaseNameSafe(game)}\`);
                 }
                 if (timeoutTruncated) {
-                  console.log(\`[collector-timeout] episode=\${episodeId} step=\${stepIndex} phase=\${currentPhaseNameSafe(game)} advance_status=\${advanceStatus} step_ms=\${stepMs}\`);
+                  console.log(
+                    \`[collector-timeout] episode=\${episodeId} step=\${stepIndex} phase=\${currentPhaseNameSafe(game)} ui_mode=\${currentUiModeNameSafe(game)} advance_status=\${advanceStatus} step_ms=\${stepMs} player_party="\${describePartyForDiagnostics(game)}" party_ui="\${describePartyUiHandlerForDiagnostics(game)}" prompts="\${describePromptQueueForDiagnostics(game)}"\`,
+                  );
                 }
                 break;
               }

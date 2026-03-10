@@ -182,6 +182,71 @@ Verbindlicher Schema-Hinweis:
 - V1 ist abgeschlossen
 - V2-/Repro-Gaps separat priorisieren
 
+5.1. Wave-Library als Quelle fuer Headless-Combat-Training anbinden
+- Ziel: den alten POC-Szenario-Generator mittelfristig durch einen neuen produktionsnahen Pfad ersetzen
+- Neuer Design-Stand:
+- neue Doku: `docs/combat-training-wave-library-v2.md`
+- neuer geplanter Headless-Input-Contract: `docs/rl-schema/combat-scenario-v2.schema.json`
+- Beispiel: `data/rl/scenarios/poc-battle-v2.json`
+- Aktuelle Einordnung:
+- der bisherige Generator `scripts/run-pokerogue-scenario-generator.mjs` sweeped `seed x wave` und schreibt ein reduziertes `combat-scenario`-V1-Format
+- der aktuelle Collector nutzt davon faktisch nur `team_species` plus Lead-Overrides und nur einen einzelnen `enemy`
+- dadurch gehen Bench-/Team-/Moveset-Details verloren, was fuer produktionsnahes Training unzureichend ist
+- Neuer Zielpfad:
+- `productive-wave-snapshots-v1.jsonl` lesen
+- trainable subset filtern (zunaechst nur Single Battles, keine Mystery Encounters, keine Double Battles)
+- in `combat-scenario-v2` mappen
+- Headless-Collector auf komplette `player_team`- und `enemy_team`-Initialisierung umbauen
+- Schwierige Wellen explizit markieren:
+- `waveIndex` 5 = erster Trainerkampf
+- `waveIndex` 8 = erster Rivale
+- `waveIndex` 10 = erster Boss-/Meilensteinkampf
+- diese Wellen sollen spaeter als `hard`/`benchmark` gezielt uebergewichtbar und separat evaluiert werden
+- Naechster konkreter Schritt:
+- erster Adapter ist jetzt angelegt:
+- `scripts/run-wave-library-scenario-adapter.mjs`
+- Run-Config: `data/rl/wave-library-scenario-adapter-run.json`
+- `npm run rl:gen:scenarios:wave-lib`
+- der Adapter materialisiert echte V1-Snapshots nach `data/rl/scenarios/generated-wave-library-v2/*.json`
+- aktuelle Filterung:
+- nur `WILD`/`TRAINER`
+- keine Double Battles
+- keine Mystery Encounters
+- mindestens ein aktives Feld-Pokemon pro Seite
+- Naechster konkreter Schritt:
+- Collector-V2-Pfad ist jetzt angelegt:
+- `scripts/run-pokerogue-experience-collector.mjs` erkennt `combat-scenario-v2`
+- komplette `player_team`- und `enemy_team`-Initialisierung wird nach `startBattle(...)` auf den Scenario-State gepatcht
+- aktuell noch offene Collector-Luecken:
+- Held-Items
+- globale persistente Modifier
+- aktive Feldslots ungleich `0` in Single Battles
+- frueherer Laufzeit-Befund nach erstem Smoke-Run:
+- Forced-Switch-Fall im Wave-8-Rival-Szenario endete zunaechst in einem Timeout
+- tieferer Befund:
+- das nachtraegliche Patching eines bereits gestarteten Trainer-Battles ist fuer Rival-/Trainer-Reproduktion aktuell nicht stabil genug
+- Submodul-Befund:
+- `EncounterPhase` erzeugt Trainer-Gegner direkt ueber `battle.trainer.genPartyMember(...)`
+- die normalen Test-Overrides (`battleType(TRAINER)`, `randomTrainer(...)`) waehlen nur den Trainerkontext, aber nicht die echte Snapshot-Gegnerparty
+- der beste Referenzpfad im Submodul ist `initBattleWithEnemyConfig(...)` aus den Mystery-Encounter-Utils, weil dort `currentBattle.trainer`, `enemyLevels` und `enemyParty` vor dem Feldaufbau gesetzt werden
+- aktueller Zwischenstand:
+- ein erster Pre-Encounter-Materializer fuer V2-Trainer-Szenarien ist jetzt im Collector umgesetzt
+- dadurch stimmen im Rival-Smoke-Test Trainer-Intro und ausgesendetes Gegner-Pokemon bereits mit dem Snapshot ueberein
+- der anschliessende Forced-Switch-Haenger im Collector ist inzwischen behoben
+- eigentliche Ursache:
+- der Collector behandelte Forced Switch nur vor `toNextTurn()`
+- im Rival-Fall trat `SwitchPhase` aber erst waehrend des `toNextTurn()`-Wait-Loops auf
+- dadurch lief der Headless-Collector in ein Timeout, obwohl das eigentliche Battle reproduziert war
+- aktueller Validierungsstand:
+- Waves `1-7`: `14/14` Episoden erfolgreich, keine Timeouts
+- Wave `8`: kein Timeout mehr; Szenario endet jetzt als echter `loss`
+- offene Datenluecke:
+- fuer Waves `9` und `10` liegen aktuell noch keine persistierten produktiven Snapshot-Daten vor
+- Naechster konkreter Schritt:
+- persistierte produktive Snapshot-Daten fuer Waves `9`/`10` erzeugen oder aus bestehendem Material nachziehen
+- danach den V2-Pfad auch fuer diese beiden `hard`-Wellen materialisieren und validieren
+- erst im Anschluss Held-Items und globale Modifier materialisieren
+
 6. State- und Switch-Abdeckung auswerten
 - Verteilung der neuen `state_variant`-Profile im Datensatz prüfen
 - Prüfen, ob Low-HP-Szenarien die Switch-Rate des DQN sinnvoll erhöhen
