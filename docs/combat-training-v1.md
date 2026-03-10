@@ -53,40 +53,50 @@ Constraints:
 
 ## Observation Space (v1)
 
-Minimal stable feature set:
+Current `v2` feature set used by collector and offline trainer:
 
 - `wave_index`
-- `turn_index`
 - `player_hp_ratio`
 - `enemy_hp_ratio`
-- `player_level`
-- `enemy_level`
-- `player_types` (enum ids, up to 2)
-- `enemy_types` (enum ids, up to 2)
+- `player_hp_bucket`
+- `enemy_hp_bucket`
+- `hp_diff_bucket`
+- `level_gap_bucket`
+- `is_trainer_battle`
+- `alive_bench_count_bucket`
+- `healthy_bench_count_bucket`
+- `best_switch_matchup_bucket`
+- `worst_switch_risk_bucket`
 - `moves[0..3]`:
-  - `move_id`
-  - `pp_left`
-  - `pp_max`
-  - `power`
-  - `accuracy`
-- `move_effectiveness[4]`:
-  - effectiveness multiplier per move slot against current enemy (`0/0.25/0.5/1/2/4/...`)
-  - computed from Pokerogue battle engine (`target.getMoveEffectiveness(...)`) to avoid drift
+  - `available`
+  - `power_bucket`
+  - `effectiveness_bucket`
+  - `stab`
+  - `pp_low`
 - `party_slots[6]`:
   - `present`, `active`, `fainted`, `hp_ratio`, `level`, `types`
 - `action_mask[10]` (4 move actions + 6 switch actions)
+
+Legacy observation fields are no longer part of the supported contract.
 
 ## Reward (v1)
 
 Per step:
 
-- positive for enemy HP reduction
-- negative for own HP reduction
+- small negative per transition to favor faster wins
+- positive for enemy team HP damage
+- negative for own team HP loss
+- positive when an enemy Pokemon faints
+- negative when an own Pokemon faints
+- small negative on switch actions
+- extra negative on switch chains and direct backswitches
 
 Terminal:
 
-- bonus on enemy faint
-- penalty on player faint
+- bonus on battle win
+- extra bonus per surviving team member on battle win
+- extra bonus from remaining total team HP ratio on battle win
+- strong penalty on full team defeat
 
 Design note:
 
@@ -120,6 +130,8 @@ Rules:
 - `next_state` must always be present.
 - `done=true` only on terminal transition.
 - Deterministic seeds must be logged in `meta`.
+- Optional scenario field: `hp_ratio` on player team members and enemy to start episodes from non-full HP states.
+- Collector configs may also rotate predefined `state_variants` per episode, e.g. lead low HP, enemy half HP, or all party members low HP.
 
 Schema artifacts:
 
@@ -147,7 +159,7 @@ Online/headless A-B:
 
 Day 1:
 
-- Freeze v1 schema (`state/action/reward/jsonl`).
+- Freeze v1 schema (`state/action/reward/jsonl`) on the current `v2` observation format.
 - Add schema docs and sample file in main repo.
 - Add external POC runner command:
   - `npm run rl:poc:experience`
@@ -187,7 +199,7 @@ Day 5:
 - RL policy measurable against baseline on identical seeds
 - Documented handoff format for later ONNX inference integration
 
-## Current Progress Snapshot (March 8, 2026)
+## Current Progress Snapshot (March 10, 2026)
 
 - Implemented:
   - schema files (`docs/rl-schema/*`)
@@ -225,21 +237,54 @@ Day 5:
   - command: `npm run rl:eval:compare`
   - policies: `random`, `always_move_0`, `dqn` (external command)
   - output report: `data/rl/combat/eval-policy-compare-report.json`
-  - latest result (Mar 8, 2026): DQN under baseline
-    - `random`: win rate `0.500`, avg reward `2.6714`, avg turns `7.33`
-    - `always_move_0`: win rate `0.667`, avg reward `3.6235`, avg turns `6.50`
-    - `dqn`: win rate `0.500`, avg reward `1.5549`, avg turns `7.17`
+  - latest result (Mar 10, 2026) after 5k bootstrap retraining:
+    - training dataset: `data/rl/combat/train-5k-bootstrap.jsonl`
+    - checkpoint: `data/rl/models/dqn-combat-5k-bootstrap.pt`
+    - report: `data/rl/combat/eval-policy-compare-5k-bootstrap-report.json`
+    - `random`: win rate `0.833`, avg reward `3.5031`, avg turns `7.50`
+    - `always_move_0`: win rate `0.833`, avg reward `3.9038`, avg turns `5.83`
+    - `dqn`: win rate `0.833`, avg reward `3.9704`, avg turns `6.17`
+    - current read: DQN now matches win rate and slightly beats `always_move_0` on avg reward
 - Dataset inspector (Streamlit POC):
   - requirements: `python3 -m pip install -r data/rl/requirements-inspector.txt`
   - command: `npm run rl:inspect:dataset`
   - views: sample viewer, episode summary, distributions, action/mask quality
 - Collector robustness + extended episodes:
   - robust step advance with timeout and terminal-phase handling in collector
+  - terminal detection now also covers the `GameOverPhase -> PostGameOverPhase -> TitlePhase` path while waiting for `toEndOfTurn()`
   - configurable test timeout (`test_timeout_ms`) for longer compare/eval runs
   - deterministic baseline mode `first_valid` for `always_move_0`
   - optional tester-progress pauses (every 10% with short pause) via env flags:
     - `CI=1 COLLECTOR_PROGRESS_PAUSE=1 COLLECTOR_PROGRESS_TARGET=5000 COLLECTOR_PROGRESS_STEP=10 COLLECTOR_PROGRESS_PAUSE_MS=4000 npm run rl:collect:5k`
-  - benchmark collector currently uses `max_steps_per_episode: 30` with `switch_action_weight: 0.15`
+  - progress logs include elapsed runtime and ETA
+  - benchmark collector currently uses `max_steps_per_episode: 400` with `switch_action_weight: 0.15`
+  - benchmark collector uses `episodes_per_seed: 7` for `data/rl/collector-run-benchmarked-mixed.json`, so each benchmark scenario is evaluated once per configured `state_variant`
+  - reward shaping v4:
+    - step penalty `-0.05` per transition to favor faster wins
+    - enemy team HP damage reward via `reward_enemy_team_hp_damage_scale`
+    - own team HP loss penalty via `reward_player_team_hp_loss_scale`
+    - switch penalty `-0.05` per switch action
+    - consecutive switch penalty `-0.25`
+    - extra scaling penalty for longer switch chains via `reward_consecutive_switch_penalty_scale`
+    - direct backswitch penalty `-0.35`
+    - player faint penalty `-4.0` (strong negative signal)
+  - state coverage expansion for switch-learning:
+    - `state_variants` can rotate low-HP/full-HP start states per episode
+    - supported defaults in 500/5k/benchmark configs:
+      - `all_full`
+      - `lead_1hp_bench_full`
+      - `lead_critical_bench_full`
+      - `lead_critical_plus_random_bench_critical`
+      - `all_critical`
+      - `lead_half_bench_full`
+      - `enemy_half`
+      - `enemy_critical`
+    - dedicated isolated switch experiment configs:
+      - collector: `data/rl/collector-run-5k-lead-1hp.json`
+      - benchmark: `data/rl/collector-run-benchmarked-lead-1hp.json`
+      - training: `data/rl/train-dqn-offline-lead-1hp.json`
+    - scenario JSON supports optional fixed `hp_ratio` per player team member and enemy
+  - eval compare now reports `truncated_rate` and applies a truncated quality gate
   - verified benchmark run completion: 6 episodes, 43 transitions, 0 timeout outcomes
 
 ## Prerequisites

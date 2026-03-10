@@ -101,6 +101,7 @@ def summarize(rows: List[Dict]) -> Dict:
         "wins": wins,
         "losses": losses,
         "truncated": truncated,
+        "truncated_rate": (truncated / episode_count) if episode_count else 0.0,
         "win_rate": (wins / episode_count) if episode_count else 0.0,
         "avg_reward": (total_reward / episode_count) if episode_count else 0.0,
         "avg_turns": (total_turns / episode_count) if episode_count else 0.0,
@@ -114,6 +115,8 @@ def main() -> None:
     parser.add_argument("--checkpoint", default="./data/rl/models/dqn-combat-poc.pt")
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--report-path", default="./data/rl/combat/eval-policy-compare-report.json")
+    parser.add_argument("--max-steps-per-episode", type=int, default=400)
+    parser.add_argument("--max-truncated-rate", type=float, default=0.10)
     args = parser.parse_args()
 
     collector_config_path = os.path.abspath(os.path.join(REPO_ROOT, args.collector_config))
@@ -155,7 +158,7 @@ def main() -> None:
         cfg = dict(base)
         cfg["output_path"] = output_path
         cfg["append_output"] = False
-        cfg["max_steps_per_episode"] = 10
+        cfg["max_steps_per_episode"] = args.max_steps_per_episode
         cfg["test_timeout_ms"] = 600000
         cfg["policy"] = policy
 
@@ -180,11 +183,26 @@ def main() -> None:
         },
     }
 
+    quality_gates = {
+        "max_truncated_rate": args.max_truncated_rate,
+        "violations": [],
+    }
+    for label, summary in results.items():
+        if summary["truncated_rate"] > args.max_truncated_rate:
+            quality_gates["violations"].append(
+                {
+                    "policy": label,
+                    "metric": "truncated_rate",
+                    "value": summary["truncated_rate"],
+                }
+            )
+
     report = {
         "collector_config": collector_config_path,
         "checkpoint": checkpoint_path,
         "results": results,
         "comparison": comparison,
+        "quality_gates": quality_gates,
     }
 
     os.makedirs(os.path.dirname(report_path), exist_ok=True)
@@ -193,7 +211,14 @@ def main() -> None:
     print("Policy comparison complete")
     for label in ["random", "always_move_0", "dqn"]:
         s = results[label]
-        print(f"{label}: win_rate={s['win_rate']:.3f} avg_reward={s['avg_reward']:.4f} avg_turns={s['avg_turns']:.2f} transitions={s['transitions']}")
+        print(
+            f"{label}: win_rate={s['win_rate']:.3f} avg_reward={s['avg_reward']:.4f} "
+            f"avg_turns={s['avg_turns']:.2f} truncated_rate={s['truncated_rate']:.3f} transitions={s['transitions']}"
+        )
+    if quality_gates["violations"]:
+        print(f"Quality gate violations: {len(quality_gates['violations'])} (max_truncated_rate={args.max_truncated_rate})")
+    else:
+        print(f"Quality gates passed (max_truncated_rate={args.max_truncated_rate})")
     print(f"Report: {report_path}")
 
 

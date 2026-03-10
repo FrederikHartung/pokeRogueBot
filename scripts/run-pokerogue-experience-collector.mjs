@@ -38,6 +38,7 @@ const scenarios = scenarioPaths.map(p => {
   return {
     ...parsed,
     __scenario_name: path.basename(p, ".json"),
+    __scenario_source_path: p,
   };
 });
 
@@ -54,6 +55,45 @@ const policy = config.policy ?? { type: "random", epsilon: 1.0 };
 const testTimeoutMs = Number.isInteger(config.test_timeout_ms) && config.test_timeout_ms > 0
   ? config.test_timeout_ms
   : 120000;
+const rewardSwitchPenalty = Number.isFinite(config.reward_switch_penalty)
+  ? Number(config.reward_switch_penalty)
+  : -0.05;
+const rewardStepPenalty = Number.isFinite(config.reward_step_penalty)
+  ? Number(config.reward_step_penalty)
+  : -0.05;
+const rewardConsecutiveSwitchPenalty = Number.isFinite(config.reward_consecutive_switch_penalty)
+  ? Number(config.reward_consecutive_switch_penalty)
+  : -0.25;
+const rewardDirectBackswitchPenalty = Number.isFinite(config.reward_direct_backswitch_penalty)
+  ? Number(config.reward_direct_backswitch_penalty)
+  : -0.35;
+const rewardConsecutiveSwitchPenaltyScale = Number.isFinite(config.reward_consecutive_switch_penalty_scale)
+  ? Number(config.reward_consecutive_switch_penalty_scale)
+  : -0.15;
+const rewardEnemyTeamHpDamageScale = Number.isFinite(config.reward_enemy_team_hp_damage_scale)
+  ? Number(config.reward_enemy_team_hp_damage_scale)
+  : 2.0;
+const rewardPlayerTeamHpLossScale = Number.isFinite(config.reward_player_team_hp_loss_scale)
+  ? Number(config.reward_player_team_hp_loss_scale)
+  : -2.5;
+const rewardEnemyFaintBonus = Number.isFinite(config.reward_enemy_faint_bonus)
+  ? Number(config.reward_enemy_faint_bonus)
+  : 1.5;
+const rewardPlayerFaintPenalty = Number.isFinite(config.reward_player_faint_penalty)
+  ? Number(config.reward_player_faint_penalty)
+  : -4.0;
+const rewardEnemyTeamDefeatBonus = Number.isFinite(config.reward_enemy_team_defeat_bonus)
+  ? Number(config.reward_enemy_team_defeat_bonus)
+  : 3.0;
+const rewardPlayerTeamDefeatPenalty = Number.isFinite(config.reward_player_team_defeat_penalty)
+  ? Number(config.reward_player_team_defeat_penalty)
+  : -6.0;
+const rewardAliveTeamMemberWinBonus = Number.isFinite(config.reward_alive_team_member_win_bonus)
+  ? Number(config.reward_alive_team_member_win_bonus)
+  : 1.0;
+const rewardRemainingTeamHpRatioWinBonusScale = Number.isFinite(config.reward_remaining_team_hp_ratio_win_bonus_scale)
+  ? Number(config.reward_remaining_team_hp_ratio_win_bonus_scale)
+  : 2.0;
 const terminalOnEggLapse = config.terminal_on_egg_lapse !== false;
 const envProgressPauseEnabled = process.env.COLLECTOR_PROGRESS_PAUSE === "1";
 const envProgressPauseTargetTransitions = Number.parseInt(process.env.COLLECTOR_PROGRESS_TARGET ?? "", 10);
@@ -76,6 +116,10 @@ const progressPauseMs = Number.isInteger(envProgressPauseMs) && envProgressPause
   ? config.progress_pause_ms
   : 4000;
 const appendOutput = config.append_output !== false;
+const stateVariants = Array.isArray(config.state_variants) && config.state_variants.length > 0
+  ? config.state_variants.map(String)
+  : [];
+const quietGameLogs = config.quiet_game_logs === true || process.env.COLLECTOR_QUIET_GAME_LOGS === "1";
 
 mkdirSync(path.dirname(outputPath), { recursive: true });
 if (!appendOutput && existsSync(outputPath)) {
@@ -101,24 +145,272 @@ const MAX_STEPS_PER_EPISODE = ${maxStepsPerEpisode};
 const POLICY = ${JSON.stringify(policy)};
 const OUTPUT_PATH = ${JSON.stringify(outputPath)};
 const TEST_TIMEOUT_MS = ${testTimeoutMs};
+const REWARD_SWITCH_PENALTY = ${rewardSwitchPenalty};
+const REWARD_STEP_PENALTY = ${rewardStepPenalty};
+const REWARD_CONSECUTIVE_SWITCH_PENALTY = ${rewardConsecutiveSwitchPenalty};
+const REWARD_DIRECT_BACKSWITCH_PENALTY = ${rewardDirectBackswitchPenalty};
+const REWARD_CONSECUTIVE_SWITCH_PENALTY_SCALE = ${rewardConsecutiveSwitchPenaltyScale};
+const REWARD_ENEMY_TEAM_HP_DAMAGE_SCALE = ${rewardEnemyTeamHpDamageScale};
+const REWARD_PLAYER_TEAM_HP_LOSS_SCALE = ${rewardPlayerTeamHpLossScale};
+const REWARD_ENEMY_FAINT_BONUS = ${rewardEnemyFaintBonus};
+const REWARD_PLAYER_FAINT_PENALTY = ${rewardPlayerFaintPenalty};
+const REWARD_ENEMY_TEAM_DEFEAT_BONUS = ${rewardEnemyTeamDefeatBonus};
+const REWARD_PLAYER_TEAM_DEFEAT_PENALTY = ${rewardPlayerTeamDefeatPenalty};
+const REWARD_ALIVE_TEAM_MEMBER_WIN_BONUS = ${rewardAliveTeamMemberWinBonus};
+const REWARD_REMAINING_TEAM_HP_RATIO_WIN_BONUS_SCALE = ${rewardRemainingTeamHpRatioWinBonusScale};
 const TERMINAL_ON_EGG_LAPSE = ${terminalOnEggLapse};
 const PROGRESS_PAUSE_ENABLED = ${progressPauseEnabled};
 const PROGRESS_PAUSE_TARGET_TRANSITIONS = ${progressPauseTargetTransitions};
 const PROGRESS_PAUSE_PERCENT_STEP = ${progressPausePercentStep};
 const PROGRESS_PAUSE_MS = ${progressPauseMs};
+const STATE_VARIANTS = ${JSON.stringify(stateVariants)};
+const QUIET_GAME_LOGS = ${quietGameLogs};
 const STEP_TIMEOUT_MS = Number.isFinite(POLICY.step_timeout_ms) && POLICY.step_timeout_ms > 0
   ? POLICY.step_timeout_ms
   : 15000;
 const MOVE_ACTIONS = 4;
 const SWITCH_ACTIONS = 6;
 const ACTION_DIM = MOVE_ACTIONS + SWITCH_ACTIONS;
+const CRITICAL_HP_RATIO = 0.1;
+const HALF_HP_RATIO = 0.5;
+const RAW_CONSOLE_LOG = console.log.bind(console);
+
+function shouldSuppressGameLog(args: unknown[]): boolean {
+  const joined = args
+    .map(value => typeof value === "string" ? value : JSON.stringify(value))
+    .join(" ")
+    .replace(/\u001b\[[0-9;]*m/g, "")
+    .trimStart();
+
+  const noisyPrefixes = [
+    "Start Phase ",
+    "setMode ",
+    "Move Pool:",
+    "Move Scores:",
+    "Sorted Move Pool:",
+    "Chosen Move:",
+    "Move:",
+    "Player Pokemon:",
+    "Pokemon:",
+    "Stats (IVs):",
+    "Ability:",
+    "Moveset:",
+    "crit stage:",
+    "base damage",
+    "damage ",
+    "COMMON",
+    "UNCOMMON",
+    "RARE",
+    "EPIC",
+    "TACKLE NORMAL",
+    "ASTONISH NORMAL",
+    "use seasonal splash messages",
+  ];
+
+  return noisyPrefixes.some(prefix => joined.startsWith(prefix));
+}
+
+if (QUIET_GAME_LOGS) {
+  console.log = (...args: unknown[]) => {
+    if (shouldSuppressGameLog(args)) {
+      return;
+    }
+    RAW_CONSOLE_LOG(...args);
+  };
+}
 
 function getHpRatio(hp: number, maxHp: number): number {
   if (maxHp <= 0) return 0;
   return Math.max(0, Math.min(1, hp / maxHp));
 }
 
-function buildObservation(game: GameManager) {
+function bucketByThresholds(value: number, thresholds: number[]): number {
+  for (let idx = 0; idx < thresholds.length; idx += 1) {
+    if (value <= thresholds[idx]) {
+      return idx;
+    }
+  }
+  return thresholds.length;
+}
+
+function hpBucket(hpRatio: number): number {
+  return bucketByThresholds(hpRatio, [0.05, 0.2, 0.4, 0.6, 0.8]);
+}
+
+function hpDiffBucket(diff: number): number {
+  return bucketByThresholds(diff, [-0.6, -0.25, -0.1, 0.1, 0.25, 0.6]);
+}
+
+function levelGapBucket(levelGap: number): number {
+  return bucketByThresholds(levelGap, [-15, -7, -2, 2, 7, 15]);
+}
+
+function powerBucket(power: number): number {
+  if (power <= 0) return 0;
+  if (power <= 40) return 1;
+  if (power <= 70) return 2;
+  if (power <= 100) return 3;
+  return 4;
+}
+
+function effectivenessBucket(effectiveness: number): number {
+  if (effectiveness <= 0) return 0;
+  if (effectiveness <= 0.5) return 1;
+  if (effectiveness <= 1.0) return 2;
+  if (effectiveness <= 2.0) return 3;
+  return 4;
+}
+
+function countBucket(value: number): number {
+  if (value <= 0) return 0;
+  if (value === 1) return 1;
+  if (value <= 3) return 2;
+  return 3;
+}
+
+function inferScenarioTrainerBattle(scenario: any): boolean {
+  if (scenario?.battle_type === "trainer") {
+    return true;
+  }
+
+  const sourcePath = typeof scenario?.__scenario_source_path === "string"
+    ? scenario.__scenario_source_path.toLowerCase()
+    : "";
+  const scenarioName = typeof scenario?.__scenario_name === "string"
+    ? scenario.__scenario_name.toLowerCase()
+    : "";
+
+  return sourcePath.includes(path.sep + "trainer" + path.sep) || scenarioName.includes("trainer-");
+}
+
+function setPokemonHpRatio(pokemon: any, ratio: number) {
+  if (!pokemon || !Number.isFinite(ratio)) {
+    return;
+  }
+  const maxHp = pokemon.getMaxHp();
+  if (!Number.isFinite(maxHp) || maxHp <= 0) {
+    return;
+  }
+  let nextHp = Math.round(maxHp * ratio);
+  if (ratio > 0 && nextHp <= 0) {
+    nextHp = 1;
+  }
+  pokemon.hp = Math.max(0, Math.min(maxHp, nextHp));
+}
+
+function setPokemonHpAbsolute(pokemon: any, hp: number) {
+  if (!pokemon || !Number.isFinite(hp)) {
+    return;
+  }
+  const maxHp = pokemon.getMaxHp();
+  if (!Number.isFinite(maxHp) || maxHp <= 0) {
+    return;
+  }
+  const nextHp = Math.max(0, Math.min(maxHp, Math.round(hp)));
+  pokemon.hp = nextHp;
+}
+
+function applyScenarioHpRatios(game: GameManager, scenario: any) {
+  const party = game.scene.getPlayerParty();
+  const scenarioTeam = Array.isArray(scenario.player_team) ? scenario.player_team : [];
+  for (let idx = 0; idx < scenarioTeam.length; idx += 1) {
+    const ratio = scenarioTeam[idx]?.hp_ratio;
+    if (Number.isFinite(ratio)) {
+      setPokemonHpRatio(party[idx], Number(ratio));
+    }
+  }
+
+  const enemyRatio = scenario?.enemy?.hp_ratio;
+  if (Number.isFinite(enemyRatio)) {
+    setPokemonHpRatio(game.scene.getEnemyPokemon(), Number(enemyRatio));
+  }
+}
+
+function hashString(value: string): number {
+  let hash = 0;
+  for (let idx = 0; idx < value.length; idx += 1) {
+    hash = ((hash * 31) + value.charCodeAt(idx)) >>> 0;
+  }
+  return hash;
+}
+
+function pickDeterministicBenchIndex(game: GameManager, token: string): number | null {
+  const party = game.scene.getPlayerParty();
+  const candidates = party
+    .map((member, index) => ({ member, index }))
+    .filter(entry => entry.index > 0 && !!entry.member);
+  if (candidates.length === 0) {
+    return null;
+  }
+  const selected = hashString(token) % candidates.length;
+  return candidates[selected].index;
+}
+
+function applyStateVariant(game: GameManager, scenario: any, variantId: string | null, episodeToken: string) {
+  if (!variantId) {
+    return;
+  }
+  const party = game.scene.getPlayerParty();
+  const enemy = game.scene.getEnemyPokemon();
+
+  switch (variantId) {
+    case "all_full":
+      party.forEach(member => setPokemonHpRatio(member, 1.0));
+      setPokemonHpRatio(enemy, 1.0);
+      break;
+    case "lead_critical_bench_full":
+      party.forEach((member, index) => setPokemonHpRatio(member, index === 0 ? CRITICAL_HP_RATIO : 1.0));
+      setPokemonHpRatio(enemy, 1.0);
+      break;
+    case "lead_1hp_bench_full":
+      party.forEach((member, index) => {
+        if (index === 0) {
+          setPokemonHpAbsolute(member, 1);
+          return;
+        }
+        setPokemonHpRatio(member, 1.0);
+      });
+      setPokemonHpRatio(enemy, 1.0);
+      break;
+    case "lead_critical_plus_random_bench_critical": {
+      party.forEach(member => setPokemonHpRatio(member, 1.0));
+      setPokemonHpRatio(enemy, 1.0);
+      setPokemonHpRatio(party[0], CRITICAL_HP_RATIO);
+      const benchIndex = pickDeterministicBenchIndex(game, episodeToken + "::random_bench");
+      if (benchIndex != null) {
+        setPokemonHpRatio(party[benchIndex], CRITICAL_HP_RATIO);
+      }
+      break;
+    }
+    case "all_critical":
+      party.forEach(member => setPokemonHpRatio(member, CRITICAL_HP_RATIO));
+      setPokemonHpRatio(enemy, 1.0);
+      break;
+    case "lead_half_bench_full":
+      party.forEach((member, index) => setPokemonHpRatio(member, index === 0 ? HALF_HP_RATIO : 1.0));
+      setPokemonHpRatio(enemy, 1.0);
+      break;
+    case "enemy_half":
+      party.forEach(member => setPokemonHpRatio(member, 1.0));
+      setPokemonHpRatio(enemy, HALF_HP_RATIO);
+      break;
+    case "enemy_critical":
+      party.forEach(member => setPokemonHpRatio(member, 1.0));
+      setPokemonHpRatio(enemy, CRITICAL_HP_RATIO);
+      break;
+    default:
+      throw new Error("Unknown state variant: " + variantId);
+  }
+}
+
+function selectEpisodeStateVariant(globalEpisodeIndex: number): string | null {
+  if (!Array.isArray(STATE_VARIANTS) || STATE_VARIANTS.length === 0) {
+    return null;
+  }
+  return STATE_VARIANTS[globalEpisodeIndex % STATE_VARIANTS.length];
+}
+
+function buildObservation(game: GameManager, scenario: any) {
   const player = game.scene.getPlayerPokemon();
   const enemy = game.scene.getEnemyPokemon();
   if (!player || !enemy) {
@@ -135,26 +427,33 @@ function buildObservation(game: GameManager) {
     .slice(0, 2);
 
   const moveSet = player.getMoveset().slice(0, 4);
+  const playerHpRatio = getHpRatio(player.hp, player.getMaxHp());
+  const enemyHpRatio = getHpRatio(enemy.hp, enemy.getMaxHp());
   const moves = player.getMoveset().slice(0, 4).map(move => {
     const moveData = move.getMove();
     const ppMax = move.getMovePp();
     const ppUsed = Number.isFinite(move.ppUsed) ? move.ppUsed : 0;
     const ppLeft = Math.max(0, ppMax - ppUsed);
+    const ppRatio = ppMax > 0 ? ppLeft / ppMax : 0;
+    const effectiveness = enemy.getMoveEffectiveness(player, moveData, false, true);
+    const moveType = moveData.type;
+    const stab = playerTypes.includes(moveType) ? 1 : 0;
     return {
-      move_id: move.moveId,
-      pp_left: ppLeft,
-      pp_max: ppMax,
-      power: moveData.power ?? 0,
-      accuracy: moveData.accuracy ?? 0,
+      available: ppLeft > 0 ? 1 : 0,
+      power_bucket: powerBucket(Number.isFinite(moveData.power) ? moveData.power : 0),
+      effectiveness_bucket: effectivenessBucket(Number.isFinite(effectiveness) ? effectiveness : 1),
+      stab,
+      pp_low: ppLeft > 0 && ppRatio <= 0.2 ? 1 : 0,
     };
   });
 
   const actionMask = Array.from({ length: ACTION_DIM }, () => 0);
   for (let idx = 0; idx < moves.length; idx += 1) {
-    actionMask[idx] = moves[idx].pp_left > 0 ? 1 : 0;
+    actionMask[idx] = moves[idx].available;
   }
 
   const party = game.scene.getPlayerParty();
+  const switchableMembers: Array<{ hpRatio: number; bestEffectiveness: number }> = [];
   const partySlots = Array.from({ length: 6 }, (_, slot) => {
     const member = party[slot];
     if (!member) {
@@ -176,6 +475,20 @@ function buildObservation(game: GameManager) {
 
     const canSwitch = !member.isOnField() && !member.isFainted() && member.isAllowedInBattle();
     actionMask[MOVE_ACTIONS + slot] = canSwitch ? 1 : 0;
+    if (canSwitch) {
+      const bestEffectiveness = member.getMoveset()
+        .slice(0, 4)
+        .reduce((best, move) => {
+          const moveData = move.getMove();
+          const ppMax = move.getMovePp();
+          const ppUsed = Number.isFinite(move.ppUsed) ? move.ppUsed : 0;
+          const ppLeft = Math.max(0, ppMax - ppUsed);
+          if (ppLeft <= 0) return best;
+          const effectiveness = enemy.getMoveEffectiveness(member, moveData, false, true);
+          return Math.max(best, Number.isFinite(effectiveness) ? effectiveness : 1);
+        }, 0);
+      switchableMembers.push({ hpRatio, bestEffectiveness });
+    }
 
     return {
       present: 1,
@@ -186,28 +499,101 @@ function buildObservation(game: GameManager) {
       types,
     };
   });
-
-  const moveEffectiveness = [0, 0, 0, 0];
-  for (let idx = 0; idx < moveSet.length; idx += 1) {
-    const moveData = moveSet[idx].getMove();
-    const effectiveness = enemy.getMoveEffectiveness(player, moveData, false, true);
-    moveEffectiveness[idx] = Number.isFinite(effectiveness) ? effectiveness : 1;
-  }
+  const aliveBenchCount = switchableMembers.length;
+  const healthyBenchCount = switchableMembers.filter(member => member.hpRatio > 0.5).length;
+  const bestSwitchEffectiveness = switchableMembers.reduce((best, member) => Math.max(best, member.bestEffectiveness), 0);
+  const lowestSwitchHp = switchableMembers.length > 0
+    ? switchableMembers.reduce((lowest, member) => Math.min(lowest, member.hpRatio), 1)
+    : 1;
+  const worstSwitchRiskBucket = switchableMembers.length === 0
+    ? 0
+    : lowestSwitchHp <= 0.25 ? 3 : lowestSwitchHp <= 0.5 ? 2 : lowestSwitchHp <= 0.75 ? 1 : 0;
+  const battle = game.scene.currentBattle as any;
+  const isTrainerBattle = battle?.trainer != null || inferScenarioTrainerBattle(scenario);
 
   return {
     wave_index: game.scene.currentBattle.waveIndex,
-    turn_index: game.scene.currentBattle.turn,
-    player_hp_ratio: getHpRatio(player.hp, player.getMaxHp()),
-    enemy_hp_ratio: getHpRatio(enemy.hp, enemy.getMaxHp()),
-    player_level: player.level,
-    enemy_level: enemy.level,
-    player_types: playerTypes,
-    enemy_types: enemyTypes,
+    player_hp_ratio: playerHpRatio,
+    enemy_hp_ratio: enemyHpRatio,
+    player_hp_bucket: hpBucket(playerHpRatio),
+    enemy_hp_bucket: hpBucket(enemyHpRatio),
+    hp_diff_bucket: hpDiffBucket(playerHpRatio - enemyHpRatio),
+    level_gap_bucket: levelGapBucket(player.level - enemy.level),
+    is_trainer_battle: isTrainerBattle ? 1 : 0,
+    alive_bench_count_bucket: countBucket(aliveBenchCount),
+    healthy_bench_count_bucket: countBucket(healthyBenchCount),
+    best_switch_matchup_bucket: effectivenessBucket(bestSwitchEffectiveness),
+    worst_switch_risk_bucket: worstSwitchRiskBucket,
     moves,
-    move_effectiveness: moveEffectiveness,
     party_slots: partySlots,
     action_mask: actionMask,
   };
+}
+
+function getPlayerTeamHpRatio(game: GameManager): number {
+  const party = game.scene.getPlayerParty();
+  let totalHp = 0;
+  let totalMaxHp = 0;
+
+  for (const member of party) {
+    if (!member || typeof member.getMaxHp !== "function") {
+      continue;
+    }
+    const maxHp = member.getMaxHp();
+    if (!Number.isFinite(maxHp) || maxHp <= 0) {
+      continue;
+    }
+    totalHp += Math.max(0, Number.isFinite(member.hp) ? member.hp : 0);
+    totalMaxHp += maxHp;
+  }
+
+  if (totalMaxHp <= 0) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(1, totalHp / totalMaxHp));
+}
+
+function getEnemyTeamHpRatio(game: GameManager): number {
+  const battle = game.scene.currentBattle as any;
+  const enemyParty = Array.isArray(battle?.enemyParty) ? battle.enemyParty : [];
+  let totalHp = 0;
+  let totalMaxHp = 0;
+
+  for (const member of enemyParty) {
+    if (!member || typeof member.getMaxHp !== "function") {
+      continue;
+    }
+    const maxHp = member.getMaxHp();
+    if (!Number.isFinite(maxHp) || maxHp <= 0) {
+      continue;
+    }
+    totalHp += Math.max(0, Number.isFinite(member.hp) ? member.hp : 0);
+    totalMaxHp += maxHp;
+  }
+
+  if (totalMaxHp <= 0) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(1, totalHp / totalMaxHp));
+}
+
+function countAlivePlayerTeamMembers(game: GameManager): number {
+  return game.scene
+    .getPlayerParty()
+    .filter(member => !!member && !member.isFainted() && member.isAllowedInBattle())
+    .length;
+}
+
+function findActivePartySlotIndex(observation: any): number {
+  const partySlots = Array.isArray(observation?.party_slots) ? observation.party_slots : [];
+  for (let idx = 0; idx < partySlots.length; idx += 1) {
+    if (partySlots[idx]?.active === 1) {
+      return idx;
+    }
+  }
+  return -1;
 }
 
 function deriveTerminalNextState(state: any, enemyTeamDefeated: boolean, playerTeamDefeated: boolean) {
@@ -216,6 +602,8 @@ function deriveTerminalNextState(state: any, enemyTeamDefeated: boolean, playerT
     ...state,
     player_hp_ratio: playerTeamDefeated ? 0 : state.player_hp_ratio,
     enemy_hp_ratio: enemyTeamDefeated ? 0 : state.enemy_hp_ratio,
+    player_hp_bucket: playerTeamDefeated ? 0 : state.player_hp_bucket,
+    enemy_hp_bucket: enemyTeamDefeated ? 0 : state.enemy_hp_bucket,
     action_mask: terminalMask,
   };
 }
@@ -431,6 +819,10 @@ function isCollectorEpisodeTerminalPhase(game: GameManager): boolean {
     || (TERMINAL_ON_EGG_LAPSE && game.isCurrentPhase("EggLapsePhase"));
 }
 
+function requiresTerminalDrain(game: GameManager): boolean {
+  return game.isCurrentPhase("GameOverPhase") || game.isCurrentPhase("PostGameOverPhase");
+}
+
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
   let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
   const timeoutPromise = new Promise<never>((_, reject) => {
@@ -449,6 +841,67 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function formatDuration(ms: number): string {
+  const totalSeconds = Math.max(0, Math.round(ms / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return String(hours).padStart(2, "0") + ":" + String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0");
+  }
+  return String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0");
+}
+
+async function waitForPromiseOrTerminal(game: GameManager, promise: Promise<unknown>, timeoutMs: number): Promise<"ok" | "terminal" | "timeout"> {
+  let resolved = false;
+  let failed = false;
+
+  promise
+    .then(() => {
+      resolved = true;
+    })
+    .catch(() => {
+      failed = true;
+    });
+
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    if (isCollectorEpisodeTerminalPhase(game)) {
+      return "terminal";
+    }
+    if (resolved) {
+      return "ok";
+    }
+    if (failed) {
+      return isCollectorEpisodeTerminalPhase(game) ? "terminal" : "timeout";
+    }
+    await sleep(25);
+  }
+
+  if (isCollectorEpisodeTerminalPhase(game)) {
+    return "terminal";
+  }
+
+  return "timeout";
+}
+
+async function drainTerminalPhase(game: GameManager, timeoutMs: number): Promise<"settled" | "timeout"> {
+  if (!requiresTerminalDrain(game)) {
+    return "settled";
+  }
+
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    if (game.isCurrentPhase("TitlePhase")) {
+      return "settled";
+    }
+    await sleep(25);
+  }
+
+  return game.isCurrentPhase("TitlePhase") ? "settled" : "timeout";
+}
+
 async function advanceAfterAction(game: GameManager): Promise<"ok" | "terminal" | "timeout"> {
   const terminalPhasesForTurnAdvance = [
     "GameOverPhase",
@@ -458,13 +911,13 @@ async function advanceAfterAction(game: GameManager): Promise<"ok" | "terminal" 
     "SelectModifierPhase",
     "EggLapsePhase",
   ];
-  try {
-    await withTimeout(game.toEndOfTurn(), STEP_TIMEOUT_MS, "end of turn");
-  } catch {
-    if (isCollectorEpisodeTerminalPhase(game)) {
-      return "terminal";
-    }
-    return "timeout";
+  const endOfTurnStatus = await waitForPromiseOrTerminal(
+    game,
+    withTimeout(game.toEndOfTurn(), STEP_TIMEOUT_MS, "end of turn"),
+    STEP_TIMEOUT_MS,
+  );
+  if (endOfTurnStatus !== "ok") {
+    return endOfTurnStatus;
   }
 
   if (isCollectorEpisodeTerminalPhase(game)) {
@@ -615,16 +1068,21 @@ describe("external combat batch collector", () => {
 
             const episodeId = \`\${scenario.__scenario_name}::\${seedOverride ?? scenario.seed ?? "seedless"}::\${episodeIndex}\`;
             const effectiveSeed = seedOverride ?? scenario.seed ?? "seedless";
+            const episodeStateVariant = selectEpisodeStateVariant(globalEpisodeIndex);
+            applyScenarioHpRatios(game, scenario);
+            applyStateVariant(game, scenario, episodeStateVariant, episodeId);
+            let previousAction: number | null = null;
+            let lastSwitchOriginPartyIndex: number | null = null;
+            let consecutiveSwitchCount = 0;
 
             for (let stepIndex = 0; stepIndex < MAX_STEPS_PER_EPISODE; stepIndex += 1) {
-              const state = buildObservation(game);
+              const state = buildObservation(game, scenario);
               const action = selectActionFromMask(state, state.action_mask, globalEpisodeIndex);
               if (action < 0) {
                 break;
               }
-
-              const prevEnemyHp = state.enemy_hp_ratio;
-              const prevPlayerHp = state.player_hp_ratio;
+              const playerTeamHpBeforeAction = getPlayerTeamHpRatio(game);
+              const enemyTeamHpBeforeAction = getEnemyTeamHpRatio(game);
 
               const stepStartAt = Date.now();
               executeAction(game, action);
@@ -642,12 +1100,35 @@ describe("external combat batch collector", () => {
               let done = enemyTeamDefeated || playerTeamDefeated || hardTerminalPhase || timeoutTruncated;
               const nextState = done
                 ? deriveTerminalNextState(state, enemyTeamDefeated, playerTeamDefeated)
-                : buildObservation(game);
-              let reward = (prevEnemyHp - nextState.enemy_hp_ratio) * 2.0 - (prevPlayerHp - nextState.player_hp_ratio) * 1.5;
-              if (enemyFainted) reward += 1.5;
-              if (playerFainted) reward -= 1.5;
-              if (enemyTeamDefeated) reward += 2.5;
-              if (playerTeamDefeated) reward -= 2.5;
+                : buildObservation(game, scenario);
+              const nextPlayerTeamHp = playerTeamDefeated ? 0 : getPlayerTeamHpRatio(game);
+              const nextEnemyTeamHp = enemyTeamDefeated ? 0 : getEnemyTeamHpRatio(game);
+              const alivePlayerTeamMembers = countAlivePlayerTeamMembers(game);
+              const activePartyIndexBeforeAction = findActivePartySlotIndex(state);
+              let reward = REWARD_STEP_PENALTY;
+              const enemyTeamHpDamage = Math.max(0, enemyTeamHpBeforeAction - nextEnemyTeamHp);
+              const playerTeamHpLoss = Math.max(0, playerTeamHpBeforeAction - nextPlayerTeamHp);
+              reward += enemyTeamHpDamage * REWARD_ENEMY_TEAM_HP_DAMAGE_SCALE;
+              reward += playerTeamHpLoss * REWARD_PLAYER_TEAM_HP_LOSS_SCALE;
+              if (action >= MOVE_ACTIONS) {
+                const switchTargetIndex = action - MOVE_ACTIONS;
+                reward += REWARD_SWITCH_PENALTY;
+                if (previousAction != null && previousAction >= MOVE_ACTIONS) {
+                  reward += REWARD_CONSECUTIVE_SWITCH_PENALTY;
+                  reward += consecutiveSwitchCount * REWARD_CONSECUTIVE_SWITCH_PENALTY_SCALE;
+                }
+                if (lastSwitchOriginPartyIndex != null && switchTargetIndex === lastSwitchOriginPartyIndex) {
+                  reward += REWARD_DIRECT_BACKSWITCH_PENALTY;
+                }
+              }
+              if (enemyFainted) reward += REWARD_ENEMY_FAINT_BONUS;
+              if (playerFainted) reward += REWARD_PLAYER_FAINT_PENALTY;
+              if (enemyTeamDefeated) {
+                reward += REWARD_ENEMY_TEAM_DEFEAT_BONUS;
+                reward += alivePlayerTeamMembers * REWARD_ALIVE_TEAM_MEMBER_WIN_BONUS;
+                reward += nextPlayerTeamHp * REWARD_REMAINING_TEAM_HP_RATIO_WIN_BONUS_SCALE;
+              }
+              if (playerTeamDefeated) reward += REWARD_PLAYER_TEAM_DEFEAT_PENALTY;
 
               if (!done && stepIndex === MAX_STEPS_PER_EPISODE - 1) {
                 done = true;
@@ -666,6 +1147,7 @@ describe("external combat batch collector", () => {
                   wave: currentWaveIndexSafe(game, state.wave_index),
                   battle_type: "single",
                   scenario: scenario.__scenario_name,
+                  state_variant: episodeStateVariant,
                   outcome: enemyTeamDefeated ? "win" : playerTeamDefeated ? "loss" : timeoutTruncated ? "timeout" : "truncated",
                 },
                 timestamp: Date.now(),
@@ -674,6 +1156,14 @@ describe("external combat batch collector", () => {
               fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
               fs.appendFileSync(OUTPUT_PATH, \`\${JSON.stringify(record)}\\n\`, { encoding: "utf8" });
               totalTransitions += 1;
+              if (action >= MOVE_ACTIONS) {
+                lastSwitchOriginPartyIndex = activePartyIndexBeforeAction >= 0 ? activePartyIndexBeforeAction : null;
+                consecutiveSwitchCount += 1;
+              } else {
+                lastSwitchOriginPartyIndex = null;
+                consecutiveSwitchCount = 0;
+              }
+              previousAction = action;
               if (
                 PROGRESS_PAUSE_ENABLED
                 && PROGRESS_PAUSE_TARGET_TRANSITIONS > 0
@@ -681,8 +1171,13 @@ describe("external combat batch collector", () => {
               ) {
                 const currentPercent = Math.floor((totalTransitions / PROGRESS_PAUSE_TARGET_TRANSITIONS) * 100);
                 if (currentPercent >= nextProgressPausePercent) {
+                  const elapsedMs = Date.now() - runStartedAt;
+                  const estimatedTotalMs = totalTransitions > 0
+                    ? (elapsedMs / totalTransitions) * PROGRESS_PAUSE_TARGET_TRANSITIONS
+                    : 0;
+                  const remainingMs = Math.max(0, estimatedTotalMs - elapsedMs);
                   console.log(
-                    \`[collector-progress-pause] transitions=\${totalTransitions}/\${PROGRESS_PAUSE_TARGET_TRANSITIONS} reached=\${nextProgressPausePercent}% pausing_ms=\${PROGRESS_PAUSE_MS}\`,
+                    \`[collector-progress-pause] transitions=\${totalTransitions}/\${PROGRESS_PAUSE_TARGET_TRANSITIONS} reached=\${nextProgressPausePercent}% elapsed=\${formatDuration(elapsedMs)} eta_remaining=\${formatDuration(remainingMs)} pausing_ms=\${PROGRESS_PAUSE_MS}\`,
                   );
                   if (PROGRESS_PAUSE_MS > 0) {
                     await sleep(PROGRESS_PAUSE_MS);
@@ -692,6 +1187,10 @@ describe("external combat batch collector", () => {
               }
 
               if (done) {
+                const drainStatus = await drainTerminalPhase(game, STEP_TIMEOUT_MS);
+                if (drainStatus === "timeout") {
+                  console.log(\`[collector-terminal-drain-timeout] episode=\${episodeId} step=\${stepIndex} phase=\${currentPhaseNameSafe(game)}\`);
+                }
                 if (timeoutTruncated) {
                   console.log(\`[collector-timeout] episode=\${episodeId} step=\${stepIndex} phase=\${currentPhaseNameSafe(game)} advance_status=\${advanceStatus} step_ms=\${stepMs}\`);
                 }

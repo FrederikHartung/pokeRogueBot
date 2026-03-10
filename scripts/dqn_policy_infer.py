@@ -5,7 +5,7 @@ from typing import Dict, List
 
 import torch
 
-from train_dqn_offline import QNetwork, encode_state
+from train_dqn_offline import FEATURE_SCHEMA_VERSION, QNetwork, build_feature_names, encode_state
 
 
 def _sanitize_action_mask(mask: object, action_dim: int) -> List[float]:
@@ -20,9 +20,24 @@ def _sanitize_action_mask(mask: object, action_dim: int) -> List[float]:
 
 def load_model(checkpoint_path: str, device: str) -> tuple[QNetwork, int]:
     checkpoint = torch.load(checkpoint_path, map_location=device)
+    checkpoint_schema_version = int(checkpoint.get("feature_schema_version", 1))
+    if checkpoint_schema_version != FEATURE_SCHEMA_VERSION:
+        raise ValueError(
+            f"Checkpoint feature schema version {checkpoint_schema_version} does not match runtime version {FEATURE_SCHEMA_VERSION}"
+        )
+
+    checkpoint_feature_names = checkpoint.get("feature_names")
+    runtime_feature_names = build_feature_names()
+    if isinstance(checkpoint_feature_names, list) and checkpoint_feature_names != runtime_feature_names:
+        raise ValueError("Checkpoint feature names do not match current runtime feature order")
+
     input_dim = int(checkpoint["input_dim"])
     output_dim = int(checkpoint["output_dim"])
     hidden_dims = list(checkpoint.get("hidden_dims", [128, 128]))
+    if input_dim != len(runtime_feature_names):
+        raise ValueError(
+            f"Checkpoint input_dim {input_dim} does not match runtime feature count {len(runtime_feature_names)}"
+        )
 
     model = QNetwork(input_dim, hidden_dims, output_dim).to(device)
     model.load_state_dict(checkpoint["model_state_dict"])

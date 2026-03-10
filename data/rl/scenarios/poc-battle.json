@@ -9,7 +9,8 @@
       "nature": 0,
       "ability_index": 0,
       "ivs": [31, 31, 31, 31, 31, 31],
-      "moveset": [33, 45, 73, 150]
+      "moveset": [33, 45, 73, 150],
+      "hp_ratio": 0.5
     },
     {
       "species_id": 4,
@@ -28,6 +29,7 @@
     "nature": 0,
     "ability_index": 0,
     "ivs": [31, 31, 31, 31, 31, 31],
-    "moveset": [150]
+    "moveset": [150],
+    "hp_ratio": 1.0
   }
 }

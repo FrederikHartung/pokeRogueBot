@@ -185,7 +185,15 @@ Planned integration boundary:
 - PyTorch training consumes these datasets and exports model artifacts.
 - Kotlin runtime consumes exported model (prefer ONNX Runtime in-process; optional service mode later).
 
-## Current Repository Status (March 8, 2026)
+Combat-/Switch-State-Contract:
+
+- Fuer Combat- und Switch-Offline-Training gibt es genau einen verbindlichen State-Contract.
+- Die feste Dokumentationsstelle ist `docs/rl-schema/combat-transition.schema.json`.
+- Das passende Beispiel wird in `docs/rl-schema/combat-transition.example.json` gepflegt.
+- Wenn dieses Schema geaendert wird, muessen Collector, Dataset-Sanity-Checks, Training, Inferenz/Eval und die Doku im selben Arbeitsschritt sorgfaeltig mitgezogen werden.
+- Es darf kein Drift zwischen dokumentiertem Schema, erzeugten JSONL-Transitions und konsumierenden Skripten geben.
+
+## Current Repository Status (March 10, 2026)
 
 Implemented in main repo:
 
@@ -205,8 +213,27 @@ Current generated artifacts:
 
 - Scenario sweep example: `data/rl/scenarios/generated-w1-20/*.json`
 - Batch transition output example: `data/rl/combat/train.jsonl`
+- 5k bootstrap dataset example: `data/rl/combat/train-5k-bootstrap.jsonl`
+- 5k-trained checkpoint example: `data/rl/models/dqn-combat-5k-bootstrap.pt`
+- latest compare report: `data/rl/combat/eval-policy-compare-5k-bootstrap-report.json`
 
 Known behavior:
 
 - Scenario sweep may skip waves that instantiate double battles when `skip_double_battles=true`.
 - This is expected in v1 because the current combat RL scope is single battles only.
+- Collector now recognizes terminal phases during `toEndOfTurn()` polling, so `GameOverPhase -> PostGameOverPhase -> TitlePhase` no longer waits for the full 15s step timeout before ending the episode.
+- Long collector runs can also be split into multiple short-lived Node/Vitest batches via `scripts/run-pokerogue-experience-collector-batched.mjs`; this reduces heap growth and lets the OS reclaim memory between batches.
+- Collector configs can rotate predefined HP-state variants per episode to improve switch-learning coverage:
+  - `all_full`
+  - `lead_critical_bench_full`
+  - `lead_critical_plus_random_bench_critical`
+  - `all_critical`
+  - `lead_half_bench_full`
+  - `enemy_half`
+  - `enemy_critical`
+- Scenario JSON may additionally define optional `hp_ratio` values on player team members and enemy for fixed non-full start states.
+- Progress-pause logs now show elapsed runtime and ETA in addition to the 10%-milestones.
+- Dedizierter Switch-Testfall vorhanden:
+  - neue `state_variant`: `lead_1hp_bench_full`
+  - setzt das aktive Spieler-Pokemon auf exakt `1 HP`, Bench bleibt voll
+  - separate Collector-/Train-/Benchmark-Configs fuer isolierte Switch-Experimente vorhanden

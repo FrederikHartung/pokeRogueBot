@@ -18,6 +18,10 @@ except ModuleNotFoundError as exc:
 
 
 ACTION_DIM = 10  # 0..3 move slots, 4..9 party switch targets
+FEATURE_SCHEMA_VERSION = 3
+WAVE_INDEX_SCALE = 100.0
+LEVEL_SCALE = 100.0
+TYPE_ID_SCALE = 20.0
 
 
 @dataclass
@@ -45,6 +49,52 @@ class QNetwork(nn.Module):
         return self.net(x)
 
 
+def build_feature_names() -> List[str]:
+    names: List[str] = [
+        "wave_index",
+        "player_hp_ratio",
+        "enemy_hp_ratio",
+        "player_hp_bucket",
+        "enemy_hp_bucket",
+        "hp_diff_bucket",
+        "level_gap_bucket",
+        "is_trainer_battle",
+        "alive_bench_count_bucket",
+        "healthy_bench_count_bucket",
+        "best_switch_matchup_bucket",
+        "worst_switch_risk_bucket",
+    ]
+
+    for i in range(4):
+        names.extend(
+            [
+                f"move_{i}_available",
+                f"move_{i}_power_bucket",
+                f"move_{i}_effectiveness_bucket",
+                f"move_{i}_stab",
+                f"move_{i}_pp_low",
+            ]
+        )
+
+    for i in range(6):
+        names.extend(
+            [
+                f"party_slot_{i}_present",
+                f"party_slot_{i}_active",
+                f"party_slot_{i}_fainted",
+                f"party_slot_{i}_hp_ratio",
+                f"party_slot_{i}_level",
+                f"party_slot_{i}_type_0",
+                f"party_slot_{i}_type_1",
+            ]
+        )
+
+    for i in range(ACTION_DIM):
+        names.append(f"action_mask_{i}")
+
+    return names
+
+
 def _safe_num(value, default: float = 0.0) -> float:
     if isinstance(value, bool):
         return float(value)
@@ -53,27 +103,27 @@ def _safe_num(value, default: float = 0.0) -> float:
     return default
 
 
+def _normalize(value, max_value: float, default: float = 0.0) -> float:
+    numeric = _safe_num(value, default)
+    if max_value <= 0:
+        return numeric
+    return max(0.0, min(1.0, numeric / max_value))
+
+
 def encode_state(state: Dict) -> Tuple[List[float], List[float]]:
-    player_types = state.get("player_types") if isinstance(state.get("player_types"), list) else []
-    enemy_types = state.get("enemy_types") if isinstance(state.get("enemy_types"), list) else []
-    move_effectiveness = state.get("move_effectiveness") if isinstance(state.get("move_effectiveness"), list) else []
-
-    player_type_1 = _safe_num(player_types[0], -1.0) if len(player_types) > 0 else -1.0
-    player_type_2 = _safe_num(player_types[1], -1.0) if len(player_types) > 1 else -1.0
-    enemy_type_1 = _safe_num(enemy_types[0], -1.0) if len(enemy_types) > 0 else -1.0
-    enemy_type_2 = _safe_num(enemy_types[1], -1.0) if len(enemy_types) > 1 else -1.0
-
     features: List[float] = [
-        _safe_num(state.get("wave_index"), 0.0),
-        _safe_num(state.get("turn_index"), 0.0),
+        _normalize(state.get("wave_index"), WAVE_INDEX_SCALE),
         _safe_num(state.get("player_hp_ratio"), 0.0),
         _safe_num(state.get("enemy_hp_ratio"), 0.0),
-        _safe_num(state.get("player_level"), 0.0),
-        _safe_num(state.get("enemy_level"), 0.0),
-        player_type_1,
-        player_type_2,
-        enemy_type_1,
-        enemy_type_2,
+        _normalize(state.get("player_hp_bucket"), 5.0),
+        _normalize(state.get("enemy_hp_bucket"), 5.0),
+        _normalize(state.get("hp_diff_bucket"), 6.0),
+        _normalize(state.get("level_gap_bucket"), 8.0),
+        _safe_num(state.get("is_trainer_battle"), 0.0),
+        _normalize(state.get("alive_bench_count_bucket"), 3.0),
+        _normalize(state.get("healthy_bench_count_bucket"), 3.0),
+        _normalize(state.get("best_switch_matchup_bucket"), 4.0),
+        _normalize(state.get("worst_switch_risk_bucket"), 3.0),
     ]
 
     moves = state.get("moves") if isinstance(state.get("moves"), list) else []
@@ -81,31 +131,29 @@ def encode_state(state: Dict) -> Tuple[List[float], List[float]]:
         move = moves[i] if i < len(moves) and isinstance(moves[i], dict) else {}
         features.extend(
             [
-                _safe_num(move.get("move_id"), 0.0),
-                _safe_num(move.get("pp_left"), 0.0),
-                _safe_num(move.get("pp_max"), 0.0),
-                _safe_num(move.get("power"), 0.0),
-                _safe_num(move.get("accuracy"), 0.0),
+                _safe_num(move.get("available"), 0.0),
+                _normalize(move.get("power_bucket"), 3.0),
+                _normalize(move.get("effectiveness_bucket"), 4.0),
+                _safe_num(move.get("stab"), 0.0),
+                _safe_num(move.get("pp_low"), 0.0),
             ]
         )
-        move_eff = move_effectiveness[i] if i < len(move_effectiveness) else 0.0
-        features.append(_safe_num(move_eff, 0.0))
 
     party_slots = state.get("party_slots") if isinstance(state.get("party_slots"), list) else []
-    for slot_index in range(6):
-        slot = party_slots[slot_index] if slot_index < len(party_slots) and isinstance(party_slots[slot_index], dict) else {}
-        slot_types = slot.get("types") if isinstance(slot.get("types"), list) else []
-        slot_type_1 = _safe_num(slot_types[0], -1.0) if len(slot_types) > 0 else -1.0
-        slot_type_2 = _safe_num(slot_types[1], -1.0) if len(slot_types) > 1 else -1.0
+    for i in range(6):
+        slot = party_slots[i] if i < len(party_slots) and isinstance(party_slots[i], dict) else {}
+        types = slot.get("types") if isinstance(slot.get("types"), list) else []
+        type_0 = types[0] if len(types) > 0 else -1
+        type_1 = types[1] if len(types) > 1 else -1
         features.extend(
             [
                 _safe_num(slot.get("present"), 0.0),
                 _safe_num(slot.get("active"), 0.0),
                 _safe_num(slot.get("fainted"), 0.0),
                 _safe_num(slot.get("hp_ratio"), 0.0),
-                _safe_num(slot.get("level"), 0.0),
-                slot_type_1,
-                slot_type_2,
+                _normalize(slot.get("level"), LEVEL_SCALE),
+                _normalize(type_0, TYPE_ID_SCALE, -1.0) if type_0 >= 0 else -1.0,
+                _normalize(type_1, TYPE_ID_SCALE, -1.0) if type_1 >= 0 else -1.0,
             ]
         )
 
@@ -114,6 +162,8 @@ def encode_state(state: Dict) -> Tuple[List[float], List[float]]:
     for i in range(ACTION_DIM):
         value = action_mask[i] if i < len(action_mask) else 0
         mask.append(1.0 if value == 1 else 0.0)
+
+    features.extend(mask)
 
     return features, mask
 
@@ -143,8 +193,10 @@ def load_dataset(path: str) -> TransitionBatch:
             if not isinstance(action, int) or action < 0 or action >= ACTION_DIM:
                 raise ValueError(f"Invalid action in line {line_no}: {action}")
 
-            state_vec, _ = encode_state(state)
+            state_vec, state_mask = encode_state(state)
             next_state_vec, next_mask = encode_state(next_state)
+            if state_mask[action] <= 0.5:
+                raise ValueError(f"Action {action} is not legal in line {line_no}")
 
             states.append(state_vec)
             actions.append(action)
@@ -261,6 +313,8 @@ def train(config: Dict) -> None:
             "hidden_dims": hidden_dims,
             "dataset_path": dataset_path,
             "seed": seed,
+            "feature_schema_version": FEATURE_SCHEMA_VERSION,
+            "feature_names": build_feature_names(),
         },
         output_path,
     )

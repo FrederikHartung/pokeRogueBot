@@ -7,18 +7,13 @@
     "./scenarios/benchmarked/trainer/trainer-w5-trainer-seed-003.json",
     "./scenarios/benchmarked/trainer/trainer-w10-trainer-seed-002.json"
   ],
-  "output_path": "./combat/train-benchmarked-mixed.jsonl",
+  "output_path": "./combat/train-5k-lead-1hp.jsonl",
   "append_output": false,
+  "terminal_on_egg_lapse": true,
   "state_variants": [
-    "all_full",
-    "lead_critical_bench_full",
-    "lead_critical_plus_random_bench_critical",
-    "all_critical",
-    "lead_half_bench_full",
-    "enemy_half",
-    "enemy_critical"
+    "lead_1hp_bench_full"
   ],
-  "episodes_per_seed": 7,
+  "episodes_per_seed": 90,
   "max_steps_per_episode": 400,
   "reward_step_penalty": -0.05,
   "reward_switch_penalty": -0.05,
@@ -33,11 +28,13 @@
   "reward_player_team_defeat_penalty": -6.0,
   "reward_alive_team_member_win_bonus": 1.0,
   "reward_remaining_team_hp_ratio_win_bonus_scale": 2.0,
+  "test_timeout_ms": 1800000,
   "policy": {
     "type": "epsilon_random",
     "start_epsilon": 1.0,
     "end_epsilon": 0.2,
-    "decay_episodes": 100,
-    "switch_action_weight": 0.15
+    "decay_episodes": 360,
+    "switch_action_weight": 0.15,
+    "step_timeout_ms": 15000
   }
 }

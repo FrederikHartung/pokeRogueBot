@@ -75,6 +75,33 @@ function getHpRatio(hp: number, maxHp: number): number {
   return Math.max(0, Math.min(1, hp / maxHp));
 }
 
+function setPokemonHpRatio(pokemon: any, ratio: number) {
+  if (!pokemon || !Number.isFinite(ratio)) return;
+  const maxHp = pokemon.getMaxHp();
+  if (!Number.isFinite(maxHp) || maxHp <= 0) return;
+  let nextHp = Math.round(maxHp * ratio);
+  if (ratio > 0 && nextHp <= 0) {
+    nextHp = 1;
+  }
+  pokemon.hp = Math.max(0, Math.min(maxHp, nextHp));
+}
+
+function applyScenarioHpRatios(game: GameManager) {
+  const party = game.scene.getPlayerParty();
+  const scenarioTeam = Array.isArray(SCENARIO.player_team) ? SCENARIO.player_team : [];
+  for (let idx = 0; idx < scenarioTeam.length; idx += 1) {
+    const ratio = scenarioTeam[idx]?.hp_ratio;
+    if (Number.isFinite(ratio)) {
+      setPokemonHpRatio(party[idx], Number(ratio));
+    }
+  }
+
+  const enemyRatio = SCENARIO?.enemy?.hp_ratio;
+  if (Number.isFinite(enemyRatio)) {
+    setPokemonHpRatio(game.scene.getEnemyPokemon(), Number(enemyRatio));
+  }
+}
+
 function buildObservation(game: GameManager) {
   const player = game.scene.getPlayerPokemon();
   const enemy = game.scene.getEnemyPokemon();
@@ -235,6 +262,7 @@ describe("external combat experience poc", () => {
   it("generates one transition and appends it as JSONL", async () => {
     const teamSpecies = SCENARIO.player_team.map(member => member.species_id);
     await game.classicMode.startBattle(teamSpecies);
+    applyScenarioHpRatios(game);
     expect(game.scene.currentBattle.double).toBe(false);
 
     const state = buildObservation(game);

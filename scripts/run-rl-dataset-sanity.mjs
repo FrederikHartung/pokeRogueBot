@@ -59,19 +59,40 @@ for (let i = 0; i < lines.length; i += 1) {
     issues.push(`[line ${lineNo}] action not allowed by action_mask`);
   }
 
-  const playerTypes = row?.state?.player_types;
-  if (!Array.isArray(playerTypes) || playerTypes.length < 1 || playerTypes.length > 2 || playerTypes.some(v => !Number.isInteger(v) || v < 0)) {
-    issues.push(`[line ${lineNo}] invalid player_types`);
+  const bucketFields = [
+    "player_hp_bucket",
+    "enemy_hp_bucket",
+    "hp_diff_bucket",
+    "level_gap_bucket",
+    "is_trainer_battle",
+    "alive_bench_count_bucket",
+    "healthy_bench_count_bucket",
+    "best_switch_matchup_bucket",
+    "worst_switch_risk_bucket",
+  ];
+  for (const field of bucketFields) {
+    if (!Number.isInteger(row?.state?.[field])) {
+      issues.push(`[line ${lineNo}] invalid ${field}`);
+    }
   }
 
-  const enemyTypes = row?.state?.enemy_types;
-  if (!Array.isArray(enemyTypes) || enemyTypes.length < 1 || enemyTypes.length > 2 || enemyTypes.some(v => !Number.isInteger(v) || v < 0)) {
-    issues.push(`[line ${lineNo}] invalid enemy_types`);
-  }
-
-  const moveEffectiveness = row?.state?.move_effectiveness;
-  if (!Array.isArray(moveEffectiveness) || moveEffectiveness.length !== 4 || moveEffectiveness.some(v => typeof v !== "number" || Number.isNaN(v) || v < 0)) {
-    issues.push(`[line ${lineNo}] invalid move_effectiveness`);
+  const moves = row?.state?.moves;
+  if (!Array.isArray(moves) || moves.length > 4) {
+    issues.push(`[line ${lineNo}] invalid v2 moves`);
+  } else {
+    for (let idx = 0; idx < moves.length; idx += 1) {
+      const move = moves[idx];
+      if (!move || typeof move !== "object") {
+        issues.push(`[line ${lineNo}] invalid move at index ${idx}`);
+        continue;
+      }
+      const moveFields = ["available", "power_bucket", "effectiveness_bucket", "stab", "pp_low"];
+      for (const field of moveFields) {
+        if (!Number.isInteger(move[field])) {
+          issues.push(`[line ${lineNo}] invalid move.${field} at index ${idx}`);
+        }
+      }
+    }
   }
 
   if (typeof row.reward !== "number" || Number.isNaN(row.reward)) {
