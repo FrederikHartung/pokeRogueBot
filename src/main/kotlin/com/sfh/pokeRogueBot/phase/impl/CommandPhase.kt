@@ -48,13 +48,22 @@ class CommandPhase(
         }
 
         if (uiMode == UiMode.COMMAND) { //fight, ball, pokemon, run
-            val commandPhaseDecision: CommandPhaseDecision? = brain.getCommandDecision()
+            val commandChoice = brain.prepareCombatCommandChoice()
+            val commandPhaseDecision: CommandPhaseDecision? = commandChoice.commandDecision
+            log.debug(
+                "Prepared combat command choice for wave={}, turn={}: commandDecision={}, attackDecision={}, switchDecision={}",
+                waveAndTurnDto.waveIndex,
+                waveAndTurnDto.turnIndex,
+                commandPhaseDecision,
+                commandChoice.attackDecision,
+                commandChoice.switchDecision,
+            )
             val memory =
                 "wave: " + waveAndTurnDto.waveIndex + ", turn: " + waveAndTurnDto.turnIndex + ", decision: " + commandPhaseDecision
             brain.memorize(memory)
 
             try {
-                attackDecision = brain.getAttackDecision()
+                attackDecision = commandChoice.attackDecision
             } catch (e: NoAttackMoveFoundException) {
                 log.debug("no attack move found")
                 attackDecision = null
@@ -71,7 +80,11 @@ class CommandPhase(
                 jsUiService.sendActionButton()
                 return
             } else if (commandPhaseDecision == CommandPhaseDecision.SWITCH || null == attackDecision) {
-                log.debug("GameMode.COMMAND, Switch decision chosen")
+                log.debug(
+                    "GameMode.COMMAND, Switch decision chosen. commandDecision={}, attackDecisionPresent={}",
+                    commandPhaseDecision,
+                    attackDecision != null,
+                )
                 jsUiService.setUiHandlerCursor(uiMode, 2)
                 jsUiService.sendActionButton()
                 return
@@ -114,9 +127,11 @@ class CommandPhase(
             return
         } else if (uiMode == UiMode.PARTY) {
             val switchDecision: SwitchDecision = brain.getPokemonSwitchDecision(true)
+            log.debug("GameMode.PARTY, selecting switch decision: {}", switchDecision)
             jsUiService.setUiHandlerCursor(uiMode, switchDecision.index)
             jsUiService.sendActionButton()
-            //TODO: handling for option select?
+            log.debug("GameMode.PARTY, confirming selected pokemon sendout")
+            jsUiService.sendActionButton()
             return
         }
 

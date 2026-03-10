@@ -1,0 +1,202 @@
+{
+  "enemyParty": [
+    {
+      "formIndex": 0,
+      "friendship": 0,
+      "gender": "MALE",
+      "hp": 18,
+      "id": 20001,
+      "ivs": {
+        "hp": 8,
+        "attack": 8,
+        "defense": 8,
+        "specialAttack": 8,
+        "specialDefense": 8,
+        "speed": 8
+      },
+      "level": 3,
+      "luck": 0,
+      "metBiome": 1,
+      "metLevel": 3,
+      "moveset": [
+        {
+          "name": "Tackle",
+          "id": 33,
+          "accuracy": 100,
+          "category": "PHYSICAL",
+          "moveTarget": "NEAR_OTHER",
+          "power": 40,
+          "priority": 0,
+          "type": "NORMAL",
+          "movePp": 35,
+          "pPUsed": 0,
+          "pPLeft": 35,
+          "isUsable": true
+        }
+      ],
+      "name": "Pidgey",
+      "nature": "HARDY",
+      "pokerus": false,
+      "shiny": false,
+      "species": {
+        "ability1": "WATER_ABSORB",
+        "ability2": null,
+        "abilityHidden": "LEVITATE",
+        "baseExp": 50,
+        "baseFriendship": 50,
+        "baseStats": {
+          "hp": 40,
+          "attack": 45,
+          "defense": 40,
+          "specialAttack": 35,
+          "specialDefense": 35,
+          "speed": 56
+        },
+        "baseTotal": 251,
+        "canChangeForm": false,
+        "catchRate": 255,
+        "generation": 1,
+        "growthRate": 4,
+        "height": 0.3,
+        "isStarterSelectable": false,
+        "legendary": false,
+        "mythical": false,
+        "speciesString": "Pidgey",
+        "speciesId": 16,
+        "subLegendary": false,
+        "type1": "NORMAL",
+        "type2": "FLYING",
+        "weight": 1.8
+      },
+      "stats": {
+        "hp": 18,
+        "attack": 10,
+        "defense": 9,
+        "specialAttack": 8,
+        "specialDefense": 8,
+        "speed": 11
+      },
+      "status": {
+        "effect": "NONE",
+        "turnCount": 0
+      },
+      "boss": false,
+      "bossSegments": 0,
+      "player": false
+    }
+  ],
+  "ownParty": [
+    {
+      "formIndex": 0,
+      "friendship": 70,
+      "gender": "MALE",
+      "hp": 20,
+      "id": 12345,
+      "ivs": {
+        "hp": 10,
+        "attack": 11,
+        "defense": 12,
+        "specialAttack": 13,
+        "specialDefense": 14,
+        "speed": 15
+      },
+      "level": 5,
+      "luck": 0,
+      "metBiome": 1,
+      "metLevel": 5,
+      "moveset": [
+        {
+          "name": "Tackle",
+          "id": 33,
+          "accuracy": 100,
+          "category": "PHYSICAL",
+          "moveTarget": "NEAR_OTHER",
+          "power": 40,
+          "priority": 0,
+          "type": "NORMAL",
+          "movePp": 35,
+          "pPUsed": 0,
+          "pPLeft": 35,
+          "isUsable": true
+        },
+        {
+          "name": "Growl",
+          "id": 45,
+          "accuracy": 100,
+          "category": "STATUS",
+          "moveTarget": "ALL_NEAR_ENEMIES",
+          "power": -1,
+          "priority": 0,
+          "type": "NORMAL",
+          "movePp": 40,
+          "pPUsed": 0,
+          "pPLeft": 40,
+          "isUsable": true
+        },
+        {
+          "name": "Vine Whip",
+          "id": 22,
+          "accuracy": 100,
+          "category": "PHYSICAL",
+          "moveTarget": "NEAR_OTHER",
+          "power": 45,
+          "priority": 0,
+          "type": "GRASS",
+          "movePp": 25,
+          "pPUsed": 0,
+          "pPLeft": 25,
+          "isUsable": true
+        }
+      ],
+      "name": "Bulbasaur",
+      "nature": "LAX",
+      "pokerus": false,
+      "shiny": false,
+      "species": {
+        "ability1": "WATER_ABSORB",
+        "ability2": null,
+        "abilityHidden": "LEVITATE",
+        "baseExp": 64,
+        "baseFriendship": 50,
+        "baseStats": {
+          "hp": 45,
+          "attack": 49,
+          "defense": 49,
+          "specialAttack": 65,
+          "specialDefense": 65,
+          "speed": 45
+        },
+        "baseTotal": 318,
+        "canChangeForm": false,
+        "catchRate": 45,
+        "generation": 1,
+        "growthRate": 4,
+        "height": 0.7,
+        "isStarterSelectable": true,
+        "legendary": false,
+        "mythical": false,
+        "speciesString": "Bulbasaur",
+        "speciesId": 1,
+        "subLegendary": false,
+        "type1": "GRASS",
+        "type2": "POISON",
+        "weight": 6.9
+      },
+      "stats": {
+        "hp": 20,
+        "attack": 11,
+        "defense": 11,
+        "specialAttack": 13,
+        "specialDefense": 13,
+        "speed": 11
+      },
+      "status": {
+        "effect": "NONE",
+        "turnCount": 0
+      },
+      "boss": false,
+      "bossSegments": 0,
+      "player": true
+    }
+  ]
+}

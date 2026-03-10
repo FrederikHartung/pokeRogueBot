@@ -1,14 +1,64 @@
 export {};
-declare const window: any;
+import type { PokemonSpecies } from "../../../pokerogue/src/data/pokemon-species";
+
+type StarterSelectionDto = {
+    speciesId: number;
+    generation: number;
+    species: unknown;
+    cost: number;
+    cursorToSelect: number;
+};
+
+type StarterSpeciesEntry = {
+    speciesId: number;
+};
+
+type StarterSelectUiHandlerLike = {
+    active?: boolean;
+    starterSpecies?: unknown[];
+    genSpecies: StarterSpeciesEntry[][];
+    scene: {
+        gameData: {
+            getSpeciesStarterValue: (speciesId: number) => number;
+        };
+    };
+};
+
+type DexEntryLike = {
+    caughtAttr?: bigint;
+};
+
+type StarterApi = {
+    getPossibleStarter: () => StarterSelectionDto[] | undefined;
+    getPossibleStarterJson: () => string;
+    getNumberOfSelectedStarters: () => number;
+};
+
+type PoruRoot = {
+    starter?: StarterApi;
+    uihandler?: {
+        getUiHandler: (index: number) => StarterSelectUiHandlerLike | null;
+    };
+    util?: {
+        getDexData: () => Record<number, DexEntryLike>;
+    };
+    poke?: {
+        getSpeciesDto: (species: PokemonSpecies) => unknown;
+    };
+};
+
+declare const window: Window & typeof globalThis & { poru?: PoruRoot };
 
 if(!window.poru) window.poru = {};
-window.poru.starter = {
+const poruRoot = window.poru;
+
+const starterApi: StarterApi = {
     getPossibleStarter: () => {
-        const starterSelectUiHandler = window.poru.uihandler.getUiHandler(10);
+        const starterSelectUiHandler = poruRoot.uihandler?.getUiHandler(10);
 
         if(starterSelectUiHandler) {
-            const starters: any[] = [];
-            const dexData = window.poru.util.getDexData();
+            const starters: StarterSelectionDto[] = [];
+            const dexData = poruRoot.util?.getDexData() ?? {};
 
             const genSpecies = starterSelectUiHandler.genSpecies;
             for(var generation = 0; generation < Object.keys(genSpecies).length; generation++) {
@@ -18,10 +68,10 @@ window.poru.starter = {
 
                     if(dexEntry && dexEntry.caughtAttr && dexEntry.caughtAttr > 0n) {
                         const starterCost = starterSelectUiHandler.scene.gameData.getSpeciesStarterValue(species.speciesId);
-                        const starter = {
+                        const starter: StarterSelectionDto = {
                             speciesId: species.speciesId,
                             generation: generation,
-                            species: window.poru.poke.getSpeciesDto(species),
+                            species: poruRoot.poke?.getSpeciesDto(species as PokemonSpecies) ?? null,
                             cost: starterCost,
                             cursorToSelect: cursor,
                         }
@@ -36,12 +86,12 @@ window.poru.starter = {
     },
 
     getPossibleStarterJson: () => {
-        return JSON.stringify(window.poru.starter.getPossibleStarter());
+        return JSON.stringify(starterApi.getPossibleStarter());
     },
 
     getNumberOfSelectedStarters: () => {
         try {
-            const starterSelectUiHandler = window.poru.uihandler.getUiHandler(10);
+            const starterSelectUiHandler = poruRoot.uihandler?.getUiHandler(10);
             if(starterSelectUiHandler && starterSelectUiHandler.active && starterSelectUiHandler.starterSpecies){
                 return starterSelectUiHandler.starterSpecies.length;
             }
@@ -52,4 +102,6 @@ window.poru.starter = {
         }
     }
 
-}
+};
+
+poruRoot.starter = starterApi;

@@ -1,5 +1,11 @@
 # Combat Training V1
 
+## Current Implementation Priority
+
+- Before further live-bot policy expansion, the immediate goal is a working end-to-end bot run with combat policy `random_move`.
+- For this recovery step, `random_move` means: always enter `FIGHT` when a legal move exists, then choose a random legal move.
+- Switch/DQN behavior remains secondary until the live application is stable again.
+
 ## Goal
 
 Build a first reliable training loop for combat decisions (move selection) with fast offline data generation and external PyTorch training.
@@ -206,14 +212,16 @@ Day 5:
   - POC one-step collector (`npm run rl:poc:experience`)
   - multi-step collector with epsilon schedule (`npm run rl:collect`)
   - seed x wave scenario generator (`npm run rl:gen:scenarios`)
+  - local single-battle-only hardening for offline RL pipeline
+  - local mystery-encounter suppression for offline RL pipeline
 - Verified example sweep result:
   - output directory: `data/rl/scenarios/generated-w1-20`
   - 86 single-battle scenarios generated from a 5x20 sweep
-  - 14 scenarios skipped due to double battles (expected under v1 scope)
+  - historical note: 14 scenarios were skipped due to double battles before the local global single-battle override and generator guard were introduced
 - Verified trainer-only sweep result:
   - output directory: `data/rl/scenarios/generated-trainer-w1-20`
   - 53 single-battle trainer scenarios generated from a 3x20 sweep
-  - 7 scenarios skipped due to double battles (expected under v1 scope)
+  - historical note: 7 scenarios were skipped due to trainer double battles before the local global single-battle override and generator guard were introduced
 - Repository policy:
   - checked in: scripts/config/schema + small benchmark scenario set (`data/rl/scenarios/benchmarked`)
   - not checked in: bulk generated scenario folders (`data/rl/scenarios/generated-*`) and transition dumps (`data/rl/combat/*.jsonl`)

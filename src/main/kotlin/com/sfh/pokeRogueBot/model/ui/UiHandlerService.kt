@@ -62,11 +62,19 @@ class UiHandlerService {
             15,
             "OptionSelectUiHandler",
         ),
+        UiMode.MENU_OPTION_SELECT to UiHandlerTemplate(
+            17,
+            "OptionSelectUiHandler",
+        ),
         UiMode.MYSTERY_ENCOUNTER to UiHandlerTemplate(
-            44,
+            46,
             "MysteryEncounterUiHandler",
         )
     )
+
+    fun hasHandlerForUiMode(uiMode: UiMode): Boolean = handlers.containsKey(uiMode)
+
+    fun getHandlerMappings(): Map<UiMode, UiHandlerTemplate> = handlers.toMap()
 
     fun getHandlerForUiMode(uiMode: UiMode): UiHandlerTemplate {
         val handler = handlers[uiMode]

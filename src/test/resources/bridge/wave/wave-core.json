@@ -1,0 +1,17 @@
+{
+  "arena": {
+    "biome": "PLAINS",
+    "lastTimeOfDay": 2
+  },
+  "battleStyle": "SWITCH",
+  "battleScore": 15,
+  "battleType": "WILD",
+  "double": false,
+  "enemyFaints": 0,
+  "money": 120,
+  "moneyScattered": 0,
+  "playerFaints": 0,
+  "turn": 1,
+  "waveIndex": 1,
+  "pokeballCount": [5, 0, 0, 0, 0]
+}

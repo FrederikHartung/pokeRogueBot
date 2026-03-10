@@ -82,6 +82,9 @@ This is a Spring Boot application (version 3.5.3) written in mixed Java/Kotlin t
 - TypeScript source files in `src/main/ts/` are compiled to plain JS in `src/main/js/` via esbuild
 - `src/main/ts/enums.ts` imports PokeRogue enums (AbilityId, Nature, PokemonType, BiomeId, etc.) directly from the `pokerogue/` submodule
 - Bridge files use `import type` to reference PokeRogue game classes (Pokemon, Move, BattleScene, etc.) for IDE autocomplete and compile-time checks — these are fully erased by esbuild and produce zero runtime code
+- Fuer die JS-Bridge ist es sehr wichtig, in `src/main/ts/` die Verwendung von `any` wenn irgend moeglich zu vermeiden und stattdessen immer explizite Typen aus dem Submodul oder lokale Typen zu verwenden
+- Wenn `any` in der JS-Bridge ausnahmsweise doch notwendig ist, muss dies vor der Implementierung aktiv hinterfragt und mit einer konkreten technischen Begruendung dokumentiert werden
+- Hintergrund dieser Regel: starke Typisierung soll Drift frueh sichtbar machen und stille Fehler nach Aenderungen im `pokerogue`-Submodul vermeiden
 - The `tsconfig.json` mirrors all of PokeRogue's path aliases (`#app/*`, `#field/*`, `#data/*`, `#modifiers/*`, etc.) so transitive type resolution works
 - esbuild bundles each TS file into a self-contained IIFE (no import/export/require in output)
 - The generated JS is injected into the browser by Selenium and attached to `window.poru.*` namespace

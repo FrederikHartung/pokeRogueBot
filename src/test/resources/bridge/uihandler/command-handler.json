@@ -1,0 +1,8 @@
+{
+  "active": true,
+  "awaitingActionInput": true,
+  "index": 2,
+  "name": "CommandUiHandler",
+  "configOptionsSize": 4,
+  "configOptionsLabel": ["Fight", "Ball", "Pokemon", "Run"]
+}

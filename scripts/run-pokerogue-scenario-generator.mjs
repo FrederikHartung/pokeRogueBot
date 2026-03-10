@@ -19,6 +19,8 @@ if (!existsSync(configPath)) {
 
 const config = JSON.parse(readFileSync(configPath, "utf8"));
 const configDir = path.dirname(configPath);
+const requireSingleBattles = config.require_single_battles !== false;
+const requireNoMysteryEncounters = config.require_no_mystery_encounters !== false;
 
 const outputDir = config.output_dir
   ? path.resolve(configDir, config.output_dir)
@@ -42,6 +44,8 @@ import { beforeAll, describe, it } from "vitest";
 
 const CONFIG = ${JSON.stringify(config)};
 const OUTPUT_DIR = ${JSON.stringify(outputDir)};
+const REQUIRE_SINGLE_BATTLES = ${requireSingleBattles};
+const REQUIRE_NO_MYSTERY_ENCOUNTERS = ${requireNoMysteryEncounters};
 
 function sanitizeForFile(value: string): string {
   return value.replace(/[^a-zA-Z0-9_-]/g, "_");
@@ -131,9 +135,34 @@ describe("external scenario generator", () => {
           applyGenerationOverrides(game, seed, wave);
           await game.classicMode.startBattle(teamSpecies);
 
-          if (CONFIG.skip_double_battles !== false && game.scene.currentBattle.double) {
-            skippedDouble += 1;
+          if (game.scene.currentBattle.battleType === BattleType.MYSTERY_ENCOUNTER) {
+            if (REQUIRE_NO_MYSTERY_ENCOUNTERS) {
+              throw new Error(
+                "Mystery encounter generated despite single-battle-only pipeline guard (seed="
+                + seed
+                + ", wave="
+                + wave
+                + "). Check pokerogue/src/overrides.ts -> MYSTERY_ENCOUNTER_RATE_OVERRIDE."
+              );
+            }
             continue;
+          }
+
+          if (game.scene.currentBattle.double) {
+            if (REQUIRE_SINGLE_BATTLES) {
+              throw new Error(
+                "Double battle generated despite single-battle-only pipeline guard (seed="
+                + seed
+                + ", wave="
+                + wave
+                + "). Check pokerogue/src/overrides.ts -> DISABLE_DOUBLE_BATTLES_OVERRIDE."
+              );
+            }
+
+            if (CONFIG.skip_double_battles !== false) {
+              skippedDouble += 1;
+              continue;
+            }
           }
 
           const playerParty = game.scene.getPlayerParty().slice(0, 3);
@@ -206,6 +235,8 @@ if (result.status !== 0 && scenarioCount === 0) {
 
 console.log("Generated scenarios:", scenarioCount);
 console.log("Scenario output:", outputDir);
+console.log("Require single battles:", requireSingleBattles);
+console.log("Require no mystery encounters:", requireNoMysteryEncounters);
 
 if (result.status !== 0) {
   console.log("Vitest exited non-zero, but scenario output exists. Continuing.");

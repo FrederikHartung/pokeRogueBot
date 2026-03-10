@@ -5,10 +5,135 @@ import type { Move } from "../../../pokerogue/src/data/moves/move";
 import type { PokemonSpecies } from "../../../pokerogue/src/data/pokemon-species";
 import type { PokemonSpeciesForm } from "../../../pokerogue/src/data/pokemon-species";
 
-declare const window: any;
+type StatusDto = {
+    effect: string;
+    turnCount: number;
+};
 
-if(!window.poru) window.poru = {};
-window.poru.poke = {
+type MoveDto = {
+    name: string;
+    id: number;
+    accuracy: number;
+    category: string;
+    chance: number;
+    moveTarget: string;
+    power: number;
+    priority: number;
+    type: string;
+    movePp: number;
+    pPUsed: number;
+    pPLeft: number;
+    isUsable: boolean;
+};
+
+type StatsDto = {
+    hp: number;
+    attack: number;
+    defense: number;
+    specialAttack: number;
+    specialDefense: number;
+    speed: number;
+};
+
+type FormDto = {
+    baseStats: StatsDto;
+    baseTotal: number;
+    catchRate: number;
+    formIndex: number;
+    generation: number;
+    height: number;
+    isStarterSelectable: boolean;
+    speciesId: number;
+    type1: string;
+    type2: string | null;
+    weight: number;
+};
+
+type SpeciesDto = {
+    ability1: string;
+    ability2: string | null;
+    abilityHidden: string | null;
+    baseExp: number;
+    baseFriendship: number;
+    baseStats: StatsDto;
+    baseTotal: number;
+    canChangeForm: boolean;
+    catchRate: number;
+    generation: number;
+    growthRate: number;
+    height: number;
+    isStarterSelectable: boolean;
+    legendary: boolean;
+    malePercent: number | null;
+    mythical: boolean;
+    speciesString: string;
+    speciesId: number;
+    subLegendary: boolean;
+    type1: string;
+    type2: string | null;
+    weight: number;
+    formIndex?: number;
+};
+
+type PokemonDto = {
+    active: boolean;
+    exclusive: boolean;
+    fieldPosition: number;
+    formIndex: number;
+    friendship: number;
+    gender: string;
+    hp: number;
+    id: number;
+    ivs: StatsDto;
+    level: number;
+    luck: number;
+    metBiome: number;
+    metLevel: number;
+    moveset: MoveDto[];
+    name: string;
+    nature: string;
+    passive: boolean;
+    pokerus: boolean;
+    position: number;
+    shiny: boolean;
+    species: SpeciesDto | null;
+    stats: StatsDto;
+    status: StatusDto | null;
+    battleStats: StatsDto | null;
+    variant: number;
+    boss: boolean;
+    bossSegments: number;
+    player: boolean;
+    compatibleTms?: number[];
+};
+
+type PokeApi = {
+    getAbilityAsString: (id: number) => string;
+    getMoveTargetAsString: (id: number) => string;
+    getNatureAsString: (id: number) => string;
+    getTypeAsString: (id: number) => string;
+    getGenderAsString: (id: number) => string;
+    getStatusEffectAsString: (id: number) => string;
+    getCategoryAsString: (id: number) => string;
+    getStatus: (pokemon: Pokemon) => StatusDto | null;
+    getMoveDto: (move: Move, isUsable: boolean, ppUsed: number) => MoveDto | undefined;
+    getMovesetDto: (pokemon: Pokemon) => MoveDto[];
+    getFormDto: (form: PokemonSpeciesForm) => FormDto | null;
+    getFormsDto: (forms: PokemonSpeciesForm[]) => FormDto[] | null;
+    getSpeciesDto: (species: PokemonSpecies, formIndex?: number) => SpeciesDto | null;
+    getBattleStats: (pokemon: Pokemon) => StatsDto | null;
+    getPokemonDto: (pokemon: Pokemon) => PokemonDto;
+};
+
+type PoruRoot = {
+    poke?: PokeApi;
+};
+
+declare const window: Window & typeof globalThis & { poru?: PoruRoot };
+
+const poruRoot = window.poru ?? (window.poru = {});
+
+const pokeApi: PokeApi = {
 
     getAbilityAsString: (id: number) => {
         return enumToString(AbilityId, id);
@@ -52,13 +177,9 @@ window.poru.poke = {
             return null;
         }
 
-        if (status.turnCount === null || status.turnCount === undefined) {
-            return null;
-        }
-
         return {
-            effect: window.poru.poke.getStatusEffectAsString(status.effect), // String
-            turnCount: status.turnCount, // Integer
+            effect: pokeApi.getStatusEffectAsString(status.effect), // String
+            turnCount: status.sleepTurnsRemaining ?? status.toxicTurnCount ?? 0, // Integer
         };
     },
 
@@ -71,13 +192,12 @@ window.poru.poke = {
             name: move.name,
             id: move.id,
             accuracy: move.accuracy,
-            category: window.poru.poke.getCategoryAsString(move.category),
+            category: pokeApi.getCategoryAsString(move.category),
             chance: move.chance,
-            defaultType: window.poru.poke.getTypeAsString(move.defaultType),
-            moveTarget: window.poru.poke.getMoveTargetAsString(move.moveTarget),
+            moveTarget: pokeApi.getMoveTargetAsString(move.moveTarget),
             power: move.power,
             priority: move.priority,
-            type: window.poru.poke.getTypeAsString(move.type),
+            type: pokeApi.getTypeAsString(move.type),
             movePp: move.pp,
             pPUsed: ppUsed,
             pPLeft: move.pp - ppUsed,
@@ -93,20 +213,39 @@ window.poru.poke = {
         }
 
         const moveSet = pokemon.moveset;
-        const movesetDto: any[] = [];
+        const movesetDto: MoveDto[] = [];
 
-        moveSet.forEach((moveSetItem: any) => {
+        moveSet.forEach((moveSetItem: PokemonMove) => {
             let isUsable = false;
+            let unusableReason = "";
             try {
                 const result = moveSetItem.isUsable(pokemon);
-                isUsable = result === true;
+                if (Array.isArray(result)) {
+                    isUsable = result[0] === true;
+                    unusableReason = typeof result[1] === "string" ? result[1] : "";
+                } else {
+                    isUsable = result === true;
+                }
             } catch (error) {
                 console.log("poru error in isUsable: " + error)
                 isUsable = false;
+                unusableReason = String(error);
             }
             const move = moveSetItem.getMove()
             const ppUsed = moveSetItem.ppUsed
-            movesetDto.push(window.poru.poke.getMoveDto(move, isUsable, ppUsed));
+            if (!isUsable) {
+                console.log(
+                    "poru move unusable: " +
+                    move.name +
+                    ", ppUsed=" + ppUsed +
+                    ", pp=" + move.pp +
+                    ", reason=" + unusableReason
+                );
+            }
+            const moveDto = pokeApi.getMoveDto(move, isUsable, ppUsed);
+            if (moveDto) {
+                movesetDto.push(moveDto);
+            }
         });
 
         return movesetDto;
@@ -130,8 +269,8 @@ window.poru.poke = {
                 height: form.height, //integer
                 isStarterSelectable: form.isStarterSelectable, //boolean
                 speciesId: form.speciesId, //integer
-                type1: window.poru.poke.getTypeAsString(form.type1), //integer
-                type2: window.poru.poke.getTypeAsString(form.type2), //integer
+                type1: pokeApi.getTypeAsString(form.type1), //integer
+                type2: form.type2 != null ? pokeApi.getTypeAsString(form.type2) : null, //integer
                 weight: form.weight, //integer
             };
         }
@@ -141,9 +280,12 @@ window.poru.poke = {
 
     getFormsDto: (forms: PokemonSpeciesForm[]) => {
         if(forms){
-            var formsDto: any[] = [];
-            forms.forEach((form: any) => {
-                formsDto.push(window.poru.poke.getFormDto(form));
+            const formsDto: FormDto[] = [];
+            forms.forEach((form: PokemonSpeciesForm) => {
+                const formDto = pokeApi.getFormDto(form);
+                if (formDto) {
+                    formsDto.push(formDto);
+                }
             });
             return formsDto;
         }
@@ -153,10 +295,10 @@ window.poru.poke = {
 
     getSpeciesDto: (species: PokemonSpecies, formIndex?: number) => {
         if(species){
-            var speciesDto: any = {
-                ability1: window.poru.poke.getAbilityAsString(species.ability1), //String
-                ability2: window.poru.poke.getAbilityAsString(species.ability2), //String
-                abilityHidden: window.poru.poke.getAbilityAsString(species.abilityHidden), //String
+            const speciesDto: SpeciesDto = {
+                ability1: pokeApi.getAbilityAsString(species.ability1), //String
+                ability2: species.ability2 != null ? pokeApi.getAbilityAsString(species.ability2) : null, //String
+                abilityHidden: species.abilityHidden != null ? pokeApi.getAbilityAsString(species.abilityHidden) : null, //String
                 baseExp: species.baseExp, //integer
                 baseFriendship: species.baseFriendship, //integer
                 baseStats: {
@@ -177,16 +319,16 @@ window.poru.poke = {
                 legendary: species.legendary, //boolean
                 malePercent: species.malePercent, //float
                 mythical: species.mythical, //boolean
-                speciesString: species.species, //string
+                speciesString: species.getName(), //string
                 speciesId: species.speciesId, //integer
                 subLegendary: species.subLegendary, //boolean
-                type1: window.poru.poke.getTypeAsString(species.type1), //integer
-                type2: window.poru.poke.getTypeAsString(species.type2), //integer
+                type1: pokeApi.getTypeAsString(species.type1), //integer
+                type2: species.type2 != null ? pokeApi.getTypeAsString(species.type2) : null, //integer
                 weight: species.weight, //integer
             }
 
             if(formIndex !== undefined && formIndex !== null && formIndex !== 0){
-                var forms = window.poru.poke.getFormsDto(species.forms);
+                const forms = pokeApi.getFormsDto(species.forms);
                 if(forms){
                     if(formIndex >= forms.length){
                         console.log("formIndex is out of bounds in getSpeciesDto");
@@ -218,34 +360,34 @@ window.poru.poke = {
     },
 
     getBattleStats: (pokemon: Pokemon) => {
-        if (!pokemon || !pokemon.summonData) {
+        if (!pokemon) {
             return null;
         }
 
-        var battleStats = pokemon.summonData.battleStats;
-        if (battleStats) {
-            return {
-                hp: pokemon.summonData.battleStats[0], //integer
-                attack: pokemon.summonData.battleStats[1], //integer
-                defense: pokemon.summonData.battleStats[2], //integer
-                specialAttack: pokemon.summonData.battleStats[3], //integer
-                specialDefense: pokemon.summonData.battleStats[4], //integer
-                speed: pokemon.summonData.battleStats[5], //integer
-            };
+        const battleStats = pokemon.getStats(false);
+        if (!battleStats) {
+            return null;
         }
-        return null;
+
+        return {
+            hp: battleStats[0], //integer
+            attack: battleStats[1], //integer
+            defense: battleStats[2], //integer
+            specialAttack: battleStats[3], //integer
+            specialDefense: battleStats[4], //integer
+            speed: battleStats[5], //integer
+        };
     },
 
     getPokemonDto: (pokemon: Pokemon) => {
 
-        let dto: any = {
+        const dto: PokemonDto = {
             active: pokemon.active, //boolean
-            aiType: pokemon.aiType, //integer
             exclusive: pokemon.exclusive, //boolean
             fieldPosition: pokemon.fieldPosition, //integer
             formIndex: pokemon.formIndex, //integer
             friendship: pokemon.friendship, //integer
-            gender: window.poru.poke.getGenderAsString(pokemon.gender), //String
+            gender: pokeApi.getGenderAsString(pokemon.gender), //String
             hp: pokemon.hp, //integer
             id: pokemon.id, //long
             ivs: {
@@ -260,15 +402,14 @@ window.poru.poke = {
             luck: pokemon.luck, //integer
             metBiome: pokemon.metBiome, //integer
             metLevel: pokemon.metLevel, //integer
-            moveset: window.poru.poke.getMovesetDto(pokemon), //array of objects
-            name: pokemon.name, //string
-            nature: window.poru.poke.getNatureAsString(pokemon.nature), //String
-            natureOverride: pokemon.natureOverride, //integer
+            moveset: pokeApi.getMovesetDto(pokemon), //array of objects
+            name: pokemon.getNameToRender(), //string
+            nature: pokeApi.getNatureAsString(pokemon.nature), //String
             passive: pokemon.passive, //boolean
             pokerus: pokemon.pokerus, //boolean
             position: pokemon.position, //integer
             shiny: pokemon.shiny, //boolean
-            species: window.poru.poke.getSpeciesDto(pokemon.species, pokemon.formIndex), //object
+            species: pokeApi.getSpeciesDto(pokemon.species, pokemon.formIndex), //object
             stats: {
                 hp: pokemon.stats[0], //integer
                 attack: pokemon.stats[1], //integer
@@ -277,15 +418,14 @@ window.poru.poke = {
                 specialDefense: pokemon.stats[4], //integer
                 speed: pokemon.stats[5], //integer
             },
-            status: window.poru.poke.getStatus(pokemon), //object
-            battleStats: window.poru.poke.getBattleStats(pokemon), //object
-            trainerSlot: pokemon.trainerSlot, //integer
+            status: pokeApi.getStatus(pokemon), //object
+            battleStats: pokeApi.getBattleStats(pokemon), //object
             variant: pokemon.variant, //integer
 
             //battleInfo
-            boss: pokemon.battleInfo.boss, //boolean
-            bossSegments: pokemon.battleInfo.bossSegments, //integer
-            player: pokemon.battleInfo.player, //boolean
+            boss: pokemon.isBoss(), //boolean
+            bossSegments: pokemon.isBoss() ? pokemon.getBossSegments() : 0, //integer
+            player: pokemon.isPlayer(), //boolean
         }
 
         if(pokemon.compatibleTms){
@@ -295,4 +435,6 @@ window.poru.poke = {
         return dto;
     },
 
-}
+};
+
+poruRoot.poke = pokeApi;

@@ -82,6 +82,14 @@ class TitlePhase(
             }
 
             UiMode.OPTION_SELECT -> {
+                log.debug("Handling OPTION_SELECT in title flow by choosing index 0")
+                jsUiService.setUiHandlerCursor(uiMode, 0) //classic
+                jsUiService.sendActionButton()
+                return
+            }
+
+            UiMode.MENU_OPTION_SELECT -> {
+                log.debug("Handling MENU_OPTION_SELECT in title flow by choosing index 0")
                 jsUiService.setUiHandlerCursor(uiMode, 0) //classic
                 jsUiService.sendActionButton()
                 return

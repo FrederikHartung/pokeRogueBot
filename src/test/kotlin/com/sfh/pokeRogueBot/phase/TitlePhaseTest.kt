@@ -158,6 +158,14 @@ class TitlePhaseTest {
     }
 
     @Test
+    fun `MENU_OPTION_SELECT is handled`() {
+        titlePhase.handleUiMode(UiMode.MENU_OPTION_SELECT)
+
+        verify { jsUiService.setUiHandlerCursor(UiMode.MENU_OPTION_SELECT, 0) }
+        verify { jsUiService.sendActionButton() }
+    }
+
+    @Test
     fun `an unsupported uiMode throws an UnsupportedUiModeException Exception`() {
         assertThrows<UnsupportedUiModeException> { titlePhase.handleUiMode(UiMode.ADMIN) }
     }

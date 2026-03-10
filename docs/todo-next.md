@@ -1,22 +1,98 @@
 # TODO Next Session
 
-0. Status: 5k-Bootstrap-Training + Benchmark ist erledigt (10. Maerz 2026)
-- Command: `npm run rl:eval:compare`
+Prioritaetswechsel fuer die naechste Session:
+- Hauptziel ist zuerst eine wieder robuste JS-Bridge gegen die aktuelle PokeRogue-Submodul-Version.
+- Spring-Boot-Anwendung und lokales Spiel lassen sich aktuell starten, und der Live-Bot kommt bereits wieder durch die fruehen Spielphasen.
+- Konkret liefert `getBattleScene()` noch ein Objekt, jedoch haben sich Properties/Access-Patterns im Spiel geaendert, sodass mehrere Bridge-Methoden nicht mehr dem aktuellen Submodul-Stand entsprechen.
+- Fuer mehr Sicherheit bei kuenftigen Submodul-Updates sollen deshalb schrittweise alle Methoden in `src/main/ts/` auf echte PokeRogue-Typen umgestellt werden statt weiter implizit mit `any`/ungueltigen Property-Annahmen zu arbeiten.
+- Zielbild fuer den naechsten Abschnitt:
+- Build-seitig frueh erkennen, wenn sich BattleScene-/UI-/Pokemon-APIs im Submodul aendern
+- Laufzeitfehler in der Bridge reduzieren
+- erst danach wieder Live-Bot-Funktion und Combat-Policy-Ausbau priorisieren
+- Dokumentationsfolge:
+- Nach erfolgreicher Wiederinbetriebnahme `docs/combat-training-v1.md` und diese Datei auf den tatsaechlichen Implementierungsstand angleichen.
+- Aktuell bereits abgesichert:
+- `mvn -q -DskipTests compile` laeuft wieder erfolgreich
+- Spring-Boot-Anwendung startet
+- lokale PokeRogue-Instanz startet
+- aktuelle Phase kann wieder gelesen werden
+- neues Spiel kann gestartet werden
+- drei Starter-Pokemon koennen ausgewaehlt werden
+- der eigentliche Run kann gestartet werden
+- zentrale Bridge-Dateien wurden bereits auf den aktuellen Submodul-Stand nachgezogen (`util.ts`, `wave.ts`, `uihandler.ts`, `poke.ts`)
+- erste Drift-/Contract-Guardrails fuer die Bridge sind bereits vorhanden:
+- `UiModeDriftTest`
+- `UiHandlerCoverageTest`
+- `UiHandlerMappingDriftTest`
+- `PokemonBridgeContractTest`
+- `WaveBridgeContractTest`
+- `UiHandlerBridgeContractTest`
+- `BridgeContractCoverageGuardTest`
+- Noch offen fuer echte End-to-End-Bestaetigung:
+- Browser-/Game-Live-Run ueber die ersten aktiven Kampf-/Wave-Phasen hinaus ohne JS-Bridge-Fehler
+- systematische Typisierung und Reparatur der restlichen bzw. noch nicht verifizierten Bridge-Dateien
+
+0. Status: `lead_1hp`-Training + Benchmark nach Reward-Umbau ist erledigt (10. Maerz 2026)
+- Command: `npm run rl:eval:compare:lead-1hp`
 - Ergebnis:
-- `random`: win_rate `0.833`, avg_reward `3.5031`, avg_turns `7.50`
-- `always_move_0`: win_rate `0.833`, avg_reward `3.9038`, avg_turns `5.83`
-- `dqn`: win_rate `0.833`, avg_reward `3.9704`, avg_turns `6.17`
+- `random`: win_rate `0.500`, avg_reward `-0.7701`, avg_turns `6.33`
+- `always_move_0`: win_rate `0.667`, avg_reward `2.2727`, avg_turns `5.67`
+- `dqn`: win_rate `0.667`, avg_reward `1.8680`, avg_turns `6.67`
 - Delta:
-- `dqn_vs_random`: win_rate `0.000`, avg_reward `+0.4674`, avg_turns `-1.33`
-- `dqn_vs_always_move_0`: win_rate `0.000`, avg_reward `+0.0667`, avg_turns `+0.33`
-- Report-Pfad (lokal, gitignored): `data/rl/combat/eval-policy-compare-5k-bootstrap-report.json`
+- `dqn_vs_random`: win_rate `+0.167`, avg_reward `+2.6382`, avg_turns `+0.33`
+- `dqn_vs_always_move_0`: win_rate `+0.000`, avg_reward `-0.4046`, avg_turns `+1.00`
+- Report-Pfad (lokal, gitignored): `data/rl/combat/eval-policy-compare-5k-lead-1hp-report.json`
+- Benchmark-Historie: `docs/benchmark-history.md` bis inkl. `Run 8` gepflegt
+- Aktuelle Einordnung:
+- Das Modell ist fuer den aktuellen Stand brauchbar genug, um als erster Combat-/Switch-Policy-Kandidat in den Kotlin-Bot integriert zu werden.
+- Gegen `always_move_0` ist es noch nicht klar besser, aber der Reward-Exploit aus dem vorherigen Lauf ist behoben und das Verhalten ist deutlich plausibler.
 
 Verbindlicher Schema-Hinweis:
 - Fuer Combat-/Switch-Offline-Training ist `docs/rl-schema/combat-transition.schema.json` die feste Quelle fuer den State-Contract.
 - Das Beispiel in `docs/rl-schema/combat-transition.example.json` muss dazu konsistent bleiben.
 - Bei jeder State-Schema-Aenderung muessen Collector, Sanity-Checks, Training, Inferenz/Eval und Doku im selben Schritt angepasst und geprueft werden.
 
-1. Trainingsdaten weiter diversifizieren
+1. JS-Bridge gegen aktuelle Submodul-API haerten
+- Ziel: alle zentralen Bridge-Einstiegspunkte in `src/main/ts/` an echte PokeRogue-Typen anbinden
+- Fokus:
+- verbleibende nicht vertraglich abgedeckte Bridge-Endpunkte (`SaveSlotDto`, `ModifierShop`, `WaveAndTurnDto`, weitere primitive Endpunkte) mit Fixtures + Contract-Tests absichern
+- `getBattleScene()` und alle davon abhaengigen Methoden nicht mehr als implizites `any` behandeln
+- gedriftete Zugriffe auf `BattleScene`, `UI`, `PhaseManager`, `Pokemon`, `Arena` und verwandte Typen identifizieren und auf die aktuelle API umstellen
+- wo moeglich oeffentliche Methoden statt direkter Feldzugriffe verwenden
+- Abschlusskriterium:
+- die wichtigsten Bridge-Dateien sind typisiert und die aktuell bekannten Laufzeitfehler in fruehen Spielphasen sind beseitigt
+- naechster Fokus innerhalb dieses Punkts: Kampf-/Wave-nahe Bridge-Aufrufe im echten Run weiter pruefen
+
+2. Live-Bot wieder lauffaehig machen: `random_move`
+- Ziel: Anwendung wieder stabil startbar und im echten Run mit minimaler Combat-Policy betreibbar machen
+- Fokus:
+- nach der aktuellen Bridge-Stabilisierung Config-/Enum-Pfad fuer `random_move` verifizieren
+- Brain/CommandPhase/Policy-Auswahl so verdrahten, dass Single-Battle-Attacken zufaellig aus legalen Moves gewaehlt werden
+- bestehende Fallbacks fuer Sonderfaelle (keine legalen Moves, Double Battle, erzwungener Switch) intakt lassen
+- Abschlusskriterium:
+- Anwendung startet, ein Run kann bis in aktive Kampfphasen laufen und `random_move` kann als Combat-Policy ohne offensichtlichen Laufzeitfehler ausgewaehlt werden
+
+3. Kotlin-Bot-Varianten fuer Combat-/Switch-Policies ausbauen
+- Ziel: statt nur `SimpleBot` drei klar unterscheidbare Bot-Varianten bzw. drei Combat-Policy-Modi bereitstellen
+- Variante 1:
+- Kampfentscheidungen immer als zufaellige Attacke aus den legalen Move-Aktionen
+- keine RL-Combat-/Switch-Entscheidung
+- Variante 2:
+- Kampfentscheidungen als zufaellige legale Attacke oder legale Switch-Entscheidung
+- dient als echte Vergleichsbasis fuer Combat + Switch im Live-Bot
+- Variante 3:
+- Kampf- und Switch-Entscheidungen ueber das aktuell trainierte Offline-DQN-Modell
+- nur fuer Combat-/Switch-Entscheidungen
+- Modifier-/Item-Entscheidungen bleiben weiterhin beim bestehenden Kotlin-RL-Agenten (`ModifierRLNeuron`)
+- Architekturziel:
+- klare Trennung zwischen Bot-Auswahl, Combat-/Switch-Policy und bestehender Modifier-Policy
+- kein stilles Vermischen von DQN-Combat und Kotlin-Modifier-RL
+- Konfigurationsziel:
+- Bot-/Policy-Auswahl zur Laufzeit ueber Config/Profile/Enum steuerbar
+- Evaluationsziel:
+- spaeter identische Seeds/Runs mit allen drei Varianten gegeneinander vergleichen koennen
+
+4. Trainingsdaten weiter diversifizieren
 - Zusätzliche Szenarien via Generator erzeugen (`wild` + `trainer`, mehr seeds/waves)
 - Collector-Runs batchweise ausführen und Datensätze zusammenführen
 - Sanity-Check nach jedem Batch laufen lassen (`npm run rl:check:dataset`)
@@ -57,32 +133,32 @@ Verbindlicher Schema-Hinweis:
 - Optional mit 10%-Pausen:
 - `CI=1 COLLECTOR_PROGRESS_PAUSE=1 COLLECTOR_PROGRESS_TARGET=500 COLLECTOR_PROGRESS_STEP=10 COLLECTOR_PROGRESS_PAUSE_MS=4000 npm run rl:collect:500`
 
-2. Prod-nahe State-Logging-Pipeline planen
+5. Prod-nahe State-Logging-Pipeline planen
 - Beim echten Bot pro Wave/Battle Snapshot-Contract definieren:
 - eigenes Team + gegnerisches Team
 - wild vs trainer
 - Bälle/Inventar
 - Ziel: realistische State-Library für Domain-Shift-Analyse
 
-3. State- und Switch-Abdeckung auswerten
+6. State- und Switch-Abdeckung auswerten
 - Verteilung der neuen `state_variant`-Profile im Datensatz prüfen
 - Prüfen, ob Low-HP-Szenarien die Switch-Rate des DQN sinnvoll erhöhen
 - Vergleich gegen `always_move_0` auf den neuen Switch-lastigen Startzuständen separat auswerten
 
-4. Dataset-Qualitäts-Gates ergänzen
+7. Dataset-Qualitäts-Gates ergänzen
 - Anteil `truncated`/`timeout` überwachen
 - Anteil Schritte mit `action_mask_sum >= 2`
 - Anteil Switch-Aktionen und Verteilung über Waves
 - Bei schlechter Abdeckung: Run-Konfig anpassen statt blind trainieren
 
-5. Training + Eval auf erweitertem Action-Space wiederholen
+8. Training + Eval auf erweitertem Action-Space wiederholen
 - Mit aktuellem 10er Action-Space (4 Moves + 6 Switch) trainieren
 - Eval auf benchmarked set erneut laufen lassen
 - Optional zweites Benchmark-Set mit mehr Low-HP-/Switch-relevanten Startzuständen aufbauen
 - Benchmark-Config `data/rl/collector-run-benchmarked-mixed.json` nutzt jetzt `episodes_per_seed=7`, damit alle `7` `state_variants` fuer jedes der `6` Benchmark-Szenarien einmal evaluiert werden
 - Metrikvergleich zum letzten Stand dokumentieren
 
-6. Kurzen Report in `docs/combat-training-v1.md` nachziehen
+9. Kurzen Report in `docs/combat-training-v1.md` nachziehen
 - Was umgesetzt wurde (Switch-Action-Space, Collector-Stabilität)
 - Aktuelle Bench-Metriken
 - Neue Startzustands-Varianten fuer HP-/Switch-Training

@@ -1,28 +1,82 @@
 import { BiomeId, BattleType, BattleStyle, enumToString } from "./enums";
 import type { BattleScene } from "../../../pokerogue/src/battle-scene";
+import type { Pokemon } from "../../../pokerogue/src/field/pokemon";
 
-declare const window: any;
+type WavePokemonsDto = {
+    enemyParty: unknown[];
+    ownParty: unknown[];
+};
+
+type ArenaDto = {
+    biome: string;
+    lastTimeOfDay: number;
+};
+
+type WaveDto = {
+    arena: ArenaDto | null;
+    battleStyle: string;
+    battleScore: number;
+    battleType: string;
+    double: boolean;
+    enemyFaints: number;
+    money: number;
+    moneyScattered: number;
+    playerFaints: number;
+    turn: number;
+    waveIndex: number;
+    pokeballCount: number[];
+};
+
+type WaveApi = {
+    getWavePokemons: () => WavePokemonsDto | null;
+    getArena: (battleScene: BattleScene) => ArenaDto | null;
+    getWavePokemonsJson: () => string;
+    getWave: () => WaveDto | null;
+    getWaveJson: () => string;
+    getBiomeEnumString: (index: number) => string;
+    getBattleTypeString: (index: number) => string;
+    getBattleStyleString: (index: number) => string;
+};
+
+type PoruRoot = {
+    wave?: WaveApi;
+    util?: {
+        getBattleScene: () => BattleScene | null;
+    };
+    poke?: {
+        getPokemonDto: (pokemon: Pokemon) => unknown;
+    };
+};
+
+declare const window: Window & typeof globalThis & { poru?: PoruRoot };
 
 if(!window.poru) window.poru = {};
-window.poru.wave = {
+const poruRoot = window.poru;
+
+const waveApi: WaveApi = {
 
     getWavePokemons: () => {
-        const scene = window.poru.util.getBattleScene()
-        const enemyParty = scene.currentBattle.enemyParty;
-        const enemyPartyDto: any[] = [];
+        const scene = poruRoot.util?.getBattleScene()
+        const currentBattle = scene?.currentBattle;
+        if (!scene || !currentBattle) {
+            return null;
+        }
 
-        const ownParty = scene.party;
-        const ownPartyDto: any[] = [];
+        const enemyParty = currentBattle.enemyParty;
+        const enemyPartyDto: unknown[] = [];
+
+        const ownParty = scene.getPlayerParty();
+        const ownPartyDto: unknown[] = [];
 
         //enemy party
         for (let i = 0; i < enemyParty.length; i++) {
-            const enemyPokemon = window.poru.poke.getPokemonDto(enemyParty[i]);
+            const enemyPokemon = poruRoot.poke?.getPokemonDto(enemyParty[i]);
             enemyPartyDto.push(enemyPokemon);
         }
 
         //player party
         for (let i = 0; i < ownParty.length; i++) {
-            const playerPokemon = window.poru.poke.getPokemonDto(ownParty[i]);
+            const playerPokemon = poruRoot.poke?.getPokemonDto(ownParty[i]);
             ownPartyDto.push(playerPokemon);
         }
 
@@ -33,22 +87,10 @@ window.poru.wave = {
     },
 
     getArena: (battleScene: BattleScene) => {
-
         if(battleScene && battleScene.arena){
             return {
-                biome: window.poru.wave.getBiomeEnumString(battleScene.arena.biomeType), //string
-                lastTimeOfDay: battleScene.arena.lastTimeOfDay, //int
-                pokemonPool: {
-                    gen0: battleScene.arena.pokemonPool[0],
-                    gen1: battleScene.arena.pokemonPool[1],
-                    gen2: battleScene.arena.pokemonPool[2],
-                    gen3: battleScene.arena.pokemonPool[3],
-                    gen4: battleScene.arena.pokemonPool[4],
-                    gen5: battleScene.arena.pokemonPool[5],
-                    gen6: battleScene.arena.pokemonPool[6],
-                    gen7: battleScene.arena.pokemonPool[7],
-                    gen8: battleScene.arena.pokemonPool[8],
-                },
+                biome: waveApi.getBiomeEnumString(battleScene.arena.biomeType), //string
+                lastTimeOfDay: battleScene.arena.getTimeOfDay(), //int
             };
         }
 
@@ -56,24 +98,27 @@ window.poru.wave = {
     },
 
     getWavePokemonsJson: () => {
-        return JSON.stringify(window.poru.wave.getWavePokemons());
+        return JSON.stringify(waveApi.getWavePokemons());
     },
 
     getWave: () => {
-        const scene = window.poru.util.getBattleScene()
-        const currentBattle = scene.currentBattle;
+        const scene = poruRoot.util?.getBattleScene()
+        const currentBattle = scene?.currentBattle;
+        if (!scene || !currentBattle) {
+            return null;
+        }
 
         const battleSceneDto = {
-            arena: window.poru.wave.getArena(scene), //object
-            battleStyle: window.poru.wave.getBattleStyleString(scene.battleStyle), //String
+            arena: waveApi.getArena(scene), //object
+            battleStyle: waveApi.getBattleStyleString(scene.battleStyle), //String
 
             battleScore: currentBattle.battleScore, //int
-            battleType: window.poru.wave.getBattleTypeString(currentBattle.battleType), //enum
+            battleType: waveApi.getBattleTypeString(currentBattle.battleType), //enum
             double: currentBattle.double, //boolean
             enemyFaints: currentBattle.enemyFaints, //int
             money: scene.money, //int
             moneyScattered: currentBattle.moneyScattered, //int
-            playerFaints: currentBattle.playerFaints, //int
+            playerFaints: scene.arena?.playerFaints ?? 0, //int
             turn: currentBattle.turn, //int
             waveIndex: currentBattle.waveIndex, //int
             pokeballCount: [
@@ -89,7 +134,7 @@ window.poru.wave = {
     },
 
     getWaveJson: () => {
-        return JSON.stringify(window.poru.wave.getWave());
+        return JSON.stringify(waveApi.getWave());
     },
 
     getBiomeEnumString: (index: number) => {
@@ -104,4 +149,6 @@ window.poru.wave = {
         return enumToString(BattleStyle, index);
     },
 
-}
+};
+
+poruRoot.wave = waveApi;

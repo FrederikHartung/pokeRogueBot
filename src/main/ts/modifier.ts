@@ -1,10 +1,63 @@
 import { ModifierTier, PokeballType, enumToString } from "./enums";
 import type { ModifierTypeOption } from "../../../pokerogue/src/modifier/modifier-type";
 
-declare const window: any;
+type ModifierOptionDto = {
+    group: unknown;
+    id: number;
+    tier: string | number;
+    name: string;
+    typeName: string;
+    cost: number;
+    upgradeCount: number;
+    x?: number;
+    y?: number;
+    count?: number;
+    pokeballType?: string;
+    vouchertype?: unknown;
+    healStatus?: unknown;
+    restorePercent?: number;
+    restorePoints?: number;
+    moveId?: number;
+    tempBattleStat?: unknown;
+};
+
+type ModifierOptionLike = {
+    modifierTypeOption: ModifierTypeOption;
+    x?: number;
+    y?: number;
+};
+
+type ContainerLike = {
+    type?: string;
+    parentContainer?: { constructor: { name: string } } & ModifierOptionLike;
+    list?: unknown[];
+    _visible?: boolean;
+    active?: boolean;
+};
+
+type ModifierApi = {
+    getModifierTierEnumString: (tier: number) => string;
+    getPokeBallTypeEnumString: (pokeBallIndex: number) => string;
+    filterShopItems: (container: ContainerLike, modifierOption: Set<ModifierOptionLike>) => void;
+    buildResult: (container: ModifierOptionLike, resultArray: ModifierOptionDto[]) => void;
+    getSelectModifiers: () => ModifierOptionDto[];
+    getSelectModifiersJson: () => string;
+    getModifierItemDtoArray: (modifierItemArray: ModifierOptionLike[]) => ModifierOptionDto[];
+};
+
+type PoruRoot = {
+    modifier?: ModifierApi;
+    util?: {
+        getBattleScene: () => { ui: { getAll: () => unknown[] } } | null;
+    };
+};
+
+declare const window: Window & typeof globalThis & { poru?: PoruRoot };
 
 if(!window.poru) window.poru = {};
-window.poru.modifier = {
+const poruRoot = window.poru;
+
+const modifierApi: ModifierApi = {
 
     getModifierTierEnumString: (tier: number) => {
         return enumToString(ModifierTier, tier, "COMMON");
@@ -14,24 +67,24 @@ window.poru.modifier = {
         return enumToString(PokeballType, pokeBallIndex, "POKEBALL");
     },
 
-    filterShopItems: (container: any, modifierOption: Set<any>) => {
+    filterShopItems: (container: ContainerLike, modifierOption: Set<ModifierOptionLike>) => {
         if (container.type === "Text" && container.parentContainer.constructor.name === "ModifierOption") {
             modifierOption.add(container.parentContainer);
         } else if (container.type === "Container" && container.list) {
-            container.list.forEach((subElement: any) => window.poru.modifier.filterShopItems(subElement, modifierOption));
+            container.list.forEach((subElement) => modifierApi.filterShopItems(subElement as ContainerLike, modifierOption));
         }
     },
 
-    buildResult: (container: any, resultArray: any[]) => {
-        let option: any = {
+    buildResult: (container: ModifierOptionLike, resultArray: ModifierOptionDto[]) => {
+        const option: ModifierOptionDto = {
             //ModifierType
             id: container.modifierTypeOption.type.id,
             group: container.modifierTypeOption.type.group,
-            tier: window.poru.modifier.getModifierTierEnumString(container.modifierTypeOption.type.tier),
+            tier: modifierApi.getModifierTierEnumString(container.modifierTypeOption.type.tier),
             name: container.modifierTypeOption.type.name,
             typeName: container.modifierTypeOption.type.constructor.name,
-            x: container.x,
-            y: container.y,
+            x: container.x ?? 0,
+            y: container.y ?? 0,
 
             //ModifierTypeOption
             cost: container.modifierTypeOption.cost,
@@ -69,31 +122,34 @@ window.poru.modifier = {
     },
 
     getSelectModifiers: () => {
-        var uiElements = window.poru.util.getBattleScene().ui.getAll();
-        var activeAndVisibleElements = uiElements.filter((element: any) => element._visible && element.active);
-        var modifierOption =  new Set();
-        var resultArray: any[] = [];
+        const uiElements = poruRoot.util?.getBattleScene()?.ui.getAll() ?? [];
+        const activeAndVisibleElements = uiElements.filter((element): element is ContainerLike => {
+            const candidate = element as ContainerLike;
+            return candidate._visible === true && candidate.active === true;
+        });
+        const modifierOption =  new Set<ModifierOptionLike>();
+        const resultArray: ModifierOptionDto[] = [];
 
-        activeAndVisibleElements.forEach((element: any) => {
-            window.poru.modifier.filterShopItems(element, modifierOption);
+        activeAndVisibleElements.forEach((element) => {
+            modifierApi.filterShopItems(element, modifierOption);
         });
 
-        modifierOption.forEach((element: any) => {
-            window.poru.modifier.buildResult(element, resultArray);
+        modifierOption.forEach((element) => {
+            modifierApi.buildResult(element, resultArray);
         });
 
         return resultArray;
     },
 
     getSelectModifiersJson: () => {
-        return JSON.stringify(window.poru.modifier.getSelectModifiers());
+        return JSON.stringify(modifierApi.getSelectModifiers());
     },
 
-    getModifierItemDtoArray: (modifierItemArray: any[]) => {
-        var modifierItemDtoArray: any[] = [];
+    getModifierItemDtoArray: (modifierItemArray: ModifierOptionLike[]) => {
+        const modifierItemDtoArray: ModifierOptionDto[] = [];
         for(let i = 0; i < modifierItemArray.length; i++){
-            var modifierTypeOption = modifierItemArray[i].modifierTypeOption;
-            var option: any = {
+            const modifierTypeOption = modifierItemArray[i].modifierTypeOption;
+            const option: ModifierOptionDto = {
                 group: modifierTypeOption.type.group,
                 id: modifierTypeOption.type.id,
                 tier: modifierTypeOption.type.tier,
@@ -137,4 +193,6 @@ window.poru.modifier = {
 
         return modifierItemDtoArray;
     }
-}
+};
+
+poruRoot.modifier = modifierApi;

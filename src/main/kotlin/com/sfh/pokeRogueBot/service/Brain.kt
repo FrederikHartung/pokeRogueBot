@@ -16,6 +16,8 @@ import com.sfh.pokeRogueBot.neurons.*
 import com.sfh.pokeRogueBot.phase.NoUiPhase
 import com.sfh.pokeRogueBot.phase.Phase
 import com.sfh.pokeRogueBot.phase.UiPhase
+import com.sfh.pokeRogueBot.service.combat.CombatCommandChoice
+import com.sfh.pokeRogueBot.service.combat.CombatSwitchPolicy
 import com.sfh.pokeRogueBot.service.javascript.JsService
 import com.sfh.pokeRogueBot.service.javascript.JsUiService
 import org.slf4j.LoggerFactory
@@ -27,8 +29,7 @@ class Brain(
     private val jsUiService: JsUiService,
     private val shortTermMemory: ShortTermMemory,
     private val longTermMemory: LongTermMemory,
-    private val switchPokemonNeuron: SwitchPokemonNeuron,
-    private val combatNeuron: CombatNeuron,
+    private val combatSwitchPolicy: CombatSwitchPolicy,
     private val capturePokemonNeuron: CapturePokemonNeuron,
     private val learnMoveNeuron: LearnMoveNeuron,
     private val modifierRLNeuron: ModifierRLNeuron,
@@ -42,10 +43,18 @@ class Brain(
     private var waveIndexReset = false
     private lateinit var waveDto: WaveDto
     private var saveSlots: Array<SaveSlotDto>? = null
+    private var pendingSwitchDecision: SwitchDecision? = null
 
     fun getPokemonSwitchDecision(ignoreFirstPokemon: Boolean): SwitchDecision {
+        if (pendingSwitchDecision != null) {
+            val cachedDecision = checkNotNull(pendingSwitchDecision)
+            pendingSwitchDecision = null
+            return cachedDecision
+        }
+
         waveDto = jsService.getWaveDto()
-        return switchPokemonNeuron.getBestSwitchDecision(waveDto, ignoreFirstPokemon)
+        return combatSwitchPolicy.chooseSwitchDecision(waveDto, ignoreFirstPokemon)
+            ?: throw IllegalStateException("No switch decision found")
     }
 
 
@@ -62,43 +71,25 @@ class Brain(
             informNewRunStarted()
             runProperty!!.newRunStarted = true
         }
-        waveDto = jsService.getWaveDto()
-
-        return CommandPhaseDecision.ATTACK
+        return prepareCombatCommandChoice().commandDecision
     }
 
     fun getAttackDecision(): AttackDecision? {
-        waveDto = jsService.getWaveDto()
+        return prepareCombatCommandChoice().attackDecision
+    }
 
-        return if (waveDto.isDoubleFight) {
-            val playerParty = waveDto.wavePokemon.playerParty
-            val enemyParty = waveDto.wavePokemon.enemyParty
-
-            val playerPartySize = playerParty.count { it.hp > 0 }
-            val enemyPartySize = enemyParty.count { it.hp > 0 }
-
-            val playerPokemon1 = if (playerParty[0].isAlive()) playerParty[0] else null
-            val playerPokemon2 = if (playerPartySize > 0 && playerParty[1].isAlive()) playerParty[1] else null
-
-            val enemyPokemon1 = if (enemyParty[0].isAlive()) enemyParty[0] else null
-            val enemyPokemon2 = if (enemyPartySize > 0 && enemyParty[1].isAlive()) enemyParty[1] else null
-
-            combatNeuron.getAttackDecisionForDoubleFight(
-                playerPokemon1,
-                playerPokemon2,
-                enemyPokemon1,
-                enemyPokemon2
-            )
-        } else {
-            val wildPokemon = waveDto.wavePokemon.enemyParty.firstOrNull()
-                ?: throw IllegalStateException("No enemy pokemon found in enemyParty")
-
-            combatNeuron.getAttackDecisionForSingleFight(
-                waveDto.wavePokemon.playerParty[0],
-                wildPokemon,
-                capturePokemonNeuron.shouldCapturePokemon(waveDto, wildPokemon)
-            )
+    fun prepareCombatCommandChoice(): CombatCommandChoice {
+        if (!runProperty!!.newRunStarted) {
+            informNewRunStarted()
+            runProperty!!.newRunStarted = true
         }
+
+        waveDto = jsService.getWaveDto()
+        val wildPokemon = waveDto.wavePokemon.enemyParty.firstOrNull()
+        val tryToCatch = wildPokemon != null && capturePokemonNeuron.shouldCapturePokemon(waveDto, wildPokemon)
+        val commandChoice = combatSwitchPolicy.chooseCommandAction(waveDto, tryToCatch)
+        pendingSwitchDecision = commandChoice.switchDecision
+        return commandChoice
     }
 
     fun selectStrongestPokeball(): Int {
@@ -253,7 +244,8 @@ class Brain(
     }
 
     fun getBestSwitchDecision(): SwitchDecision {
-        val switchDecision = switchPokemonNeuron.getBestSwitchDecision(waveDto, false)
+        waveDto = jsService.getWaveDto()
+        val switchDecision = combatSwitchPolicy.chooseSwitchDecision(waveDto, false)
             ?: throw IllegalStateException("No switch decision found")
         log.debug("Switching to pokemon: ${switchDecision.pokeName} on index: ${switchDecision.index}")
         return switchDecision
@@ -261,7 +253,7 @@ class Brain(
 
     fun shouldSwitchPokemon(): Boolean {
         waveDto = jsService.getWaveDto()
-        return switchPokemonNeuron.shouldSwitchPokemon(waveDto)
+        return combatSwitchPolicy.shouldSwitchPokemon(waveDto)
     }
 
     fun getLearnMoveDecision(pokemon: Pokemon): LearnMoveDecision {

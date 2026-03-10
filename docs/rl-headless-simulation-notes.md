@@ -219,8 +219,27 @@ Current generated artifacts:
 
 Known behavior:
 
-- Scenario sweep may skip waves that instantiate double battles when `skip_double_battles=true`.
-- This is expected in v1 because the current combat RL scope is single battles only.
+- Single-Battle-RL ist jetzt in der lokalen Offline-Pipeline explizit erzwungen:
+  - Datei: `pokerogue/src/overrides.ts`
+  - Schalter: `DISABLE_DOUBLE_BATTLES_OVERRIDE`
+  - aktueller lokaler Wert: `true`
+  - Wirkung: erzwingt globale Single Battles auch fuer Trainer-, Fixed-, Lure- und Ability-getriebene Doppelkaempfe
+  - Hinweis: das ist eine lokale Submodul-Anpassung und kein normales Ingame-Setting
+- Mystery Encounters sind im lokalen Checkout ebenfalls deaktiviert:
+  - Datei: `pokerogue/src/overrides.ts`
+  - Schalter: `MYSTERY_ENCOUNTER_RATE_OVERRIDE`
+  - aktueller lokaler Wert: `0`
+  - Wirkung: unterdrueckt die normalen zufaelligen Mystery Encounter Spawns im Spiel und damit auch in der Offline-RL-Pipeline
+  - Einschraenkung: explizit erzwungene `BattleType.MYSTERY_ENCOUNTER`- oder `MYSTERY_ENCOUNTER_OVERRIDE`-Pfade waeren davon nicht automatisch ausgeschlossen
+- Der Scenario-Generator hat zusaetzlich einen Single-Battle-Guard:
+  - Config-Feld: `require_single_battles`
+  - aktiv in `data/rl/scenario-generator-run.json` und `data/rl/scenario-generator-trainer-run.json`
+  - falls trotzdem ein Doppelkampf erzeugt wird, bricht die Generierung mit Fehler ab
+- Der Scenario-Generator hat zusaetzlich einen Mystery-Encounter-Guard:
+  - Config-Feld: `require_no_mystery_encounters`
+  - aktiv in `data/rl/scenario-generator-run.json` und `data/rl/scenario-generator-trainer-run.json`
+  - falls trotzdem ein Mystery Encounter erzeugt wird, bricht die Generierung mit Fehler ab
+- `skip_double_battles=true` bleibt nur als defensiver Fallback in den Configs erhalten und sollte mit aktivem Override praktisch nicht mehr greifen.
 - Collector now recognizes terminal phases during `toEndOfTurn()` polling, so `GameOverPhase -> PostGameOverPhase -> TitlePhase` no longer waits for the full 15s step timeout before ending the episode.
 - Long collector runs can also be split into multiple short-lived Node/Vitest batches via `scripts/run-pokerogue-experience-collector-batched.mjs`; this reduces heap growth and lets the OS reclaim memory between batches.
 - Collector configs can rotate predefined HP-state variants per episode to improve switch-learning coverage:

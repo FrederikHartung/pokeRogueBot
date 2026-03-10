@@ -14,12 +14,27 @@ After getting to a Result, the bot calculates which buttons are to press and sen
 1. Clone this repository with submodules: `git clone --recurse-submodules <repo-url>`. If you already cloned without submodules, run `git submodule update --init --recursive`.
 2. Install a Java 21 SDK, Maven (Java Build Tool), Node.js (for building JS bridge files), Intellij Idea (Java IDE) and Chrome (Browser).
 3. Run `npm install` in the project root to install the esbuild dependency (used to compile the TypeScript JS bridge files).
-4. The PokeRogue game is included as a git submodule in the `pokerogue/` directory (pinned to v1.11.6). Read the `pokerogue/README.md` to get the game running on your local machine.
+4. Start the local PokeRogue game from the `pokerogue/` submodule:
+   - `cd pokerogue`
+   - `npm install`
+   - `npm run start:dev`
+   - Vite should report `Local: http://localhost:8000/`
 5. Optional: Add a custom Chrome Profile to the bot. Read the section "How to add a chrome profile to persist the settings chosen in the title menu" to get more information.
 6. This Bot only works with the english version of the game. Make sure to set the language to english in the game settings before starting.
-7. Open this repository in Intellij Idea and run the Application class. The bot should start and connect to the browser.
+7. Start the Spring Boot application from the project root:
+   - `mvn spring-boot:run`
+   - optional explicit combat policy: `mvn spring-boot:run -Dspring-boot.run.arguments=--bot.combat-policy-mode=random_move`
+8. Alternatively, open this repository in Intellij Idea and run the Application class. The bot should start and connect to the browser at `http://localhost:8000/`.
 
 Note: The JS bridge files (`src/main/js/*.js`) are generated from TypeScript sources in `src/main/ts/`. Maven automatically rebuilds them during compilation. The TypeScript files import game enums and use `import type` for game classes (Pokemon, BattleScene, Move, etc.) directly from the PokeRogue submodule, so they stay in sync with the game version. For full IDE type support (autocomplete, type checking), install the submodule's dependencies: `cd pokerogue && pnpm install`.
+Static guardrails for bridge drift are covered by tests:
+- `UiModeDriftTest`
+- `UiHandlerCoverageTest`
+- `UiHandlerMappingDriftTest`
+- `PokemonBridgeContractTest`
+- `WaveBridgeContractTest`
+- `UiHandlerBridgeContractTest`
+- `BridgeContractCoverageGuardTest`
 
 ## Hows does the bot work
 Currently the bot implementation is very simple. It choses the first attack and tries to pick a potion item and apply it to the first pokemon in the team. This is done, till the player team is beaten.  
@@ -53,4 +68,3 @@ After that, you can switch back to your normal Chrome Profile and start the bot.
 
 
    
-

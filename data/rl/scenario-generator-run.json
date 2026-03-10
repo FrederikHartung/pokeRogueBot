@@ -3,6 +3,8 @@
   "clear_output_dir": true,
   "battle_mode": "auto",
   "disable_trainer_waves": false,
+  "require_single_battles": true,
+  "require_no_mystery_encounters": true,
   "skip_double_battles": true,
   "seeds": [
     "gen-seed-001",

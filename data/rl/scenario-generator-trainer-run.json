@@ -2,6 +2,8 @@
   "output_dir": "./scenarios/generated-trainer-w1-20",
   "clear_output_dir": true,
   "battle_mode": "trainer",
+  "require_single_battles": true,
+  "require_no_mystery_encounters": true,
   "skip_double_battles": true,
   "seeds": [
     "trainer-seed-001",

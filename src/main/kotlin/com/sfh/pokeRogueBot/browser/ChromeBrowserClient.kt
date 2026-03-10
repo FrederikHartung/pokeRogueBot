@@ -14,6 +14,7 @@ import org.openqa.selenium.remote.UnreachableBrowserException
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.DisposableBean
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.context.annotation.Primary
 import org.springframework.stereotype.Component
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
@@ -23,12 +24,13 @@ import java.nio.file.Path
 import javax.imageio.ImageIO
 
 @Component
+@Primary
 class ChromeBrowserClient(
     @Value("\${browser.closeOnExit:false}") private val closeOnExit: Boolean,
     @Value("\${browser.waitTimeForRenderAfterNavigation:5000}") private val waitTimeForRenderAfterNavigation: Int,
     @Value("\${browser.pathChromeUserDir}") private val pathChromeUserDir: String?,
     @Value("\${browser.chromeProfile}") private val chromeProfile: String?,
-) : DisposableBean, BrowserClient, ImageClient, JsClient {
+) : DisposableBean, BrowserClient, ImageService, JsClient {
 
     companion object {
         private val log = LoggerFactory.getLogger(ChromeBrowserClient::class.java)
@@ -95,7 +97,7 @@ class ChromeBrowserClient(
     }
 
     @Throws(IOException::class)
-    override fun takeScreenshotFromCanvas(): BufferedImage {
+    override fun takeScreenshot(): BufferedImage {
         // find the canvas element
         val canvasElement = getCanvas()
 

@@ -1,15 +1,40 @@
 export {};
-declare const window: any;
+import type { Pokemon } from "../../../pokerogue/src/field/pokemon";
+
+type EggPhaseLike = {
+    pokemon?: Pokemon | null;
+    egg?: { id: number } | null;
+};
+
+type EggApi = {
+    getHatchedPokemon: () => unknown | null;
+    getHatchedPokemonJson: () => string;
+    getEggId: () => number | null;
+};
+
+type PoruRoot = {
+    egg?: EggApi;
+    util?: {
+        getPhase: () => EggPhaseLike | null;
+    };
+    poke?: {
+        getPokemonDto: (pokemon: Pokemon) => unknown;
+    };
+};
+
+declare const window: Window & typeof globalThis & { poru?: PoruRoot };
 
 if(!window.poru) window.poru = {};
-window.poru.egg = {
-    getHatchedPokemon: () => {
-        const eggPhase = window.poru.util.getPhase();
+const poruRoot = window.poru;
 
-        if(eggPhase.pokemon){
+const eggApi: EggApi = {
+    getHatchedPokemon: () => {
+        const eggPhase = poruRoot.util?.getPhase();
+
+        if(eggPhase?.pokemon){
             const hatchedPokemon = eggPhase.pokemon;
             if(hatchedPokemon){
-                return window.poru.poke.getPokemonDto(hatchedPokemon);
+                return poruRoot.poke?.getPokemonDto(hatchedPokemon) ?? null;
             }
         }
 
@@ -17,14 +42,16 @@ window.poru.egg = {
     },
 
     getHatchedPokemonJson: () => {
-        return JSON.stringify(window.poru.egg.getHatchedPokemon());
+        return JSON.stringify(eggApi.getHatchedPokemon());
     },
 
     getEggId: () => {
-        const eggPhase = window.poru.util.getPhase();
-        if(eggPhase.egg){
+        const eggPhase = poruRoot.util?.getPhase();
+        if(eggPhase?.egg){
             return eggPhase.egg.id;
         }
         return null;
     },
-}
+};
+
+poruRoot.egg = eggApi;

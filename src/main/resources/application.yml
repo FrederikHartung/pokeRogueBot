@@ -60,6 +60,12 @@ bot:
   backoffPerRetry: 2500
   maxRunsTillShutdown: -1
   startBotOnStartup: true
+  combat-policy-mode: random_move
+  dqn:
+    python-command: python3
+    infer-script: scripts/dqn_policy_infer.py
+    combat-checkpoint: data/rl/models/dqn-combat-5k-lead-1hp.pt
+    device: cpu
 
 # Reinforcement Learning Configuration
 # Controls AI agent behavior for automated decision making during gameplay
