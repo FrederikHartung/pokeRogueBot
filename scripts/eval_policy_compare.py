@@ -111,10 +111,10 @@ def summarize(rows: List[Dict]) -> Dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Compare random/always0/DQN on benchmarked scenarios")
-    parser.add_argument("--collector-config", default="./data/rl/collector-run-benchmarked-mixed.json")
-    parser.add_argument("--checkpoint", default="./data/rl/models/dqn-combat-poc.pt")
+    parser.add_argument("--collector-config", default="./data/rl/collector-run-benchmarked-wave-library-v2.json")
+    parser.add_argument("--checkpoint", default="./data/rl/models/dqn-combat-wave-library-v2-deep.pt")
     parser.add_argument("--device", default="cpu")
-    parser.add_argument("--report-path", default="./data/rl/combat/eval-policy-compare-report.json")
+    parser.add_argument("--report-path", default="./data/rl/combat/eval-policy-compare-wave-library-v2-report.json")
     parser.add_argument("--max-steps-per-episode", type=int, default=400)
     parser.add_argument("--max-truncated-rate", type=float, default=0.10)
     args = parser.parse_args()
@@ -129,7 +129,6 @@ def main() -> None:
     runs = {
         "random": {
             "type": "random",
-            "switch_action_weight": 0.15,
             "step_timeout_ms": 15000,
         },
         "always_move_0": {

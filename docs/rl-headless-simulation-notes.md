@@ -197,25 +197,30 @@ Combat-/Switch-State-Contract:
 
 Implemented in main repo:
 
-- `scripts/run-pokerogue-experience-poc.mjs`
 - `scripts/run-pokerogue-experience-collector.mjs`
-- `scripts/run-pokerogue-scenario-generator.mjs`
+- `scripts/run-wave-library-scenario-adapter.mjs`
+- `scripts/run-wave-library-collector-profile.mjs`
+- `scripts/run-wave-library-regression-collector.mjs`
+- `scripts/run-wave-library-broad-shallow-training-collector.mjs`
+- `scripts/run-wave-library-deep-training-collector.mjs`
 - `scripts/dump-pokerogue-starter-defaults.mjs`
 
 Available npm commands:
 
-- `npm run rl:poc:experience`
 - `npm run rl:collect`
 - `npm run rl:gen:scenarios`
+- `npm run rl:collect:wave-lib:regression`
+- `npm run rl:collect:wave-lib:train:broad-shallow`
+- `npm run rl:collect:wave-lib:train:deep`
 - `npm run rl:dump:starters`
 
 Current generated artifacts:
 
-- Scenario sweep example: `data/rl/scenarios/generated-w1-20/*.json`
-- Batch transition output example: `data/rl/combat/train.jsonl`
-- 5k bootstrap dataset example: `data/rl/combat/train-5k-bootstrap.jsonl`
-- 5k-trained checkpoint example: `data/rl/models/dqn-combat-5k-bootstrap.pt`
-- latest compare report: `data/rl/combat/eval-policy-compare-5k-bootstrap-report.json`
+- Scenario materialization example: `data/rl/scenarios/generated-wave-library-v2/*.json`
+- Batch transition output example: `data/rl/combat/train-wave-library-v2-default.jsonl`
+- Deep training dataset example: `data/rl/combat/train-wave-library-deep-w1-8.jsonl`
+- Deep-trained checkpoint example: `data/rl/models/dqn-combat-wave-library-v2-deep.pt`
+- latest compare report: `data/rl/combat/eval-policy-compare-wave-library-v2-deep-report.json`
 
 Known behavior:
 
@@ -241,7 +246,8 @@ Known behavior:
   - falls trotzdem ein Mystery Encounter erzeugt wird, bricht die Generierung mit Fehler ab
 - `skip_double_battles=true` bleibt nur als defensiver Fallback in den Configs erhalten und sollte mit aktivem Override praktisch nicht mehr greifen.
 - Collector now recognizes terminal phases during `toEndOfTurn()` polling, so `GameOverPhase -> PostGameOverPhase -> TitlePhase` no longer waits for the full 15s step timeout before ending the episode.
-- Long collector runs can also be split into multiple short-lived Node/Vitest batches via `scripts/run-pokerogue-experience-collector-batched.mjs`; this reduces heap growth and lets the OS reclaim memory between batches.
+- Längere Collector-Runs sollen aktuell bewusst als ein durchgehender Lauf erzeugt werden.
+- Falls künftig Timeouts oder Ressourcenprobleme auftreten, soll zuerst der Timeout bzw. die Laufkonfiguration erhöht werden, bevor erneut ein Batch-Ansatz eingeführt wird.
 - Collector configs can rotate predefined HP-state variants per episode to improve switch-learning coverage:
   - `all_full`
   - `lead_critical_bench_full`

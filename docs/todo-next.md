@@ -34,25 +34,26 @@ Prioritaetswechsel fuer die naechste Session:
 - Browser-/Game-Live-Run ueber die ersten aktiven Kampf-/Wave-Phasen hinaus ohne JS-Bridge-Fehler
 - verbleibende Contract-Abdeckung fuer noch nicht verifizierte Bridge-Endpunkte
 
-0. Status: `lead_1hp`-Training + Benchmark nach Reward-Umbau ist erledigt (10. Maerz 2026)
-- Command: `npm run rl:eval:compare:lead-1hp`
-- Ergebnis:
-- `random`: win_rate `0.500`, avg_reward `-0.7701`, avg_turns `6.33`
-- `always_move_0`: win_rate `0.667`, avg_reward `2.2727`, avg_turns `5.67`
-- `dqn`: win_rate `0.667`, avg_reward `1.8680`, avg_turns `6.67`
-- Delta:
-- `dqn_vs_random`: win_rate `+0.167`, avg_reward `+2.6382`, avg_turns `+0.33`
-- `dqn_vs_always_move_0`: win_rate `+0.000`, avg_reward `-0.4046`, avg_turns `+1.00`
-- Report-Pfad (lokal, gitignored): `data/rl/combat/eval-policy-compare-5k-lead-1hp-report.json`
-- Benchmark-Historie: `docs/benchmark-history.md` bis inkl. `Run 8` gepflegt
-- Aktuelle Einordnung:
-- Das Modell ist fuer den aktuellen Stand brauchbar genug, um als erster Combat-/Switch-Policy-Kandidat in den Kotlin-Bot integriert zu werden.
-- Gegen `always_move_0` ist es noch nicht klar besser, aber der Reward-Exploit aus dem vorherigen Lauf ist behoben und das Verhalten ist deutlich plausibler.
+0. Status: Vorherige `lead_1hp`-/5k-Experimente sind nur noch historisch relevant
+- Die alten V1-/Bootstrap-/`lead_1hp`-Artefakte bleiben nur noch in der Benchmark-Historie dokumentiert.
+- Fuer aktive Datengenerierung, Training und Evaluation gilt jetzt ausschliesslich der Wave-Library-V2-Pfad.
 
 Verbindlicher Schema-Hinweis:
 - Fuer Combat-/Switch-Offline-Training ist `docs/rl-schema/combat-transition.schema.json` die feste Quelle fuer den State-Contract.
 - Das Beispiel in `docs/rl-schema/combat-transition.example.json` muss dazu konsistent bleiben.
 - Bei jeder State-Schema-Aenderung muessen Collector, Sanity-Checks, Training, Inferenz/Eval und Doku im selben Schritt angepasst und geprueft werden.
+
+0.1. Offline-Combat-State pragmatisch auf `v3` erweitern
+- Ziel: das DQN soll Attack- und Switch-Entscheidungen nicht mehr fast nur ueber grobe `power_bucket`-/Typvorteilsignale lernen.
+- Geplanter Minimalumfang fuer `v3`:
+- pro Move zusaetzliche Damage-/Risiko-Features wie `damage_class_bucket`, `estimated_damage_ratio_bucket`, `estimated_ko_turns_bucket`, `accuracy_bucket`, `uses_best_offense_stat`
+- globale Bedrohungs-Features wie `active_best_damage_bucket`, `enemy_best_damage_into_active_bucket`, `active_survives_next_hit`, `enemy_survives_best_hit`
+- pro Party-Slot konkrete Switch-Matchup-Features statt nur aggregierter Bench-Summaries
+- bewusst pragmatisch:
+- keine Vollsimulation der kompletten PokeRogue-Schadensformel im ersten Schritt
+- Sonderfaelle nur soweit aufnehmen, wie sie im Hauptrepo-Collector und im Kotlin-Livepfad konsistent berechnet werden koennen
+- Abschlusskriterium:
+- `combat-transition`-Schema, Collector, Trainer, Inferenz, Sanity-Checks und Doku sind auf denselben `v3`-State gezogen
 
 1. JS-Bridge gegen aktuelle Submodul-API haerten
 - Ziel: alle zentralen Bridge-Einstiegspunkte in `src/main/ts/` an echte PokeRogue-Typen anbinden
@@ -96,22 +97,21 @@ Verbindlicher Schema-Hinweis:
 
 4. Trainingsdaten weiter diversifizieren
 - Zusätzliche Szenarien via Generator erzeugen (`wild` + `trainer`, mehr seeds/waves)
-- Collector-Runs batchweise ausführen und Datensätze zusammenführen
-- Sanity-Check nach jedem Batch laufen lassen (`npm run rl:check:dataset`)
-- Isolierter Switch-Testfall verfuegbar:
-- Config: `data/rl/collector-run-5k-lead-1hp.json`
-- Command: `npm run rl:collect:5k:lead-1hp`
-- Empfohlen fuer lange Laeufe: `npm run rl:collect:5k:lead-1hp:batched`
-- Prototyping-Default ist jetzt deutlich kuerzer: `episodes_per_seed=90`, `decay_episodes=360`
-- Erwartung: grob `540` Episoden insgesamt ueber `6` Szenarien, also etwa `5` Minuten Laufzeit statt ~`45` Minuten
-- Batch-Run teilt den Collector in mehrere Teilprozesse (`30` Episodes pro Seed je Batch), damit Heap/GC nach jedem Batch sauber freigegeben werden
-- Zweck: nur `lead_1hp_bench_full` trainieren (`aktives Pokemon hat exakt 1 HP`, Bench voll)
-- Dedizierter Benchmark:
-- Config: `data/rl/collector-run-benchmarked-lead-1hp.json`
-- Command: `npm run rl:eval:compare:lead-1hp`
-- Aktueller Bootstrap-Run:
-- Config: `data/rl/collector-run-5k-bootstrap.json`
-- Command: `npm run rl:collect:5k`
+- Collector-Runs weiterhin als durchgehenden Einzellauf erzeugen; bei Laufzeitproblemen zuerst Timeout/Laufkonfiguration anpassen statt Batching einzuführen
+- Sanity-Check nach jedem Collector-Lauf laufen lassen (`npm run rl:check:dataset`)
+- Neue Datengenerierungsstrategie fuer den naechsten RL-Bootstrap testen:
+- Schritt 1: grob `500` Episoden mit `all random valid` erzeugen
+- Schritt 2: darauf ein erstes DQN pretrainen
+- Schritt 3: weitere grob `500` Episoden erzeugen, bei denen Exploration weiter zufaellig ist, der Exploit-Zweig aber das pretrained Modell statt `first_valid` nutzt
+- Schritt 4: auf dem kombinierten `~1000`-Episoden-Datensatz trainieren
+- Hintergrund:
+- keine starke Handheuristik im Exploit-Zweig erzwingen
+- trotzdem `first_valid`-Bias im Collector abbauen
+- dem DQN frueh mehr policy-nahe Daten geben, ohne den Bootstrap komplett random zu lassen
+- Technische Umsetzung fuer Schritt 3:
+- pretrained Modell nicht pro Aktion neu starten
+- stattdessen persistenten lokalen Inferenz-Worker fuer den gesamten Collector-Lauf verwenden
+- `policy.exploit_policy` ueber `external_command` + `persistent=true` konfigurieren
 - Default in Config:
 - `max_steps_per_episode=400`
 - `reward_step_penalty=-0.05`
@@ -127,13 +127,10 @@ Verbindlicher Schema-Hinweis:
 - `reward_alive_team_member_win_bonus=1.0`
 - `reward_remaining_team_hp_ratio_win_bonus_scale=2.0`
 - `state_variants=all_full, lead_critical_bench_full, lead_critical_plus_random_bench_critical, all_critical, lead_half_bench_full, enemy_half, enemy_critical`
-- Test-Run mit sichtbaren 10%-Zwischenständen inkl. Laufzeit/ETA (mit 4s Pause):
-- `CI=1 COLLECTOR_PROGRESS_PAUSE=1 COLLECTOR_PROGRESS_TARGET=5000 COLLECTOR_PROGRESS_STEP=10 COLLECTOR_PROGRESS_PAUSE_MS=4000 npm run rl:collect:5k`
-- Schneller Smoke-Run (~500 Transitions):
-- Config: `data/rl/collector-run-500-smoke.json`
-- Command: `npm run rl:collect:500`
-- Optional mit 10%-Pausen:
-- `CI=1 COLLECTOR_PROGRESS_PAUSE=1 COLLECTOR_PROGRESS_TARGET=500 COLLECTOR_PROGRESS_STEP=10 COLLECTOR_PROGRESS_PAUSE_MS=4000 npm run rl:collect:500`
+- Aktive V2-Sammler:
+- breite Regression: `npm run rl:collect:wave-lib:regression`
+- breites/flaches Training: `npm run rl:collect:wave-lib:train:broad-shallow`
+- tiefes Training: `npm run rl:collect:wave-lib:train:deep`
 
 5. Prod-nahe Wave-Library fuer Offline-Headless-Runs aufbauen
 - Status: V1 ist umgesetzt (10. Maerz 2026)
@@ -183,15 +180,14 @@ Verbindlicher Schema-Hinweis:
 - V2-/Repro-Gaps separat priorisieren
 
 5.1. Wave-Library als Quelle fuer Headless-Combat-Training anbinden
-- Ziel: den alten POC-Szenario-Generator mittelfristig durch einen neuen produktionsnahen Pfad ersetzen
+- Ziel: den produktionsnahen Wave-Library-Pfad als alleinigen aktiven Generierungspfad nutzen
 - Neuer Design-Stand:
 - neue Doku: `docs/combat-training-wave-library-v2.md`
 - neuer geplanter Headless-Input-Contract: `docs/rl-schema/combat-scenario-v2.schema.json`
 - Beispiel: `data/rl/scenarios/poc-battle-v2.json`
 - Aktuelle Einordnung:
-- der bisherige Generator `scripts/run-pokerogue-scenario-generator.mjs` sweeped `seed x wave` und schreibt ein reduziertes `combat-scenario`-V1-Format
-- der aktuelle Collector nutzt davon faktisch nur `team_species` plus Lead-Overrides und nur einen einzelnen `enemy`
-- dadurch gehen Bench-/Team-/Moveset-Details verloren, was fuer produktionsnahes Training unzureichend ist
+- der alte `seed x wave`-Generatorpfad ist deprecated und aus dem aktiven Tooling entfernt
+- der aktuelle Collector ist jetzt auf `combat-scenario-v2` als einziges aktives Eingabeformat festgelegt
 - Neuer Zielpfad:
 - `productive-wave-snapshots-v1.jsonl` lesen
 - trainable subset filtern (zunaechst nur Single Battles, keine Mystery Encounters, keine Double Battles)
@@ -206,7 +202,7 @@ Verbindlicher Schema-Hinweis:
 - erster Adapter ist jetzt angelegt:
 - `scripts/run-wave-library-scenario-adapter.mjs`
 - Run-Config: `data/rl/wave-library-scenario-adapter-run.json`
-- `npm run rl:gen:scenarios:wave-lib`
+- `npm run rl:gen:scenarios`
 - der Adapter materialisiert echte V1-Snapshots nach `data/rl/scenarios/generated-wave-library-v2/*.json`
 - aktuelle Filterung:
 - nur `WILD`/`TRAINER`
@@ -215,7 +211,7 @@ Verbindlicher Schema-Hinweis:
 - mindestens ein aktives Feld-Pokemon pro Seite
 - Naechster konkreter Schritt:
 - Collector-V2-Pfad ist jetzt angelegt:
-- `scripts/run-pokerogue-experience-collector.mjs` erkennt `combat-scenario-v2`
+- `scripts/run-pokerogue-experience-collector.mjs` erwartet `combat-scenario-v2` als einziges aktives Eingabeformat
 - komplette `player_team`- und `enemy_team`-Initialisierung wird nach `startBattle(...)` auf den Scenario-State gepatcht
 - aktuell noch offene Collector-Luecken:
 - Held-Items
@@ -265,7 +261,7 @@ Verbindlicher Schema-Hinweis:
 - Mit aktuellem 10er Action-Space (4 Moves + 6 Switch) trainieren
 - Eval auf benchmarked set erneut laufen lassen
 - Optional zweites Benchmark-Set mit mehr Low-HP-/Switch-relevanten Startzuständen aufbauen
-- Benchmark-Config `data/rl/collector-run-benchmarked-mixed.json` nutzt jetzt `episodes_per_seed=7`, damit alle `7` `state_variants` fuer jedes der `6` Benchmark-Szenarien einmal evaluiert werden
+- Benchmarking laeuft jetzt ueber die dedizierte V2-Config `data/rl/collector-run-benchmarked-wave-library-v2.json`
 - Metrikvergleich zum letzten Stand dokumentieren
 
 9. Kurzen Report in `docs/combat-training-v1.md` nachziehen
@@ -280,7 +276,7 @@ Verbindlicher Schema-Hinweis:
 - Bereits umgesetzt:
 - reproduzierbares `random_per_wave`-Sampling im Profil-Runner
 - relative Explorationssteuerung ueber `decay_fraction` im Collector
-- V2-Profile mit hoeherer Switch-Exploration (`switch_action_weight = 0.5`) statt altem V1-Wert `0.15`
+- V2-Collector-Exploration soll legale Moves und legale Switches bei `random`/`epsilon_random` gleichverteilt sampeln
 - Bereits verifiziert am `2026-03-11`:
 - neuer Deep-Datensatz erzeugt: `450` Episoden, `3050` Transitionen, ca. `242s` Collector-Laufzeit
 - Switch-Quote im Datensatz von `1.27%` auf `6.92%` gestiegen

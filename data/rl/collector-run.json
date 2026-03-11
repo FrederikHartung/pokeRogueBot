@@ -1,13 +1,11 @@
 {
-  "scenario_dir": "./scenarios",
-  "output_path": "./combat/train.jsonl",
+  "scenario_dir": "./scenarios/generated-wave-library-v2",
+  "output_path": "./combat/train-wave-library-v2-default.jsonl",
   "append_output": false,
-  "seeds": [
-    "batch-seed-001",
-    "batch-seed-002"
-  ],
   "episodes_per_seed": 1,
-  "max_steps_per_episode": 6,
+  "max_steps_per_episode": 50,
+  "test_timeout_ms": 180000,
+  "quiet_game_logs": true,
   "policy": {
     "type": "epsilon_random",
     "start_epsilon": 1.0,

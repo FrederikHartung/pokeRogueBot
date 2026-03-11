@@ -165,6 +165,9 @@ This is a Spring Boot application (version 3.5.3) written in mixed Java/Kotlin t
 - Wenn das Combat-/Switch-State-Schema geaendert wird, muessen mit grosser Sorgfalt alle Consumer im selben Arbeitsschritt geprueft und bei Bedarf angepasst werden.
 - Dazu gehoeren insbesondere Collector, Dataset-Sanity-Checks, Offline-Training, Inferenz/Eval-Skripte und die zugehoerige Dokumentation.
 - Es darf kein stiller Drift zwischen dokumentiertem Schema, erzeugten JSONL-Daten und Python-/Node-Skripten entstehen.
+- Wenn der User fuer Offline-RL-Datengenerierung eine Zielgroesse wie "erzeuge X Episoden" nennt, ist das als pragmatischer Zielwert zu verstehen und muss nicht exakt getroffen werden.
+- Eine Abweichung von etwa `+-5%` ist akzeptabel, wenn die Datengenerierung dadurch sauber ueber viele Wellen bzw. Seeds pro Welle verteilt bleibt.
+- In solchen Faellen soll Verteilungsqualitaet ueber Wellen/Seeds wichtiger gewichtet werden als das exakte Treffen einer einzelnen absoluten Episodenzahl.
 
 **Java to Kotlin Migration Guidelines:**
 

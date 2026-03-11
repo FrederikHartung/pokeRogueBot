@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-const inputArg = process.argv[2] ?? "./data/rl/combat/train-benchmarked-mixed.jsonl";
+const inputArg = process.argv[2] ?? "./data/rl/combat/train-benchmarked-wave-library-v2.jsonl";
 const inputPath = path.resolve(inputArg);
 
 if (!existsSync(inputPath)) {
@@ -65,10 +65,22 @@ for (let i = 0; i < lines.length; i += 1) {
     "hp_diff_bucket",
     "level_gap_bucket",
     "is_trainer_battle",
+    "has_legal_switch",
+    "active_hp_critical",
+    "bench_has_healthier_switch",
+    "bench_has_better_matchup_than_active",
+    "active_can_finish_enemy",
     "alive_bench_count_bucket",
     "healthy_bench_count_bucket",
     "best_switch_matchup_bucket",
     "worst_switch_risk_bucket",
+    "speed_order_advantage",
+    "enemy_has_known_priority_threat",
+    "active_has_any_first_strike_move",
+    "active_best_damage_bucket",
+    "enemy_best_damage_into_active_bucket",
+    "active_survives_next_hit",
+    "enemy_survives_best_hit",
   ];
   for (const field of bucketFields) {
     if (!Number.isInteger(row?.state?.[field])) {
@@ -86,11 +98,60 @@ for (let i = 0; i < lines.length; i += 1) {
         issues.push(`[line ${lineNo}] invalid move at index ${idx}`);
         continue;
       }
-      const moveFields = ["available", "power_bucket", "effectiveness_bucket", "stab", "pp_low"];
+      const moveFields = [
+        "available",
+        "power_bucket",
+        "effectiveness_bucket",
+        "stab",
+        "pp_low",
+        "priority_bucket",
+        "acts_first_if_used",
+        "can_ko_before_enemy_moves",
+        "move_kind_bucket",
+        "damage_class_bucket",
+        "estimated_damage_ratio_bucket",
+        "estimated_ko_turns_bucket",
+        "accuracy_bucket",
+        "uses_best_offense_stat",
+        "target_immunity_risk",
+      ];
       for (const field of moveFields) {
         if (!Number.isInteger(move[field])) {
           issues.push(`[line ${lineNo}] invalid move.${field} at index ${idx}`);
         }
+      }
+    }
+  }
+
+  const partySlots = row?.state?.party_slots;
+  if (!Array.isArray(partySlots) || partySlots.length !== 6) {
+    issues.push(`[line ${lineNo}] invalid party_slots`);
+  } else {
+    for (let idx = 0; idx < partySlots.length; idx += 1) {
+      const slot = partySlots[idx];
+      if (!slot || typeof slot !== "object") {
+        issues.push(`[line ${lineNo}] invalid party_slot at index ${idx}`);
+        continue;
+      }
+      const slotFields = [
+        "present",
+        "active",
+        "fainted",
+        "hp_ratio",
+        "level",
+        "best_damage_into_enemy_bucket",
+        "expected_incoming_damage_bucket",
+        "speed_advantage_bucket",
+        "survives_one_hit",
+        "can_threaten_ko_bucket",
+      ];
+      for (const field of slotFields) {
+        if (!Number.isFinite(slot[field])) {
+          issues.push(`[line ${lineNo}] invalid party_slot.${field} at index ${idx}`);
+        }
+      }
+      if (!Array.isArray(slot.types)) {
+        issues.push(`[line ${lineNo}] invalid party_slot.types at index ${idx}`);
       }
     }
   }

@@ -17,7 +17,7 @@ class DqnCombatSwitchPolicy(
     private val heuristicCombatSwitchPolicy: HeuristicCombatSwitchPolicy,
     @param:Value("\${bot.dqn.python-command:python3}") private val pythonCommand: String,
     @param:Value("\${bot.dqn.infer-script:scripts/dqn_policy_infer.py}") private val inferScriptPath: String,
-    @param:Value("\${bot.dqn.combat-checkpoint:data/rl/models/dqn-combat-5k-lead-1hp.pt}") private val checkpointPath: String,
+    @param:Value("\${bot.dqn.combat-checkpoint:data/rl/models/dqn-combat-wave-library-v2-deep.pt}") private val checkpointPath: String,
     @param:Value("\${bot.dqn.device:cpu}") private val device: String,
 ) : CombatSwitchPolicy {
 

@@ -272,3 +272,61 @@ Kurzfazit:
 - Gegenueber `Run 9` verbessert sich die `win_rate` des DQN deutlich von `0.125` auf `0.750`, der Agent verliert also nicht mehr fast alle V2-Benchmark-Kaempfe.
 - Das Kernproblem bleibt aber bestehen: der DQN erzeugt weiterhin extrem lange Kaempfe und sehr schlechten kumulativen Reward, also weiter legale, aber ineffiziente Entscheidungsfolgen.
 - `truncated_rate` blieb erneut fuer alle Policies bei `0.000`; die V2-Benchmark-Stabilitaet ist also gegeben, die Policy-Qualitaet noch nicht.
+
+## Run 11
+
+- Datum: 2026-03-11
+- Beschreibung: Wave-Library-V2-Lauf mit neuem Schema-4-State (zusaetzliche Switch-Flags) und neu auf 500 V2-Episoden trainiertem DQN
+- Laufnummer: 11
+- Trainingsdaten: `3506` Transitions aus `data/rl/combat/train-wave-library-v2-500-episodes-flags.jsonl`
+- Checkpoint: `data/rl/models/dqn-combat-wave-library-v2-500-flags.pt`
+- Benchmark-Report: `data/rl/combat/eval-policy-compare-wave-library-v2-500-flags-report.json`
+
+Ergebnisse:
+
+| Policy | Win Rate | Avg Reward | Avg Turns | Benchmark-Transitions |
+| --- | ---: | ---: | ---: | ---: |
+| `random` | 0.875 | 7.0005 | 7.75 | 62 |
+| `always_move_0` | 0.875 | 7.5130 | 5.75 | 46 |
+| `dqn` | 0.875 | 7.9121 | 4.88 | 39 |
+
+Delta:
+
+- `dqn_vs_random`: win_rate `+0.000`, avg_reward `+0.9116`, avg_turns `-2.88`
+- `dqn_vs_always_move_0`: win_rate `+0.000`, avg_reward `+0.3991`, avg_turns `-0.88`
+
+Kurzfazit:
+
+- Der neue Schema-4-DQN ist der erste Wave-Library-V2-Stand, der im Benchmark nicht nur mithaelt, sondern sowohl `random` als auch `always_move_0` beim `avg_reward` und bei der Effizienz schlaegt.
+- Besonders relevant ist der Sprung gegenueber `Run 10`: `avg_reward` dreht von `-51.6208` auf `7.9121`, `avg_turns` fallen von `37.50` auf `4.88`, und die `win_rate` steigt wieder auf das Baseline-Niveau `0.875`.
+- `truncated_rate` blieb fuer alle Policies bei `0.000`; auf dem aktuellen V2-Benchmark ist der neue Checkpoint damit sowohl stabil als auch qualitativ klar verbessert.
+
+## Run 12
+
+- Datum: 2026-03-11
+- Beschreibung: Wave-Library-V2-Lauf mit damaligem Schema-5-State fuer Turn-Order-Features (`speed_order_advantage`, bekannte Priority-Bedrohung, per-Move First-Strike-/KO-Bits); Datengenerierung damals in 4 Batches mit 6-Minuten-Timeout-Ziel und insgesamt 500 Episoden
+- Laufnummer: 12
+- Trainingsdaten: `3356` Transitions aus `data/rl/combat/train-wave-library-v2-turn-order-500-clean.jsonl`
+- Checkpoint: `data/rl/models/dqn-combat-wave-library-v2-turn-order-500-clean.pt`
+- Benchmark-Report: `data/rl/combat/eval-policy-compare-wave-library-v2-turn-order-500-clean-report.json`
+- Nachtraeglicher Hinweis: Dieser Lauf ist nur eingeschraenkt belastbar, weil die damals verwendete Batchverarbeitung einen Bug hatte. `epsilon`-Decay, `episode_id`-Fortschritt und `state_variant`-Rotation wurden pro Batch neu gestartet statt global fortgefuehrt; dadurch waren die Trainingsdaten rueckblickend nicht optimal verteilt.
+
+Ergebnisse:
+
+| Policy | Win Rate | Avg Reward | Avg Turns | Benchmark-Transitions |
+| --- | ---: | ---: | ---: | ---: |
+| `random` | 0.875 | 7.6374 | 6.00 | 48 |
+| `always_move_0` | 0.875 | 7.1226 | 5.88 | 47 |
+| `dqn` | 0.875 | 6.7982 | 19.62 | 157 |
+
+Delta:
+
+- `dqn_vs_random`: win_rate `+0.000`, avg_reward `-0.8392`, avg_turns `+13.62`
+- `dqn_vs_always_move_0`: win_rate `+0.000`, avg_reward `-0.3244`, avg_turns `+13.74`
+
+Kurzfazit:
+
+- Die neuen Turn-Order-Features allein reichen in diesem Stand nicht fuer bessere Entscheidungen; der DQN haelt zwar die `win_rate`, verliert aber beim `avg_reward` gegen beide Baselines.
+- Das Kernproblem ist erneut die Effizienz: `avg_turns` steigen massiv auf `19.62`, und die Benchmark-Transitionen wachsen von `39` in `Run 11` auf `157`.
+- `truncated_rate` blieb fuer alle Policies bei `0.000`; die Regression ist damit kein Stabilitaetsproblem des Benchmarks, sondern ein Policy-Verhalten.
+- Zusaetzlich muss der Lauf heute mit Vorsicht gelesen werden, weil der Batch-Bug die Qualitaet und Verteilung der damals erzeugten Trainingsdaten verschlechtert hat.

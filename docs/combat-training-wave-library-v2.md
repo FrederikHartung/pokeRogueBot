@@ -256,7 +256,7 @@ Stand der Untersuchung vom `2026-03-10`:
   - technisch funktionsfaehig, aber bisher noch mit klaren V1-/POC-Annahmen
   - wichtigster Mismatch war die Explorationssteuerung:
     - fixes `decay_episodes` statt relativ zur geplanten Episodenzahl
-    - `switch_action_weight = 0.15` war fuer den frueheren engeren Action-Space noch vertretbar, ist fuer V2 aber zu konservativ
+    - eine separate Switch-Gewichtung war fuer den frueheren engeren Action-Space zu konservativ und wird nicht mehr verwendet
   - Symptom im ersten V2-Trainingssatz:
     - Switch legal in rund `90%` der Zeilen
     - Switch tatsaechlich gewaehlt nur in rund `1.27%`
@@ -347,9 +347,7 @@ Aktueller V2-Stand der Profil-Steuerung:
 - Trainingsprofile verwenden jetzt standardmaessig `selection_mode = random_per_wave` mit festem `selection_seed`
 - `epsilon_random` kann jetzt statt festem `decay_episodes` auch ein relatives `decay_fraction` nutzen
 - fuer V2 ist das aktuell die bevorzugte Form, weil die Datensatzgroesse ueber `episodes_per_seed` stark schwanken kann
-- `switch_action_weight = 0.5` ist ein bewusst konservativer erster V2-Zwischenschritt:
-  - deutlich mehr Switch-Exploration als zuvor
-  - aber noch keine volle Gleichgewichtung mit Moves
+- fuer `random`/`epsilon_random` werden legale Moves und legale Switches jetzt gleichverteilt ueber alle legalen Aktionen gesampelt
 
 Pragmatische V2-Empfehlung fuer Datengenerierung:
 

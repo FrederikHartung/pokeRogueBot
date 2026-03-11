@@ -1,6 +1,6 @@
 {
-  "dataset_path": "./data/rl/combat/train-5k-lead-1hp.jsonl",
-  "output_path": "./data/rl/models/dqn-combat-5k-lead-1hp.pt",
+  "dataset_path": "./data/rl/combat/train-wave-library-random-bootstrap-480-w1-8.jsonl",
+  "output_path": "./data/rl/models/dqn-combat-wave-library-random-bootstrap-480.pt",
   "device": "cpu",
   "seed": 42,
   "hidden_dims": [128, 128],

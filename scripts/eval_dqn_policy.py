@@ -133,12 +133,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate DQN checkpoint on benchmarked combat scenarios")
     parser.add_argument(
         "--checkpoint",
-        default="./data/rl/models/dqn-combat-poc.pt",
+        default="./data/rl/models/dqn-combat-wave-library-v2-deep.pt",
         help="Path to DQN checkpoint",
     )
     parser.add_argument(
         "--collector-config",
-        default="./data/rl/collector-run-benchmarked-mixed.json",
+        default="./data/rl/collector-run-benchmarked-wave-library-v2.json",
         help="Base collector config path",
     )
     parser.add_argument(

@@ -13,7 +13,7 @@
   "append_output": false,
   "episodes_per_seed": 1,
   "max_steps_per_episode": 300,
-  "test_timeout_ms": 300000,
+  "test_timeout_ms": 360000,
   "quiet_game_logs": true,
   "policy": {
     "type": "first_valid"

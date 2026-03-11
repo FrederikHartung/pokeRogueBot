@@ -59,7 +59,7 @@ Constraints:
 
 ## Observation Space (v1)
 
-Current `v2` feature set used by collector and offline trainer:
+Current `v3` feature set used by collector and offline trainer:
 
 - `wave_index`
 - `player_hp_ratio`
@@ -69,19 +69,71 @@ Current `v2` feature set used by collector and offline trainer:
 - `hp_diff_bucket`
 - `level_gap_bucket`
 - `is_trainer_battle`
+- `has_legal_switch`
+- `active_hp_critical`
+- `bench_has_healthier_switch`
+- `bench_has_better_matchup_than_active`
+- `active_can_finish_enemy`
 - `alive_bench_count_bucket`
 - `healthy_bench_count_bucket`
 - `best_switch_matchup_bucket`
 - `worst_switch_risk_bucket`
+- `speed_order_advantage`
+- `enemy_has_known_priority_threat`
+- `active_has_any_first_strike_move`
+- `active_best_damage_bucket`
+- `enemy_best_damage_into_active_bucket`
+- `active_survives_next_hit`
+- `enemy_survives_best_hit`
 - `moves[0..3]`:
   - `available`
   - `power_bucket`
   - `effectiveness_bucket`
   - `stab`
   - `pp_low`
+  - `priority_bucket`
+  - `acts_first_if_used`
+  - `can_ko_before_enemy_moves`
+  - `move_kind_bucket`
+  - `damage_class_bucket`
+  - `estimated_damage_ratio_bucket`
+  - `estimated_ko_turns_bucket`
+  - `accuracy_bucket`
+  - `uses_best_offense_stat`
+  - `target_immunity_risk`
 - `party_slots[6]`:
   - `present`, `active`, `fainted`, `hp_ratio`, `level`, `types`
+  - `best_damage_into_enemy_bucket`
+  - `expected_incoming_damage_bucket`
+  - `speed_advantage_bucket`
+  - `survives_one_hit`
+  - `can_threaten_ko_bucket`
 - `action_mask[10]` (4 move actions + 6 switch actions)
+
+New switch-oriented binary flags:
+
+- `has_legal_switch`: at least one legal bench switch exists
+- `active_hp_critical`: active Pokemon is in critical HP range
+- `bench_has_healthier_switch`: at least one legal switch target is materially healthier than the active Pokemon
+- `bench_has_better_matchup_than_active`: at least one legal switch target has a better best-move matchup than the active Pokemon
+- `active_can_finish_enemy`: active Pokemon is in a plausible finish window against the current enemy
+- `speed_order_advantage`: coarse single-battle order signal from current visible Speed only (`0` enemy first, `1` tie/unclear, `2` player first)
+- `enemy_has_known_priority_threat`: enemy currently shows at least one usable positive-priority move
+- `active_has_any_first_strike_move`: active Pokemon has at least one usable move that should act first under the current visible order assumptions
+- `moves[*].acts_first_if_used`: per-move binary signal whether this action should act first against the known enemy move-priority set
+- `moves[*].can_ko_before_enemy_moves`: per-move heuristic proxy for "this move likely secures the KO before the enemy can act"
+
+The new turn-order features are intentionally pragmatic rather than perfect battle simulation:
+
+- they only use information already present in the collector state
+- they are conservative around ties and unknown timing effects
+- they do not model hidden enemy choices or probabilistic order effects as guaranteed first-strike outcomes
+
+The new `v3` damage and switch features follow the same principle:
+
+- they stay within the information already available in the collector and Kotlin live path
+- they approximate damage pressure and switch safety instead of reproducing the full PokeRogue damage engine
+- they explicitly expose move category, estimated damage pressure, accuracy pressure and per-slot switch threat signals to reduce aliasing between "attack now" and "switch now"
 
 Legacy observation fields are no longer part of the supported contract.
 
@@ -143,14 +195,36 @@ Schema artifacts:
 
 - JSON schema: `docs/rl-schema/combat-transition.schema.json`
 - Example record: `docs/rl-schema/combat-transition.example.json`
-- Scenario schema: `docs/rl-schema/combat-scenario.schema.json`
-- Scenario example: `data/rl/scenarios/poc-battle.json`
+- Current scenario schema: `docs/rl-schema/combat-scenario-v2.schema.json`
+- Current scenario example: `data/rl/scenarios/poc-battle-v2.json`
 
-Legacy note:
+Current note:
 
-- `combat-scenario.schema.json` and the `seed x wave` generator remain the old POC path.
-- The new production-facing scenario path now starts from the productive wave library and is documented in `docs/combat-training-wave-library-v2.md`.
-- The first materialization step for that path is `npm run rl:gen:scenarios:wave-lib`.
+- The old POC `seed x wave` generation path is removed from the active toolchain.
+- The production-facing scenario path now starts from the productive wave library and is documented in `docs/combat-training-wave-library-v2.md`.
+- The materialization step for that path is `npm run rl:gen:scenarios`.
+- For data generation, `epsilon_random` with `first_valid` as exploit fallback is no longer considered a good default for future runs, because it over-biases the dataset toward low-index move slots instead of toward actually promising actions.
+- Preferred bootstrap direction for future collector experiments:
+  - first generate a broad `all random valid` dataset
+  - pretrain a first DQN on that dataset
+  - then generate a second dataset where exploration stays random but exploit decisions come from the pretrained model instead of `first_valid`
+  - then train on the combined dataset
+
+Current practical bootstrap procedure:
+
+- Step 1: generate a broad bootstrap dataset with `policy.type = random`
+- Step 2: train a first offline checkpoint on that bootstrap dataset
+- Step 3: generate a second dataset with `policy.type = epsilon_random`
+- Step 4: keep exploration random, but set `policy.exploit_policy.type = external_command`
+- Step 5: point that exploit policy at a pretrained checkpoint via `scripts/dqn_policy_infer_worker.py`
+- Step 6: enable `persistent = true` so the worker loads the checkpoint once and serves all exploit decisions over a long-lived local stdin/stdout session
+- Step 7: train the next checkpoint on the combined bootstrap + model-guided dataset
+
+Why the persistent worker matters:
+
+- the earlier one-shot external command path started a new Python/Torch process for every exploit action
+- that made model-guided collection much slower than random collection
+- the persistent worker keeps one local inference process alive for the whole collector run, which removes the repeated process startup and checkpoint reload overhead
 
 ## Evaluation Metrics (v1)
 
@@ -173,10 +247,7 @@ Day 1:
 
 - Freeze v1 schema (`state/action/reward/jsonl`) on the current `v2` observation format.
 - Add schema docs and sample file in main repo.
-- Add external POC runner command:
-  - `npm run rl:poc:experience`
-  - optional output path: `node scripts/run-pokerogue-experience-poc.mjs ./data/rl/combat/poc.jsonl`
-  - scenario + output: `node scripts/run-pokerogue-experience-poc.mjs ./data/rl/scenarios/poc-battle.json ./data/rl/combat/poc.jsonl`
+- Add a first external collector path for reproducible headless combat data generation.
 
 Day 2:
 
@@ -188,10 +259,7 @@ Day 3:
 
 - Generate first dataset (target: 5k-20k transitions).
 - Add dataset sanity checks (mask validity, no missing next_state).
-- Add scenario generation sweep for `seed x wave`:
-  - `npm run rl:gen:scenarios`
-  - config: `data/rl/scenario-generator-run.json`
-  - output: `data/rl/scenarios/generated-w1-20/*.json`
+- Add scenario generation/materialization for reproducible headless battles.
 
 Day 4:
 
@@ -215,26 +283,21 @@ Day 5:
 
 - Implemented:
   - schema files (`docs/rl-schema/*`)
-  - POC one-step collector (`npm run rl:poc:experience`)
   - multi-step collector with epsilon schedule (`npm run rl:collect`)
-  - seed x wave scenario generator (`npm run rl:gen:scenarios`)
+  - Wave-Library-V2 scenario materialization (`npm run rl:gen:scenarios`)
   - local single-battle-only hardening for offline RL pipeline
   - local mystery-encounter suppression for offline RL pipeline
-- Verified example sweep result:
-  - output directory: `data/rl/scenarios/generated-w1-20`
-  - 86 single-battle scenarios generated from a 5x20 sweep
-  - historical note: 14 scenarios were skipped due to double battles before the local global single-battle override and generator guard were introduced
-- Verified trainer-only sweep result:
-  - output directory: `data/rl/scenarios/generated-trainer-w1-20`
-  - 53 single-battle trainer scenarios generated from a 3x20 sweep
-  - historical note: 7 scenarios were skipped due to trainer double battles before the local global single-battle override and generator guard were introduced
+  - pragmatic `v3` combat observation expansion for better move/switch discrimination
+- Verified Wave-Library-V2 materialization:
+  - output directories: `data/rl/scenarios/generated-wave-library-v2*`
+  - scenarios are filtered to trainable single battles from productive wave snapshots
 - Repository policy:
   - checked in: scripts/config/schema + small benchmark scenario set (`data/rl/scenarios/benchmarked`)
   - not checked in: bulk generated scenario folders (`data/rl/scenarios/generated-*`) and transition dumps (`data/rl/combat/*.jsonl`)
 - Reproducible mixed benchmark collector:
-  - config: `data/rl/collector-run-benchmarked-mixed.json`
+  - config: `data/rl/collector-run-benchmarked-wave-library-v2.json`
   - command: `npm run rl:collect:bench`
-  - output: `data/rl/combat/train-benchmarked-mixed.jsonl` (ignored by git)
+  - output: `data/rl/combat/train-benchmarked-wave-library-v2.jsonl` (ignored by git)
 - Dataset sanity check:
   - command: `npm run rl:check:dataset -- ./data/rl/combat/train-benchmarked-mixed.jsonl`
   - validates JSON, `action_mask`, action validity, `next_state`, `reward`, `done`
@@ -250,15 +313,8 @@ Day 5:
 - Policy baseline compare pipeline:
   - command: `npm run rl:eval:compare`
   - policies: `random`, `always_move_0`, `dqn` (external command)
-  - output report: `data/rl/combat/eval-policy-compare-report.json`
-  - latest result (Mar 10, 2026) after 5k bootstrap retraining:
-    - training dataset: `data/rl/combat/train-5k-bootstrap.jsonl`
-    - checkpoint: `data/rl/models/dqn-combat-5k-bootstrap.pt`
-    - report: `data/rl/combat/eval-policy-compare-5k-bootstrap-report.json`
-    - `random`: win rate `0.833`, avg reward `3.5031`, avg turns `7.50`
-    - `always_move_0`: win rate `0.833`, avg reward `3.9038`, avg turns `5.83`
-    - `dqn`: win rate `0.833`, avg reward `3.9704`, avg turns `6.17`
-    - current read: DQN now matches win rate and slightly beats `always_move_0` on avg reward
+  - output report: `data/rl/combat/eval-policy-compare-wave-library-v2-report.json`
+  - active benchmark path: `data/rl/collector-run-benchmarked-wave-library-v2.json`
 - Dataset inspector (Streamlit POC):
   - requirements: `python3 -m pip install -r data/rl/requirements-inspector.txt`
   - command: `npm run rl:inspect:dataset`
@@ -268,11 +324,10 @@ Day 5:
   - terminal detection now also covers the `GameOverPhase -> PostGameOverPhase -> TitlePhase` path while waiting for `toEndOfTurn()`
   - configurable test timeout (`test_timeout_ms`) for longer compare/eval runs
   - deterministic baseline mode `first_valid` for `always_move_0`
-  - optional tester-progress pauses (every 10% with short pause) via env flags:
-    - `CI=1 COLLECTOR_PROGRESS_PAUSE=1 COLLECTOR_PROGRESS_TARGET=5000 COLLECTOR_PROGRESS_STEP=10 COLLECTOR_PROGRESS_PAUSE_MS=4000 npm run rl:collect:5k`
+  - optional tester-progress pauses (every 10% with short pause) via env flags on active V2 collector runs
   - progress logs include elapsed runtime and ETA
-  - benchmark collector currently uses `max_steps_per_episode: 400` with `switch_action_weight: 0.15`
-  - benchmark collector uses `episodes_per_seed: 7` for `data/rl/collector-run-benchmarked-mixed.json`, so each benchmark scenario is evaluated once per configured `state_variant`
+  - benchmark collector currently uses `max_steps_per_episode: 400`
+  - benchmark collector uses the dedicated V2 benchmark config `data/rl/collector-run-benchmarked-wave-library-v2.json`
   - reward shaping v4:
     - step penalty `-0.05` per transition to favor faster wins
     - enemy team HP damage reward via `reward_enemy_team_hp_damage_scale`
@@ -284,7 +339,7 @@ Day 5:
     - player faint penalty `-4.0` (strong negative signal)
   - state coverage expansion for switch-learning:
     - `state_variants` can rotate low-HP/full-HP start states per episode
-    - supported defaults in 500/5k/benchmark configs:
+    - supported defaults in active benchmark/training configs:
       - `all_full`
       - `lead_1hp_bench_full`
       - `lead_critical_bench_full`
@@ -293,11 +348,7 @@ Day 5:
       - `lead_half_bench_full`
       - `enemy_half`
       - `enemy_critical`
-    - dedicated isolated switch experiment configs:
-      - collector: `data/rl/collector-run-5k-lead-1hp.json`
-      - benchmark: `data/rl/collector-run-benchmarked-lead-1hp.json`
-      - training: `data/rl/train-dqn-offline-lead-1hp.json`
-    - scenario JSON supports optional fixed `hp_ratio` per player team member and enemy
+    - scenario JSON supports optional fixed start-state shaping through V2 materialized team state
   - eval compare now reports `truncated_rate` and applies a truncated quality gate
   - verified benchmark run completion: 6 episodes, 43 transitions, 0 timeout outcomes
 

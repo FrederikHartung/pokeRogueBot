@@ -13,14 +13,13 @@
     "append_output": false,
     "episodes_per_seed": 2,
     "max_steps_per_episode": 300,
-    "test_timeout_ms": 300000,
+    "test_timeout_ms": 360000,
     "quiet_game_logs": true,
     "policy": {
       "type": "epsilon_random",
       "start_epsilon": 0.8,
       "end_epsilon": 0.2,
       "decay_fraction": 0.6,
-      "switch_action_weight": 0.5,
       "step_timeout_ms": 15000
     }
   }

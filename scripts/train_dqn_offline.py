@@ -18,7 +18,7 @@ except ModuleNotFoundError as exc:
 
 
 ACTION_DIM = 10  # 0..3 move slots, 4..9 party switch targets
-FEATURE_SCHEMA_VERSION = 3
+FEATURE_SCHEMA_VERSION = 6
 WAVE_INDEX_SCALE = 100.0
 LEVEL_SCALE = 100.0
 TYPE_ID_SCALE = 20.0
@@ -59,10 +59,22 @@ def build_feature_names() -> List[str]:
         "hp_diff_bucket",
         "level_gap_bucket",
         "is_trainer_battle",
+        "has_legal_switch",
+        "active_hp_critical",
+        "bench_has_healthier_switch",
+        "bench_has_better_matchup_than_active",
+        "active_can_finish_enemy",
         "alive_bench_count_bucket",
         "healthy_bench_count_bucket",
         "best_switch_matchup_bucket",
         "worst_switch_risk_bucket",
+        "speed_order_advantage",
+        "enemy_has_known_priority_threat",
+        "active_has_any_first_strike_move",
+        "active_best_damage_bucket",
+        "enemy_best_damage_into_active_bucket",
+        "active_survives_next_hit",
+        "enemy_survives_best_hit",
     ]
 
     for i in range(4):
@@ -73,6 +85,16 @@ def build_feature_names() -> List[str]:
                 f"move_{i}_effectiveness_bucket",
                 f"move_{i}_stab",
                 f"move_{i}_pp_low",
+                f"move_{i}_priority_bucket",
+                f"move_{i}_acts_first_if_used",
+                f"move_{i}_can_ko_before_enemy_moves",
+                f"move_{i}_move_kind_bucket",
+                f"move_{i}_damage_class_bucket",
+                f"move_{i}_estimated_damage_ratio_bucket",
+                f"move_{i}_estimated_ko_turns_bucket",
+                f"move_{i}_accuracy_bucket",
+                f"move_{i}_uses_best_offense_stat",
+                f"move_{i}_target_immunity_risk",
             ]
         )
 
@@ -86,6 +108,11 @@ def build_feature_names() -> List[str]:
                 f"party_slot_{i}_level",
                 f"party_slot_{i}_type_0",
                 f"party_slot_{i}_type_1",
+                f"party_slot_{i}_best_damage_into_enemy_bucket",
+                f"party_slot_{i}_expected_incoming_damage_bucket",
+                f"party_slot_{i}_speed_advantage_bucket",
+                f"party_slot_{i}_survives_one_hit",
+                f"party_slot_{i}_can_threaten_ko_bucket",
             ]
         )
 
@@ -120,10 +147,22 @@ def encode_state(state: Dict) -> Tuple[List[float], List[float]]:
         _normalize(state.get("hp_diff_bucket"), 6.0),
         _normalize(state.get("level_gap_bucket"), 8.0),
         _safe_num(state.get("is_trainer_battle"), 0.0),
+        _safe_num(state.get("has_legal_switch"), 0.0),
+        _safe_num(state.get("active_hp_critical"), 0.0),
+        _safe_num(state.get("bench_has_healthier_switch"), 0.0),
+        _safe_num(state.get("bench_has_better_matchup_than_active"), 0.0),
+        _safe_num(state.get("active_can_finish_enemy"), 0.0),
         _normalize(state.get("alive_bench_count_bucket"), 3.0),
         _normalize(state.get("healthy_bench_count_bucket"), 3.0),
         _normalize(state.get("best_switch_matchup_bucket"), 4.0),
         _normalize(state.get("worst_switch_risk_bucket"), 3.0),
+        _normalize(state.get("speed_order_advantage"), 2.0),
+        _safe_num(state.get("enemy_has_known_priority_threat"), 0.0),
+        _safe_num(state.get("active_has_any_first_strike_move"), 0.0),
+        _normalize(state.get("active_best_damage_bucket"), 4.0),
+        _normalize(state.get("enemy_best_damage_into_active_bucket"), 4.0),
+        _safe_num(state.get("active_survives_next_hit"), 0.0),
+        _safe_num(state.get("enemy_survives_best_hit"), 0.0),
     ]
 
     moves = state.get("moves") if isinstance(state.get("moves"), list) else []
@@ -132,10 +171,20 @@ def encode_state(state: Dict) -> Tuple[List[float], List[float]]:
         features.extend(
             [
                 _safe_num(move.get("available"), 0.0),
-                _normalize(move.get("power_bucket"), 3.0),
+                _normalize(move.get("power_bucket"), 4.0),
                 _normalize(move.get("effectiveness_bucket"), 4.0),
                 _safe_num(move.get("stab"), 0.0),
                 _safe_num(move.get("pp_low"), 0.0),
+                _normalize(move.get("priority_bucket"), 2.0),
+                _safe_num(move.get("acts_first_if_used"), 0.0),
+                _safe_num(move.get("can_ko_before_enemy_moves"), 0.0),
+                _normalize(move.get("move_kind_bucket"), 2.0),
+                _normalize(move.get("damage_class_bucket"), 2.0),
+                _normalize(move.get("estimated_damage_ratio_bucket"), 4.0),
+                _normalize(move.get("estimated_ko_turns_bucket"), 3.0),
+                _normalize(move.get("accuracy_bucket"), 3.0),
+                _safe_num(move.get("uses_best_offense_stat"), 0.0),
+                _safe_num(move.get("target_immunity_risk"), 0.0),
             ]
         )
 
@@ -154,6 +203,11 @@ def encode_state(state: Dict) -> Tuple[List[float], List[float]]:
                 _normalize(slot.get("level"), LEVEL_SCALE),
                 _normalize(type_0, TYPE_ID_SCALE, -1.0) if type_0 >= 0 else -1.0,
                 _normalize(type_1, TYPE_ID_SCALE, -1.0) if type_1 >= 0 else -1.0,
+                _normalize(slot.get("best_damage_into_enemy_bucket"), 4.0),
+                _normalize(slot.get("expected_incoming_damage_bucket"), 4.0),
+                _normalize(slot.get("speed_advantage_bucket"), 2.0),
+                _safe_num(slot.get("survives_one_hit"), 0.0),
+                _normalize(slot.get("can_threaten_ko_bucket"), 3.0),
             ]
         )
 
