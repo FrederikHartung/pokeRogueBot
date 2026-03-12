@@ -7,6 +7,9 @@ DEFAULT_CONFIG="${REPO_ROOT}/data/rl/wave-library-bootstrap-pipeline-run.json"
 RUNTIME_DIR="${REPO_ROOT}/data/rl/pipeline-runs/wave-library-bootstrap-remote"
 PID_FILE="${RUNTIME_DIR}/remote-bootstrap.pid"
 LOG_FILE="${RUNTIME_DIR}/remote-bootstrap.log"
+VENV_DIR="${REPO_ROOT}/.venv"
+VENV_PYTHON="${VENV_DIR}/bin/python"
+VENV_BIN_DIR="${VENV_DIR}/bin"
 
 mkdir -p "${RUNTIME_DIR}"
 
@@ -39,9 +42,23 @@ check_dependencies() {
   assert_command npm
   assert_command python3
 
-  if ! python3 -c 'import torch' >/dev/null 2>&1; then
+  if [ -x "${VENV_PYTHON}" ]; then
+    echo "Using repo virtualenv: ${VENV_DIR}"
+  else
+    echo "Repo virtualenv not found at ${VENV_DIR}" >&2
+    echo "Create it first, for example:" >&2
+    echo "  python3 -m venv .venv" >&2
+    echo "  source .venv/bin/activate" >&2
+    echo "  python -m pip install --upgrade pip" >&2
+    echo "  python -m pip install torch numpy" >&2
+    exit 1
+  fi
+
+  if ! "${VENV_PYTHON}" -c 'import torch, numpy' >/dev/null 2>&1; then
     echo "Missing Python dependency: torch" >&2
-    echo "Install suggestion: python3 -m pip install torch" >&2
+    echo "Install suggestion inside repo venv:" >&2
+    echo "  source .venv/bin/activate" >&2
+    echo "  python -m pip install torch numpy" >&2
     exit 1
   fi
 
@@ -120,8 +137,9 @@ start_pipeline() {
   echo "Starting remote bootstrap pipeline..."
   echo "Config: ${config_path}"
   echo "Log: ${LOG_FILE}"
+  echo "Python: ${VENV_PYTHON}"
 
-  nohup bash -lc "cd '${REPO_ROOT}' && npm run rl:pipeline:wave-lib:bootstrap -- '${config_path}'" \
+  nohup bash -lc "export PATH='${VENV_BIN_DIR}':\"\$PATH\" && cd '${REPO_ROOT}' && npm run rl:pipeline:wave-lib:bootstrap -- '${config_path}'" \
     >"${LOG_FILE}" 2>&1 < /dev/null &
   local pid=$!
   echo "${pid}" > "${PID_FILE}"

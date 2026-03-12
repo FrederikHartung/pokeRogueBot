@@ -75,6 +75,58 @@ The remote helper currently checks:
 - `pokerogue/node_modules`
 - `pokerogue/locales/en`
 
+## Ubuntu Server Setup
+
+For future remote runs on a fresh Ubuntu server, this is the recommended order.
+
+1. Clone the private repo via SSH into a writable working directory:
+   - `mkdir -p ~/repos`
+   - `cd ~/repos`
+   - `git clone --recurse-submodules -b develop git@github.com:FrederikHartung/pokeRogueBot.git`
+   - `cd pokeRogueBot`
+2. If the local machine has uncommitted `pokerogue/` submodule changes, transfer them separately:
+   - local patch creation from inside the submodule:
+     - `cd pokerogue`
+     - `git diff -- src/battle-scene.ts src/overrides.ts > ../pokerogue-local-clean.patch`
+   - copy the patch to the server
+   - apply it on the server:
+     - `cd ~/repos/pokeRogueBot/pokerogue`
+     - `git apply --check ../pokerogue-local-clean.patch`
+     - `git apply ../pokerogue-local-clean.patch`
+     - `git status`
+3. Install base system dependencies:
+   - `sudo apt update`
+   - `sudo apt install -y nodejs npm python3-pip python3-venv`
+4. Create and use a Python virtual environment in the repo root:
+   - `cd ~/repos/pokeRogueBot`
+   - `python3 -m venv .venv`
+   - `source .venv/bin/activate`
+   - `python -m pip install --upgrade pip`
+   - `python -m pip install torch numpy`
+5. Install Node dependencies:
+   - in repo root:
+     - `npm install`
+   - in submodule:
+     - `cd pokerogue`
+     - `npm install`
+     - `cd ..`
+6. Sanity checks:
+   - `node -v`
+   - `npm -v`
+   - `python -c "import torch, numpy; print(torch.__version__); print(numpy.__version__)"`
+   - `git submodule status`
+7. Start the long-running remote pipeline:
+   - `bash scripts/run-wave-library-bootstrap-remote.sh start`
+8. Monitor or inspect the run:
+   - `bash scripts/run-wave-library-bootstrap-remote.sh status`
+   - `bash scripts/run-wave-library-bootstrap-remote.sh logs`
+
+After the run finishes, the central download index is:
+
+- `data/rl/pipeline-runs/wave-library-bootstrap-remote/artifacts-summary.json`
+
+Use that file to identify which reports and model artifacts to download via SFTP/SCP.
+
 ## Hows does the bot work
 Current live-bot status:
 - Combat and switch decisions default to the live DQN policy in single battles

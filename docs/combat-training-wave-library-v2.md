@@ -409,6 +409,25 @@ Remote-Server-Bedienung:
   - `data/rl/pipeline-runs/wave-library-bootstrap-remote/artifacts-summary.json`
   - diese Datei ist der bevorzugte Einstieg fuer spaeteren SFTP-Download von Reports und Modell
 
+Ubuntu-Setup-Kurzpfad fuer spaetere Server:
+
+- Repo per SSH klonen:
+  - `git clone --recurse-submodules -b develop git@github.com:FrederikHartung/pokeRogueBot.git`
+- falls noetig lokale `pokerogue`-Submodul-Aenderungen per sauberem Patch nachziehen
+- Systempakete installieren:
+  - `sudo apt update`
+  - `sudo apt install -y nodejs npm python3-pip python3-venv`
+- Python-vorbereitung im Repo:
+  - `python3 -m venv .venv`
+  - `source .venv/bin/activate`
+  - `python -m pip install --upgrade pip`
+  - `python -m pip install torch numpy`
+- Node-Abhaengigkeiten installieren:
+  - `npm install`
+  - `cd pokerogue && npm install && cd ..`
+- danach Remote-Pipeline starten:
+  - `bash scripts/run-wave-library-bootstrap-remote.sh start`
+
 Zielbild nach einem laengeren Remote-Lauf:
 
 - per SFTP oder SCP die Artefakte aus `artifacts-summary.json` herunterladen
