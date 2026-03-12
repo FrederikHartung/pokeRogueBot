@@ -7,6 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, "..");
 const pokerogueRoot = path.join(repoRoot, "pokerogue");
+const pokerogueVitestBin = path.join(pokerogueRoot, "node_modules", ".bin", "vitest");
 const tempDir = path.join(pokerogueRoot, "test", ".external-rl");
 const tempTestPath = path.join(tempDir, "starter-defaults.test.ts");
 const outputPath = process.argv[2]
@@ -84,8 +85,8 @@ const runnerEnv = {
 };
 
 const result = spawnSync(
-  "npx",
-  ["vitest", "run", "test/.external-rl/starter-defaults.test.ts", "--no-isolate"],
+  pokerogueVitestBin,
+  ["run", "test/.external-rl/starter-defaults.test.ts", "--no-isolate"],
   {
     cwd: pokerogueRoot,
     env: runnerEnv,

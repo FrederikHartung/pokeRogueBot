@@ -7,6 +7,9 @@ DEFAULT_CONFIG="${REPO_ROOT}/data/rl/wave-library-bootstrap-pipeline-run.json"
 RUNTIME_DIR="${REPO_ROOT}/data/rl/pipeline-runs/wave-library-bootstrap-remote"
 PID_FILE="${RUNTIME_DIR}/remote-bootstrap.pid"
 LOG_FILE="${RUNTIME_DIR}/remote-bootstrap.log"
+ERROR_LOG_FILE="${RUNTIME_DIR}/remote-bootstrap-errors.log"
+WARNING_LOG_FILE="${RUNTIME_DIR}/remote-bootstrap-warnings.log"
+ISSUES_SUMMARY_FILE="${RUNTIME_DIR}/issues-summary.txt"
 VENV_DIR="${REPO_ROOT}/.venv"
 VENV_PYTHON="${VENV_DIR}/bin/python"
 VENV_BIN_DIR="${VENV_DIR}/bin"
@@ -20,12 +23,14 @@ Usage:
   scripts/run-wave-library-bootstrap-remote.sh status
   scripts/run-wave-library-bootstrap-remote.sh logs
   scripts/run-wave-library-bootstrap-remote.sh last
+  scripts/run-wave-library-bootstrap-remote.sh issues
   scripts/run-wave-library-bootstrap-remote.sh stop
 
 Notes:
   - `start` checks required dependencies and then starts the remote batch pipeline detached via `nohup`.
   - The process keeps running after the SSH session closes.
   - `config_path` defaults to `data/rl/wave-library-bootstrap-pipeline-run.json`.
+  - `issues` refreshes a separate warning/error summary derived from the log and manifest.
 EOF
 }
 
@@ -208,6 +213,7 @@ PY
 }
 
 print_status() {
+  refresh_issue_logs >/dev/null 2>&1 || true
   if is_running; then
     local pid
     pid="$(cat "${PID_FILE}")"
@@ -224,16 +230,109 @@ print_status() {
       echo "Elapsed: $(format_duration_human "${elapsed_raw}")"
     fi
     echo "Log: ${LOG_FILE}"
+    echo "Warnings: ${WARNING_LOG_FILE}"
+    echo "Errors: ${ERROR_LOG_FILE}"
+    echo "Issues summary: ${ISSUES_SUMMARY_FILE}"
     echo "Manifest: ${RUNTIME_DIR}/manifest.json"
     echo "Artifacts summary: ${RUNTIME_DIR}/artifacts-summary.json"
     print_manifest_summary
   else
     echo "Remote bootstrap pipeline is not running."
     echo "Log: ${LOG_FILE}"
+    echo "Warnings: ${WARNING_LOG_FILE}"
+    echo "Errors: ${ERROR_LOG_FILE}"
+    echo "Issues summary: ${ISSUES_SUMMARY_FILE}"
     echo "Manifest: ${RUNTIME_DIR}/manifest.json"
     echo "Artifacts summary: ${RUNTIME_DIR}/artifacts-summary.json"
     print_manifest_summary
   fi
+}
+
+refresh_issue_logs() {
+  python3 - "${LOG_FILE}" "${RUNTIME_DIR}/manifest.json" "${ERROR_LOG_FILE}" "${WARNING_LOG_FILE}" "${ISSUES_SUMMARY_FILE}" <<'PY'
+import json
+import re
+import sys
+from pathlib import Path
+
+log_path = Path(sys.argv[1])
+manifest_path = Path(sys.argv[2])
+error_log_path = Path(sys.argv[3])
+warning_log_path = Path(sys.argv[4])
+summary_path = Path(sys.argv[5])
+
+error_pattern = re.compile(r"(error:|exception|traceback|command failed|failed\b|fatal\b)", re.IGNORECASE)
+warning_pattern = re.compile(r"(\bwarn(?:ing)?\b)", re.IGNORECASE)
+ignored_error_patterns = [
+    re.compile(r"Vitest exited non-zero, but output exists\. Continuing\.", re.IGNORECASE),
+]
+
+error_lines = []
+warning_lines = []
+
+if log_path.exists():
+    for raw_line in log_path.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if warning_pattern.search(line):
+            warning_lines.append(line)
+        if error_pattern.search(line):
+            if any(pattern.search(line) for pattern in ignored_error_patterns):
+                continue
+            error_lines.append(line)
+
+manifest_errors = []
+if manifest_path.exists():
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    for step_name, step in (manifest.get("steps") or {}).items():
+      if step.get("status") == "failed" or step.get("error"):
+        manifest_errors.append(f"[manifest step:{step_name}] status={step.get('status')} error={step.get('error')}")
+    for batch in manifest.get("batches") or []:
+      if batch.get("status") == "failed" or batch.get("error"):
+        manifest_errors.append(
+            f"[manifest batch:{batch.get('id')}] phase={batch.get('phase')} status={batch.get('status')} error={batch.get('error')}"
+        )
+
+seen_errors = set()
+deduped_errors = []
+for line in error_lines + manifest_errors:
+    if line not in seen_errors:
+        seen_errors.add(line)
+        deduped_errors.append(line)
+
+seen_warnings = set()
+deduped_warnings = []
+for line in warning_lines:
+    if line not in seen_warnings:
+        seen_warnings.add(line)
+        deduped_warnings.append(line)
+
+error_log_path.write_text("".join(f"{line}\n" for line in deduped_errors), encoding="utf-8")
+warning_log_path.write_text("".join(f"{line}\n" for line in deduped_warnings), encoding="utf-8")
+
+summary_lines = [
+    f"Error count: {len(deduped_errors)}",
+    f"Warning count: {len(deduped_warnings)}",
+    f"Log: {log_path}",
+    f"Manifest: {manifest_path}",
+    f"Errors file: {error_log_path}",
+    f"Warnings file: {warning_log_path}",
+]
+
+if deduped_errors:
+    summary_lines.append("")
+    summary_lines.append("Recent errors:")
+    summary_lines.extend(deduped_errors[-10:])
+
+if deduped_warnings:
+    summary_lines.append("")
+    summary_lines.append("Recent warnings:")
+    summary_lines.extend(deduped_warnings[-10:])
+
+summary_path.write_text("".join(f"{line}\n" for line in summary_lines), encoding="utf-8")
+print(summary_path)
+PY
 }
 
 start_pipeline() {
@@ -258,6 +357,9 @@ start_pipeline() {
   echo "Starting remote bootstrap pipeline..."
   echo "Config: ${config_path}"
   echo "Log: ${LOG_FILE}"
+  : > "${ERROR_LOG_FILE}"
+  : > "${WARNING_LOG_FILE}"
+  : > "${ISSUES_SUMMARY_FILE}"
   echo "Python: ${VENV_PYTHON}"
 
   nohup bash -lc "export PATH='${VENV_BIN_DIR}':\"\$PATH\" && cd '${REPO_ROOT}' && npm run rl:pipeline:wave-lib:bootstrap -- '${config_path}'" \
@@ -309,6 +411,16 @@ show_last_logs() {
   fi
 }
 
+show_issues() {
+  if [ ! -f "${LOG_FILE}" ] && [ ! -f "${RUNTIME_DIR}/manifest.json" ]; then
+    echo "Neither log nor manifest found in ${RUNTIME_DIR}" >&2
+    exit 1
+  fi
+
+  refresh_issue_logs >/dev/null
+  cat "${ISSUES_SUMMARY_FILE}"
+}
+
 main() {
   local command="${1:-}"
   case "${command}" in
@@ -323,6 +435,9 @@ main() {
       ;;
     last)
       show_last_logs
+      ;;
+    issues)
+      show_issues
       ;;
     stop)
       stop_pipeline
