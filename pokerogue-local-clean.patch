@@ -1,0 +1,41 @@
+diff --git a/src/battle-scene.ts b/src/battle-scene.ts
+index fec0c2c6823..410ae56f0ba 100644
+--- a/src/battle-scene.ts
++++ b/src/battle-scene.ts
+@@ -1409,6 +1409,10 @@ export class BattleScene extends SceneBase {
+       }
+     }
+ 
++    if (Overrides.DISABLE_DOUBLE_BATTLES_OVERRIDE) {
++      newDouble = false;
++    }
++
+     const lastBattle = this.currentBattle;
+ 
+     const maxExpLevel = this.getMaxExpLevel();
+diff --git a/src/overrides.ts b/src/overrides.ts
+index cceb677d450..853155de38e 100644
+--- a/src/overrides.ts
++++ b/src/overrides.ts
+@@ -74,6 +74,12 @@ class DefaultOverrides {
+    * If `"odd-doubles"`, follow the `"double"` rule on odd wave numbers, and follow the `"single"` rule on even wave numbers.
+    */
+   readonly BATTLE_STYLE_OVERRIDE: BattleStyle | null = null;
++  /**
++   * If `true`, force all battles to spawn as single battles after all other double-battle logic has run.
++   *
++   * This also suppresses trainer doubles, fixed doubles, and doubles caused by lures or abilities.
++   */
++  readonly DISABLE_DOUBLE_BATTLES_OVERRIDE: boolean = true;
+   readonly STARTING_WAVE_OVERRIDE: number = 0;
+   readonly STARTING_BIOME_OVERRIDE: BiomeId | null = null;
+   readonly ARENA_TINT_OVERRIDE: TimeOfDay | null = null;
+@@ -229,7 +235,7 @@ class DefaultOverrides {
+    *
+    * Note: Make sure `STARTING_WAVE_OVERRIDE > 10`, otherwise MEs won't trigger
+    */
+-  readonly MYSTERY_ENCOUNTER_RATE_OVERRIDE: number | null = null;
++  readonly MYSTERY_ENCOUNTER_RATE_OVERRIDE: number | null = 0;
+   readonly MYSTERY_ENCOUNTER_TIER_OVERRIDE: MysteryEncounterTier | null = null;
+   readonly MYSTERY_ENCOUNTER_OVERRIDE: MysteryEncounterType | null = null;
+ 
