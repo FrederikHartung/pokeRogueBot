@@ -79,12 +79,16 @@ The remote helper currently checks:
 
 For future remote runs on a fresh Ubuntu server, this is the recommended order.
 
-1. Clone the private repo via SSH into a writable working directory:
+1. Prepare SSH access on the server:
+   - create or register a GitHub SSH key for the server user
+   - verify access:
+     - `ssh -T git@github.com`
+2. Clone the private repo via SSH into a writable working directory:
    - `mkdir -p ~/repos`
    - `cd ~/repos`
    - `git clone --recurse-submodules -b develop git@github.com:FrederikHartung/pokeRogueBot.git`
    - `cd pokeRogueBot`
-2. If the local machine has uncommitted `pokerogue/` submodule changes, transfer them separately:
+3. If the local machine has uncommitted `pokerogue/` submodule changes, transfer them separately:
    - local patch creation from inside the submodule:
      - `cd pokerogue`
      - `git diff -- src/battle-scene.ts src/overrides.ts > ../pokerogue-local-clean.patch`
@@ -94,32 +98,65 @@ For future remote runs on a fresh Ubuntu server, this is the recommended order.
      - `git apply --check ../pokerogue-local-clean.patch`
      - `git apply ../pokerogue-local-clean.patch`
      - `git status`
-3. Install base system dependencies:
+4. Copy the productive wave library runtime data to the server if the remote run should use the current locally collected snapshots:
+   - create target directory on the server:
+     - `mkdir -p ~/repos/pokeRogueBot/data/offline-wave-library`
+   - example copy command from the local Mac:
+     - `scp -i ~/.ssh/id_rsa_github_privat /Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/offline-wave-library/productive-wave-snapshots-v1.jsonl SFH-Frederik@152.53.176.72:~/repos/pokeRogueBot/data/offline-wave-library/`
+   - optional fingerprint copy:
+     - `scp -i ~/.ssh/id_rsa_github_privat /Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/offline-wave-library/productive-wave-fingerprints-v1.txt SFH-Frederik@152.53.176.72:~/repos/pokeRogueBot/data/offline-wave-library/`
+5. Install base system dependencies:
    - `sudo apt update`
    - `sudo apt install -y nodejs npm python3-pip python3-venv`
-4. Create and use a Python virtual environment in the repo root:
+6. Upgrade Node.js to a current supported version via `nvm` if the system Node is too old:
+   - the remote collector path failed on Ubuntu system Node `18.19.1` with a Vitest/jsdom `ERR_REQUIRE_ESM`
+   - recommended target: Node `24`
+   - install `nvm` if needed:
+     - `curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash`
+     - `source ~/.bashrc`
+   - install and select Node `24`:
+     - `nvm install 24`
+     - `nvm use 24`
+     - `nvm alias default 24`
+   - verify:
+     - `node -v`
+     - `npm -v`
+7. Create and use a Python virtual environment in the repo root:
    - `cd ~/repos/pokeRogueBot`
    - `python3 -m venv .venv`
    - `source .venv/bin/activate`
    - `python -m pip install --upgrade pip`
    - `python -m pip install torch numpy`
-5. Install Node dependencies:
+8. Reinstall Node dependencies after the Node upgrade:
    - in repo root:
+     - `rm -rf node_modules`
      - `npm install`
    - in submodule:
+     - `rm -rf pokerogue/node_modules`
      - `cd pokerogue`
      - `npm install`
      - `cd ..`
-6. Sanity checks:
+9. Sanity checks:
    - `node -v`
    - `npm -v`
    - `python -c "import torch, numpy; print(torch.__version__); print(numpy.__version__)"`
    - `git submodule status`
-7. Start the long-running remote pipeline:
+10. Materialize scenarios from the copied wave library:
+   - `npm run rl:gen:scenarios:wave-lib`
+11. Configure the remote batch pipeline to use all materialized wave-library scenarios:
+   - edit `data/rl/wave-library-bootstrap-pipeline-run.json`
+   - set:
+     - `"scenario_dirs": ["./scenarios/generated-wave-library-v2"]`
+     - `"include_waves": []`
+   - this makes the remote run use all currently available entries instead of the older `w1-7`/`w8` subset
+12. Reset stale remote pipeline state before the first real long run:
+   - `rm -rf data/rl/pipeline-runs/wave-library-bootstrap-remote`
+13. Start the long-running remote pipeline:
    - `bash scripts/run-wave-library-bootstrap-remote.sh start`
-8. Monitor or inspect the run:
+14. Monitor or inspect the run:
    - `bash scripts/run-wave-library-bootstrap-remote.sh status`
    - `bash scripts/run-wave-library-bootstrap-remote.sh logs`
+   - use `tail -n 50 data/rl/pipeline-runs/wave-library-bootstrap-remote/remote-bootstrap.log` for a short snapshot instead of continuous log streaming
 
 After the run finishes, the central download index is:
 

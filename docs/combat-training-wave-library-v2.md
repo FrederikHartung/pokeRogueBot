@@ -411,22 +411,53 @@ Remote-Server-Bedienung:
 
 Ubuntu-Setup-Kurzpfad fuer spaetere Server:
 
+- GitHub-SSH fuer den Server-User vorbereiten und testen:
+  - `ssh -T git@github.com`
 - Repo per SSH klonen:
   - `git clone --recurse-submodules -b develop git@github.com:FrederikHartung/pokeRogueBot.git`
 - falls noetig lokale `pokerogue`-Submodul-Aenderungen per sauberem Patch nachziehen
+- lokale Wave-Library auf den Server kopieren, falls der Remote-Lauf mit den vorhandenen produktiven Snapshots arbeiten soll:
+  - Zielordner auf dem Server:
+    - `mkdir -p ~/repos/pokeRogueBot/data/offline-wave-library`
+  - Beispiel vom lokalen Mac:
+    - `scp -i ~/.ssh/id_rsa_github_privat /Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/offline-wave-library/productive-wave-snapshots-v1.jsonl SFH-Frederik@152.53.176.72:~/repos/pokeRogueBot/data/offline-wave-library/`
 - Systempakete installieren:
   - `sudo apt update`
   - `sudo apt install -y nodejs npm python3-pip python3-venv`
+- falls das Ubuntu-System noch auf Node `18` steht:
+  - wegen eines Vitest/jsdom-`ERR_REQUIRE_ESM` den Collector nicht mit System-Node `18.19.1` laufen lassen
+  - stattdessen `nvm` verwenden und Node `24` aktivieren:
+    - `curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash`
+    - `source ~/.bashrc`
+    - `nvm install 24`
+    - `nvm use 24`
+    - `nvm alias default 24`
 - Python-vorbereitung im Repo:
   - `python3 -m venv .venv`
   - `source .venv/bin/activate`
   - `python -m pip install --upgrade pip`
   - `python -m pip install torch numpy`
 - Node-Abhaengigkeiten installieren:
-  - `npm install`
-  - `cd pokerogue && npm install && cd ..`
+  - nach Node-Upgrade vorhandene `node_modules` verwerfen und frisch installieren:
+    - `rm -rf node_modules`
+    - `rm -rf pokerogue/node_modules`
+    - `npm install`
+    - `cd pokerogue && npm install && cd ..`
+- Szenarien aus der kopierten Wave-Library materialisieren:
+  - `npm run rl:gen:scenarios:wave-lib`
+- Remote-Pipeline fuer alle verfuegbaren Wave-Library-Szenarien konfigurieren:
+  - in `data/rl/wave-library-bootstrap-pipeline-run.json`
+  - `scenario_dirs` auf `./scenarios/generated-wave-library-v2` setzen
+  - `include_waves` auf `[]` setzen
+- alten Remote-Laufzustand vor dem ersten echten Langlauf loeschen:
+  - `rm -rf data/rl/pipeline-runs/wave-library-bootstrap-remote`
 - danach Remote-Pipeline starten:
   - `bash scripts/run-wave-library-bootstrap-remote.sh start`
+- Monitoring:
+  - `bash scripts/run-wave-library-bootstrap-remote.sh status`
+  - `bash scripts/run-wave-library-bootstrap-remote.sh logs`
+  - fuer eine kurze Momentaufnahme statt Dauer-Streaming:
+    - `tail -n 50 data/rl/pipeline-runs/wave-library-bootstrap-remote/remote-bootstrap.log`
 
 Zielbild nach einem laengeren Remote-Lauf:
 

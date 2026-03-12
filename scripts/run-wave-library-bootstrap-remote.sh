@@ -98,20 +98,140 @@ is_running() {
   return 1
 }
 
+format_duration_human() {
+  local total_seconds="${1:-0}"
+  if [ "${total_seconds}" -lt 0 ] 2>/dev/null; then
+    total_seconds=0
+  fi
+  local days=$((total_seconds / 86400))
+  local hours=$(((total_seconds % 86400) / 3600))
+  local minutes=$(((total_seconds % 3600) / 60))
+  local seconds=$((total_seconds % 60))
+
+  if [ "${days}" -gt 0 ]; then
+    printf "%dd %02dh %02dm %02ds" "${days}" "${hours}" "${minutes}" "${seconds}"
+  elif [ "${hours}" -gt 0 ]; then
+    printf "%dh %02dm %02ds" "${hours}" "${minutes}" "${seconds}"
+  elif [ "${minutes}" -gt 0 ]; then
+    printf "%dm %02ds" "${minutes}" "${seconds}"
+  else
+    printf "%ds" "${seconds}"
+  fi
+}
+
+print_manifest_summary() {
+  if [ ! -f "${RUNTIME_DIR}/manifest.json" ]; then
+    return 0
+  fi
+
+  python3 - "${RUNTIME_DIR}/manifest.json" <<'PY'
+import json
+import sys
+from datetime import datetime, timezone
+
+manifest_path = sys.argv[1]
+with open(manifest_path, "r", encoding="utf-8") as handle:
+    manifest = json.load(handle)
+
+batches = manifest.get("batches", [])
+steps = manifest.get("steps", {})
+
+total = len(batches)
+completed = sum(1 for batch in batches if batch.get("status") == "completed")
+failed = sum(1 for batch in batches if batch.get("status") == "failed")
+running_batch = next((batch for batch in batches if batch.get("status") == "running"), None)
+
+step_order = [
+    "random_collect",
+    "random_report",
+    "train_initial",
+    "benchmark_initial",
+    "dqn_collect",
+    "dqn_report",
+    "merge_final",
+    "train_final",
+    "benchmark_final",
+]
+
+current_step = None
+for step_name in step_order:
+    step = steps.get(step_name)
+    if step and step.get("status") == "running":
+        current_step = step_name
+        break
+
+if current_step is None:
+    for step_name in step_order:
+        step = steps.get(step_name)
+        if step and step.get("status") != "completed":
+            current_step = step_name
+            break
+
+completed_durations_ms = [
+    int(batch.get("duration_ms"))
+    for batch in batches
+    if batch.get("status") == "completed" and isinstance(batch.get("duration_ms"), int)
+]
+avg_batch_duration_ms = int(sum(completed_durations_ms) / len(completed_durations_ms)) if completed_durations_ms else 0
+remaining = total - completed
+eta_seconds = int((avg_batch_duration_ms * remaining) / 1000) if avg_batch_duration_ms > 0 and remaining > 0 else None
+
+def fmt_seconds(total_seconds):
+    if total_seconds is None:
+        return "unknown"
+    days = total_seconds // 86400
+    hours = (total_seconds % 86400) // 3600
+    minutes = (total_seconds % 3600) // 60
+    seconds = total_seconds % 60
+    if days > 0:
+        return f"{days}d {hours:02d}h {minutes:02d}m {seconds:02d}s"
+    if hours > 0:
+        return f"{hours}h {minutes:02d}m {seconds:02d}s"
+    if minutes > 0:
+        return f"{minutes}m {seconds:02d}s"
+    return f"{seconds}s"
+
+print(f"Phase: {current_step or 'unknown'}")
+print(f"Batches: {completed}/{total} completed, {failed} failed, {remaining} remaining")
+if completed_durations_ms:
+    print(f"Average batch duration: {fmt_seconds(int(avg_batch_duration_ms / 1000))}")
+print(f"ETA: {fmt_seconds(eta_seconds)}")
+
+if running_batch is not None:
+    print(
+        "Current batch: "
+        f"{running_batch.get('phase')} / wave {running_batch.get('wave_index')} / "
+        f"{running_batch.get('scenario_name')} / batch {int(running_batch.get('batch_index', 0)) + 1}"
+    )
+PY
+}
+
 print_status() {
   if is_running; then
     local pid
     pid="$(cat "${PID_FILE}")"
     echo "Remote bootstrap pipeline is running."
     echo "PID: ${pid}"
+    local started_at
+    started_at="$(ps -p "${pid}" -o lstart= 2>/dev/null | sed 's/^ *//')"
+    local elapsed_raw
+    elapsed_raw="$(ps -p "${pid}" -o etimes= 2>/dev/null | tr -d ' ')"
+    if [ -n "${started_at}" ]; then
+      echo "Started: ${started_at}"
+    fi
+    if [ -n "${elapsed_raw}" ]; then
+      echo "Elapsed: $(format_duration_human "${elapsed_raw}")"
+    fi
     echo "Log: ${LOG_FILE}"
     echo "Manifest: ${RUNTIME_DIR}/manifest.json"
     echo "Artifacts summary: ${RUNTIME_DIR}/artifacts-summary.json"
+    print_manifest_summary
   else
     echo "Remote bootstrap pipeline is not running."
     echo "Log: ${LOG_FILE}"
     echo "Manifest: ${RUNTIME_DIR}/manifest.json"
     echo "Artifacts summary: ${RUNTIME_DIR}/artifacts-summary.json"
+    print_manifest_summary
   fi
 }
 
