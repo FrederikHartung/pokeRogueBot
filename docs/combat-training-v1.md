@@ -363,6 +363,11 @@ Day 5:
     - scenario JSON supports optional fixed start-state shaping through V2 materialized team state
   - eval compare now reports `truncated_rate` and applies a truncated quality gate
   - verified benchmark run completion: 6 episodes, 43 transitions, 0 timeout outcomes
+  - next targeted local data-collection run:
+    - rematerialize all currently available productive Wave-Library snapshots for waves `1-8`
+    - collect a rival-focused dataset with about `504` episodes total
+    - target split: `336` episodes on waves `1-7`, `168` episodes on wave `8`
+    - keep collection fully random-valid for this run to maximize fresh state coverage before another model-guided bootstrap round
 
 ## Prerequisites
 

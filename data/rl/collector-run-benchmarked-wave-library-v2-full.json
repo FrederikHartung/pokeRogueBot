@@ -1,0 +1,12 @@
+{
+  "scenario_dir": "./scenarios/generated-wave-library-v2",
+  "output_path": "./combat/train-benchmarked-wave-library-v2-full.jsonl",
+  "append_output": false,
+  "episodes_per_seed": 1,
+  "max_steps_per_episode": 300,
+  "test_timeout_ms": 600000,
+  "quiet_game_logs": true,
+  "policy": {
+    "type": "first_valid"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "scenario_dirs": [
+    "./scenarios/generated-wave-library-v2-w1-8"
+  ],
+  "materialized_run_config_path": "./generated/collector-run-wave-library-train-rival-focus-w8-deep.json",
+  "include_waves": [8],
+  "selection_mode": "stable",
+  "collector": {
+    "output_path": "./combat/train-wave-library-rival-focus-w8-deep.jsonl",
+    "append_output": false,
+    "episodes_per_seed": 28,
+    "max_steps_per_episode": 300,
+    "test_timeout_ms": 360000,
+    "quiet_game_logs": true,
+    "policy": {
+      "type": "random"
+    }
+  }
+}

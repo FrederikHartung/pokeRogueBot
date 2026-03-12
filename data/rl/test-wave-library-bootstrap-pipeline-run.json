@@ -47,10 +47,14 @@
     "template_config_path": "./train-dqn-offline-wave-library-bootstrap-combined-960.json",
     "output_path": "./models/dqn-combat-wave-library-batch-bootstrap-final.pt"
   },
-  "benchmark": {
+  "benchmark_initial": {
     "collector_config_path": "./collector-run-benchmarked-wave-library-v2.json",
-    "initial_report_path": "./combat/eval-policy-compare-wave-library-batch-bootstrap-initial-report.json",
-    "final_report_path": "./combat/eval-policy-compare-wave-library-batch-bootstrap-final-report.json",
+    "report_path": "./combat/eval-policy-compare-wave-library-batch-bootstrap-initial-smoke-report.json",
+    "max_steps_per_episode": 400
+  },
+  "benchmark_final": {
+    "collector_config_path": "./collector-run-benchmarked-wave-library-v2-full.json",
+    "report_path": "./combat/eval-policy-compare-wave-library-batch-bootstrap-final-full-report.json",
     "max_steps_per_episode": 400
   }
 }

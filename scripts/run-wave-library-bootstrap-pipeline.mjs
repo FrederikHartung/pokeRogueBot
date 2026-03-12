@@ -80,7 +80,7 @@ for (const phaseName of phases) {
     } else if (phaseName === "train_initial") {
       manifest = runTrainPhase(manifest, config, configDir, "random_collect", "initial");
     } else if (phaseName === "benchmark_initial") {
-      manifest = runBenchmarkPhase(manifest, config, configDir, "initial");
+      manifest = runBenchmarkPhase(manifest, config, configDir, "benchmark_initial");
     } else if (phaseName === "merge_final") {
       manifest = mergePhaseDatasets(manifest, "final_combined", [
         { phaseName: "random_collect", sourceLabel: "random_bootstrap" },
@@ -89,7 +89,7 @@ for (const phaseName of phases) {
     } else if (phaseName === "train_final") {
       manifest = runTrainPhase(manifest, config, configDir, "final_combined", "final");
     } else if (phaseName === "benchmark_final") {
-      manifest = runBenchmarkPhase(manifest, config, configDir, "final");
+      manifest = runBenchmarkPhase(manifest, config, configDir, "benchmark_final");
     }
 
     manifest = markStepStatus(manifest, phaseName, "completed");
@@ -448,20 +448,21 @@ function runTrainPhase(currentManifest, rootConfig, configDir, datasetPhaseName,
   return manifest;
 }
 
-function runBenchmarkPhase(currentManifest, rootConfig, configDir, benchmarkStage) {
+function runBenchmarkPhase(currentManifest, rootConfig, configDir, benchmarkPhaseName) {
   const manifest = structuredClone(currentManifest);
-  const collectorConfigPath = resolvePathWithFallbacks(rootConfig.benchmark.collector_config_path, [configDir, dataRlDir, repoRoot]);
-  const checkpointPath = manifest.outputs?.[`train_${benchmarkStage}`]?.model_output_path;
-  if (!checkpointPath || !existsSync(checkpointPath)) {
-    throw new Error(`Benchmark ${benchmarkStage} requires a trained model checkpoint`);
+  const benchmarkConfig = rootConfig[benchmarkPhaseName];
+  if (!benchmarkConfig) {
+    throw new Error(`Missing pipeline benchmark config: ${benchmarkPhaseName}`);
   }
 
-  const reportPath = resolvePathWithFallbacks(
-    benchmarkStage === "initial"
-      ? rootConfig.benchmark.initial_report_path
-      : rootConfig.benchmark.final_report_path,
-    [configDir, dataRlDir, repoRoot],
-  );
+  const trainingStage = benchmarkPhaseName === "benchmark_initial" ? "initial" : "final";
+  const collectorConfigPath = resolvePathWithFallbacks(benchmarkConfig.collector_config_path, [configDir, dataRlDir, repoRoot]);
+  const checkpointPath = manifest.outputs?.[`train_${trainingStage}`]?.model_output_path;
+  if (!checkpointPath || !existsSync(checkpointPath)) {
+    throw new Error(`Benchmark ${benchmarkPhaseName} requires a trained model checkpoint`);
+  }
+
+  const reportPath = resolvePathWithFallbacks(benchmarkConfig.report_path, [configDir, dataRlDir, repoRoot]);
 
   runCommand(
     "python3",
@@ -474,12 +475,12 @@ function runBenchmarkPhase(currentManifest, rootConfig, configDir, benchmarkStag
       "--report-path",
       reportPath,
       "--max-steps-per-episode",
-      String(rootConfig.benchmark.max_steps_per_episode ?? 400),
+      String(benchmarkConfig.max_steps_per_episode ?? 400),
     ],
     repoRoot,
   );
 
-  manifest.outputs[`benchmark_${benchmarkStage}`] = {
+  manifest.outputs[benchmarkPhaseName] = {
     report_path: reportPath,
     collector_config_path: collectorConfigPath,
     checkpoint_path: checkpointPath,
@@ -574,8 +575,8 @@ function writeArtifactsSummary(manifest) {
       random_report: manifest.outputs?.random_collect?.report_path ?? null,
       dqn_report: manifest.outputs?.dqn_collect?.report_path ?? null,
       final_model: manifest.outputs?.train_final?.model_output_path ?? null,
-      initial_benchmark_report: manifest.outputs?.benchmark_initial?.report_path ?? null,
-      final_benchmark_report: manifest.outputs?.benchmark_final?.report_path ?? null,
+      initial_smoke_benchmark_report: manifest.outputs?.benchmark_initial?.report_path ?? null,
+      final_full_benchmark_report: manifest.outputs?.benchmark_final?.report_path ?? null,
     },
   };
   mkdirSync(path.dirname(summaryPath), { recursive: true });

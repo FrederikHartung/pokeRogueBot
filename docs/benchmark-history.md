@@ -1,5 +1,11 @@
 # Benchmark History
 
+## Konvention ab jetzt
+
+- `Benchmark-Typ: smoke` bedeutet kleiner schneller Vergleichslauf fuer Pipeline-/Regressionschecks.
+- `Benchmark-Typ: full` bedeutet Vergleich ueber die gesamte materialisierte Wave-Library und ist die primaere Basis fuer fachliche Modellvergleiche.
+- Fuer aeltere Eintraege ohne explizites Feld ist implizit der damalige kleine Benchmark gemeint.
+
 ## Run 1
 
 - Datum: 2026-03-08
@@ -336,6 +342,7 @@ Kurzfazit:
 - Datum: 2026-03-11
 - Beschreibung: Finales Wave-Library-V2-Modell auf kombiniertem Bootstrap-Datensatz aus `480` `all random valid` Episoden plus `480` model-guided Episoden mit pretrained-DQN im Exploit-Zweig
 - Laufnummer: 13
+- Benchmark-Typ: smoke
 - Trainingsdaten: `6275` Transitions aus `data/rl/combat/train-wave-library-bootstrap-combined-960-w1-8.jsonl` (`960` eindeutige Episoden; Quellen `random_bootstrap` + `model_guided_bootstrap`)
 - Checkpoint: `data/rl/models/dqn-combat-wave-library-bootstrap-combined-960.pt`
 - Benchmark-Report: `data/rl/combat/eval-policy-compare-wave-library-bootstrap-combined-960-report.json`
@@ -359,3 +366,32 @@ Kurzfazit:
 - Gegenueber `always_move_0` bleibt aber ein klares Effizienzproblem: der DQN braucht im Benchmark weiterhin deutlich mehr Zuege (`9.38` vs. `5.75`).
 - `truncated_rate` blieb fuer alle Policies bei `0.000`; der Lauf ist damit stabil und fachlich belastbar.
 - Inhaltlich ist das ein brauchbarer Fortschritt: der Agent trifft erkennbar bessere Reward-Entscheidungen als `random` und leicht bessere als `always_move_0`, muss aber vor allem im spaeteren Kampfverlauf noch konsequenter abschliessen statt Kaempfe zu verlaengern.
+
+## Run 14
+
+- Datum: 2026-03-12
+- Beschreibung: Rival-Focus-Lauf auf frisch rematerialisierter produktiver Wave-Library fuer Waves `1-8`; Datensatz mit bewusst tieferem Wave-8-Anteil (`336` Episoden Waves `1-7`, `168` Episoden Wave `8`) und rein zufaelliger Datengenerierung ohne model-guided Exploit
+- Laufnummer: 14
+- Trainingsdaten: `4199` Transitions aus `data/rl/combat/train-wave-library-rival-focus-504.jsonl` (`504` eindeutige Episoden)
+- Checkpoint: `data/rl/models/dqn-combat-wave-library-rival-focus-504.pt`
+- Benchmark-Report: `data/rl/combat/eval-policy-compare-wave-library-rival-focus-504-report.json`
+
+Ergebnisse:
+
+| Policy | Win Rate | Avg Reward | Avg Turns | Benchmark-Transitions |
+| --- | ---: | ---: | ---: | ---: |
+| `random` | 0.875 | 7.2588 | 7.25 | 58 |
+| `always_move_0` | 0.875 | 7.3214 | 5.62 | 45 |
+| `dqn` | 0.875 | 6.4280 | 17.25 | 138 |
+
+Delta:
+
+- `dqn_vs_random`: win_rate `+0.000`, avg_reward `-0.8308`, avg_turns `+10.00`
+- `dqn_vs_always_move_0`: win_rate `+0.000`, avg_reward `-0.8934`, avg_turns `+11.63`
+
+Kurzfazit:
+
+- Der neue Rival-Focus-Datensatz ist technisch sauber: frische W1-8-Materialisierung, `504` Episoden, `4199` Transitionen und `0` Dataset-Sanity-Issues.
+- Im bestehenden kleinen V2-Benchmark verbessert der daraus trainierte Checkpoint die `win_rate` nicht und regressiert klar bei Effizienz und Reward gegen beide Baselines.
+- Das staerkt die Vermutung, dass der aktuelle Offline-DQN auf diesem Datensatz noch zu stark zu laengenorientierten oder defensiven Policies neigt, obwohl der Collector- und Repro-Pfad inzwischen stabil ist.
+- Positiv ist vor allem die Infrastruktur-Seite dieses Laufs: die neue Rival-Focus-Pipeline fuer Rematerialisierung, Sammlung, Merge und Training ist jetzt reproduzierbar vorhanden und kann fuer den naechsten Datensatz-/Reward- oder Eval-Schritt direkt wiederverwendet werden.

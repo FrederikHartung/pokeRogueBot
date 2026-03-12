@@ -150,6 +150,17 @@ Verbindlicher Schema-Hinweis:
 - keine starke Handheuristik im Exploit-Zweig erzwingen
 - trotzdem `first_valid`-Bias im Collector abbauen
 - dem DQN frueh mehr policy-nahe Daten geben, ohne den Bootstrap komplett random zu lassen
+- neuer naechster Varianten-Test nach dem Rival-Focus-Lauf:
+- zusaetzlich zu `random_valid_only` und reinem `dqn`-Exploit einen dritten Exploit-Zweig pruefen
+- Idee:
+- Exploration bleibt zufaellig
+- Exploit wird nicht direkt vom aktuellen DQN uebernommen, sondern von einer dedizierten Policy, die in gewinnbaren Wave-8-Rival-Snapshots das beobachtete Erfolgsverhalten beguenstigt
+- gemeinte Tendenz:
+- fruehe matchup-orientierte Switches zulassen
+- danach eher direkten Druck mit gutem Damage-Move als langes Status-/Setup-Spiel
+- Zweck:
+- kein starres Hand-Skript fuer Produktion
+- sondern bewusstes Data-Shaping, um spaeter zu pruefen, ob der DQN auf solchen Daten robustere Rival-Policies lernt
 - Technischer Ist-Stand:
 - pretrained Modell wird weder im Collector noch in den Eval-Skripten pro Aktion neu gestartet
 - stattdessen wird in beiden Faellen ein persistenter lokaler Inferenz-Worker (`scripts/dqn_policy_infer_worker.py`) verwendet
@@ -308,6 +319,13 @@ Verbindlicher Schema-Hinweis:
 - Selektionslogik fuer mehrere Snapshots derselben Welle erweitern:
 - wenn pro `wave_index` mehr Kandidaten vorliegen als `max_scenarios_per_wave`, soll die Auswahl nicht immer deterministisch die ersten Eintraege nehmen
 - statt dessen konfigurierbares zufaelliges Sampling pro Welle einfuehren, idealerweise reproduzierbar ueber einen festen Selection-Seed
+- naechster konkreter Datengenerierungs-Lauf:
+- alle aktuell vorhandenen produktiven Wave-Library-Snapshots fuer Waves `1-8` neu materialisieren
+- danach einen lokalen Rival-Focus-Lauf mit ca. `504` Episoden fahren
+- Zielsplit:
+- Waves `1-7`: `336` Episoden breit ueber alle verfuegbaren Instanzen
+- Wave `8`: `168` Episoden gleichmaessig ueber alle verfuegbaren Rival-Instanzen
+- Datengenerierung fuer diesen Lauf bewusst mit `policy.type = random`, damit zuerst die State-Abdeckung und nicht ein bestehender Checkpoint den Datensatz biasiert
 
 6. State- und Switch-Abdeckung auswerten
 - Verteilung der neuen `state_variant`-Profile im Datensatz prüfen

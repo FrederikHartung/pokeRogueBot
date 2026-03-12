@@ -245,8 +245,9 @@ Erste Validierung:
 
 Aktuelle Datenluecke:
 
-- fuer Waves `9` und `10` liegen im persistierten produktiven Wave-Library-Input aktuell noch keine Snapshot-Daten vor
-- deshalb koennen diese Wellen im V2-Pfad derzeit noch nicht materialisiert oder validiert werden
+- Stand `2026-03-12`: im persistierten produktiven Wave-Library-Input liegen jetzt wieder Snapshot-Daten fuer Waves `9` und `10` vor
+- der aktuelle lokale Trainingsfokus bleibt trotzdem bewusst auf Waves `1-8`, weil dort die erste stabile Fruehspiel-/Rival-Pipeline priorisiert wird
+- fuer den naechsten fokussierten Trainingslauf sollen alle aktuell vorhandenen produktiven Snapshots fuer Waves `1-8` neu materialisiert werden, damit neu hinzugekommene reale Startzustaende nicht durch alte generierte Scenario-Ordner verloren gehen
 
 ## V2-Review der drei Phasen
 
@@ -317,6 +318,110 @@ Neue Runner fuer Waves `1-8`:
     - Folgerung fuer den naechsten Lauf:
       - fuer grob `5` Minuten und etwas mehr Testdaten eher noch etwas hoeher gehen
       - pragmatischer naechster Zielwert: `episodes_per_seed` im Bereich `35-40`
+
+## Naechster fokussierter Trainingslauf (Rival-Focus, Stand `2026-03-12`)
+
+Ziel fuer den naechsten lokalen Zwischenlauf:
+
+- alle aktuell vorhandenen produktiven Snapshots fuer Waves `1-8` neu materialisieren
+- ca. `500` Episoden fuer einen schnellen, aber aussagekraeftigen Trainingslauf sammeln
+- bewusste Uebergewichtung von Wave `8`, weil der erste Rivale die erste grosse Huerde fuer den Bot ist
+
+Pragmatische Zielverteilung:
+
+- Gesamtziel: `504` Episoden statt exakt `500`, weil sich das sauberer auf die aktuellen Instanzen verteilen laesst
+- Waves `1-7`: `336` Episoden gesamt (`2/3`)
+- Wave `8`: `168` Episoden gesamt (`1/3`)
+
+Verteilungsprinzip:
+
+- Wave `8` gleichmaessig ueber alle verfuegbaren Wave-8-Instanzen verteilen, um nicht nur einen einzelnen Rival-State zu ueberfitten
+- Waves `1-7` breit ueber alle verfuegbaren Instanzen verteilen
+- innerhalb von Waves `1-7` nur einen kleinen Zusatzbias auf spaete Fruehspiel-Wellen legen:
+  - Wave `5` als erster Trainerkampf
+  - Wave `7` als direkte Vorstufe zum Rivalen auf Wave `8`
+
+Empfohlene Datengenerierung fuer diesen Lauf:
+
+- nur `policy.type = random`
+- kein model-guided Exploit-Zweig im selben Lauf
+- Grund: zuerst mehr reale State-Abdeckung und robustere Fruehspiel-/Rival-Datenbasis aufbauen
+
+Empfohlene technische Umsetzung:
+
+- alle Wave-1-8-Snapshots nach `data/rl/scenarios/generated-wave-library-v2-w1-8` materialisieren
+- einen breiten W1-7-Grundlauf erzeugen
+- fehlende Restepisoden fuer einzelne W1-7-Wellen ueber kleine Top-up-Runs verteilen
+- Wave `8` als separaten Deep-Run sammeln
+- alle JSONL-Dateien anschliessend mergen und auf dem gemergten Datensatz genau ein Offline-DQN-Training fahren
+
+## Analyse des Rival-Focus-Laufs (`2026-03-12`)
+
+Auswertung des Datensatzes `data/rl/combat/train-wave-library-rival-focus-504.jsonl`:
+
+- Wave `8` insgesamt:
+  - `168` Episoden
+  - `16` Wins
+  - `152` Losses
+  - Win-Rate `9.52%`
+- wichtig:
+  - alle `16` Wins stammen aus genau einer einzigen Wave-8-Instanz:
+    - `trainer-w8-c74aa076380b`
+  - die anderen fünf Wave-8-Instanzen endeten jeweils `0/28` als Win
+
+Fachliche Einordnung:
+
+- ueber verschiedene Wave-8-Instanzen hinweg scheint der Startzustand aktuell der groessere Hebel zu sein als die spaetere Aktionsfolge
+- innerhalb der einzigen teilweise gewinnbaren Instanz `trainer-w8-c74aa076380b` entscheiden die Aktionen dann aber sichtbar mit ueber Sieg oder Niederlage
+
+Vergleich der zwei aufschlussreichsten Wave-8-Instanzen:
+
+- teilweise gewinnbar:
+  - `trainer-w8-c74aa076380b`
+  - Ergebnis: `16` Wins, `12` Losses
+  - Startlage:
+    - aktiver `Charmander`, voll HP
+    - Team insgesamt gesund
+    - guenstiger Lead-Gegner (`Bulbasaur`)
+    - Collector-State zu Beginn:
+      - `active_best_damage_bucket = 2`
+      - `enemy_best_damage_into_active_bucket = 1`
+      - `speed_order_advantage = 2`
+- komplett verloren:
+  - `trainer-w8-15d7c052bfb8`
+  - Ergebnis: `0` Wins, `28` Losses
+  - Startlage:
+    - aktiver `Charmander` nur Level `5`
+    - `Bulbasaur` auf der Bank stark angeschlagen (`6/24 HP`)
+    - unguenstigerer Gegnerpfad (`Sprigatito` -> `Pikipek`)
+    - Collector-State zu Beginn:
+      - `active_best_damage_bucket = 2`
+      - `enemy_best_damage_into_active_bucket = 2`
+      - `speed_order_advantage = 0`
+
+Beobachtetes Aktionsmuster in den `16` gewonnenen Episoden von `trainer-w8-c74aa076380b`:
+
+- Siege nutzen haeufig frueh den besten Druck-Move (`action = 2`, also typischerweise STAB-/Damage-Move wie `Ember` oder `Vine Whip`)
+- Siege schalten deutlich aktiver um als die globalen Wave-8-Losses:
+  - `trainer-w8-c74aa076380b` ueber alle Episoden: durchschnittlich `3.11` Switches
+  - `trainer-w8-15d7c052bfb8` ueber alle Episoden: durchschnittlich `0.96` Switches
+- die gewonnenen Episoden wirken insgesamt weniger wie reines Status-/Stall-Spiel und mehr wie:
+  - frueh auf guten Matchup-Traeger wechseln
+  - dann mit effektivem oder zumindest solidem Damage-Move Druck machen
+
+Pragmatische Schlussfolgerung:
+
+- zwischen verschiedenen Rival-Snapshots ist der Snapshot-State aktuell oft der dominante Faktor
+- innerhalb eines prinzipiell gewinnbaren Rival-Snapshots lohnt es sich trotzdem, die Exploit-Policy in Richtung eines konkreten Verhaltensmusters zu biasieren:
+  - fruehe matchup-orientierte Switches zulassen
+  - danach bevorzugt hohen direkten Druck statt langes Status-/Setup-Spiel
+
+Konsequenz fuer die naechste Collector-Runde:
+
+- neben `random_valid_only` und einem reinen `dqn`-Exploit ist ein dritter Collector-Pfad fachlich interessant:
+  - Exploration weiter zufaellig
+  - Exploit-Zweig aber ueber eine dedizierte Policy, die genau dieses Rival-Verhalten gezielt beguenstigt
+- diese Policy sollte nicht als starre Endloesung verstanden werden, sondern als bewusstes Data-Shaping fuer schwerere, aber prinzipiell gewinnbare Wave-8-Snapshots
 
 Technischer Aufbau:
 
@@ -466,8 +571,8 @@ Zielbild nach einem laengeren Remote-Lauf:
   - Random-Collect-Report
   - DQN-Collect-Report
   - finales Modell
-  - initialer Benchmark-Report
-  - finaler Benchmark-Report
+  - initialer Smoke-Benchmark-Report
+  - finaler Full-Benchmark-Report
 - anschliessend lokal gegen das finale Modell erneut benchmarken, falls noetig
 - den final relevanten Benchmark in `docs/benchmark-history.md` dokumentieren
 
@@ -475,6 +580,8 @@ Lokaler Benchmark nach Remote-Training:
 
 - Beispiel:
   - `python3 scripts/eval_policy_compare.py --collector-config ./data/rl/collector-run-benchmarked-wave-library-v2.json --checkpoint <pfad-zum-heruntergeladenen-oder-lokal-verfuegbaren-modell> --report-path ./data/rl/combat/<neuer-report>.json`
+- Full-Benchmark ueber die gesamte Wave-Library:
+  - `python3 scripts/eval_policy_compare.py --collector-config ./data/rl/collector-run-benchmarked-wave-library-v2-full.json --checkpoint <pfad-zum-heruntergeladenen-oder-lokal-verfuegbaren-modell> --report-path ./data/rl/combat/<neuer-full-report>.json`
 - danach:
   - die wichtigsten Kennzahlen und Artefaktpfade in `docs/benchmark-history.md` eintragen
 
@@ -514,27 +621,42 @@ Aktuelle Folgerung:
 
 ## V2-Benchmark
 
-Fuer den ersten echten Wave-Library-V2-Benchmark gibt es jetzt ein kleines stabiles Eval-Set:
+Es gibt jetzt zwei klar getrennte Benchmark-Typen:
 
-- Konfiguration: `data/rl/collector-run-benchmarked-wave-library-v2.json`
-- npm collect shortcut: `npm run rl:collect:bench:wave-lib:v2`
-- npm compare shortcut: `npm run rl:eval:compare:wave-lib:v2`
-- Report-Ziel: `data/rl/combat/eval-policy-compare-wave-library-v2-report.json`
+- Smoke-Benchmark:
+  - Konfiguration: `data/rl/collector-run-benchmarked-wave-library-v2.json`
+  - npm collect shortcut: `npm run rl:collect:bench:wave-lib:v2`
+  - npm compare shortcut: `npm run rl:eval:compare:wave-lib:v2`
+  - Zweck: schneller Check nach `train_initial` und fuer Regressionen im Pipeline-Ablauf
 
-Zusammensetzung des aktuellen Sets:
+- Full-Benchmark:
+  - Konfiguration: `data/rl/collector-run-benchmarked-wave-library-v2-full.json`
+  - npm collect shortcut: `npm run rl:collect:bench:wave-lib:v2:full`
+  - npm compare shortcut: `npm run rl:eval:compare:wave-lib:v2:full`
+  - Zweck: echter Policy-Vergleich ueber die gesamte materialisierte Wave-Library
+  - Pflicht fuer belastbare Eintraege in `docs/benchmark-history.md`
+
+Zusammensetzung des Smoke-Sets:
 
 - genau ein reales V2-Snapshot-Szenario pro Welle `1-8`
 - Wild-Battles fuer `1`, `2`, `3`, `4`, `6`, `7`
 - Trainer-Battle fuer `5`
 - Rival-Battle fuer `8`
 
-Ziel dieses ersten V2-Benchmarks:
+Ziel des Smoke-Benchmarks:
 
 - gleiche Compare-Logik wie bisher beibehalten
 - aber auf echten produktiven Wave-Library-Snapshots statt auf dem alten V1-/POC-Benchmark-Set messen
 - weiterhin `random` vs. `always_move_0` vs. `dqn` vergleichen
 
-Wichtige Einschraenkung:
+Wichtige Einschraenkung des Smoke-Benchmarks:
 
 - das aktuelle V2-Benchmark-Set ist noch klein und nicht als finale Benchmark-Bibliothek zu verstehen
-- sobald mehr produktive Snapshots vorliegen, sollte das V2-Benchmark-Set separat und bewusst ausgebaut werden
+- er dient nicht als primaere Grundlage fuer Aussagen ueber die allgemeine Policy-Qualitaet
+
+Definition des Full-Benchmarks:
+
+- es wird immer die gesamte materialisierte Wave-Library unter `data/rl/scenarios/generated-wave-library-v2` verwendet
+- keine manuell kuratierte Teilmenge
+- ein Eintrag in `docs/benchmark-history.md` sollte kuenftig explizit den `Benchmark-Typ` enthalten
+- fuer ernsthafte Modellvergleiche ist `full` der relevante Referenzwert; `smoke` bleibt ein schneller Vorab-Check
