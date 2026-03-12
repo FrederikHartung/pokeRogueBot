@@ -1,0 +1,1343 @@
+diff --git a/src/battle-scene.ts b/src/battle-scene.ts
+index fec0c2c6823..410ae56f0ba 100644
+--- a/src/battle-scene.ts
++++ b/src/battle-scene.ts
+@@ -1409,6 +1409,10 @@ export class BattleScene extends SceneBase {
+       }
+     }
+ 
++    if (Overrides.DISABLE_DOUBLE_BATTLES_OVERRIDE) {
++      newDouble = false;
++    }
++
+     const lastBattle = this.currentBattle;
+ 
+     const maxExpLevel = this.getMaxExpLevel();
+diff --git a/src/overrides.ts b/src/overrides.ts
+index cceb677d450..853155de38e 100644
+--- a/src/overrides.ts
++++ b/src/overrides.ts
+@@ -74,6 +74,12 @@ class DefaultOverrides {
+    * If `"odd-doubles"`, follow the `"double"` rule on odd wave numbers, and follow the `"single"` rule on even wave numbers.
+    */
+   readonly BATTLE_STYLE_OVERRIDE: BattleStyle | null = null;
++  /**
++   * If `true`, force all battles to spawn as single battles after all other double-battle logic has run.
++   *
++   * This also suppresses trainer doubles, fixed doubles, and doubles caused by lures or abilities.
++   */
++  readonly DISABLE_DOUBLE_BATTLES_OVERRIDE: boolean = true;
+   readonly STARTING_WAVE_OVERRIDE: number = 0;
+   readonly STARTING_BIOME_OVERRIDE: BiomeId | null = null;
+   readonly ARENA_TINT_OVERRIDE: TimeOfDay | null = null;
+@@ -229,7 +235,7 @@ class DefaultOverrides {
+    *
+    * Note: Make sure `STARTING_WAVE_OVERRIDE > 10`, otherwise MEs won't trigger
+    */
+-  readonly MYSTERY_ENCOUNTER_RATE_OVERRIDE: number | null = null;
++  readonly MYSTERY_ENCOUNTER_RATE_OVERRIDE: number | null = 0;
+   readonly MYSTERY_ENCOUNTER_TIER_OVERRIDE: MysteryEncounterTier | null = null;
+   readonly MYSTERY_ENCOUNTER_OVERRIDE: MysteryEncounterType | null = null;
+ 
+diff --git a/test/.external-rl/experience-collector.test.ts b/test/.external-rl/experience-collector.test.ts
+deleted file mode 100644
+index 6e739477419..00000000000
+--- a/test/.external-rl/experience-collector.test.ts
++++ /dev/null
+@@ -1,1296 +0,0 @@
+-
+-import fs from "node:fs";
+-import path from "node:path";
+-import { spawnSync as spawnSyncChild } from "node:child_process";
+-import { allAbilities } from "#data/data-lists";
+-import { BattleStyle } from "#enums/battle-style";
+-import { BattleType } from "#enums/battle-type";
+-import { BattlerIndex } from "#enums/battler-index";
+-import { Command } from "#enums/command";
+-import { MoveUseMode } from "#enums/move-use-mode";
+-import { Nature } from "#enums/nature";
+-import { StatusEffect } from "#enums/status-effect";
+-import { UiMode } from "#enums/ui-mode";
+-import type { CommandPhase } from "#phases/command-phase";
+-import { getPokemonSpecies } from "#utils/pokemon-utils";
+-import { GameManager } from "#test/test-utils/game-manager";
+-import { beforeAll, describe, it } from "vitest";
+-
+-const SCENARIOS = [{"source":{"snapshot_fingerprint":"55a4be8973d4986ee46f8bfd4d8aa216415ac7c2b5b397d335d74f7912e08b41","schema_version":1,"snapshot_file":"data/offline-wave-library/productive-wave-snapshots-v1.jsonl"},"wave_index":5,"battle_type":"TRAINER","battle_spec":"DEFAULT","battle_style":"SET","is_double_fight":false,"biome":"TOWN","trainer":{"trainer_type":"YOUNGSTER","trainer_name":"Wyatt","trainer_display_name":"Youngster Wyatt","trainer_is_boss":false,"trainer_specialty_type":null},"difficulty_group":"hard","difficulty_reason":"wave_5_first_trainer","player_global_modifiers":[],"enemy_global_modifiers":[],"player_team":[{"id":2832825535,"name":"Squirtle","species_id":7,"species_name":"Squirtle","form_index":0,"level":5,"gender":"MALE","nature":"HARDY","hp":19,"max_hp":19,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":19,"attack":10,"defense":12,"specialAttack":10,"specialDefense":11,"speed":9},"battle_stats":{"hp":19,"attack":10,"defense":12,"specialAttack":10,"specialDefense":11,"speed":9},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":1,"pp_left":34,"is_usable":true},{"id":39,"name":"Tail Whip","move_pp":30,"pp_used":0,"pp_left":30,"is_usable":true},{"id":55,"name":"Water Gun","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true}],"current_ability_id":67,"current_ability_name":"Torrent","passive_ability_id":171,"passive_ability_name":"Bulletproof","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":508360419,"name":"Bulbasaur","species_id":1,"species_name":"Bulbasaur","form_index":0,"level":6,"gender":"MALE","nature":"DOCILE","hp":11,"max_hp":22,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":22,"attack":11,"defense":11,"specialAttack":13,"specialDefense":13,"speed":11},"battle_stats":{"hp":22,"attack":11,"defense":11,"specialAttack":13,"specialDefense":13,"speed":11},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":9,"pp_left":26,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":7,"pp_left":33,"is_usable":true},{"id":22,"name":"Vine Whip","move_pp":25,"pp_used":8,"pp_left":17,"is_usable":true},{"id":74,"name":"Growth","move_pp":20,"pp_used":1,"pp_left":19,"is_usable":true}],"current_ability_id":65,"current_ability_name":"Overgrow","passive_ability_id":229,"passive_ability_name":"Grassy Surge","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":350750066,"name":"Charmander","species_id":4,"species_name":"Charmander","form_index":0,"level":5,"gender":"MALE","nature":"QUIRKY","hp":9,"max_hp":19,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":19,"attack":10,"defense":9,"specialAttack":11,"specialDefense":10,"speed":12},"battle_stats":{"hp":19,"attack":10,"defense":9,"specialAttack":11,"specialDefense":10,"speed":12},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":10,"name":"Scratch","move_pp":35,"pp_used":1,"pp_left":34,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":2,"pp_left":38,"is_usable":true},{"id":52,"name":"Ember","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true}],"current_ability_id":66,"current_ability_name":"Blaze","passive_ability_id":125,"passive_ability_name":"Sheer Force","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true}],"enemy_team":[{"id":2964092140,"name":"Wurmple","species_id":265,"species_name":"Wurmple","form_index":0,"level":4,"gender":"MALE","nature":"BRAVE","hp":18,"max_hp":18,"ivs":{"hp":21,"attack":3,"defense":16,"specialAttack":3,"specialDefense":5,"speed":22},"stats":{"hp":18,"attack":9,"defense":8,"specialAttack":6,"specialDefense":7,"speed":6},"battle_stats":{"hp":18,"attack":9,"defense":8,"specialAttack":6,"specialDefense":7,"speed":6},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":81,"name":"String Shot","move_pp":40,"pp_used":0,"pp_left":40,"is_usable":true}],"current_ability_id":19,"current_ability_name":"Shield Dust","passive_ability_id":82,"passive_ability_name":"Gluttony","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":false},{"id":1206881332,"name":"Caterpie","species_id":10,"species_name":"Caterpie","form_index":0,"level":4,"gender":"MALE","nature":"IMPISH","hp":17,"max_hp":17,"ivs":{"hp":2,"attack":17,"defense":14,"specialAttack":8,"specialDefense":2,"speed":26},"stats":{"hp":17,"attack":8,"defense":9,"specialAttack":5,"specialDefense":6,"speed":9},"battle_stats":{"hp":17,"attack":8,"defense":9,"specialAttack":5,"specialDefense":6,"speed":9},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":81,"name":"String Shot","move_pp":40,"pp_used":0,"pp_left":40,"is_usable":true}],"current_ability_id":19,"current_ability_name":"Shield Dust","passive_ability_id":82,"passive_ability_name":"Gluttony","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":false}],"__scenario_name":"trainer-w5-55a4be8973d4","__scenario_source_path":"/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/rl/scenarios/generated-wave-library-v2/trainer-w5-55a4be8973d4.json"},{"source":{"snapshot_fingerprint":"a8b63cfb8f6f7d51ee723b0c6f9ccfe1b49dec2c458a41986ab7771775d1bc12","schema_version":1,"snapshot_file":"data/offline-wave-library/productive-wave-snapshots-v1.jsonl"},"wave_index":5,"battle_type":"TRAINER","battle_spec":"DEFAULT","battle_style":"SET","is_double_fight":false,"biome":"TOWN","trainer":{"trainer_type":"YOUNGSTER","trainer_name":"Riley","trainer_display_name":"Lass Riley","trainer_is_boss":false,"trainer_specialty_type":null},"difficulty_group":"hard","difficulty_reason":"wave_5_first_trainer","player_global_modifiers":[],"enemy_global_modifiers":[],"player_team":[{"id":1587684399,"name":"Bulbasaur","species_id":1,"species_name":"Bulbasaur","form_index":0,"level":6,"gender":"MALE","nature":"DOCILE","hp":22,"max_hp":22,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":22,"attack":11,"defense":11,"specialAttack":13,"specialDefense":13,"speed":11},"battle_stats":{"hp":22,"attack":11,"defense":11,"specialAttack":13,"specialDefense":13,"speed":11},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":4,"pp_left":31,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":8,"pp_left":32,"is_usable":true},{"id":22,"name":"Vine Whip","move_pp":25,"pp_used":6,"pp_left":19,"is_usable":true},{"id":74,"name":"Growth","move_pp":20,"pp_used":0,"pp_left":20,"is_usable":true}],"current_ability_id":65,"current_ability_name":"Overgrow","passive_ability_id":229,"passive_ability_name":"Grassy Surge","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":1415123469,"name":"Charmander","species_id":4,"species_name":"Charmander","form_index":0,"level":5,"gender":"MALE","nature":"QUIRKY","hp":19,"max_hp":19,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":19,"attack":10,"defense":9,"specialAttack":11,"specialDefense":10,"speed":12},"battle_stats":{"hp":19,"attack":10,"defense":9,"specialAttack":11,"specialDefense":10,"speed":12},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":10,"name":"Scratch","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":0,"pp_left":40,"is_usable":true},{"id":52,"name":"Ember","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true}],"current_ability_id":66,"current_ability_name":"Blaze","passive_ability_id":125,"passive_ability_name":"Sheer Force","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":34333334,"name":"Squirtle","species_id":7,"species_name":"Squirtle","form_index":0,"level":5,"gender":"MALE","nature":"HARDY","hp":19,"max_hp":19,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":19,"attack":10,"defense":12,"specialAttack":10,"specialDefense":11,"speed":9},"battle_stats":{"hp":19,"attack":10,"defense":12,"specialAttack":10,"specialDefense":11,"speed":9},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":4,"pp_left":31,"is_usable":true},{"id":39,"name":"Tail Whip","move_pp":30,"pp_used":9,"pp_left":21,"is_usable":true},{"id":55,"name":"Water Gun","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true}],"current_ability_id":67,"current_ability_name":"Torrent","passive_ability_id":171,"passive_ability_name":"Bulletproof","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true}],"enemy_team":[{"id":2799958818,"name":"Zigzagoon","species_id":263,"species_name":"Zigzagoon","form_index":0,"level":4,"gender":"FEMALE","nature":"NAIVE","hp":18,"max_hp":18,"ivs":{"hp":24,"attack":26,"defense":23,"specialAttack":3,"specialDefense":12,"speed":8},"stats":{"hp":18,"attack":8,"defense":9,"specialAttack":7,"specialDefense":7,"speed":11},"battle_stats":{"hp":18,"attack":8,"defense":9,"specialAttack":7,"specialDefense":7,"speed":11},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":28,"name":"Sand Attack","move_pp":15,"pp_used":0,"pp_left":15,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":0,"pp_left":40,"is_usable":true}],"current_ability_id":53,"current_ability_name":"Pickup","passive_ability_id":50,"passive_ability_name":"Run Away","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":false},{"id":723691722,"name":"Wurmple","species_id":265,"species_name":"Wurmple","form_index":0,"level":4,"gender":"FEMALE","nature":"LAX","hp":18,"max_hp":18,"ivs":{"hp":12,"attack":10,"defense":2,"specialAttack":17,"specialDefense":21,"speed":8},"stats":{"hp":18,"attack":9,"defense":8,"specialAttack":7,"specialDefense":7,"speed":6},"battle_stats":{"hp":18,"attack":9,"defense":8,"specialAttack":7,"specialDefense":7,"speed":6},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":81,"name":"String Shot","move_pp":40,"pp_used":0,"pp_left":40,"is_usable":true}],"current_ability_id":19,"current_ability_name":"Shield Dust","passive_ability_id":82,"passive_ability_name":"Gluttony","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":false}],"__scenario_name":"trainer-w5-a8b63cfb8f6f","__scenario_source_path":"/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/rl/scenarios/generated-wave-library-v2/trainer-w5-a8b63cfb8f6f.json"},{"source":{"snapshot_fingerprint":"8f55849e7e4d7266bca4fdb3cda63611b315527213aada6b0c5e2ebf5f4eb74e","schema_version":1,"snapshot_file":"data/offline-wave-library/productive-wave-snapshots-v1.jsonl"},"wave_index":8,"battle_type":"TRAINER","battle_spec":"DEFAULT","battle_style":"SET","is_double_fight":false,"biome":"TOWN","trainer":{"trainer_type":"RIVAL","trainer_name":"Ivy","trainer_display_name":"Rival Ivy","trainer_is_boss":false,"trainer_specialty_type":null},"difficulty_group":"hard","difficulty_reason":"wave_8_first_rival","player_global_modifiers":[],"enemy_global_modifiers":[],"player_team":[{"id":350750066,"name":"Charmander","species_id":4,"species_name":"Charmander","form_index":0,"level":6,"gender":"MALE","nature":"QUIRKY","hp":16,"max_hp":21,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":21,"attack":11,"defense":10,"specialAttack":12,"specialDefense":11,"speed":13},"battle_stats":{"hp":21,"attack":11,"defense":10,"specialAttack":12,"specialDefense":11,"speed":13},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":10,"name":"Scratch","move_pp":35,"pp_used":2,"pp_left":33,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":4,"pp_left":36,"is_usable":true},{"id":52,"name":"Ember","move_pp":25,"pp_used":4,"pp_left":21,"is_usable":true}],"current_ability_id":66,"current_ability_name":"Blaze","passive_ability_id":125,"passive_ability_name":"Sheer Force","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":508360419,"name":"Bulbasaur","species_id":1,"species_name":"Bulbasaur","form_index":0,"level":6,"gender":"MALE","nature":"DOCILE","hp":11,"max_hp":22,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":22,"attack":11,"defense":11,"specialAttack":13,"specialDefense":13,"speed":11},"battle_stats":{"hp":22,"attack":11,"defense":11,"specialAttack":13,"specialDefense":13,"speed":11},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":9,"pp_left":26,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":7,"pp_left":33,"is_usable":true},{"id":22,"name":"Vine Whip","move_pp":25,"pp_used":8,"pp_left":17,"is_usable":true},{"id":74,"name":"Growth","move_pp":20,"pp_used":1,"pp_left":19,"is_usable":true}],"current_ability_id":65,"current_ability_name":"Overgrow","passive_ability_id":229,"passive_ability_name":"Grassy Surge","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":2832825535,"name":"Squirtle","species_id":7,"species_name":"Squirtle","form_index":0,"level":6,"gender":"MALE","nature":"HARDY","hp":10,"max_hp":21,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":21,"attack":11,"defense":13,"specialAttack":11,"specialDefense":13,"speed":10},"battle_stats":{"hp":21,"attack":11,"defense":13,"specialAttack":11,"specialDefense":13,"speed":10},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":3,"pp_left":32,"is_usable":true},{"id":39,"name":"Tail Whip","move_pp":30,"pp_used":0,"pp_left":30,"is_usable":true},{"id":55,"name":"Water Gun","move_pp":25,"pp_used":4,"pp_left":21,"is_usable":true},{"id":110,"name":"Withdraw","move_pp":40,"pp_used":1,"pp_left":39,"is_usable":true}],"current_ability_id":67,"current_ability_name":"Torrent","passive_ability_id":171,"passive_ability_name":"Bulletproof","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true}],"enemy_team":[{"id":3873262983,"name":"Piplup","species_id":393,"species_name":"Piplup","form_index":0,"level":7,"gender":"MALE","nature":"QUIET","hp":25,"max_hp":25,"ivs":{"hp":20,"attack":29,"defense":9,"specialAttack":21,"specialDefense":31,"speed":17},"stats":{"hp":25,"attack":14,"defense":13,"specialAttack":17,"specialDefense":15,"speed":9},"battle_stats":{"hp":25,"attack":14,"defense":13,"specialAttack":17,"specialDefense":15,"speed":9},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":55,"name":"Water Gun","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":0,"pp_left":40,"is_usable":true},{"id":1,"name":"Pound","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true}],"current_ability_id":67,"current_ability_name":"Torrent","passive_ability_id":56,"passive_ability_name":"Cute Charm","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":false},{"id":3389463408,"name":"Starly","species_id":396,"species_name":"Starly","form_index":0,"level":6,"gender":"FEMALE","nature":"MILD","hp":21,"max_hp":21,"ivs":{"hp":12,"attack":15,"defense":30,"specialAttack":6,"specialDefense":19,"speed":19},"stats":{"hp":21,"attack":12,"defense":9,"specialAttack":9,"specialDefense":9,"speed":13},"battle_stats":{"hp":21,"attack":12,"defense":9,"specialAttack":9,"specialDefense":9,"speed":13},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":98,"name":"Quick Attack","move_pp":30,"pp_used":0,"pp_left":30,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":0,"pp_left":40,"is_usable":true}],"current_ability_id":51,"current_ability_name":"Keen Eye","passive_ability_id":22,"passive_ability_name":"Intimidate","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":false}],"__scenario_name":"trainer-w8-8f55849e7e4d","__scenario_source_path":"/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/rl/scenarios/generated-wave-library-v2/trainer-w8-8f55849e7e4d.json"},{"source":{"snapshot_fingerprint":"7b4e667b0cdd4d18f5592b70b4eea578b7b90bee70e77af23f71329be1d33c6d","schema_version":1,"snapshot_file":"data/offline-wave-library/productive-wave-snapshots-v1.jsonl"},"wave_index":1,"battle_type":"WILD","battle_spec":"DEFAULT","battle_style":"SET","is_double_fight":false,"biome":"TOWN","trainer":null,"difficulty_group":"core","difficulty_reason":null,"player_global_modifiers":[],"enemy_global_modifiers":[],"player_team":[{"id":1587684399,"name":"Bulbasaur","species_id":1,"species_name":"Bulbasaur","form_index":0,"level":5,"gender":"MALE","nature":"DOCILE","hp":20,"max_hp":20,"ivs":{"hp":15,"attack":15,"defense":15,"specialAttack":15,"specialDefense":15,"speed":15},"stats":{"hp":20,"attack":10,"defense":10,"specialAttack":12,"specialDefense":12,"speed":10},"battle_stats":{"hp":20,"attack":10,"defense":10,"specialAttack":12,"specialDefense":12,"speed":10},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":0,"pp_left":40,"is_usable":true},{"id":22,"name":"Vine Whip","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true}],"current_ability_id":65,"current_ability_name":"Overgrow","passive_ability_id":229,"passive_ability_name":"Grassy Surge","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":1415123469,"name":"Charmander","species_id":4,"species_name":"Charmander","form_index":0,"level":5,"gender":"MALE","nature":"QUIRKY","hp":19,"max_hp":19,"ivs":{"hp":15,"attack":15,"defense":15,"specialAttack":15,"specialDefense":15,"speed":15},"stats":{"hp":19,"attack":10,"defense":10,"specialAttack":11,"specialDefense":10,"speed":12},"battle_stats":{"hp":19,"attack":10,"defense":10,"specialAttack":11,"specialDefense":10,"speed":12},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":10,"name":"Scratch","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":0,"pp_left":40,"is_usable":true},{"id":52,"name":"Ember","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true}],"current_ability_id":66,"current_ability_name":"Blaze","passive_ability_id":125,"passive_ability_name":"Sheer Force","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":34333334,"name":"Squirtle","species_id":7,"species_name":"Squirtle","form_index":0,"level":5,"gender":"MALE","nature":"HARDY","hp":20,"max_hp":20,"ivs":{"hp":15,"attack":15,"defense":15,"specialAttack":15,"specialDefense":15,"speed":15},"stats":{"hp":20,"attack":10,"defense":12,"specialAttack":10,"specialDefense":12,"speed":10},"battle_stats":{"hp":20,"attack":10,"defense":12,"specialAttack":10,"specialDefense":12,"speed":10},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":39,"name":"Tail Whip","move_pp":30,"pp_used":0,"pp_left":30,"is_usable":true},{"id":55,"name":"Water Gun","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true}],"current_ability_id":67,"current_ability_name":"Torrent","passive_ability_id":171,"passive_ability_name":"Bulletproof","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true}],"enemy_team":[{"id":2493838546,"name":"Wurmple","species_id":265,"species_name":"Wurmple","form_index":0,"level":2,"gender":"FEMALE","nature":"LAX","hp":14,"max_hp":14,"ivs":{"hp":10,"attack":10,"defense":9,"specialAttack":29,"specialDefense":6,"speed":18},"stats":{"hp":14,"attack":7,"defense":7,"specialAttack":6,"specialDefense":5,"speed":6},"battle_stats":{"hp":14,"attack":7,"defense":7,"specialAttack":6,"specialDefense":5,"speed":6},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":81,"name":"String Shot","move_pp":40,"pp_used":0,"pp_left":40,"is_usable":true}],"current_ability_id":19,"current_ability_name":"Shield Dust","passive_ability_id":82,"passive_ability_name":"Gluttony","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":false}],"__scenario_name":"wild-w1-7b4e667b0cdd","__scenario_source_path":"/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/rl/scenarios/generated-wave-library-v2/wild-w1-7b4e667b0cdd.json"},{"source":{"snapshot_fingerprint":"d24a38ec3edad4632bf5418b9fa4573bb5ed3ff74641dc50074d216bcb48978e","schema_version":1,"snapshot_file":"data/offline-wave-library/productive-wave-snapshots-v1.jsonl"},"wave_index":1,"battle_type":"WILD","battle_spec":"DEFAULT","battle_style":"SET","is_double_fight":false,"biome":"TOWN","trainer":null,"difficulty_group":"core","difficulty_reason":null,"player_global_modifiers":[],"enemy_global_modifiers":[],"player_team":[{"id":508360419,"name":"Bulbasaur","species_id":1,"species_name":"Bulbasaur","form_index":0,"level":5,"gender":"MALE","nature":"DOCILE","hp":20,"max_hp":20,"ivs":{"hp":15,"attack":15,"defense":15,"specialAttack":15,"specialDefense":15,"speed":15},"stats":{"hp":20,"attack":10,"defense":10,"specialAttack":12,"specialDefense":12,"speed":10},"battle_stats":{"hp":20,"attack":10,"defense":10,"specialAttack":12,"specialDefense":12,"speed":10},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":0,"pp_left":40,"is_usable":true},{"id":22,"name":"Vine Whip","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true}],"current_ability_id":65,"current_ability_name":"Overgrow","passive_ability_id":229,"passive_ability_name":"Grassy Surge","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":350750066,"name":"Charmander","species_id":4,"species_name":"Charmander","form_index":0,"level":5,"gender":"MALE","nature":"QUIRKY","hp":19,"max_hp":19,"ivs":{"hp":15,"attack":15,"defense":15,"specialAttack":15,"specialDefense":15,"speed":15},"stats":{"hp":19,"attack":10,"defense":10,"specialAttack":11,"specialDefense":10,"speed":12},"battle_stats":{"hp":19,"attack":10,"defense":10,"specialAttack":11,"specialDefense":10,"speed":12},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":10,"name":"Scratch","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":0,"pp_left":40,"is_usable":true},{"id":52,"name":"Ember","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true}],"current_ability_id":66,"current_ability_name":"Blaze","passive_ability_id":125,"passive_ability_name":"Sheer Force","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":2832825535,"name":"Squirtle","species_id":7,"species_name":"Squirtle","form_index":0,"level":5,"gender":"MALE","nature":"HARDY","hp":20,"max_hp":20,"ivs":{"hp":15,"attack":15,"defense":15,"specialAttack":15,"specialDefense":15,"speed":15},"stats":{"hp":20,"attack":10,"defense":12,"specialAttack":10,"specialDefense":12,"speed":10},"battle_stats":{"hp":20,"attack":10,"defense":12,"specialAttack":10,"specialDefense":12,"speed":10},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":39,"name":"Tail Whip","move_pp":30,"pp_used":0,"pp_left":30,"is_usable":true},{"id":55,"name":"Water Gun","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true}],"current_ability_id":67,"current_ability_name":"Torrent","passive_ability_id":171,"passive_ability_name":"Bulletproof","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true}],"enemy_team":[{"id":3782159997,"name":"Cherubi","species_id":420,"species_name":"Cherubi","form_index":0,"level":2,"gender":"MALE","nature":"CAREFUL","hp":14,"max_hp":14,"ivs":{"hp":16,"attack":22,"defense":30,"specialAttack":11,"specialDefense":19,"speed":29},"stats":{"hp":14,"attack":6,"defense":7,"specialAttack":6,"specialDefense":8,"speed":6},"battle_stats":{"hp":14,"attack":6,"defense":7,"specialAttack":6,"specialDefense":8,"speed":6},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":234,"name":"Morning Sun","move_pp":5,"pp_used":0,"pp_left":5,"is_usable":true},{"id":33,"name":"Tackle","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true}],"current_ability_id":34,"current_ability_name":"Chlorophyll","passive_ability_id":70,"passive_ability_name":"Drought","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":false}],"__scenario_name":"wild-w1-d24a38ec3eda","__scenario_source_path":"/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/rl/scenarios/generated-wave-library-v2/wild-w1-d24a38ec3eda.json"},{"source":{"snapshot_fingerprint":"3354835b452fc23cb6d0e5c51f8637a6e5cb99ef053dc71ea3830b99f85d0621","schema_version":1,"snapshot_file":"data/offline-wave-library/productive-wave-snapshots-v1.jsonl"},"wave_index":2,"battle_type":"WILD","battle_spec":"DEFAULT","battle_style":"SET","is_double_fight":false,"biome":"TOWN","trainer":null,"difficulty_group":"core","difficulty_reason":null,"player_global_modifiers":[],"enemy_global_modifiers":[],"player_team":[{"id":1587684399,"name":"Bulbasaur","species_id":1,"species_name":"Bulbasaur","form_index":0,"level":5,"gender":"MALE","nature":"DOCILE","hp":20,"max_hp":20,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":20,"attack":10,"defense":10,"specialAttack":12,"specialDefense":12,"speed":10},"battle_stats":{"hp":20,"attack":10,"defense":10,"specialAttack":12,"specialDefense":12,"speed":10},"stat_stages":[0,0,0,0,-6,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":1,"pp_left":34,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":5,"pp_left":35,"is_usable":true},{"id":22,"name":"Vine Whip","move_pp":25,"pp_used":2,"pp_left":23,"is_usable":true}],"current_ability_id":65,"current_ability_name":"Overgrow","passive_ability_id":229,"passive_ability_name":"Grassy Surge","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":1415123469,"name":"Charmander","species_id":4,"species_name":"Charmander","form_index":0,"level":5,"gender":"MALE","nature":"QUIRKY","hp":19,"max_hp":19,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":19,"attack":10,"defense":9,"specialAttack":11,"specialDefense":10,"speed":12},"battle_stats":{"hp":19,"attack":10,"defense":9,"specialAttack":11,"specialDefense":10,"speed":12},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":10,"name":"Scratch","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":0,"pp_left":40,"is_usable":true},{"id":52,"name":"Ember","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true}],"current_ability_id":66,"current_ability_name":"Blaze","passive_ability_id":125,"passive_ability_name":"Sheer Force","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":34333334,"name":"Squirtle","species_id":7,"species_name":"Squirtle","form_index":0,"level":5,"gender":"MALE","nature":"HARDY","hp":19,"max_hp":19,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":19,"attack":10,"defense":12,"specialAttack":10,"specialDefense":11,"speed":9},"battle_stats":{"hp":19,"attack":10,"defense":12,"specialAttack":10,"specialDefense":11,"speed":9},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":39,"name":"Tail Whip","move_pp":30,"pp_used":0,"pp_left":30,"is_usable":true},{"id":55,"name":"Water Gun","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true}],"current_ability_id":67,"current_ability_name":"Torrent","passive_ability_id":171,"passive_ability_name":"Bulletproof","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true}],"enemy_team":[{"id":327256873,"name":"Pidove","species_id":519,"species_name":"Pidove","form_index":0,"level":3,"gender":"FEMALE","nature":"IMPISH","hp":16,"max_hp":16,"ivs":{"hp":9,"attack":24,"defense":3,"specialAttack":2,"specialDefense":25,"speed":9},"stats":{"hp":16,"attack":9,"defense":9,"specialAttack":6,"specialDefense":7,"speed":7},"battle_stats":{"hp":16,"attack":9,"defense":9,"specialAttack":6,"specialDefense":7,"speed":7},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":16,"name":"Gust","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":0,"pp_left":40,"is_usable":true}],"current_ability_id":145,"current_ability_name":"Big Pecks","passive_ability_id":97,"passive_ability_name":"Sniper","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":false}],"__scenario_name":"wild-w2-3354835b452f","__scenario_source_path":"/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/rl/scenarios/generated-wave-library-v2/wild-w2-3354835b452f.json"},{"source":{"snapshot_fingerprint":"762fd9254a156bad5d826f6af446b1a36776e6a6b775e2945ffb465eff1dba7d","schema_version":1,"snapshot_file":"data/offline-wave-library/productive-wave-snapshots-v1.jsonl"},"wave_index":2,"battle_type":"WILD","battle_spec":"DEFAULT","battle_style":"SET","is_double_fight":false,"biome":"TOWN","trainer":null,"difficulty_group":"core","difficulty_reason":null,"player_global_modifiers":[],"enemy_global_modifiers":[],"player_team":[{"id":508360419,"name":"Bulbasaur","species_id":1,"species_name":"Bulbasaur","form_index":0,"level":5,"gender":"MALE","nature":"DOCILE","hp":20,"max_hp":20,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":20,"attack":10,"defense":10,"specialAttack":12,"specialDefense":12,"speed":10},"battle_stats":{"hp":20,"attack":10,"defense":10,"specialAttack":12,"specialDefense":12,"speed":10},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":3,"pp_left":32,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":3,"pp_left":37,"is_usable":true},{"id":22,"name":"Vine Whip","move_pp":25,"pp_used":4,"pp_left":21,"is_usable":true}],"current_ability_id":65,"current_ability_name":"Overgrow","passive_ability_id":229,"passive_ability_name":"Grassy Surge","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":350750066,"name":"Charmander","species_id":4,"species_name":"Charmander","form_index":0,"level":5,"gender":"MALE","nature":"QUIRKY","hp":19,"max_hp":19,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":19,"attack":10,"defense":9,"specialAttack":11,"specialDefense":10,"speed":12},"battle_stats":{"hp":19,"attack":10,"defense":9,"specialAttack":11,"specialDefense":10,"speed":12},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":10,"name":"Scratch","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":0,"pp_left":40,"is_usable":true},{"id":52,"name":"Ember","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true}],"current_ability_id":66,"current_ability_name":"Blaze","passive_ability_id":125,"passive_ability_name":"Sheer Force","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":2832825535,"name":"Squirtle","species_id":7,"species_name":"Squirtle","form_index":0,"level":5,"gender":"MALE","nature":"HARDY","hp":19,"max_hp":19,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":19,"attack":10,"defense":12,"specialAttack":10,"specialDefense":11,"speed":9},"battle_stats":{"hp":19,"attack":10,"defense":12,"specialAttack":10,"specialDefense":11,"speed":9},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":39,"name":"Tail Whip","move_pp":30,"pp_used":0,"pp_left":30,"is_usable":true},{"id":55,"name":"Water Gun","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true}],"current_ability_id":67,"current_ability_name":"Torrent","passive_ability_id":171,"passive_ability_name":"Bulletproof","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true}],"enemy_team":[{"id":1320631262,"name":"Nidoran♀","species_id":29,"species_name":"Nidoran♀","form_index":0,"level":2,"gender":"FEMALE","nature":"RASH","hp":14,"max_hp":14,"ivs":{"hp":7,"attack":11,"defense":14,"specialAttack":14,"specialDefense":30,"speed":30},"stats":{"hp":14,"attack":7,"defense":7,"specialAttack":7,"specialDefense":6,"speed":7},"battle_stats":{"hp":14,"attack":7,"defense":7,"specialAttack":7,"specialDefense":6,"speed":7},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":40,"name":"Poison Sting","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":0,"pp_left":40,"is_usable":true}],"current_ability_id":79,"current_ability_name":"Rivalry","passive_ability_id":295,"passive_ability_name":"Toxic Debris","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":false}],"__scenario_name":"wild-w2-762fd9254a15","__scenario_source_path":"/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/rl/scenarios/generated-wave-library-v2/wild-w2-762fd9254a15.json"},{"source":{"snapshot_fingerprint":"2b1db554c8c231755e44bf648495a38d56f409f5ace205b445447e8fa4e714dc","schema_version":1,"snapshot_file":"data/offline-wave-library/productive-wave-snapshots-v1.jsonl"},"wave_index":3,"battle_type":"WILD","battle_spec":"DEFAULT","battle_style":"SET","is_double_fight":false,"biome":"TOWN","trainer":null,"difficulty_group":"core","difficulty_reason":null,"player_global_modifiers":[],"enemy_global_modifiers":[],"player_team":[{"id":508360419,"name":"Bulbasaur","species_id":1,"species_name":"Bulbasaur","form_index":0,"level":5,"gender":"MALE","nature":"DOCILE","hp":20,"max_hp":20,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":20,"attack":10,"defense":10,"specialAttack":12,"specialDefense":12,"speed":10},"battle_stats":{"hp":20,"attack":10,"defense":10,"specialAttack":12,"specialDefense":12,"speed":10},"stat_stages":[-1,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":5,"pp_left":30,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":4,"pp_left":36,"is_usable":true},{"id":22,"name":"Vine Whip","move_pp":25,"pp_used":6,"pp_left":19,"is_usable":true}],"current_ability_id":65,"current_ability_name":"Overgrow","passive_ability_id":229,"passive_ability_name":"Grassy Surge","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":350750066,"name":"Charmander","species_id":4,"species_name":"Charmander","form_index":0,"level":5,"gender":"MALE","nature":"QUIRKY","hp":19,"max_hp":19,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":19,"attack":10,"defense":9,"specialAttack":11,"specialDefense":10,"speed":12},"battle_stats":{"hp":19,"attack":10,"defense":9,"specialAttack":11,"specialDefense":10,"speed":12},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":10,"name":"Scratch","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":0,"pp_left":40,"is_usable":true},{"id":52,"name":"Ember","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true}],"current_ability_id":66,"current_ability_name":"Blaze","passive_ability_id":125,"passive_ability_name":"Sheer Force","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":2832825535,"name":"Squirtle","species_id":7,"species_name":"Squirtle","form_index":0,"level":5,"gender":"MALE","nature":"HARDY","hp":19,"max_hp":19,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":19,"attack":10,"defense":12,"specialAttack":10,"specialDefense":11,"speed":9},"battle_stats":{"hp":19,"attack":10,"defense":12,"specialAttack":10,"specialDefense":11,"speed":9},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":39,"name":"Tail Whip","move_pp":30,"pp_used":0,"pp_left":30,"is_usable":true},{"id":55,"name":"Water Gun","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true}],"current_ability_id":67,"current_ability_name":"Torrent","passive_ability_id":171,"passive_ability_name":"Bulletproof","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true}],"enemy_team":[{"id":1997970583,"name":"Happiny","species_id":440,"species_name":"Happiny","form_index":0,"level":3,"gender":"FEMALE","nature":"QUIET","hp":19,"max_hp":19,"ivs":{"hp":27,"attack":17,"defense":13,"specialAttack":7,"specialDefense":4,"speed":23},"stats":{"hp":19,"attack":5,"defense":5,"specialAttack":7,"specialDefense":9,"speed":6},"battle_stats":{"hp":19,"attack":5,"defense":5,"specialAttack":7,"specialDefense":9,"speed":6},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":1,"name":"Pound","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":383,"name":"Copycat","move_pp":20,"pp_used":0,"pp_left":20,"is_usable":true}],"current_ability_id":32,"current_ability_name":"Serene Grace","passive_ability_id":301,"passive_ability_name":"Hospitality","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":false}],"__scenario_name":"wild-w3-2b1db554c8c2","__scenario_source_path":"/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/rl/scenarios/generated-wave-library-v2/wild-w3-2b1db554c8c2.json"},{"source":{"snapshot_fingerprint":"3c1f950befac55571fcfbe11eb84bedcfcc27e7b35fe3f6d95110f5c9634e08b","schema_version":1,"snapshot_file":"data/offline-wave-library/productive-wave-snapshots-v1.jsonl"},"wave_index":3,"battle_type":"WILD","battle_spec":"DEFAULT","battle_style":"SET","is_double_fight":false,"biome":"TOWN","trainer":null,"difficulty_group":"core","difficulty_reason":null,"player_global_modifiers":[],"enemy_global_modifiers":[],"player_team":[{"id":34333334,"name":"Squirtle","species_id":7,"species_name":"Squirtle","form_index":0,"level":5,"gender":"MALE","nature":"HARDY","hp":19,"max_hp":19,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":19,"attack":10,"defense":12,"specialAttack":10,"specialDefense":11,"speed":9},"battle_stats":{"hp":19,"attack":10,"defense":12,"specialAttack":10,"specialDefense":11,"speed":9},"stat_stages":[-2,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":2,"pp_left":33,"is_usable":true},{"id":39,"name":"Tail Whip","move_pp":30,"pp_used":5,"pp_left":25,"is_usable":true},{"id":55,"name":"Water Gun","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true}],"current_ability_id":67,"current_ability_name":"Torrent","passive_ability_id":171,"passive_ability_name":"Bulletproof","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":1415123469,"name":"Charmander","species_id":4,"species_name":"Charmander","form_index":0,"level":5,"gender":"MALE","nature":"QUIRKY","hp":19,"max_hp":19,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":19,"attack":10,"defense":9,"specialAttack":11,"specialDefense":10,"speed":12},"battle_stats":{"hp":19,"attack":10,"defense":9,"specialAttack":11,"specialDefense":10,"speed":12},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":10,"name":"Scratch","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":0,"pp_left":40,"is_usable":true},{"id":52,"name":"Ember","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true}],"current_ability_id":66,"current_ability_name":"Blaze","passive_ability_id":125,"passive_ability_name":"Sheer Force","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":1587684399,"name":"Bulbasaur","species_id":1,"species_name":"Bulbasaur","form_index":0,"level":5,"gender":"MALE","nature":"DOCILE","hp":20,"max_hp":20,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":20,"attack":10,"defense":10,"specialAttack":12,"specialDefense":12,"speed":10},"battle_stats":{"hp":20,"attack":10,"defense":10,"specialAttack":12,"specialDefense":12,"speed":10},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":3,"pp_left":32,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":6,"pp_left":34,"is_usable":true},{"id":22,"name":"Vine Whip","move_pp":25,"pp_used":4,"pp_left":21,"is_usable":true}],"current_ability_id":65,"current_ability_name":"Overgrow","passive_ability_id":229,"passive_ability_name":"Grassy Surge","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true}],"enemy_team":[{"id":3303478505,"name":"Whismur","species_id":293,"species_name":"Whismur","form_index":0,"level":3,"gender":"MALE","nature":"GENTLE","hp":16,"max_hp":16,"ivs":{"hp":2,"attack":14,"defense":14,"specialAttack":5,"specialDefense":7,"speed":9},"stats":{"hp":16,"attack":8,"defense":5,"specialAttack":8,"specialDefense":7,"speed":6},"battle_stats":{"hp":16,"attack":8,"defense":5,"specialAttack":8,"specialDefense":7,"speed":6},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":1,"name":"Pound","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":310,"name":"Astonish","move_pp":15,"pp_used":0,"pp_left":15,"is_usable":true}],"current_ability_id":43,"current_ability_name":"Soundproof","passive_ability_id":244,"passive_ability_name":"Punk Rock","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":false}],"__scenario_name":"wild-w3-3c1f950befac","__scenario_source_path":"/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/rl/scenarios/generated-wave-library-v2/wild-w3-3c1f950befac.json"},{"source":{"snapshot_fingerprint":"9d29d2d91b1a7162a77b52193a01cfb0bb3f26380f01ef4cf7cea00367908fdf","schema_version":1,"snapshot_file":"data/offline-wave-library/productive-wave-snapshots-v1.jsonl"},"wave_index":4,"battle_type":"WILD","battle_spec":"DEFAULT","battle_style":"SET","is_double_fight":false,"biome":"TOWN","trainer":null,"difficulty_group":"core","difficulty_reason":null,"player_global_modifiers":[],"enemy_global_modifiers":[],"player_team":[{"id":1587684399,"name":"Bulbasaur","species_id":1,"species_name":"Bulbasaur","form_index":0,"level":5,"gender":"MALE","nature":"DOCILE","hp":20,"max_hp":20,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":20,"attack":10,"defense":10,"specialAttack":12,"specialDefense":12,"speed":10},"battle_stats":{"hp":20,"attack":10,"defense":10,"specialAttack":12,"specialDefense":12,"speed":10},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":4,"pp_left":31,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":6,"pp_left":34,"is_usable":true},{"id":22,"name":"Vine Whip","move_pp":25,"pp_used":4,"pp_left":21,"is_usable":true}],"current_ability_id":65,"current_ability_name":"Overgrow","passive_ability_id":229,"passive_ability_name":"Grassy Surge","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":1415123469,"name":"Charmander","species_id":4,"species_name":"Charmander","form_index":0,"level":5,"gender":"MALE","nature":"QUIRKY","hp":19,"max_hp":19,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":19,"attack":10,"defense":9,"specialAttack":11,"specialDefense":10,"speed":12},"battle_stats":{"hp":19,"attack":10,"defense":9,"specialAttack":11,"specialDefense":10,"speed":12},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":10,"name":"Scratch","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":0,"pp_left":40,"is_usable":true},{"id":52,"name":"Ember","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true}],"current_ability_id":66,"current_ability_name":"Blaze","passive_ability_id":125,"passive_ability_name":"Sheer Force","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":34333334,"name":"Squirtle","species_id":7,"species_name":"Squirtle","form_index":0,"level":5,"gender":"MALE","nature":"HARDY","hp":19,"max_hp":19,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":19,"attack":10,"defense":12,"specialAttack":10,"specialDefense":11,"speed":9},"battle_stats":{"hp":19,"attack":10,"defense":12,"specialAttack":10,"specialDefense":11,"speed":9},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":4,"pp_left":31,"is_usable":true},{"id":39,"name":"Tail Whip","move_pp":30,"pp_used":9,"pp_left":21,"is_usable":true},{"id":55,"name":"Water Gun","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true}],"current_ability_id":67,"current_ability_name":"Torrent","passive_ability_id":171,"passive_ability_name":"Bulletproof","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true}],"enemy_team":[{"id":1669340050,"name":"Whismur","species_id":293,"species_name":"Whismur","form_index":0,"level":4,"gender":"MALE","nature":"RELAXED","hp":19,"max_hp":19,"ivs":{"hp":17,"attack":24,"defense":0,"specialAttack":6,"specialDefense":28,"speed":18},"stats":{"hp":19,"attack":10,"defense":7,"specialAttack":9,"specialDefense":7,"speed":6},"battle_stats":{"hp":19,"attack":10,"defense":7,"specialAttack":9,"specialDefense":7,"speed":6},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":1,"name":"Pound","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":310,"name":"Astonish","move_pp":15,"pp_used":0,"pp_left":15,"is_usable":true}],"current_ability_id":43,"current_ability_name":"Soundproof","passive_ability_id":244,"passive_ability_name":"Punk Rock","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":false}],"__scenario_name":"wild-w4-9d29d2d91b1a","__scenario_source_path":"/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/rl/scenarios/generated-wave-library-v2/wild-w4-9d29d2d91b1a.json"},{"source":{"snapshot_fingerprint":"d6d99dcf7b1f98029cb98f87f01af40a44d7666523a9e120d43cd723e902317f","schema_version":1,"snapshot_file":"data/offline-wave-library/productive-wave-snapshots-v1.jsonl"},"wave_index":4,"battle_type":"WILD","battle_spec":"DEFAULT","battle_style":"SET","is_double_fight":false,"biome":"TOWN","trainer":null,"difficulty_group":"core","difficulty_reason":null,"player_global_modifiers":[],"enemy_global_modifiers":[],"player_team":[{"id":508360419,"name":"Bulbasaur","species_id":1,"species_name":"Bulbasaur","form_index":0,"level":6,"gender":"MALE","nature":"DOCILE","hp":11,"max_hp":22,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":22,"attack":11,"defense":11,"specialAttack":13,"specialDefense":13,"speed":11},"battle_stats":{"hp":22,"attack":11,"defense":11,"specialAttack":13,"specialDefense":13,"speed":11},"stat_stages":[-2,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":8,"pp_left":27,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":6,"pp_left":34,"is_usable":true},{"id":22,"name":"Vine Whip","move_pp":25,"pp_used":7,"pp_left":18,"is_usable":true},{"id":74,"name":"Growth","move_pp":20,"pp_used":0,"pp_left":20,"is_usable":true}],"current_ability_id":65,"current_ability_name":"Overgrow","passive_ability_id":229,"passive_ability_name":"Grassy Surge","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":350750066,"name":"Charmander","species_id":4,"species_name":"Charmander","form_index":0,"level":5,"gender":"MALE","nature":"QUIRKY","hp":19,"max_hp":19,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":19,"attack":10,"defense":9,"specialAttack":11,"specialDefense":10,"speed":12},"battle_stats":{"hp":19,"attack":10,"defense":9,"specialAttack":11,"specialDefense":10,"speed":12},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":10,"name":"Scratch","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":0,"pp_left":40,"is_usable":true},{"id":52,"name":"Ember","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true}],"current_ability_id":66,"current_ability_name":"Blaze","passive_ability_id":125,"passive_ability_name":"Sheer Force","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":2832825535,"name":"Squirtle","species_id":7,"species_name":"Squirtle","form_index":0,"level":5,"gender":"MALE","nature":"HARDY","hp":19,"max_hp":19,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":19,"attack":10,"defense":12,"specialAttack":10,"specialDefense":11,"speed":9},"battle_stats":{"hp":19,"attack":10,"defense":12,"specialAttack":10,"specialDefense":11,"speed":9},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":39,"name":"Tail Whip","move_pp":30,"pp_used":0,"pp_left":30,"is_usable":true},{"id":55,"name":"Water Gun","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true}],"current_ability_id":67,"current_ability_name":"Torrent","passive_ability_id":171,"passive_ability_name":"Bulletproof","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true}],"enemy_team":[{"id":2638605321,"name":"Minccino","species_id":572,"species_name":"Minccino","form_index":0,"level":4,"gender":"MALE","nature":"BRAVE","hp":18,"max_hp":18,"ivs":{"hp":14,"attack":20,"defense":11,"specialAttack":27,"specialDefense":0,"speed":9},"stats":{"hp":18,"attack":10,"defense":8,"specialAttack":9,"specialDefense":8,"speed":9},"battle_stats":{"hp":18,"attack":10,"defense":8,"specialAttack":9,"specialDefense":8,"speed":9},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":1,"name":"Pound","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":270,"name":"Helping Hand","move_pp":20,"pp_used":0,"pp_left":20,"is_usable":true},{"id":608,"name":"Baby-Doll Eyes","move_pp":30,"pp_used":0,"pp_left":30,"is_usable":true}],"current_ability_id":101,"current_ability_name":"Technician","passive_ability_id":169,"passive_ability_name":"Fur Coat","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":false}],"__scenario_name":"wild-w4-d6d99dcf7b1f","__scenario_source_path":"/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/rl/scenarios/generated-wave-library-v2/wild-w4-d6d99dcf7b1f.json"},{"source":{"snapshot_fingerprint":"98d59856abaccbef1a8a68078960dba8129793c93317c2f4f1dc0595c3c1d23a","schema_version":1,"snapshot_file":"data/offline-wave-library/productive-wave-snapshots-v1.jsonl"},"wave_index":6,"battle_type":"WILD","battle_spec":"DEFAULT","battle_style":"SET","is_double_fight":false,"biome":"TOWN","trainer":null,"difficulty_group":"core","difficulty_reason":null,"player_global_modifiers":[],"enemy_global_modifiers":[],"player_team":[{"id":34333334,"name":"Squirtle","species_id":7,"species_name":"Squirtle","form_index":0,"level":6,"gender":"MALE","nature":"HARDY","hp":21,"max_hp":21,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":21,"attack":11,"defense":13,"specialAttack":11,"specialDefense":13,"speed":10},"battle_stats":{"hp":21,"attack":11,"defense":13,"specialAttack":11,"specialDefense":13,"speed":10},"stat_stages":[0,0,0,0,-2,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":5,"pp_left":30,"is_usable":true},{"id":39,"name":"Tail Whip","move_pp":30,"pp_used":10,"pp_left":20,"is_usable":true},{"id":55,"name":"Water Gun","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true},{"id":110,"name":"Withdraw","move_pp":40,"pp_used":0,"pp_left":40,"is_usable":true}],"current_ability_id":67,"current_ability_name":"Torrent","passive_ability_id":171,"passive_ability_name":"Bulletproof","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":1415123469,"name":"Charmander","species_id":4,"species_name":"Charmander","form_index":0,"level":5,"gender":"MALE","nature":"QUIRKY","hp":19,"max_hp":19,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":19,"attack":10,"defense":9,"specialAttack":11,"specialDefense":10,"speed":12},"battle_stats":{"hp":19,"attack":10,"defense":9,"specialAttack":11,"specialDefense":10,"speed":12},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":10,"name":"Scratch","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":0,"pp_left":40,"is_usable":true},{"id":52,"name":"Ember","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true}],"current_ability_id":66,"current_ability_name":"Blaze","passive_ability_id":125,"passive_ability_name":"Sheer Force","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":1587684399,"name":"Bulbasaur","species_id":1,"species_name":"Bulbasaur","form_index":0,"level":6,"gender":"MALE","nature":"DOCILE","hp":0,"max_hp":22,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":22,"attack":11,"defense":11,"specialAttack":13,"specialDefense":13,"speed":11},"battle_stats":{"hp":22,"attack":11,"defense":11,"specialAttack":13,"specialDefense":13,"speed":11},"stat_stages":[0,0,0,0,0,0,0],"status":{"effect":"FAINT","turnCount":0},"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":6,"pp_left":29,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":10,"pp_left":30,"is_usable":true},{"id":22,"name":"Vine Whip","move_pp":25,"pp_used":8,"pp_left":17,"is_usable":true},{"id":74,"name":"Growth","move_pp":20,"pp_used":3,"pp_left":17,"is_usable":true}],"current_ability_id":65,"current_ability_name":"Overgrow","passive_ability_id":229,"passive_ability_name":"Grassy Surge","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true}],"enemy_team":[{"id":3067282160,"name":"Seedot","species_id":273,"species_name":"Seedot","form_index":0,"level":5,"gender":"MALE","nature":"TIMID","hp":20,"max_hp":20,"ivs":{"hp":27,"attack":13,"defense":6,"specialAttack":0,"specialDefense":23,"speed":16},"stats":{"hp":20,"attack":8,"defense":10,"specialAttack":8,"specialDefense":9,"speed":9},"battle_stats":{"hp":20,"attack":8,"defense":10,"specialAttack":8,"specialDefense":9,"speed":9},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":71,"name":"Absorb","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true},{"id":33,"name":"Tackle","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":106,"name":"Harden","move_pp":30,"pp_used":0,"pp_left":30,"is_usable":true}],"current_ability_id":34,"current_ability_name":"Chlorophyll","passive_ability_id":5,"passive_ability_name":"Sturdy","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":false}],"__scenario_name":"wild-w6-98d59856abac","__scenario_source_path":"/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/rl/scenarios/generated-wave-library-v2/wild-w6-98d59856abac.json"},{"source":{"snapshot_fingerprint":"d534d6affd07af7b4e6b2a72c3332f62c24dcfbef7f49e75621ab0ed11db41b2","schema_version":1,"snapshot_file":"data/offline-wave-library/productive-wave-snapshots-v1.jsonl"},"wave_index":6,"battle_type":"WILD","battle_spec":"DEFAULT","battle_style":"SET","is_double_fight":false,"biome":"TOWN","trainer":null,"difficulty_group":"core","difficulty_reason":null,"player_global_modifiers":[],"enemy_global_modifiers":[],"player_team":[{"id":2832825535,"name":"Squirtle","species_id":7,"species_name":"Squirtle","form_index":0,"level":6,"gender":"MALE","nature":"HARDY","hp":10,"max_hp":21,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":21,"attack":11,"defense":13,"specialAttack":11,"specialDefense":13,"speed":10},"battle_stats":{"hp":21,"attack":11,"defense":13,"specialAttack":11,"specialDefense":13,"speed":10},"stat_stages":[0,1,0,0,-4,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":3,"pp_left":32,"is_usable":true},{"id":39,"name":"Tail Whip","move_pp":30,"pp_used":0,"pp_left":30,"is_usable":true},{"id":55,"name":"Water Gun","move_pp":25,"pp_used":3,"pp_left":22,"is_usable":true},{"id":110,"name":"Withdraw","move_pp":40,"pp_used":1,"pp_left":39,"is_usable":true}],"current_ability_id":67,"current_ability_name":"Torrent","passive_ability_id":171,"passive_ability_name":"Bulletproof","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":508360419,"name":"Bulbasaur","species_id":1,"species_name":"Bulbasaur","form_index":0,"level":6,"gender":"MALE","nature":"DOCILE","hp":11,"max_hp":22,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":22,"attack":11,"defense":11,"specialAttack":13,"specialDefense":13,"speed":11},"battle_stats":{"hp":22,"attack":11,"defense":11,"specialAttack":13,"specialDefense":13,"speed":11},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":9,"pp_left":26,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":7,"pp_left":33,"is_usable":true},{"id":22,"name":"Vine Whip","move_pp":25,"pp_used":8,"pp_left":17,"is_usable":true},{"id":74,"name":"Growth","move_pp":20,"pp_used":1,"pp_left":19,"is_usable":true}],"current_ability_id":65,"current_ability_name":"Overgrow","passive_ability_id":229,"passive_ability_name":"Grassy Surge","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":350750066,"name":"Charmander","species_id":4,"species_name":"Charmander","form_index":0,"level":5,"gender":"MALE","nature":"QUIRKY","hp":19,"max_hp":19,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":19,"attack":10,"defense":9,"specialAttack":11,"specialDefense":10,"speed":12},"battle_stats":{"hp":19,"attack":10,"defense":9,"specialAttack":11,"specialDefense":10,"speed":12},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":10,"name":"Scratch","move_pp":35,"pp_used":1,"pp_left":34,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":2,"pp_left":38,"is_usable":true},{"id":52,"name":"Ember","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true}],"current_ability_id":66,"current_ability_name":"Blaze","passive_ability_id":125,"passive_ability_name":"Sheer Force","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true}],"enemy_team":[{"id":1922303186,"name":"Skwovet","species_id":819,"species_name":"Skwovet","form_index":0,"level":5,"gender":"MALE","nature":"HARDY","hp":23,"max_hp":23,"ivs":{"hp":25,"attack":9,"defense":8,"specialAttack":1,"specialDefense":6,"speed":18},"stats":{"hp":23,"attack":10,"defense":10,"specialAttack":8,"specialDefense":8,"speed":8},"battle_stats":{"hp":23,"attack":10,"defense":10,"specialAttack":8,"specialDefense":8,"speed":8},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":39,"name":"Tail Whip","move_pp":30,"pp_used":0,"pp_left":30,"is_usable":true},{"id":44,"name":"Bite","move_pp":25,"pp_used":0,"pp_left":25,"is_usable":true}],"current_ability_id":167,"current_ability_name":"Cheek Pouch","passive_ability_id":139,"passive_ability_name":"Harvest","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":false}],"__scenario_name":"wild-w6-d534d6affd07","__scenario_source_path":"/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/rl/scenarios/generated-wave-library-v2/wild-w6-d534d6affd07.json"},{"source":{"snapshot_fingerprint":"01ee6ca9658e0f26cd932a31db73c8aeae1435663ff8a2737d92bf161e1fc200","schema_version":1,"snapshot_file":"data/offline-wave-library/productive-wave-snapshots-v1.jsonl"},"wave_index":7,"battle_type":"WILD","battle_spec":"DEFAULT","battle_style":"SET","is_double_fight":false,"biome":"TOWN","trainer":null,"difficulty_group":"core","difficulty_reason":null,"player_global_modifiers":[],"enemy_global_modifiers":[],"player_team":[{"id":1415123469,"name":"Charmander","species_id":4,"species_name":"Charmander","form_index":0,"level":5,"gender":"MALE","nature":"QUIRKY","hp":11,"max_hp":19,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":19,"attack":10,"defense":9,"specialAttack":11,"specialDefense":10,"speed":12},"battle_stats":{"hp":19,"attack":10,"defense":9,"specialAttack":11,"specialDefense":10,"speed":12},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":10,"name":"Scratch","move_pp":35,"pp_used":1,"pp_left":34,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":2,"pp_left":38,"is_usable":true},{"id":52,"name":"Ember","move_pp":25,"pp_used":1,"pp_left":24,"is_usable":true}],"current_ability_id":66,"current_ability_name":"Blaze","passive_ability_id":125,"passive_ability_name":"Sheer Force","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":34333334,"name":"Squirtle","species_id":7,"species_name":"Squirtle","form_index":0,"level":6,"gender":"MALE","nature":"HARDY","hp":0,"max_hp":21,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":21,"attack":11,"defense":13,"specialAttack":11,"specialDefense":13,"speed":10},"battle_stats":{"hp":21,"attack":11,"defense":13,"specialAttack":11,"specialDefense":13,"speed":10},"stat_stages":[0,0,0,0,0,0,0],"status":{"effect":"FAINT","turnCount":0},"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":7,"pp_left":28,"is_usable":true},{"id":39,"name":"Tail Whip","move_pp":30,"pp_used":10,"pp_left":20,"is_usable":true},{"id":55,"name":"Water Gun","move_pp":25,"pp_used":2,"pp_left":23,"is_usable":true},{"id":110,"name":"Withdraw","move_pp":40,"pp_used":0,"pp_left":40,"is_usable":true}],"current_ability_id":67,"current_ability_name":"Torrent","passive_ability_id":171,"passive_ability_name":"Bulletproof","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":1587684399,"name":"Bulbasaur","species_id":1,"species_name":"Bulbasaur","form_index":0,"level":6,"gender":"MALE","nature":"DOCILE","hp":0,"max_hp":22,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":22,"attack":11,"defense":11,"specialAttack":13,"specialDefense":13,"speed":11},"battle_stats":{"hp":22,"attack":11,"defense":11,"specialAttack":13,"specialDefense":13,"speed":11},"stat_stages":[0,0,0,0,0,0,0],"status":{"effect":"FAINT","turnCount":0},"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":6,"pp_left":29,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":10,"pp_left":30,"is_usable":true},{"id":22,"name":"Vine Whip","move_pp":25,"pp_used":8,"pp_left":17,"is_usable":true},{"id":74,"name":"Growth","move_pp":20,"pp_used":3,"pp_left":17,"is_usable":true}],"current_ability_id":65,"current_ability_name":"Overgrow","passive_ability_id":229,"passive_ability_name":"Grassy Surge","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true}],"enemy_team":[{"id":3782124605,"name":"Hoothoot","species_id":163,"species_name":"Hoothoot","form_index":0,"level":5,"gender":"MALE","nature":"HARDY","hp":21,"max_hp":21,"ivs":{"hp":16,"attack":22,"defense":29,"specialAttack":9,"specialDefense":1,"speed":29},"stats":{"hp":21,"attack":9,"defense":9,"specialAttack":9,"specialDefense":10,"speed":11},"battle_stats":{"hp":21,"attack":9,"defense":9,"specialAttack":9,"specialDefense":10,"speed":11},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":64,"name":"Peck","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":33,"name":"Tackle","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":0,"pp_left":40,"is_usable":true}],"current_ability_id":51,"current_ability_name":"Keen Eye","passive_ability_id":184,"passive_ability_name":"Aerilate","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":false}],"__scenario_name":"wild-w7-01ee6ca9658e","__scenario_source_path":"/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/rl/scenarios/generated-wave-library-v2/wild-w7-01ee6ca9658e.json"},{"source":{"snapshot_fingerprint":"e1b5db9fa23da164a2fa989c3fafffb90cab0237a405fecfb401473210910aa6","schema_version":1,"snapshot_file":"data/offline-wave-library/productive-wave-snapshots-v1.jsonl"},"wave_index":7,"battle_type":"WILD","battle_spec":"DEFAULT","battle_style":"SET","is_double_fight":false,"biome":"TOWN","trainer":null,"difficulty_group":"core","difficulty_reason":null,"player_global_modifiers":[],"enemy_global_modifiers":[],"player_team":[{"id":350750066,"name":"Charmander","species_id":4,"species_name":"Charmander","form_index":0,"level":5,"gender":"MALE","nature":"QUIRKY","hp":19,"max_hp":19,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":19,"attack":10,"defense":9,"specialAttack":11,"specialDefense":10,"speed":12},"battle_stats":{"hp":19,"attack":10,"defense":9,"specialAttack":11,"specialDefense":10,"speed":12},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":10,"name":"Scratch","move_pp":35,"pp_used":1,"pp_left":34,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":3,"pp_left":37,"is_usable":true},{"id":52,"name":"Ember","move_pp":25,"pp_used":2,"pp_left":23,"is_usable":true}],"current_ability_id":66,"current_ability_name":"Blaze","passive_ability_id":125,"passive_ability_name":"Sheer Force","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":508360419,"name":"Bulbasaur","species_id":1,"species_name":"Bulbasaur","form_index":0,"level":6,"gender":"MALE","nature":"DOCILE","hp":11,"max_hp":22,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":22,"attack":11,"defense":11,"specialAttack":13,"specialDefense":13,"speed":11},"battle_stats":{"hp":22,"attack":11,"defense":11,"specialAttack":13,"specialDefense":13,"speed":11},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":9,"pp_left":26,"is_usable":true},{"id":45,"name":"Growl","move_pp":40,"pp_used":7,"pp_left":33,"is_usable":true},{"id":22,"name":"Vine Whip","move_pp":25,"pp_used":8,"pp_left":17,"is_usable":true},{"id":74,"name":"Growth","move_pp":20,"pp_used":1,"pp_left":19,"is_usable":true}],"current_ability_id":65,"current_ability_name":"Overgrow","passive_ability_id":229,"passive_ability_name":"Grassy Surge","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true},{"id":2832825535,"name":"Squirtle","species_id":7,"species_name":"Squirtle","form_index":0,"level":6,"gender":"MALE","nature":"HARDY","hp":0,"max_hp":21,"ivs":{"hp":10,"attack":10,"defense":10,"specialAttack":10,"specialDefense":10,"speed":10},"stats":{"hp":21,"attack":11,"defense":13,"specialAttack":11,"specialDefense":13,"speed":10},"battle_stats":{"hp":21,"attack":11,"defense":13,"specialAttack":11,"specialDefense":13,"speed":10},"stat_stages":[0,0,0,0,0,0,0],"status":{"effect":"FAINT","turnCount":0},"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":3,"pp_left":32,"is_usable":true},{"id":39,"name":"Tail Whip","move_pp":30,"pp_used":0,"pp_left":30,"is_usable":true},{"id":55,"name":"Water Gun","move_pp":25,"pp_used":4,"pp_left":21,"is_usable":true},{"id":110,"name":"Withdraw","move_pp":40,"pp_used":1,"pp_left":39,"is_usable":true}],"current_ability_id":67,"current_ability_name":"Torrent","passive_ability_id":171,"passive_ability_name":"Bulletproof","ability_suppressed":false,"held_items":[],"is_on_field":false,"active_field_slot_index":null,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":true}],"enemy_team":[{"id":4116672499,"name":"Wurmple","species_id":265,"species_name":"Wurmple","form_index":0,"level":6,"gender":"MALE","nature":"HASTY","hp":22,"max_hp":22,"ivs":{"hp":26,"attack":21,"defense":30,"specialAttack":27,"specialDefense":31,"speed":19},"stats":{"hp":22,"attack":11,"defense":9,"specialAttack":9,"specialDefense":10,"speed":9},"battle_stats":{"hp":22,"attack":11,"defense":9,"specialAttack":9,"specialDefense":10,"speed":9},"stat_stages":[0,0,0,0,0,0,0],"status":null,"moveset":[{"id":33,"name":"Tackle","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true},{"id":81,"name":"String Shot","move_pp":40,"pp_used":0,"pp_left":40,"is_usable":true},{"id":40,"name":"Poison Sting","move_pp":35,"pp_used":0,"pp_left":35,"is_usable":true}],"current_ability_id":19,"current_ability_name":"Shield Dust","passive_ability_id":82,"passive_ability_name":"Gluttony","ability_suppressed":false,"held_items":[],"is_on_field":true,"active_field_slot_index":0,"is_boss":false,"boss_segments":0,"is_shiny":false,"player":false}],"__scenario_name":"wild-w7-e1b5db9fa23d","__scenario_source_path":"/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/rl/scenarios/generated-wave-library-v2/wild-w7-e1b5db9fa23d.json"}];
+-const SEEDS = [null];
+-const EPISODES_PER_SEED = 1;
+-const MAX_STEPS_PER_EPISODE = 3;
+-const POLICY = {"type":"first_valid"};
+-const OUTPUT_PATH = "/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/rl/combat/train-wave-library-v2-smoke.jsonl";
+-const TEST_TIMEOUT_MS = 180000;
+-const REWARD_SWITCH_PENALTY = -0.05;
+-const REWARD_STEP_PENALTY = -0.05;
+-const REWARD_CONSECUTIVE_SWITCH_PENALTY = -0.25;
+-const REWARD_DIRECT_BACKSWITCH_PENALTY = -0.35;
+-const REWARD_CONSECUTIVE_SWITCH_PENALTY_SCALE = -0.15;
+-const REWARD_ENEMY_TEAM_HP_DAMAGE_SCALE = 2;
+-const REWARD_PLAYER_TEAM_HP_LOSS_SCALE = -2.5;
+-const REWARD_ENEMY_FAINT_BONUS = 1.5;
+-const REWARD_PLAYER_FAINT_PENALTY = -4;
+-const REWARD_ENEMY_TEAM_DEFEAT_BONUS = 3;
+-const REWARD_PLAYER_TEAM_DEFEAT_PENALTY = -6;
+-const REWARD_ALIVE_TEAM_MEMBER_WIN_BONUS = 1;
+-const REWARD_REMAINING_TEAM_HP_RATIO_WIN_BONUS_SCALE = 2;
+-const TERMINAL_ON_EGG_LAPSE = true;
+-const PROGRESS_PAUSE_ENABLED = false;
+-const PROGRESS_PAUSE_TARGET_TRANSITIONS = 0;
+-const PROGRESS_PAUSE_PERCENT_STEP = 10;
+-const PROGRESS_PAUSE_MS = 4000;
+-const STATE_VARIANTS = [];
+-const QUIET_GAME_LOGS = true;
+-const STEP_TIMEOUT_MS = Number.isFinite(POLICY.step_timeout_ms) && POLICY.step_timeout_ms > 0
+-  ? POLICY.step_timeout_ms
+-  : 15000;
+-const MOVE_ACTIONS = 4;
+-const SWITCH_ACTIONS = 6;
+-const ACTION_DIM = MOVE_ACTIONS + SWITCH_ACTIONS;
+-const CRITICAL_HP_RATIO = 0.1;
+-const HALF_HP_RATIO = 0.5;
+-const RAW_CONSOLE_LOG = console.log.bind(console);
+-
+-function shouldSuppressGameLog(args: unknown[]): boolean {
+-  const joined = args
+-    .map(value => typeof value === "string" ? value : JSON.stringify(value))
+-    .join(" ")
+-    .replace(/[[0-9;]*m/g, "")
+-    .trimStart();
+-
+-  const noisyPrefixes = [
+-    "Start Phase ",
+-    "setMode ",
+-    "Move Pool:",
+-    "Move Scores:",
+-    "Sorted Move Pool:",
+-    "Chosen Move:",
+-    "Move:",
+-    "Player Pokemon:",
+-    "Pokemon:",
+-    "Stats (IVs):",
+-    "Ability:",
+-    "Moveset:",
+-    "crit stage:",
+-    "base damage",
+-    "damage ",
+-    "COMMON",
+-    "UNCOMMON",
+-    "RARE",
+-    "EPIC",
+-    "TACKLE NORMAL",
+-    "ASTONISH NORMAL",
+-    "use seasonal splash messages",
+-  ];
+-
+-  return noisyPrefixes.some(prefix => joined.startsWith(prefix));
+-}
+-
+-if (QUIET_GAME_LOGS) {
+-  console.log = (...args: unknown[]) => {
+-    if (shouldSuppressGameLog(args)) {
+-      return;
+-    }
+-    RAW_CONSOLE_LOG(...args);
+-  };
+-}
+-
+-function getHpRatio(hp: number, maxHp: number): number {
+-  if (maxHp <= 0) return 0;
+-  return Math.max(0, Math.min(1, hp / maxHp));
+-}
+-
+-function bucketByThresholds(value: number, thresholds: number[]): number {
+-  for (let idx = 0; idx < thresholds.length; idx += 1) {
+-    if (value <= thresholds[idx]) {
+-      return idx;
+-    }
+-  }
+-  return thresholds.length;
+-}
+-
+-function hpBucket(hpRatio: number): number {
+-  return bucketByThresholds(hpRatio, [0.05, 0.2, 0.4, 0.6, 0.8]);
+-}
+-
+-function hpDiffBucket(diff: number): number {
+-  return bucketByThresholds(diff, [-0.6, -0.25, -0.1, 0.1, 0.25, 0.6]);
+-}
+-
+-function levelGapBucket(levelGap: number): number {
+-  return bucketByThresholds(levelGap, [-15, -7, -2, 2, 7, 15]);
+-}
+-
+-function powerBucket(power: number): number {
+-  if (power <= 0) return 0;
+-  if (power <= 40) return 1;
+-  if (power <= 70) return 2;
+-  if (power <= 100) return 3;
+-  return 4;
+-}
+-
+-function effectivenessBucket(effectiveness: number): number {
+-  if (effectiveness <= 0) return 0;
+-  if (effectiveness <= 0.5) return 1;
+-  if (effectiveness <= 1.0) return 2;
+-  if (effectiveness <= 2.0) return 3;
+-  return 4;
+-}
+-
+-function countBucket(value: number): number {
+-  if (value <= 0) return 0;
+-  if (value === 1) return 1;
+-  if (value <= 3) return 2;
+-  return 3;
+-}
+-
+-function isScenarioV2(scenario: any): boolean {
+-  return Number.isInteger(scenario?.wave_index)
+-    && Array.isArray(scenario?.enemy_team)
+-    && scenario?.source != null;
+-}
+-
+-function getScenarioWaveIndex(scenario: any): number | null {
+-  if (Number.isInteger(scenario?.wave_index)) {
+-    return Number(scenario.wave_index);
+-  }
+-  if (Number.isInteger(scenario?.wave)) {
+-    return Number(scenario.wave);
+-  }
+-  return null;
+-}
+-
+-function getScenarioBattleTypeName(scenario: any): string {
+-  if (typeof scenario?.battle_type === "string" && scenario.battle_type.length > 0) {
+-    return scenario.battle_type.toUpperCase();
+-  }
+-  return "WILD";
+-}
+-
+-function mapBattleTypeName(value: string): BattleType {
+-  if (value === "TRAINER") {
+-    return BattleType.TRAINER;
+-  }
+-  return BattleType.WILD;
+-}
+-
+-function mapBattleStyleName(value: unknown): BattleStyle | null {
+-  if (typeof value !== "string") {
+-    return null;
+-  }
+-  const normalized = value.toUpperCase();
+-  if (normalized === "SET") {
+-    return BattleStyle.SET;
+-  }
+-  if (normalized === "SWITCH") {
+-    return BattleStyle.SWITCH;
+-  }
+-  return null;
+-}
+-
+-function inferScenarioTrainerBattle(scenario: any): boolean {
+-  const battleType = typeof scenario?.battle_type === "string"
+-    ? scenario.battle_type.toLowerCase()
+-    : "";
+-  if (battleType === "trainer") {
+-    return true;
+-  }
+-
+-  const sourcePath = typeof scenario?.__scenario_source_path === "string"
+-    ? scenario.__scenario_source_path.toLowerCase()
+-    : "";
+-  const scenarioName = typeof scenario?.__scenario_name === "string"
+-    ? scenario.__scenario_name.toLowerCase()
+-    : "";
+-
+-  return sourcePath.includes(path.sep + "trainer" + path.sep) || scenarioName.includes("trainer-");
+-}
+-
+-function setPokemonHpRatio(pokemon: any, ratio: number) {
+-  if (!pokemon || !Number.isFinite(ratio)) {
+-    return;
+-  }
+-  const maxHp = pokemon.getMaxHp();
+-  if (!Number.isFinite(maxHp) || maxHp <= 0) {
+-    return;
+-  }
+-  let nextHp = Math.round(maxHp * ratio);
+-  if (ratio > 0 && nextHp <= 0) {
+-    nextHp = 1;
+-  }
+-  pokemon.hp = Math.max(0, Math.min(maxHp, nextHp));
+-}
+-
+-function setPokemonHpAbsolute(pokemon: any, hp: number) {
+-  if (!pokemon || !Number.isFinite(hp)) {
+-    return;
+-  }
+-  const maxHp = pokemon.getMaxHp();
+-  if (!Number.isFinite(maxHp) || maxHp <= 0) {
+-    return;
+-  }
+-  const nextHp = Math.max(0, Math.min(maxHp, Math.round(hp)));
+-  pokemon.hp = nextHp;
+-}
+-
+-function applyScenarioHpRatios(game: GameManager, scenario: any) {
+-  const party = game.scene.getPlayerParty();
+-  const scenarioTeam = Array.isArray(scenario.player_team) ? scenario.player_team : [];
+-  for (let idx = 0; idx < scenarioTeam.length; idx += 1) {
+-    const ratio = scenarioTeam[idx]?.hp_ratio;
+-    if (Number.isFinite(ratio)) {
+-      setPokemonHpRatio(party[idx], Number(ratio));
+-    }
+-  }
+-
+-  const enemyRatio = scenario?.enemy?.hp_ratio;
+-  if (Number.isFinite(enemyRatio)) {
+-    setPokemonHpRatio(game.scene.getEnemyPokemon(), Number(enemyRatio));
+-  }
+-}
+-
+-function applyScenarioMaterializedState(game: GameManager, scenario: any) {
+-  if (!isScenarioV2(scenario)) {
+-    return;
+-  }
+-
+-  const playerParty = game.scene.getPlayerParty();
+-  const enemyParty = Array.isArray(game.scene.currentBattle?.enemyParty)
+-    ? game.scene.currentBattle.enemyParty
+-    : [];
+-  const scenarioPlayerTeam = Array.isArray(scenario.player_team) ? scenario.player_team : [];
+-  const scenarioEnemyTeam = Array.isArray(scenario.enemy_team) ? scenario.enemy_team : [];
+-
+-  if (playerParty.length < scenarioPlayerTeam.length) {
+-    throw new Error("Scenario player_team exceeds initialized player party size");
+-  }
+-  if (enemyParty.length < scenarioEnemyTeam.length) {
+-    throw new Error("Scenario enemy_team exceeds initialized enemy party size");
+-  }
+-
+-  const activePlayerSlots = scenarioPlayerTeam
+-    .map((member: any, index: number) => member?.is_on_field === true ? index : -1)
+-    .filter((index: number) => index >= 0);
+-  const activeEnemySlots = scenarioEnemyTeam
+-    .map((member: any, index: number) => member?.is_on_field === true ? index : -1)
+-    .filter((index: number) => index >= 0);
+-
+-  if (activePlayerSlots.length !== 1 || activePlayerSlots[0] !== 0) {
+-    throw new Error("V2 collector currently requires player active slot 0 in single battles");
+-  }
+-  if (activeEnemySlots.length !== 1 || activeEnemySlots[0] !== 0) {
+-    throw new Error("V2 collector currently requires enemy active slot 0 in single battles");
+-  }
+-
+-  for (let idx = 0; idx < scenarioPlayerTeam.length; idx += 1) {
+-    patchPokemonFromScenario(playerParty[idx], scenarioPlayerTeam[idx], true);
+-  }
+-  for (let idx = 0; idx < scenarioEnemyTeam.length; idx += 1) {
+-    patchPokemonFromScenario(enemyParty[idx], scenarioEnemyTeam[idx], false);
+-  }
+-}
+-
+-function patchPokemonFromScenario(pokemon: any, member: any, player: boolean) {
+-  if (!pokemon || !member) {
+-    return;
+-  }
+-
+-  pokemon.id = Number(member.id);
+-  pokemon.name = typeof member.name === "string" ? member.name : pokemon.name;
+-  pokemon.species = getPokemonSpecies(Number(member.species_id));
+-  pokemon.formIndex = Number.isInteger(member.form_index) ? Number(member.form_index) : 0;
+-  pokemon.level = Number(member.level);
+-  if (member.gender != null) {
+-    pokemon.gender = member.gender;
+-  }
+-  pokemon.ivs = toStatArray(member.ivs);
+-
+-  const natureValue = typeof member.nature === "string"
+-    ? Nature[member.nature as keyof typeof Nature]
+-    : null;
+-  if (Number.isInteger(natureValue)) {
+-    pokemon.setNature(natureValue as Nature);
+-  }
+-
+-  pokemon.passive = member.passive_ability_id != null;
+-  pokemon.shiny = member.is_shiny === true;
+-  pokemon.variant = pokemon.shiny ? (pokemon.variant ?? 0) : 0;
+-  pokemon.calculateStats();
+-  pokemon.hp = Number(member.hp);
+-
+-  pokemon.moveset = [];
+-  if (Array.isArray(member.moveset)) {
+-    member.moveset.slice(0, 4).forEach((move: any, index: number) => {
+-      pokemon.setMove(index, Number(move.id));
+-      if (pokemon.moveset[index]) {
+-        pokemon.moveset[index].ppUsed = Number(move.pp_used ?? 0);
+-      }
+-    });
+-  }
+-
+-  if (member.current_ability_id != null && allAbilities[Number(member.current_ability_id)]) {
+-    pokemon.setTempAbility(allAbilities[Number(member.current_ability_id)]);
+-  }
+-  if (member.passive_ability_id != null && allAbilities[Number(member.passive_ability_id)]) {
+-    pokemon.setTempAbility(allAbilities[Number(member.passive_ability_id)], true);
+-  }
+-  pokemon.summonData.abilitySuppressed = member.ability_suppressed === true;
+-
+-  pokemon.summonData.statStages = Array.isArray(member.stat_stages)
+-    ? member.stat_stages.map((value: any) => Number(value))
+-    : [0, 0, 0, 0, 0, 0, 0];
+-  pokemon.summonData.stats = member.battle_stats != null
+-    ? toStatArray(member.battle_stats)
+-    : [0, 0, 0, 0, 0, 0];
+-
+-  if (member.status?.effect) {
+-    const statusEffect = StatusEffect[member.status.effect as keyof typeof StatusEffect];
+-    if (Number.isInteger(statusEffect)) {
+-      if (statusEffect === StatusEffect.FAINT) {
+-        pokemon.hp = 0;
+-      }
+-      pokemon.doSetStatus(statusEffect as StatusEffect, Number(member.status.turnCount ?? 0));
+-    } else {
+-      pokemon.status = null;
+-    }
+-  } else {
+-    pokemon.status = null;
+-  }
+-
+-  if (typeof pokemon.setBoss === "function") {
+-    if (!player && member.is_boss === true) {
+-      pokemon.setBoss(true, Number(member.boss_segments ?? 0));
+-    } else if (!player) {
+-      pokemon.setBoss(false, 0);
+-    }
+-  }
+-}
+-
+-function toStatArray(stats: any): number[] {
+-  return [
+-    Number(stats?.hp ?? 0),
+-    Number(stats?.attack ?? 0),
+-    Number(stats?.defense ?? 0),
+-    Number(stats?.specialAttack ?? 0),
+-    Number(stats?.specialDefense ?? 0),
+-    Number(stats?.speed ?? 0),
+-  ];
+-}
+-
+-function hashString(value: string): number {
+-  let hash = 0;
+-  for (let idx = 0; idx < value.length; idx += 1) {
+-    hash = ((hash * 31) + value.charCodeAt(idx)) >>> 0;
+-  }
+-  return hash;
+-}
+-
+-function pickDeterministicBenchIndex(game: GameManager, token: string): number | null {
+-  const party = game.scene.getPlayerParty();
+-  const candidates = party
+-    .map((member, index) => ({ member, index }))
+-    .filter(entry => entry.index > 0 && !!entry.member);
+-  if (candidates.length === 0) {
+-    return null;
+-  }
+-  const selected = hashString(token) % candidates.length;
+-  return candidates[selected].index;
+-}
+-
+-function applyStateVariant(game: GameManager, scenario: any, variantId: string | null, episodeToken: string) {
+-  if (!variantId) {
+-    return;
+-  }
+-  const party = game.scene.getPlayerParty();
+-  const enemy = game.scene.getEnemyPokemon();
+-
+-  switch (variantId) {
+-    case "all_full":
+-      party.forEach(member => setPokemonHpRatio(member, 1.0));
+-      setPokemonHpRatio(enemy, 1.0);
+-      break;
+-    case "lead_critical_bench_full":
+-      party.forEach((member, index) => setPokemonHpRatio(member, index === 0 ? CRITICAL_HP_RATIO : 1.0));
+-      setPokemonHpRatio(enemy, 1.0);
+-      break;
+-    case "lead_1hp_bench_full":
+-      party.forEach((member, index) => {
+-        if (index === 0) {
+-          setPokemonHpAbsolute(member, 1);
+-          return;
+-        }
+-        setPokemonHpRatio(member, 1.0);
+-      });
+-      setPokemonHpRatio(enemy, 1.0);
+-      break;
+-    case "lead_critical_plus_random_bench_critical": {
+-      party.forEach(member => setPokemonHpRatio(member, 1.0));
+-      setPokemonHpRatio(enemy, 1.0);
+-      setPokemonHpRatio(party[0], CRITICAL_HP_RATIO);
+-      const benchIndex = pickDeterministicBenchIndex(game, episodeToken + "::random_bench");
+-      if (benchIndex != null) {
+-        setPokemonHpRatio(party[benchIndex], CRITICAL_HP_RATIO);
+-      }
+-      break;
+-    }
+-    case "all_critical":
+-      party.forEach(member => setPokemonHpRatio(member, CRITICAL_HP_RATIO));
+-      setPokemonHpRatio(enemy, 1.0);
+-      break;
+-    case "lead_half_bench_full":
+-      party.forEach((member, index) => setPokemonHpRatio(member, index === 0 ? HALF_HP_RATIO : 1.0));
+-      setPokemonHpRatio(enemy, 1.0);
+-      break;
+-    case "enemy_half":
+-      party.forEach(member => setPokemonHpRatio(member, 1.0));
+-      setPokemonHpRatio(enemy, HALF_HP_RATIO);
+-      break;
+-    case "enemy_critical":
+-      party.forEach(member => setPokemonHpRatio(member, 1.0));
+-      setPokemonHpRatio(enemy, CRITICAL_HP_RATIO);
+-      break;
+-    default:
+-      throw new Error("Unknown state variant: " + variantId);
+-  }
+-}
+-
+-function selectEpisodeStateVariant(globalEpisodeIndex: number): string | null {
+-  if (!Array.isArray(STATE_VARIANTS) || STATE_VARIANTS.length === 0) {
+-    return null;
+-  }
+-  return STATE_VARIANTS[globalEpisodeIndex % STATE_VARIANTS.length];
+-}
+-
+-function buildObservation(game: GameManager, scenario: any) {
+-  const player = game.scene.getPlayerPokemon();
+-  const enemy = game.scene.getEnemyPokemon();
+-  if (!player || !enemy) {
+-    throw new Error("Missing active battlers while building observation");
+-  }
+-
+-  const playerTypes = player
+-    .getTypes(true, true)
+-    .filter(type => Number.isInteger(type) && type >= 0)
+-    .slice(0, 2);
+-  const enemyTypes = enemy
+-    .getTypes(true, true)
+-    .filter(type => Number.isInteger(type) && type >= 0)
+-    .slice(0, 2);
+-
+-  const moveSet = player.getMoveset().slice(0, 4);
+-  const playerHpRatio = getHpRatio(player.hp, player.getMaxHp());
+-  const enemyHpRatio = getHpRatio(enemy.hp, enemy.getMaxHp());
+-  const moves = player.getMoveset().slice(0, 4).map(move => {
+-    const moveData = move.getMove();
+-    const ppMax = move.getMovePp();
+-    const ppUsed = Number.isFinite(move.ppUsed) ? move.ppUsed : 0;
+-    const ppLeft = Math.max(0, ppMax - ppUsed);
+-    const ppRatio = ppMax > 0 ? ppLeft / ppMax : 0;
+-    const effectiveness = enemy.getMoveEffectiveness(player, moveData, false, true);
+-    const moveType = moveData.type;
+-    const stab = playerTypes.includes(moveType) ? 1 : 0;
+-    return {
+-      available: ppLeft > 0 ? 1 : 0,
+-      power_bucket: powerBucket(Number.isFinite(moveData.power) ? moveData.power : 0),
+-      effectiveness_bucket: effectivenessBucket(Number.isFinite(effectiveness) ? effectiveness : 1),
+-      stab,
+-      pp_low: ppLeft > 0 && ppRatio <= 0.2 ? 1 : 0,
+-    };
+-  });
+-
+-  const actionMask = Array.from({ length: ACTION_DIM }, () => 0);
+-  for (let idx = 0; idx < moves.length; idx += 1) {
+-    actionMask[idx] = moves[idx].available;
+-  }
+-
+-  const party = game.scene.getPlayerParty();
+-  const switchableMembers: Array<{ hpRatio: number; bestEffectiveness: number }> = [];
+-  const partySlots = Array.from({ length: 6 }, (_, slot) => {
+-    const member = party[slot];
+-    if (!member) {
+-      return {
+-        present: 0,
+-        active: 0,
+-        fainted: 0,
+-        hp_ratio: 0,
+-        level: 0,
+-        types: [],
+-      };
+-    }
+-
+-    const hpRatio = getHpRatio(member.hp, member.getMaxHp());
+-    const types = member
+-      .getTypes(true, true)
+-      .filter(type => Number.isInteger(type) && type >= 0)
+-      .slice(0, 2);
+-
+-    const canSwitch = !member.isOnField() && !member.isFainted() && member.isAllowedInBattle();
+-    actionMask[MOVE_ACTIONS + slot] = canSwitch ? 1 : 0;
+-    if (canSwitch) {
+-      const bestEffectiveness = member.getMoveset()
+-        .slice(0, 4)
+-        .reduce((best, move) => {
+-          const moveData = move.getMove();
+-          const ppMax = move.getMovePp();
+-          const ppUsed = Number.isFinite(move.ppUsed) ? move.ppUsed : 0;
+-          const ppLeft = Math.max(0, ppMax - ppUsed);
+-          if (ppLeft <= 0) return best;
+-          const effectiveness = enemy.getMoveEffectiveness(member, moveData, false, true);
+-          return Math.max(best, Number.isFinite(effectiveness) ? effectiveness : 1);
+-        }, 0);
+-      switchableMembers.push({ hpRatio, bestEffectiveness });
+-    }
+-
+-    return {
+-      present: 1,
+-      active: member.isOnField() ? 1 : 0,
+-      fainted: member.isFainted() ? 1 : 0,
+-      hp_ratio: hpRatio,
+-      level: member.level,
+-      types,
+-    };
+-  });
+-  const aliveBenchCount = switchableMembers.length;
+-  const healthyBenchCount = switchableMembers.filter(member => member.hpRatio > 0.5).length;
+-  const bestSwitchEffectiveness = switchableMembers.reduce((best, member) => Math.max(best, member.bestEffectiveness), 0);
+-  const lowestSwitchHp = switchableMembers.length > 0
+-    ? switchableMembers.reduce((lowest, member) => Math.min(lowest, member.hpRatio), 1)
+-    : 1;
+-  const worstSwitchRiskBucket = switchableMembers.length === 0
+-    ? 0
+-    : lowestSwitchHp <= 0.25 ? 3 : lowestSwitchHp <= 0.5 ? 2 : lowestSwitchHp <= 0.75 ? 1 : 0;
+-  const battle = game.scene.currentBattle as any;
+-  const isTrainerBattle = battle?.trainer != null || inferScenarioTrainerBattle(scenario);
+-
+-  return {
+-    wave_index: game.scene.currentBattle.waveIndex,
+-    player_hp_ratio: playerHpRatio,
+-    enemy_hp_ratio: enemyHpRatio,
+-    player_hp_bucket: hpBucket(playerHpRatio),
+-    enemy_hp_bucket: hpBucket(enemyHpRatio),
+-    hp_diff_bucket: hpDiffBucket(playerHpRatio - enemyHpRatio),
+-    level_gap_bucket: levelGapBucket(player.level - enemy.level),
+-    is_trainer_battle: isTrainerBattle ? 1 : 0,
+-    alive_bench_count_bucket: countBucket(aliveBenchCount),
+-    healthy_bench_count_bucket: countBucket(healthyBenchCount),
+-    best_switch_matchup_bucket: effectivenessBucket(bestSwitchEffectiveness),
+-    worst_switch_risk_bucket: worstSwitchRiskBucket,
+-    moves,
+-    party_slots: partySlots,
+-    action_mask: actionMask,
+-  };
+-}
+-
+-function getPlayerTeamHpRatio(game: GameManager): number {
+-  const party = game.scene.getPlayerParty();
+-  let totalHp = 0;
+-  let totalMaxHp = 0;
+-
+-  for (const member of party) {
+-    if (!member || typeof member.getMaxHp !== "function") {
+-      continue;
+-    }
+-    const maxHp = member.getMaxHp();
+-    if (!Number.isFinite(maxHp) || maxHp <= 0) {
+-      continue;
+-    }
+-    totalHp += Math.max(0, Number.isFinite(member.hp) ? member.hp : 0);
+-    totalMaxHp += maxHp;
+-  }
+-
+-  if (totalMaxHp <= 0) {
+-    return 0;
+-  }
+-
+-  return Math.max(0, Math.min(1, totalHp / totalMaxHp));
+-}
+-
+-function getEnemyTeamHpRatio(game: GameManager): number {
+-  const battle = game.scene.currentBattle as any;
+-  const enemyParty = Array.isArray(battle?.enemyParty) ? battle.enemyParty : [];
+-  let totalHp = 0;
+-  let totalMaxHp = 0;
+-
+-  for (const member of enemyParty) {
+-    if (!member || typeof member.getMaxHp !== "function") {
+-      continue;
+-    }
+-    const maxHp = member.getMaxHp();
+-    if (!Number.isFinite(maxHp) || maxHp <= 0) {
+-      continue;
+-    }
+-    totalHp += Math.max(0, Number.isFinite(member.hp) ? member.hp : 0);
+-    totalMaxHp += maxHp;
+-  }
+-
+-  if (totalMaxHp <= 0) {
+-    return 0;
+-  }
+-
+-  return Math.max(0, Math.min(1, totalHp / totalMaxHp));
+-}
+-
+-function countAlivePlayerTeamMembers(game: GameManager): number {
+-  return game.scene
+-    .getPlayerParty()
+-    .filter(member => !!member && !member.isFainted() && member.isAllowedInBattle())
+-    .length;
+-}
+-
+-function findActivePartySlotIndex(observation: any): number {
+-  const partySlots = Array.isArray(observation?.party_slots) ? observation.party_slots : [];
+-  for (let idx = 0; idx < partySlots.length; idx += 1) {
+-    if (partySlots[idx]?.active === 1) {
+-      return idx;
+-    }
+-  }
+-  return -1;
+-}
+-
+-function deriveTerminalNextState(state: any, enemyTeamDefeated: boolean, playerTeamDefeated: boolean) {
+-  const terminalMask = Array.from({ length: ACTION_DIM }, () => 0);
+-  return {
+-    ...state,
+-    player_hp_ratio: playerTeamDefeated ? 0 : state.player_hp_ratio,
+-    enemy_hp_ratio: enemyTeamDefeated ? 0 : state.enemy_hp_ratio,
+-    player_hp_bucket: playerTeamDefeated ? 0 : state.player_hp_bucket,
+-    enemy_hp_bucket: enemyTeamDefeated ? 0 : state.enemy_hp_bucket,
+-    action_mask: terminalMask,
+-  };
+-}
+-
+-function selectMoveByIndex(game: GameManager, actionIndex: number) {
+-  game.onNextPrompt("CommandPhase", UiMode.COMMAND, () => {
+-    game.scene.ui.setMode(
+-      UiMode.FIGHT,
+-      (game.scene.phaseManager.getCurrentPhase() as CommandPhase).getFieldIndex(),
+-    );
+-  });
+-
+-  game.onNextPrompt("CommandPhase", UiMode.FIGHT, () => {
+-    (game.scene.phaseManager.getCurrentPhase() as CommandPhase).handleCommand(
+-      Command.FIGHT,
+-      actionIndex,
+-      MoveUseMode.NORMAL,
+-    );
+-  });
+-
+-  game.selectTarget(actionIndex, BattlerIndex.ENEMY);
+-}
+-
+-function selectSwitchByPartyIndex(game: GameManager, partyIndex: number) {
+-  game.doSwitchPokemon(partyIndex);
+-}
+-
+-function computeScheduledEpsilon(globalEpisodeIndex: number): number {
+-  if (POLICY.type !== "epsilon_random") {
+-    return Number.isFinite(POLICY.epsilon) ? POLICY.epsilon : 1.0;
+-  }
+-
+-  const start = Number.isFinite(POLICY.start_epsilon) ? POLICY.start_epsilon : 1.0;
+-  const end = Number.isFinite(POLICY.end_epsilon) ? POLICY.end_epsilon : 0.05;
+-  const decayEpisodes = Number.isFinite(POLICY.decay_episodes) && POLICY.decay_episodes > 0
+-    ? POLICY.decay_episodes
+-    : 100;
+-
+-  const progress = Math.max(0, Math.min(1, globalEpisodeIndex / decayEpisodes));
+-  return start + (end - start) * progress;
+-}
+-
+-function sampleWeightedAction(valid: number[]): number {
+-  const switchWeight = Number.isFinite(POLICY.switch_action_weight) && POLICY.switch_action_weight >= 0
+-    ? POLICY.switch_action_weight
+-    : 0.25;
+-
+-  const weights = valid.map(action => (action < MOVE_ACTIONS ? 1.0 : switchWeight));
+-  const weightSum = weights.reduce((acc, value) => acc + value, 0);
+-  if (weightSum <= 0) {
+-    return valid[Math.floor(Math.random() * valid.length)];
+-  }
+-
+-  let roll = Math.random() * weightSum;
+-  for (let i = 0; i < valid.length; i += 1) {
+-    roll -= weights[i];
+-    if (roll <= 0) {
+-      return valid[i];
+-    }
+-  }
+-  return valid[valid.length - 1];
+-}
+-
+-function runExternalPolicy(state: any, actionMask: number[]): number {
+-  if (!Array.isArray(POLICY.command) || POLICY.command.length === 0) {
+-    throw new Error("POLICY.command must be a non-empty string array for external_command");
+-  }
+-
+-  const [command, ...args] = POLICY.command;
+-  const timeoutMs = Number.isFinite(POLICY.timeout_ms) && POLICY.timeout_ms > 0
+-    ? POLICY.timeout_ms
+-    : 5000;
+-  const env = typeof POLICY.env === "object" && POLICY.env !== null
+-    ? { ...process.env, ...POLICY.env }
+-    : process.env;
+-  const result = spawnSyncChild(command, args, {
+-    input: JSON.stringify({ state, action_mask: actionMask }),
+-    encoding: "utf8",
+-    env,
+-    timeout: timeoutMs,
+-  });
+-
+-  if (result.error) {
+-    throw result.error;
+-  }
+-  if (result.status !== 0) {
+-    throw new Error(
+-      "External policy command failed with status " + result.status + ": " + (result.stderr ?? ""),
+-    );
+-  }
+-
+-  let parsed;
+-  try {
+-    parsed = JSON.parse(result.stdout ?? "");
+-  } catch (error) {
+-    throw new Error("Failed to parse external policy response as JSON: " + String(error));
+-  }
+-
+-  const action = parsed?.action;
+-  return Number.isInteger(action) ? action : -1;
+-}
+-
+-function selectActionFromMask(state: any, actionMask: number[], globalEpisodeIndex: number): number {
+-  const valid = actionMask
+-    .map((value, index) => ({ value, index }))
+-    .filter(entry => entry.value === 1)
+-    .map(entry => entry.index);
+-
+-  if (valid.length === 0) {
+-    return -1;
+-  }
+-
+-  if (POLICY.type === "random") {
+-    return sampleWeightedAction(valid);
+-  }
+-
+-  if (POLICY.type === "epsilon_random") {
+-    const epsilon = computeScheduledEpsilon(globalEpisodeIndex);
+-    if (Math.random() < epsilon) {
+-      return sampleWeightedAction(valid);
+-    }
+-    return valid[0];
+-  }
+-
+-  if (POLICY.type === "first_valid") {
+-    return valid[0];
+-  }
+-
+-  if (POLICY.type === "external_command") {
+-    const action = runExternalPolicy(state, actionMask);
+-    if (valid.includes(action)) {
+-      return action;
+-    }
+-    return valid[0];
+-  }
+-
+-  return valid[0];
+-}
+-
+-function executeAction(game: GameManager, action: number) {
+-  if (action < MOVE_ACTIONS) {
+-    selectMoveByIndex(game, action);
+-    return;
+-  }
+-  const switchIndex = action - MOVE_ACTIONS;
+-  selectSwitchByPartyIndex(game, switchIndex);
+-}
+-
+-function hasRemainingPlayerTeam(game: GameManager): boolean {
+-  return game.scene.getPlayerParty().some(member => !member.isFainted() && member.isAllowedInBattle());
+-}
+-
+-function isVictorySafe(game: GameManager): boolean {
+-  const battle = game.scene.currentBattle;
+-  if (!battle || !Array.isArray(battle.enemyParty)) {
+-    return false;
+-  }
+-  return battle.enemyParty.every(pokemon => pokemon.isFainted());
+-}
+-
+-function currentWaveIndexSafe(game: GameManager, fallback: number = -1): number {
+-  const battle = game.scene.currentBattle;
+-  if (battle && Number.isFinite(battle.waveIndex)) {
+-    return battle.waveIndex;
+-  }
+-  return fallback;
+-}
+-
+-function resolveForcedSwitchIfNeeded(game: GameManager): "not_switch_phase" | "selected" | "no_candidate" {
+-  if (!game.isCurrentPhase("SwitchPhase")) {
+-    return "not_switch_phase";
+-  }
+-  const party = game.scene.getPlayerParty();
+-  const nextIndex = party.findIndex(member => !member.isFainted() && !member.isOnField() && member.isAllowedInBattle());
+-  if (nextIndex >= 0) {
+-    game.doSelectPartyPokemon(nextIndex);
+-    return "selected";
+-  }
+-  return "no_candidate";
+-}
+-
+-function isHardTerminalPhase(game: GameManager): boolean {
+-  return game.isCurrentPhase("GameOverPhase") || game.isCurrentPhase("TitlePhase");
+-}
+-
+-function currentPhaseNameSafe(game: GameManager): string {
+-  return game.scene.phaseManager.getCurrentPhase()?.constructor?.name ?? "UnknownPhase";
+-}
+-
+-const TERMINAL_PHASE_NAMES = [
+-  "GameOverPhase",
+-  "PostGameOverPhase",
+-  "TitlePhase",
+-  "BattleEndPhase",
+-  "SelectModifierPhase",
+-  "EggLapsePhase",
+-];
+-
+-function hasLoggedTerminalPhaseSince(game: GameManager, fromIndex: number): boolean {
+-  const phaseLog = Array.isArray(game.phaseInterceptor.log) ? game.phaseInterceptor.log : [];
+-  for (let idx = Math.max(0, fromIndex); idx < phaseLog.length; idx += 1) {
+-    if (TERMINAL_PHASE_NAMES.includes(String(phaseLog[idx]))) {
+-      return true;
+-    }
+-  }
+-  return false;
+-}
+-
+-function isCollectorEpisodeTerminalPhase(game: GameManager): boolean {
+-  return isHardTerminalPhase(game)
+-    || game.isCurrentPhase("BattleEndPhase")
+-    || game.isCurrentPhase("SelectModifierPhase")
+-    || (TERMINAL_ON_EGG_LAPSE && game.isCurrentPhase("EggLapsePhase"));
+-}
+-
+-function requiresTerminalDrain(game: GameManager): boolean {
+-  return game.isCurrentPhase("GameOverPhase") || game.isCurrentPhase("PostGameOverPhase");
+-}
+-
+-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+-  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+-  const timeoutPromise = new Promise<never>((_, reject) => {
+-    timeoutHandle = setTimeout(() => reject(new Error("Timeout while waiting for " + label)), timeoutMs);
+-  });
+-  try {
+-    return await Promise.race([promise, timeoutPromise]);
+-  } finally {
+-    if (timeoutHandle) {
+-      clearTimeout(timeoutHandle);
+-    }
+-  }
+-}
+-
+-function sleep(ms: number): Promise<void> {
+-  return new Promise(resolve => setTimeout(resolve, ms));
+-}
+-
+-function formatDuration(ms: number): string {
+-  const totalSeconds = Math.max(0, Math.round(ms / 1000));
+-  const hours = Math.floor(totalSeconds / 3600);
+-  const minutes = Math.floor((totalSeconds % 3600) / 60);
+-  const seconds = totalSeconds % 60;
+-
+-  if (hours > 0) {
+-    return String(hours).padStart(2, "0") + ":" + String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0");
+-  }
+-  return String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0");
+-}
+-
+-async function waitForPromiseOrTerminal(game: GameManager, promise: Promise<unknown>, timeoutMs: number): Promise<"ok" | "terminal" | "timeout"> {
+-  let resolved = false;
+-  let failed = false;
+-
+-  promise
+-    .then(() => {
+-      resolved = true;
+-    })
+-    .catch(() => {
+-      failed = true;
+-    });
+-
+-  const startedAt = Date.now();
+-  while (Date.now() - startedAt < timeoutMs) {
+-    if (isCollectorEpisodeTerminalPhase(game)) {
+-      return "terminal";
+-    }
+-    if (resolved) {
+-      return "ok";
+-    }
+-    if (failed) {
+-      return isCollectorEpisodeTerminalPhase(game) ? "terminal" : "timeout";
+-    }
+-    await sleep(25);
+-  }
+-
+-  if (isCollectorEpisodeTerminalPhase(game)) {
+-    return "terminal";
+-  }
+-
+-  return "timeout";
+-}
+-
+-async function drainTerminalPhase(game: GameManager, timeoutMs: number): Promise<"settled" | "timeout"> {
+-  if (!requiresTerminalDrain(game)) {
+-    return "settled";
+-  }
+-
+-  const startedAt = Date.now();
+-  while (Date.now() - startedAt < timeoutMs) {
+-    if (game.isCurrentPhase("TitlePhase")) {
+-      return "settled";
+-    }
+-    await sleep(25);
+-  }
+-
+-  return game.isCurrentPhase("TitlePhase") ? "settled" : "timeout";
+-}
+-
+-async function advanceAfterAction(game: GameManager): Promise<"ok" | "terminal" | "timeout"> {
+-  const terminalPhasesForTurnAdvance = [
+-    "GameOverPhase",
+-    "PostGameOverPhase",
+-    "TitlePhase",
+-    "BattleEndPhase",
+-    "SelectModifierPhase",
+-    "EggLapsePhase",
+-  ];
+-  const endOfTurnStatus = await waitForPromiseOrTerminal(
+-    game,
+-    withTimeout(game.toEndOfTurn(), STEP_TIMEOUT_MS, "end of turn"),
+-    STEP_TIMEOUT_MS,
+-  );
+-  if (endOfTurnStatus !== "ok") {
+-    return endOfTurnStatus;
+-  }
+-
+-  if (isCollectorEpisodeTerminalPhase(game)) {
+-    return "terminal";
+-  }
+-
+-  const switchResolveStatus = resolveForcedSwitchIfNeeded(game);
+-  if (switchResolveStatus === "no_candidate") {
+-    return "terminal";
+-  }
+-  queueSkipOptionalCheckSwitchPrompt(game);
+-  if (!hasRemainingPlayerTeam(game) || isVictorySafe(game)) {
+-    return "terminal";
+-  }
+-
+-  const phaseLogStart = Array.isArray(game.phaseInterceptor.log) ? game.phaseInterceptor.log.length : 0;
+-  let nextTurnResolved = false;
+-  let nextTurnTerminal = false;
+-  let nextTurnFailed = false;
+-  const nextTurnPromise = game
+-    .toNextTurn(terminalPhasesForTurnAdvance)
+-    .then(result => {
+-      if (result === "terminal") {
+-        nextTurnTerminal = true;
+-      } else {
+-        nextTurnResolved = true;
+-      }
+-    })
+-    .catch(() => {
+-      nextTurnFailed = true;
+-    });
+-
+-  const startedAt = Date.now();
+-  while (Date.now() - startedAt < STEP_TIMEOUT_MS) {
+-    if (nextTurnTerminal || isCollectorEpisodeTerminalPhase(game) || hasLoggedTerminalPhaseSince(game, phaseLogStart)) {
+-      return "terminal";
+-    }
+-    if (nextTurnResolved) {
+-      return "ok";
+-    }
+-    if (nextTurnFailed) {
+-      return isCollectorEpisodeTerminalPhase(game) || hasLoggedTerminalPhaseSince(game, phaseLogStart) ? "terminal" : "timeout";
+-    }
+-    await sleep(25);
+-  }
+-
+-  if (isCollectorEpisodeTerminalPhase(game) || hasLoggedTerminalPhaseSince(game, phaseLogStart)) {
+-    return "terminal";
+-  }
+-  // Prevent unhandled rejection if toNextTurn fails after timeout return path.
+-  void nextTurnPromise;
+-  return "timeout";
+-}
+-
+-function queueSkipOptionalCheckSwitchPrompt(game: GameManager) {
+-  game.onNextPrompt(
+-    "CheckSwitchPhase",
+-    UiMode.CONFIRM,
+-    () => {
+-      game.setMode(UiMode.MESSAGE);
+-      game.endPhase();
+-    },
+-    () => game.isCurrentPhase("CommandPhase") || game.isCurrentPhase("TurnInitPhase"),
+-  );
+-}
+-
+-function applyScenarioOverrides(game: GameManager, scenario: any, seedOverride: string | null) {
+-  if (isScenarioV2(scenario)) {
+-    const effectiveSeed = seedOverride ?? scenario.seed ?? null;
+-    const waveIndex = getScenarioWaveIndex(scenario);
+-    const battleStyle = mapBattleStyleName(scenario.battle_style);
+-    const battleType = mapBattleTypeName(getScenarioBattleTypeName(scenario));
+-
+-    if (effectiveSeed) {
+-      game.override.seed(effectiveSeed);
+-    }
+-    if (waveIndex != null) {
+-      game.override.startingWave(waveIndex);
+-    }
+-    if (battleStyle != null) {
+-      game.override.battleStyle(battleStyle);
+-    }
+-    game.override.battleType(battleType);
+-    return;
+-  }
+-
+-  const lead = scenario.player_team?.[0] ?? {};
+-  const enemy = scenario.enemy ?? {};
+-  const effectiveSeed = seedOverride ?? scenario.seed;
+-
+-  game.override.disableTrainerWaves();
+-
+-  if (effectiveSeed) {
+-    game.override.seed(effectiveSeed);
+-  }
+-
+-  if (Number.isFinite(scenario.wave)) {
+-    game.override.startingWave(scenario.wave);
+-  }
+-
+-  if (lead.level) {
+-    game.override.startingLevel(lead.level);
+-  }
+-  if (Number.isInteger(lead.nature)) {
+-    game.override.nature(lead.nature);
+-  }
+-  if (Number.isInteger(lead.ability_index)) {
+-    game.override.ability(lead.ability_index);
+-  }
+-  if (Array.isArray(lead.ivs) && lead.ivs.length === 6) {
+-    game.override.playerIVs(lead.ivs);
+-  }
+-  if (Array.isArray(lead.moveset) && lead.moveset.length > 0) {
+-    game.override.moveset(lead.moveset);
+-  }
+-  if (Array.isArray(lead.held_items) && lead.held_items.length > 0) {
+-    game.override.startingHeldItems(lead.held_items);
+-  }
+-
+-  if (enemy.species_id) {
+-    game.override.enemySpecies(enemy.species_id);
+-  }
+-  if (enemy.level) {
+-    game.override.enemyLevel(enemy.level);
+-  }
+-  if (Number.isInteger(enemy.nature)) {
+-    game.override.enemyNature(enemy.nature);
+-  }
+-  if (Number.isInteger(enemy.ability_index)) {
+-    game.override.enemyAbility(enemy.ability_index);
+-  }
+-  if (Array.isArray(enemy.ivs) && enemy.ivs.length === 6) {
+-    game.override.enemyIVs(enemy.ivs);
+-  }
+-  if (Array.isArray(enemy.moveset) && enemy.moveset.length > 0) {
+-    game.override.enemyMoveset(enemy.moveset);
+-  }
+-  if (Array.isArray(enemy.held_items) && enemy.held_items.length > 0) {
+-    game.override.enemyHeldItems(enemy.held_items);
+-  }
+-}
+-
+-describe("external combat batch collector", () => {
+-  let phaserGame: Phaser.Game;
+-
+-  beforeAll(() => {
+-    phaserGame = new Phaser.Game({ type: Phaser.HEADLESS });
+-  });
+-
+-  it("collects multi-step transitions across scenarios", async () => {
+-    const runStartedAt = Date.now();
+-    let totalTransitions = 0;
+-    let totalEpisodes = 0;
+-    let globalEpisodeIndex = 0;
+-    const plannedEpisodes = SCENARIOS.length * SEEDS.length * EPISODES_PER_SEED;
+-    let nextProgressPausePercent = PROGRESS_PAUSE_PERCENT_STEP;
+-
+-    for (const scenario of SCENARIOS) {
+-      for (const seedOverride of SEEDS) {
+-        for (let episodeIndex = 0; episodeIndex < EPISODES_PER_SEED; episodeIndex += 1) {
+-          const game = new GameManager(phaserGame);
+-          try {
+-            applyScenarioOverrides(game, scenario, seedOverride);
+-
+-            const teamSpecies = scenario.player_team.map(member => member.species_id);
+-            await game.classicMode.startBattle(teamSpecies);
+-            applyScenarioMaterializedState(game, scenario);
+-
+-            const episodeId = `${scenario.__scenario_name}::${seedOverride ?? scenario.seed ?? "seedless"}::${episodeIndex}`;
+-            const effectiveSeed = seedOverride ?? scenario.seed ?? "seedless";
+-            const episodeStateVariant = selectEpisodeStateVariant(globalEpisodeIndex);
+-            applyScenarioHpRatios(game, scenario);
+-            applyStateVariant(game, scenario, episodeStateVariant, episodeId);
+-            let previousAction: number | null = null;
+-            let lastSwitchOriginPartyIndex: number | null = null;
+-            let consecutiveSwitchCount = 0;
+-
+-            for (let stepIndex = 0; stepIndex < MAX_STEPS_PER_EPISODE; stepIndex += 1) {
+-              const state = buildObservation(game, scenario);
+-              const action = selectActionFromMask(state, state.action_mask, globalEpisodeIndex);
+-              if (action < 0) {
+-                break;
+-              }
+-              const playerTeamHpBeforeAction = getPlayerTeamHpRatio(game);
+-              const enemyTeamHpBeforeAction = getEnemyTeamHpRatio(game);
+-
+-              const stepStartAt = Date.now();
+-              executeAction(game, action);
+-              const advanceStatus = await advanceAfterAction(game);
+-              const stepMs = Date.now() - stepStartAt;
+-
+-              const enemyPokemon = game.scene.getEnemyPokemon();
+-              const playerPokemon = game.scene.getPlayerPokemon();
+-              const enemyFainted = !enemyPokemon || enemyPokemon.hp <= 0 || enemyPokemon.isFainted();
+-              const playerFainted = !playerPokemon || playerPokemon.hp <= 0 || playerPokemon.isFainted();
+-              const enemyTeamDefeated = isVictorySafe(game);
+-              const playerTeamDefeated = !hasRemainingPlayerTeam(game);
+-              const hardTerminalPhase = isCollectorEpisodeTerminalPhase(game);
+-              const timeoutTruncated = advanceStatus === "timeout";
+-              let done = enemyTeamDefeated || playerTeamDefeated || hardTerminalPhase || timeoutTruncated;
+-              const nextState = done
+-                ? deriveTerminalNextState(state, enemyTeamDefeated, playerTeamDefeated)
+-                : buildObservation(game, scenario);
+-              const nextPlayerTeamHp = playerTeamDefeated ? 0 : getPlayerTeamHpRatio(game);
+-              const nextEnemyTeamHp = enemyTeamDefeated ? 0 : getEnemyTeamHpRatio(game);
+-              const alivePlayerTeamMembers = countAlivePlayerTeamMembers(game);
+-              const activePartyIndexBeforeAction = findActivePartySlotIndex(state);
+-              let reward = REWARD_STEP_PENALTY;
+-              const enemyTeamHpDamage = Math.max(0, enemyTeamHpBeforeAction - nextEnemyTeamHp);
+-              const playerTeamHpLoss = Math.max(0, playerTeamHpBeforeAction - nextPlayerTeamHp);
+-              reward += enemyTeamHpDamage * REWARD_ENEMY_TEAM_HP_DAMAGE_SCALE;
+-              reward += playerTeamHpLoss * REWARD_PLAYER_TEAM_HP_LOSS_SCALE;
+-              if (action >= MOVE_ACTIONS) {
+-                const switchTargetIndex = action - MOVE_ACTIONS;
+-                reward += REWARD_SWITCH_PENALTY;
+-                if (previousAction != null && previousAction >= MOVE_ACTIONS) {
+-                  reward += REWARD_CONSECUTIVE_SWITCH_PENALTY;
+-                  reward += consecutiveSwitchCount * REWARD_CONSECUTIVE_SWITCH_PENALTY_SCALE;
+-                }
+-                if (lastSwitchOriginPartyIndex != null && switchTargetIndex === lastSwitchOriginPartyIndex) {
+-                  reward += REWARD_DIRECT_BACKSWITCH_PENALTY;
+-                }
+-              }
+-              if (enemyFainted) reward += REWARD_ENEMY_FAINT_BONUS;
+-              if (playerFainted) reward += REWARD_PLAYER_FAINT_PENALTY;
+-              if (enemyTeamDefeated) {
+-                reward += REWARD_ENEMY_TEAM_DEFEAT_BONUS;
+-                reward += alivePlayerTeamMembers * REWARD_ALIVE_TEAM_MEMBER_WIN_BONUS;
+-                reward += nextPlayerTeamHp * REWARD_REMAINING_TEAM_HP_RATIO_WIN_BONUS_SCALE;
+-              }
+-              if (playerTeamDefeated) reward += REWARD_PLAYER_TEAM_DEFEAT_PENALTY;
+-
+-              if (!done && stepIndex === MAX_STEPS_PER_EPISODE - 1) {
+-                done = true;
+-              }
+-
+-              const record = {
+-                episode_id: episodeId,
+-                step_index: stepIndex,
+-                state,
+-                action,
+-                reward,
+-                next_state: nextState,
+-                done,
+-                meta: {
+-                  seed: effectiveSeed,
+-                  wave: currentWaveIndexSafe(game, state.wave_index),
+-                  battle_type: "single",
+-                  scenario: scenario.__scenario_name,
+-                  state_variant: episodeStateVariant,
+-                  outcome: enemyTeamDefeated ? "win" : playerTeamDefeated ? "loss" : timeoutTruncated ? "timeout" : "truncated",
+-                },
+-                timestamp: Date.now(),
+-              };
+-
+-              fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
+-              fs.appendFileSync(OUTPUT_PATH, `${JSON.stringify(record)}\n`, { encoding: "utf8" });
+-              totalTransitions += 1;
+-              if (action >= MOVE_ACTIONS) {
+-                lastSwitchOriginPartyIndex = activePartyIndexBeforeAction >= 0 ? activePartyIndexBeforeAction : null;
+-                consecutiveSwitchCount += 1;
+-              } else {
+-                lastSwitchOriginPartyIndex = null;
+-                consecutiveSwitchCount = 0;
+-              }
+-              previousAction = action;
+-              if (
+-                PROGRESS_PAUSE_ENABLED
+-                && PROGRESS_PAUSE_TARGET_TRANSITIONS > 0
+-                && nextProgressPausePercent <= 100
+-              ) {
+-                const currentPercent = Math.floor((totalTransitions / PROGRESS_PAUSE_TARGET_TRANSITIONS) * 100);
+-                if (currentPercent >= nextProgressPausePercent) {
+-                  const elapsedMs = Date.now() - runStartedAt;
+-                  const estimatedTotalMs = totalTransitions > 0
+-                    ? (elapsedMs / totalTransitions) * PROGRESS_PAUSE_TARGET_TRANSITIONS
+-                    : 0;
+-                  const remainingMs = Math.max(0, estimatedTotalMs - elapsedMs);
+-                  console.log(
+-                    `[collector-progress-pause] transitions=${totalTransitions}/${PROGRESS_PAUSE_TARGET_TRANSITIONS} reached=${nextProgressPausePercent}% elapsed=${formatDuration(elapsedMs)} eta_remaining=${formatDuration(remainingMs)} pausing_ms=${PROGRESS_PAUSE_MS}`,
+-                  );
+-                  if (PROGRESS_PAUSE_MS > 0) {
+-                    await sleep(PROGRESS_PAUSE_MS);
+-                  }
+-                  nextProgressPausePercent += PROGRESS_PAUSE_PERCENT_STEP;
+-                }
+-              }
+-
+-              if (done) {
+-                const drainStatus = await drainTerminalPhase(game, STEP_TIMEOUT_MS);
+-                if (drainStatus === "timeout") {
+-                  console.log(`[collector-terminal-drain-timeout] episode=${episodeId} step=${stepIndex} phase=${currentPhaseNameSafe(game)}`);
+-                }
+-                if (timeoutTruncated) {
+-                  console.log(`[collector-timeout] episode=${episodeId} step=${stepIndex} phase=${currentPhaseNameSafe(game)} advance_status=${advanceStatus} step_ms=${stepMs}`);
+-                }
+-                break;
+-              }
+-            }
+-
+-            totalEpisodes += 1;
+-            globalEpisodeIndex += 1;
+-            console.log(`[collector-progress] episodes=${totalEpisodes}/${plannedEpisodes} transitions=${totalTransitions}`);
+-          } finally {
+-            game.phaseInterceptor.restoreOg();
+-          }
+-        }
+-      }
+-    }
+-
+-    console.log(`Collected episodes: ${totalEpisodes}`);
+-    console.log(`Collected transitions: ${totalTransitions}`);
+-    const totalRuntimeMs = Date.now() - runStartedAt;
+-    console.log(`Collector runtime ms: ${totalRuntimeMs}`);
+-    if (PROGRESS_PAUSE_TARGET_TRANSITIONS > 0) {
+-      if (totalTransitions >= PROGRESS_PAUSE_TARGET_TRANSITIONS) {
+-        console.log(`Collector target reached: ${PROGRESS_PAUSE_TARGET_TRANSITIONS} transitions`);
+-      } else {
+-        console.log(`Collector target not reached: ${totalTransitions}/${PROGRESS_PAUSE_TARGET_TRANSITIONS} transitions`);
+-      }
+-    }
+-  }, TEST_TIMEOUT_MS);
+-});
