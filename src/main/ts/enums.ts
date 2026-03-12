@@ -8,8 +8,12 @@ export { MoveCategory } from "../../../pokerogue/src/enums/move-category";
 export { BiomeId } from "../../../pokerogue/src/enums/biome-id";
 export { BattleType } from "../../../pokerogue/src/enums/battle-type";
 export { BattleStyle } from "../../../pokerogue/src/enums/battle-style";
+export { BattleSpec } from "../../../pokerogue/src/enums/battle-spec";
 export { ModifierTier } from "../../../pokerogue/src/enums/modifier-tier";
+export { MysteryEncounterMode } from "../../../pokerogue/src/enums/mystery-encounter-mode";
+export { MysteryEncounterType } from "../../../pokerogue/src/enums/mystery-encounter-type";
 export { PokeballType } from "../../../pokerogue/src/enums/pokeball";
+export { TrainerType } from "../../../pokerogue/src/enums/trainer-type";
 
 /**
  * Reverse-lookup a numeric enum value to its string name.

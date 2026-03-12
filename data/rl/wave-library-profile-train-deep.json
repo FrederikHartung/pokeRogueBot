@@ -1,0 +1,26 @@
+{
+  "scenario_dirs": [
+    "./scenarios/generated-wave-library-v2-w1-7",
+    "./scenarios/generated-wave-library-v2-w8"
+  ],
+  "materialized_run_config_path": "./generated/collector-run-wave-library-train-deep.json",
+  "include_waves": [1, 2, 3, 4, 5, 6, 7, 8],
+  "selection_mode": "random_per_wave",
+  "selection_seed": 42,
+  "max_scenarios_per_wave": 4,
+  "collector": {
+    "output_path": "./combat/train-wave-library-deep-w1-8.jsonl",
+    "append_output": false,
+    "episodes_per_seed": 30,
+    "max_steps_per_episode": 300,
+    "test_timeout_ms": 360000,
+    "quiet_game_logs": true,
+    "policy": {
+      "type": "epsilon_random",
+      "start_epsilon": 1.0,
+      "end_epsilon": 0.2,
+      "decay_fraction": 0.5,
+      "step_timeout_ms": 15000
+    }
+  }
+}

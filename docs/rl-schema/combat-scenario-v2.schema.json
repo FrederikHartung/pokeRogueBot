@@ -1,0 +1,526 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/combat-scenario-v2.schema.json",
+  "title": "CombatScenarioV2",
+  "type": "object",
+  "required": [
+    "source",
+    "wave_index",
+    "battle_type",
+    "battle_spec",
+    "battle_style",
+    "is_double_fight",
+    "player_team",
+    "enemy_team"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "source": {
+      "type": "object",
+      "required": [
+        "snapshot_fingerprint",
+        "schema_version"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "snapshot_fingerprint": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "snapshot_file": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "wave_index": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "battle_type": {
+      "type": "string",
+      "minLength": 1
+    },
+    "battle_spec": {
+      "type": "string",
+      "minLength": 1
+    },
+    "battle_style": {
+      "type": "string",
+      "minLength": 1
+    },
+    "is_double_fight": {
+      "type": "boolean"
+    },
+    "biome": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "trainer": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "trainer_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "trainer_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "trainer_display_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "trainer_is_boss": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "trainer_specialty_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "difficulty_group": {
+      "type": "string",
+      "enum": [
+        "core",
+        "hard",
+        "benchmark"
+      ]
+    },
+    "difficulty_reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "player_global_modifiers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/global_modifier"
+      }
+    },
+    "enemy_global_modifiers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/global_modifier"
+      }
+    },
+    "player_team": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 6,
+      "items": {
+        "$ref": "#/$defs/team_member"
+      }
+    },
+    "enemy_team": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 6,
+      "items": {
+        "$ref": "#/$defs/team_member"
+      }
+    }
+  },
+  "$defs": {
+    "stats": {
+      "type": "object",
+      "required": [
+        "hp",
+        "attack",
+        "defense",
+        "specialAttack",
+        "specialDefense",
+        "speed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "hp": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "attack": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "defense": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "specialAttack": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "specialDefense": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "speed": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "ivs": {
+      "type": "object",
+      "required": [
+        "hp",
+        "attack",
+        "defense",
+        "specialAttack",
+        "specialDefense",
+        "speed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "hp": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 31
+        },
+        "attack": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 31
+        },
+        "defense": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 31
+        },
+        "specialAttack": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 31
+        },
+        "specialDefense": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 31
+        },
+        "speed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 31
+        }
+      }
+    },
+    "move": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "move_pp",
+        "pp_used",
+        "pp_left",
+        "is_usable"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "move_pp": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pp_used": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pp_left": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "is_usable": {
+          "type": "boolean"
+        }
+      }
+    },
+    "status": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "effect",
+        "turnCount"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "type": "string",
+          "minLength": 1
+        },
+        "turnCount": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "held_item": {
+      "type": "object",
+      "required": [
+        "type_id",
+        "name",
+        "modifier_class",
+        "stack_count",
+        "is_transferable"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "modifier_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stack_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "is_transferable": {
+          "type": "boolean"
+        }
+      }
+    },
+    "global_modifier": {
+      "type": "object",
+      "required": [
+        "type_id",
+        "name",
+        "modifier_class",
+        "stack_count",
+        "virtual_stack_count",
+        "total_stack_count",
+        "max_stack_count"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "modifier_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stack_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "virtual_stack_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_stack_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_stack_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "battle_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "team_member": {
+      "type": "object",
+      "required": [
+        "id",
+        "species_id",
+        "species_name",
+        "level",
+        "gender",
+        "nature",
+        "hp",
+        "max_hp",
+        "ivs",
+        "stats",
+        "battle_stats",
+        "stat_stages",
+        "moveset",
+        "current_ability_id",
+        "current_ability_name",
+        "passive_ability_id",
+        "passive_ability_name",
+        "ability_suppressed",
+        "held_items",
+        "is_on_field",
+        "active_field_slot_index",
+        "player"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "name": {
+          "type": "string"
+        },
+        "species_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "species_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "form_index": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "gender": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nature": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hp": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_hp": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "ivs": {
+          "$ref": "#/$defs/ivs"
+        },
+        "stats": {
+          "$ref": "#/$defs/stats"
+        },
+        "battle_stats": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/stats"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stat_stages": {
+          "type": "array",
+          "minItems": 7,
+          "maxItems": 7,
+          "items": {
+            "type": "integer",
+            "minimum": -6,
+            "maximum": 6
+          }
+        },
+        "status": {
+          "$ref": "#/$defs/status"
+        },
+        "moveset": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/move"
+          }
+        },
+        "current_ability_id": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "current_ability_name": {
+          "type": "string"
+        },
+        "passive_ability_id": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "passive_ability_name": {
+          "type": "string"
+        },
+        "ability_suppressed": {
+          "type": "boolean"
+        },
+        "held_items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/held_item"
+          }
+        },
+        "is_on_field": {
+          "type": "boolean"
+        },
+        "active_field_slot_index": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "is_boss": {
+          "type": "boolean"
+        },
+        "boss_segments": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "is_shiny": {
+          "type": "boolean"
+        },
+        "player": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

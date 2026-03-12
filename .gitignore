@@ -51,3 +51,13 @@ node_modules/
 
 # Generated JS bridge files (source of truth is src/main/ts/)
 src/main/js/*.js
+
+# RL generated artifacts
+data/rl/scenarios/generated-*/
+data/rl/generated/*.json
+data/rl/combat/*.jsonl
+data/rl/combat/*-report.json
+data/rl/models/*.pt
+
+# Productive wave library runtime artifacts
+data/offline-wave-library/

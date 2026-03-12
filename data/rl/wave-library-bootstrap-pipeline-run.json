@@ -1,0 +1,47 @@
+{
+  "scenario_dirs": [
+    "./scenarios/generated-wave-library-v2-w1-7",
+    "./scenarios/generated-wave-library-v2-w8"
+  ],
+  "include_waves": [1, 2, 3, 4, 5, 6, 7, 8],
+  "output_root": "./pipeline-runs/wave-library-bootstrap-remote",
+  "manifest_path": "./pipeline-runs/wave-library-bootstrap-remote/manifest.json",
+  "collector_defaults": {
+    "append_output": false,
+    "max_steps_per_episode": 300,
+    "test_timeout_ms": 600000,
+    "quiet_game_logs": true
+  },
+  "random_collect": {
+    "episodes_per_instance": 1000,
+    "batch_size": 50,
+    "collector": {},
+    "policy": {
+      "type": "random"
+    }
+  },
+  "dqn_collect": {
+    "episodes_per_instance": 200,
+    "batch_size": 25,
+    "collector": {},
+    "policy": {
+      "type": "external_command",
+      "timeout_ms": 15000,
+      "step_timeout_ms": 15000
+    }
+  },
+  "train_initial": {
+    "template_config_path": "./train-dqn-offline-wave-library-bootstrap-combined-960.json",
+    "output_path": "./pipeline-runs/wave-library-bootstrap-remote/artifacts/dqn-combat-wave-library-batch-bootstrap-random.pt"
+  },
+  "train_final": {
+    "template_config_path": "./train-dqn-offline-wave-library-bootstrap-combined-960.json",
+    "output_path": "./pipeline-runs/wave-library-bootstrap-remote/artifacts/dqn-combat-wave-library-batch-bootstrap-final.pt"
+  },
+  "benchmark": {
+    "collector_config_path": "./collector-run-benchmarked-wave-library-v2.json",
+    "initial_report_path": "./pipeline-runs/wave-library-bootstrap-remote/artifacts/eval-policy-compare-wave-library-batch-bootstrap-initial-report.json",
+    "final_report_path": "./pipeline-runs/wave-library-bootstrap-remote/artifacts/eval-policy-compare-wave-library-batch-bootstrap-final-report.json",
+    "max_steps_per_episode": 400
+  }
+}

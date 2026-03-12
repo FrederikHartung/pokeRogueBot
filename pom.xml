@@ -130,6 +130,7 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
+					<mainClass>com.sfh.pokeRogueBot.ApplicationKt</mainClass>
 					<excludes>
 						<exclude>
 							<groupId>org.projectlombok</groupId>
@@ -252,9 +253,10 @@
 							<goal>exec</goal>
 						</goals>
 						<configuration>
-							<executable>node</executable>
+							<executable>npm</executable>
 							<arguments>
-								<argument>build-js.mjs</argument>
+								<argument>run</argument>
+								<argument>build:js</argument>
 							</arguments>
 						</configuration>
 					</execution>

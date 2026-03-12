@@ -4,11 +4,13 @@ import com.google.gson.annotations.SerializedName
 import com.sfh.pokeRogueBot.model.enums.BattleStyle
 import com.sfh.pokeRogueBot.model.enums.BattleType
 import com.sfh.pokeRogueBot.model.run.Arena
+import com.sfh.pokeRogueBot.model.run.GlobalPersistentModifier
 import com.sfh.pokeRogueBot.model.run.WavePokemon
 
 data class WaveDto(
     var wavePokemon: WavePokemon,
     var arena: Arena? = null,
+    var battleSpec: String? = null,
     var battleStyle: BattleStyle? = null,
     var battleScore: Int = 0,
     var battleType: BattleType? = null,
@@ -17,7 +19,16 @@ data class WaveDto(
     var enemyFaints: Int = 0,
     var money: Int = 0,
     var moneyScattered: Int = 0,
+    var mysteryEncounterMode: String? = null,
+    var mysteryEncounterType: String? = null,
     var playerFaints: Int = 0,
+    var trainerDisplayName: String? = null,
+    var trainerIsBoss: Boolean? = null,
+    var trainerName: String? = null,
+    var trainerSpecialtyType: String? = null,
+    var trainerType: String? = null,
+    var playerGlobalModifiers: List<GlobalPersistentModifier> = emptyList(),
+    var enemyGlobalModifiers: List<GlobalPersistentModifier> = emptyList(),
     var turn: Int = 0,
     var waveIndex: Int = 0,
     var pokeballCount: IntArray

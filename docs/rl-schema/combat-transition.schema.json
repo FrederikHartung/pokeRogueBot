@@ -1,0 +1,423 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/combat-transition.schema.json",
+  "title": "CombatTransition",
+  "type": "object",
+  "required": [
+    "episode_id",
+    "step_index",
+    "state",
+    "action",
+    "reward",
+    "next_state",
+    "done",
+    "meta",
+    "timestamp"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "episode_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "step_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "state": {
+      "$ref": "#/$defs/observation"
+    },
+    "action": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9
+    },
+    "reward": {
+      "type": "number"
+    },
+    "next_state": {
+      "$ref": "#/$defs/observation"
+    },
+    "done": {
+      "type": "boolean"
+    },
+    "meta": {
+      "type": "object",
+      "required": [
+        "seed",
+        "wave",
+        "battle_type"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "seed": {
+          "type": "string",
+          "minLength": 1
+        },
+        "wave": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "battle_type": {
+          "type": "string",
+          "enum": [
+            "single"
+          ]
+        },
+        "action_source": {
+          "type": "string",
+          "enum": [
+            "random",
+            "scheduled_random",
+            "first_valid",
+            "external_command",
+            "model",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "timestamp": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "$defs": {
+    "move_state": {
+      "type": "object",
+      "required": [
+        "available",
+        "power_bucket",
+        "effectiveness_bucket",
+        "stab",
+        "pp_low",
+        "priority_bucket",
+        "acts_first_if_used",
+        "can_ko_before_enemy_moves",
+        "move_kind_bucket",
+        "damage_class_bucket",
+        "estimated_damage_ratio_bucket",
+        "estimated_ko_turns_bucket",
+        "accuracy_bucket",
+        "uses_best_offense_stat",
+        "target_immunity_risk"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "available": {
+          "type": "integer",
+          "enum": [0, 1]
+        },
+        "power_bucket": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "effectiveness_bucket": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "stab": {
+          "type": "integer",
+          "enum": [0, 1]
+        },
+        "pp_low": {
+          "type": "integer",
+          "enum": [0, 1]
+        },
+        "priority_bucket": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "acts_first_if_used": {
+          "type": "integer",
+          "enum": [0, 1]
+        },
+        "can_ko_before_enemy_moves": {
+          "type": "integer",
+          "enum": [0, 1]
+        },
+        "move_kind_bucket": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "damage_class_bucket": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "estimated_damage_ratio_bucket": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "estimated_ko_turns_bucket": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "accuracy_bucket": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "uses_best_offense_stat": {
+          "type": "integer",
+          "enum": [0, 1]
+        },
+        "target_immunity_risk": {
+          "type": "integer",
+          "enum": [0, 1]
+        }
+      }
+    },
+    "party_slot_state": {
+      "type": "object",
+      "required": [
+        "present",
+        "active",
+        "fainted",
+        "hp_ratio",
+        "level",
+        "types",
+        "best_damage_into_enemy_bucket",
+        "expected_incoming_damage_bucket",
+        "speed_advantage_bucket",
+        "survives_one_hit",
+        "can_threaten_ko_bucket"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "present": {
+          "type": "integer",
+          "enum": [0, 1]
+        },
+        "active": {
+          "type": "integer",
+          "enum": [0, 1]
+        },
+        "fainted": {
+          "type": "integer",
+          "enum": [0, 1]
+        },
+        "hp_ratio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "types": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 2,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "best_damage_into_enemy_bucket": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "expected_incoming_damage_bucket": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "speed_advantage_bucket": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "survives_one_hit": {
+          "type": "integer",
+          "enum": [0, 1]
+        },
+        "can_threaten_ko_bucket": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "required": [
+        "wave_index",
+        "player_hp_ratio",
+        "enemy_hp_ratio",
+        "player_hp_bucket",
+        "enemy_hp_bucket",
+        "hp_diff_bucket",
+        "level_gap_bucket",
+        "is_trainer_battle",
+        "has_legal_switch",
+        "active_hp_critical",
+        "bench_has_healthier_switch",
+        "bench_has_better_matchup_than_active",
+        "active_can_finish_enemy",
+        "alive_bench_count_bucket",
+        "healthy_bench_count_bucket",
+        "best_switch_matchup_bucket",
+        "worst_switch_risk_bucket",
+        "speed_order_advantage",
+        "enemy_has_known_priority_threat",
+        "active_has_any_first_strike_move",
+        "active_best_damage_bucket",
+        "enemy_best_damage_into_active_bucket",
+        "active_survives_next_hit",
+        "enemy_survives_best_hit",
+        "moves",
+        "party_slots",
+        "action_mask"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "wave_index": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "player_hp_ratio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "enemy_hp_ratio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "player_hp_bucket": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "enemy_hp_bucket": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "hp_diff_bucket": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "level_gap_bucket": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8
+        },
+        "is_trainer_battle": {
+          "type": "integer",
+          "enum": [0, 1]
+        },
+        "has_legal_switch": {
+          "type": "integer",
+          "enum": [0, 1]
+        },
+        "active_hp_critical": {
+          "type": "integer",
+          "enum": [0, 1]
+        },
+        "bench_has_healthier_switch": {
+          "type": "integer",
+          "enum": [0, 1]
+        },
+        "bench_has_better_matchup_than_active": {
+          "type": "integer",
+          "enum": [0, 1]
+        },
+        "active_can_finish_enemy": {
+          "type": "integer",
+          "enum": [0, 1]
+        },
+        "alive_bench_count_bucket": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "healthy_bench_count_bucket": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "best_switch_matchup_bucket": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "worst_switch_risk_bucket": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "speed_order_advantage": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "enemy_has_known_priority_threat": {
+          "type": "integer",
+          "enum": [0, 1]
+        },
+        "active_has_any_first_strike_move": {
+          "type": "integer",
+          "enum": [0, 1]
+        },
+        "active_best_damage_bucket": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "enemy_best_damage_into_active_bucket": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "active_survives_next_hit": {
+          "type": "integer",
+          "enum": [0, 1]
+        },
+        "enemy_survives_best_hit": {
+          "type": "integer",
+          "enum": [0, 1]
+        },
+        "moves": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/move_state"
+          }
+        },
+        "party_slots": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "$ref": "#/$defs/party_slot_state"
+          }
+        },
+        "action_mask": {
+          "type": "array",
+          "minItems": 10,
+          "maxItems": 10,
+          "items": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          }
+        }
+      }
+    }
+  }
+}

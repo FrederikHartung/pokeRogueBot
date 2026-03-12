@@ -1,16 +1,131 @@
 export {};
-declare const window: any;
+import { Button } from "../../../pokerogue/src/enums/buttons";
+import { UiMode } from "../../../pokerogue/src/enums/ui-mode";
+
+type SaveSlotDto = {
+    hasData: boolean;
+    slotId: number;
+};
+
+type ModifierItemDto = {
+    x?: number;
+    y?: number;
+} & Record<string, unknown>;
+
+type UiHandlerDto = {
+    active: boolean;
+    awaitingActionInput: boolean;
+    index: number;
+    name: string;
+    configOptionsSize: number;
+    configOptionsLabel: string[];
+};
+
+type UiOption = {
+    label: string;
+};
+
+type GenericUiHandler = {
+    active: boolean;
+    awaitingActionInput?: boolean;
+    cursor?: number;
+    optionsCursor?: number;
+    optionsMode?: boolean;
+    rowCursor?: number;
+    genCursor?: number;
+    genScrollCursor?: number;
+    cursorObj?: { visible: boolean };
+    config?: { options?: UiOption[] };
+    sessionSlots?: SaveSlotDto[];
+    options?: unknown[];
+    shopOptionsRows?: unknown[][];
+    pokemon?: unknown;
+    newMove?: unknown;
+    moveCursor?: number;
+    setCursor: (index: number) => boolean;
+    setRowCursor?: (index: number) => void;
+    setGenMode?: (enabled: boolean) => void;
+    tryStart?: () => void;
+    submitAction?: () => void;
+    constructor: { name: string };
+};
+
+type GenericUi = {
+    handlers?: Array<GenericUiHandler | null>;
+    getHandler: () => GenericUiHandler | null;
+    getMode: () => UiMode;
+    processInput: (button: number) => void;
+};
+
+type GenericScene = {
+    ui?: GenericUi;
+    gameData?: {
+        saveAll: (a: boolean, b: boolean, c: boolean, d: boolean) => Promise<void>;
+    };
+    reset: (force: boolean) => void;
+    money: number;
+};
+
+type UihandlerApi = {
+    setModifierSelectUiHandlerCursor: (cursorColumn: number, cursorRow: number) => boolean;
+    setBallUiHandlerCursor: (index: number) => boolean;
+    setStarterSelectUiHandlerCursor: (speciesId: number) => boolean;
+    confirmStarterSelect: () => boolean;
+    saveAndQuit: () => boolean;
+    getSaveSlots: () => SaveSlotDto[] | null;
+    getSaveSlotsJson: () => string;
+    setTitleUiHandlerCursorToLoadGame: () => boolean;
+    setTitleUiHandlerCursorToNewGame: () => boolean;
+    pressLoginButton: () => boolean;
+    setPartyOptionsCursor: (cursor: number) => boolean;
+    getPokemonInLearnMovePhase: () => unknown | null;
+    getPokemonInLearnMovePhaseJson: () => string;
+    setLearnMoveCursor: (cursor: number) => boolean;
+    getModifierShopItems: () => { freeItems: ModifierItemDto[]; shopItems: ModifierItemDto[]; money: number } | null;
+    getModifierShopItemsJson: () => string;
+    getAllActiveUiHandler: (index: number) => GenericUiHandler[] | null;
+    getUiHandler: (index: number) => GenericUiHandler | null;
+    getUiHandlerDtoJson: (index: number) => string | null;
+    setUiHandlerCursor: (handlerIndex: number, cursorIndex: number) => boolean;
+    triggerMessageAdvance: (relaxed: boolean) => boolean;
+    sendCancelButton: () => boolean;
+    sendButton: (buttonEnumValue: number) => boolean;
+    setCursorToIndexAndConfirm: (handlerIndex: number, handlerName: string, indexToSetCursorTo: number, waitTimeForRenderMs: number) => Promise<boolean>;
+};
+
+type PoruRoot = {
+    uihandler?: UihandlerApi;
+    util?: {
+        getBattleScene: () => GenericScene | null;
+    };
+    starter?: {
+        getPossibleStarter: () => Array<{ speciesId: number; cursorToSelect: number; generation: number }>;
+    };
+    poke?: {
+        getPokemonDto: (pokemon: unknown) => { moveset: unknown[] };
+        getMoveDto: (move: unknown, isUsable: boolean, ppUsed: number) => unknown;
+    };
+    modifier?: {
+        getModifierItemDtoArray: (modifierItemArray: unknown[]) => ModifierItemDto[];
+    };
+};
+
+declare const window: Window & typeof globalThis & { poru?: PoruRoot };
 
 if(!window.poru) window.poru = {};
-const UiMode_MESSAGE = 0;
-const Button_ACTION = 6;
-const Button_CANCEL = 7;
+const poruRoot = window.poru;
 
-window.poru.uihandler = {
+const getScene = (): GenericScene | null => poruRoot.util?.getBattleScene() ?? null;
+
+const getUi = (): GenericUi | null => getScene()?.ui ?? null;
+
+const getHandlerByMode = (mode: UiMode): GenericUiHandler | null => getUi()?.handlers?.[mode] ?? null;
+
+const uihandlerApi: UihandlerApi = {
 
     setModifierSelectUiHandlerCursor: (cursorColumn: number, cursorRow: number) => {
         try {
-            const modifierSelectUiHandler = window.poru.uihandler.getUiHandler(6);
+            const modifierSelectUiHandler = uihandlerApi.getUiHandler(UiMode.MODIFIER_SELECT);
 
             if(modifierSelectUiHandler && modifierSelectUiHandler.active){
 
@@ -33,10 +148,7 @@ window.poru.uihandler = {
 
     setBallUiHandlerCursor: (index: number) => {
         try {
-            var scene = window.poru.util.getBattleScene();
-            if (!scene || !scene.ui || !scene.ui.handlers) return false;
-
-            var ballUiHandler = scene.ui.handlers[4];
+            const ballUiHandler = uihandlerApi.getUiHandler(UiMode.BALL);
 
             if(ballUiHandler && ballUiHandler.active){
                 if(ballUiHandler.cursor === index){
@@ -53,11 +165,11 @@ window.poru.uihandler = {
     },
 
     setStarterSelectUiHandlerCursor: (speciesId: number) => {
-        const starterSelectUiHandler = window.poru.uihandler.getUiHandler(10);
+        const starterSelectUiHandler = uihandlerApi.getUiHandler(UiMode.STARTER_SELECT);
         if(!(starterSelectUiHandler && starterSelectUiHandler.active)){
             return false
         }
-        const starter = window.poru.starter.getPossibleStarter();
+        const starter = poruRoot.starter?.getPossibleStarter() ?? [];
         var speciesIndex = -1;
         var targetGeneration = -1;
         for(let i = 0; i < starter.length; i++) {
@@ -85,7 +197,7 @@ window.poru.uihandler = {
     },
 
     confirmStarterSelect: () => {
-        var starterSelectUiHandler = window.poru.uihandler.getUiHandler(10);
+        const starterSelectUiHandler = uihandlerApi.getUiHandler(UiMode.STARTER_SELECT);
         if(starterSelectUiHandler && starterSelectUiHandler.active){
             starterSelectUiHandler.tryStart()
             return true;
@@ -95,7 +207,7 @@ window.poru.uihandler = {
     },
 
     saveAndQuit: () => {
-        var scene = window.poru.util.getBattleScene();
+        const scene = getScene();
         if(scene){
             scene.gameData?.saveAll(true, true, true, true).then(() => scene.reset(true));
             return true;
@@ -104,11 +216,11 @@ window.poru.uihandler = {
     },
 
     getSaveSlots: () => {
-        const handler = window.poru.uihandler.getUiHandler(7)
+        const handler = uihandlerApi.getUiHandler(7)
         if(handler && handler.active){
-            var sessionSlots = handler.sessionSlots;
+            const sessionSlots = handler.sessionSlots;
             if(sessionSlots){
-                const sessionSlotsDto: any[] = [];
+                const sessionSlotsDto: SaveSlotDto[] = [];
                 for(let i = 0; i < sessionSlots.length; i++){
                     sessionSlotsDto.push({
                         hasData: sessionSlots[i].hasData,
@@ -124,15 +236,12 @@ window.poru.uihandler = {
     },
 
     getSaveSlotsJson: () => {
-        return JSON.stringify(window.poru.uihandler.getSaveSlots());
+        return JSON.stringify(uihandlerApi.getSaveSlots());
     },
 
     setTitleUiHandlerCursorToLoadGame : () => {
         try {
-            const scene = window.poru.util.getBattleScene();
-            if (!scene || !scene.ui || !scene.ui.handlers) return false;
-
-            const titleUiHandler = scene.ui.handlers[1];
+            const titleUiHandler = uihandlerApi.getUiHandler(UiMode.TITLE);
             if(titleUiHandler && titleUiHandler.active){
                 const options = titleUiHandler.config.options;
                 let loadGameIndex = -1;
@@ -158,13 +267,10 @@ window.poru.uihandler = {
 
     setTitleUiHandlerCursorToNewGame : () => {
         try {
-            var scene = window.poru.util.getBattleScene();
-            if (!scene || !scene.ui || !scene.ui.handlers) return false;
-
-            var titleUiHandler = scene.ui.handlers[1];
+            const titleUiHandler = uihandlerApi.getUiHandler(UiMode.TITLE);
             if(titleUiHandler && titleUiHandler.active){
-                var options = titleUiHandler.config.options;
-                var newGameIndex = -1;
+                const options = titleUiHandler.config.options;
+                let newGameIndex = -1;
                 for(let i = 0; i < options.length; i++){
                     if(options[i].label === "New Game"){
                         newGameIndex = i;
@@ -186,7 +292,7 @@ window.poru.uihandler = {
     },
 
     pressLoginButton: () => {
-        var handler = window.poru.uihandler.getUiHandler(29);
+        const handler = uihandlerApi.getUiHandler(UiMode.LOGIN_FORM) ?? getUi()?.getHandler();
         if(handler && handler.active){
             handler.submitAction();
             return true;
@@ -196,7 +302,7 @@ window.poru.uihandler = {
     },
 
     setPartyOptionsCursor: (cursor: number) => {
-        const handler = window.poru.uihandler.getUiHandler(8);
+        const handler = uihandlerApi.getUiHandler(UiMode.PARTY);
         if(handler && handler.active){
 
             if(handler.optionsMode === false){
@@ -215,12 +321,14 @@ window.poru.uihandler = {
     },
 
     getPokemonInLearnMovePhase: () => {
-        const handler = window.poru.uihandler.getUiHandler(9);
+        const handler = uihandlerApi.getUiHandler(UiMode.SUMMARY);
         if(handler && handler.active){
-            const pokemonDto = window.poru.poke.getPokemonDto(handler.pokemon);
+            const pokemonDto = poruRoot.poke?.getPokemonDto(handler.pokemon) ?? { moveset: [] };
             const newMove = handler.newMove;
-            const newMoveDto = window.poru.poke.getMoveDto(newMove, true, 0);
-            pokemonDto.moveset.push(newMoveDto);
+            const newMoveDto = poruRoot.poke?.getMoveDto(newMove, true, 0);
+            if (newMoveDto) {
+                pokemonDto.moveset.push(newMoveDto);
+            }
 
             return pokemonDto;
         }
@@ -229,11 +337,11 @@ window.poru.uihandler = {
     },
 
     getPokemonInLearnMovePhaseJson: () => {
-        return JSON.stringify(window.poru.uihandler.getPokemonInLearnMovePhase());
+        return JSON.stringify(uihandlerApi.getPokemonInLearnMovePhase());
     },
 
     setLearnMoveCursor: (cursor: number) => {
-        const handler = window.poru.uihandler.getUiHandler(9);
+        const handler = uihandlerApi.getUiHandler(UiMode.SUMMARY);
         if(handler && handler.active){
             if(handler.moveCursor === cursor){
                 return true;
@@ -245,15 +353,15 @@ window.poru.uihandler = {
     },
 
     getModifierShopItems: () => {
-        const modifierSelectUiHandler = window.poru.uihandler.getUiHandler(6);
+        const modifierSelectUiHandler = uihandlerApi.getUiHandler(UiMode.MODIFIER_SELECT);
         if(modifierSelectUiHandler && modifierSelectUiHandler.active){
-            const freeItemsDtoArray = window.poru.modifier.getModifierItemDtoArray(modifierSelectUiHandler.options);
+            const freeItemsDtoArray = poruRoot.modifier?.getModifierItemDtoArray(modifierSelectUiHandler.options ?? []) ?? [];
             const shopOptionsRows = modifierSelectUiHandler.shopOptionsRows;
 
-            const shopOptionsDtoArrayArray: any[][] = [];
+            const shopOptionsDtoArrayArray: ModifierItemDto[][] = [];
             for(let i = shopOptionsRows.length -1; i >= 0; i--){
                 const row = shopOptionsRows[i];
-                const rowDto = window.poru.modifier.getModifierItemDtoArray(row);
+                const rowDto = poruRoot.modifier?.getModifierItemDtoArray(row) ?? [];
                 shopOptionsDtoArrayArray.push(rowDto);
             }
 
@@ -266,13 +374,13 @@ window.poru.uihandler = {
             for(let rowIndex = 0; rowIndex < shopOptionsDtoArrayArray.length; rowIndex++){
                 const row = shopOptionsDtoArrayArray[rowIndex];
                 for(let colIndex = 0; colIndex < row.length; colIndex++){
-                    var item = row[colIndex];
+                    const item = row[colIndex];
                     item.x = colIndex;
                     item.y = rowIndex + 2; //skip button row and free items row
                 }
             }
 
-            var shopOptions: any[] = [];
+            let shopOptions: ModifierItemDto[] = [];
             for(let i = 0; i < shopOptionsDtoArrayArray.length; i++){
                 shopOptions = shopOptions.concat(shopOptionsDtoArrayArray[i]);
             }
@@ -288,14 +396,14 @@ window.poru.uihandler = {
     },
 
     getModifierShopItemsJson: () => {
-        return JSON.stringify(window.poru.uihandler.getModifierShopItems());
+        return JSON.stringify(uihandlerApi.getModifierShopItems());
     },
 
     getAllActiveUiHandler: (index: number) => {
-        const scene = window.poru.util.getBattleScene()
-        if(scene){
-            const handlers = scene.ui?.handlers
-            const activeHandlers: any[] = []
+        const ui = getUi()
+        if(ui){
+            const handlers = ui.handlers
+            const activeHandlers: GenericUiHandler[] = []
             if(handlers){
                 for (const handler of handlers) {
                     if(handler && handler.active){
@@ -310,23 +418,17 @@ window.poru.uihandler = {
     },
 
     getUiHandler: (index: number) => {
-        const scene = window.poru.util.getBattleScene()
-        if(scene){
-            const handlers = scene.ui?.handlers
-            if(handlers){
-                const handler = handlers[index]
-                if(handler) {
-                    return handler
-                }
-            }
+        const handler = getHandlerByMode(index as UiMode)
+        if(handler) {
+            return handler
         }
         return null
     },
 
     getUiHandlerDtoJson: (index: number) => {
-        const handler = window.poru.uihandler.getUiHandler(index)
+        const handler = uihandlerApi.getUiHandler(index)
         if(handler){
-            const handlerDto: any = {
+            const handlerDto: UiHandlerDto = {
                 active: handler.active,
                 awaitingActionInput: handler.awaitingActionInput,
                 index: index,
@@ -348,7 +450,7 @@ window.poru.uihandler = {
 
     //validated in kotlin code
     setUiHandlerCursor: (handlerIndex: number, cursorIndex: number) => {
-        const handler = window.poru.uihandler.getUiHandler(handlerIndex)
+        const handler = uihandlerApi.getUiHandler(handlerIndex)
         if(handler){
             handler.setCursor(cursorIndex)
             return true
@@ -361,11 +463,12 @@ window.poru.uihandler = {
 
     triggerMessageAdvance: (relaxed: boolean) => {
         // Check if Ui Mode is Message and awaitingActionInput
-        const scene = window.poru.util.getBattleScene()
-        if (scene) {
-            const shouldSet = (scene.ui.getMode() === UiMode_MESSAGE || relaxed) && scene.ui.getHandler().awaitingActionInput
+        const ui = getUi()
+        if (ui) {
+            const currentHandler = ui.getHandler()
+            const shouldSet = (ui.getMode() === UiMode.MESSAGE || relaxed) && currentHandler.awaitingActionInput
             if (shouldSet) {
-                scene.ui.processInput(Button_ACTION);
+                ui.processInput(Button.ACTION);
                 return true; // Action was triggered
             }
         }
@@ -373,10 +476,10 @@ window.poru.uihandler = {
     },
 
     sendCancelButton: () => {
-        const scene = window.poru.util.getBattleScene()
-        if (scene) {
-            if (scene.ui.getHandler().awaitingActionInput) {
-                scene.ui.processInput(Button_CANCEL);
+        const ui = getUi()
+        if (ui) {
+            if (ui.getHandler().awaitingActionInput) {
+                ui.processInput(Button.CANCEL);
                 return true; // Action was triggered
             }
         }
@@ -384,10 +487,10 @@ window.poru.uihandler = {
     },
 
     sendButton: (buttonEnumValue: number) => {
-        const scene = window.poru.util.getBattleScene()
-        if (scene) {
-            if (scene.ui.getHandler()) {
-                scene.ui.processInput(buttonEnumValue);
+        const ui = getUi()
+        if (ui) {
+            if (ui.getHandler()) {
+                ui.processInput(buttonEnumValue);
                 return true; // Action was triggered
             }
         }
@@ -395,7 +498,7 @@ window.poru.uihandler = {
     },
 
     setCursorToIndexAndConfirm: async (handlerIndex: number, handlerName: string, indexToSetCursorTo: number, waitTimeForRenderMs: number) => {
-        const handler = window.poru.uihandler.getUiHandler(handlerIndex)
+        const handler = uihandlerApi.getUiHandler(handlerIndex)
         if (handler) {
             const name = handler.constructor.name
             if (handlerName === name) {
@@ -415,9 +518,9 @@ window.poru.uihandler = {
                     console.log("setCursorToIndexAndConfirm: handler is not awaiting action input, returning false")
                     return false
                 }
-                const scene = window.poru.util.getBattleScene()
-                if (scene) {
-                    scene.ui.processInput(Button_ACTION);
+                const ui = getUi()
+                if (ui) {
+                    ui.processInput(Button.ACTION);
                     return true
                 }
 
@@ -431,4 +534,6 @@ window.poru.uihandler = {
         return false
     }
 
-}
+};
+
+poruRoot.uihandler = uihandlerApi;

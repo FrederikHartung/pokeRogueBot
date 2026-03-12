@@ -1,0 +1,21 @@
+{
+  "scenario_files": [
+    "./scenarios/generated-wave-library-v2-w1-7/wild-w1-7b4e667b0cdd.json",
+    "./scenarios/generated-wave-library-v2-w1-7/wild-w2-3354835b452f.json",
+    "./scenarios/generated-wave-library-v2-w1-7/wild-w3-2b1db554c8c2.json",
+    "./scenarios/generated-wave-library-v2-w1-7/wild-w4-9d29d2d91b1a.json",
+    "./scenarios/generated-wave-library-v2-w1-7/trainer-w5-55a4be8973d4.json",
+    "./scenarios/generated-wave-library-v2-w1-7/wild-w6-98d59856abac.json",
+    "./scenarios/generated-wave-library-v2-w1-7/wild-w7-01ee6ca9658e.json",
+    "./scenarios/generated-wave-library-v2-w8/trainer-w8-8f55849e7e4d.json"
+  ],
+  "output_path": "./combat/train-benchmarked-wave-library-v2.jsonl",
+  "append_output": false,
+  "episodes_per_seed": 1,
+  "max_steps_per_episode": 300,
+  "test_timeout_ms": 360000,
+  "quiet_game_logs": true,
+  "policy": {
+    "type": "first_valid"
+  }
+}

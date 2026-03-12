@@ -1,35 +1,111 @@
 export {};
-declare const window: any;
-declare const Phaser: any;
+import type PhaserType from "phaser";
+import type { BattleScene } from "../../../pokerogue/src/battle-scene";
+import type { Battle } from "../../../pokerogue/src/battle";
+import type { Phase } from "../../../pokerogue/src/phase";
+
+declare const Phaser: typeof PhaserType;
+
+type CanvasPoolWithGame = {
+    pool?: Array<{
+        parent?: {
+            game?: {
+                scene?: {
+                    scenes?: unknown[];
+                };
+            };
+        };
+    }>;
+};
+
+type GameSettingsInput = {
+    gameSpeed: number;
+    hpBarSpeed: number;
+    expGainsSpeed: number;
+    expParty: number;
+    skipSeenDialogues: boolean;
+    eggSkipPreference: number;
+    battleStyle: number;
+    commandCursorMemory: boolean;
+    enableRetries: boolean;
+    hideIvs: boolean;
+    enableTutorials: boolean;
+    enableVibration: boolean;
+    enableTouchControls: boolean;
+};
+
+type SettingsMutationResult = { success: true } | { success: false; error: string };
+
+type UtilApi = {
+    getPhaseName: () => string | null;
+    getUiMode: () => number | null;
+    getPhase: () => Phase | null;
+    getGameData: () => BattleScene["gameData"] | null;
+    getDexData: () => BattleScene["gameData"]["dexData"] | null;
+    getBattleScene: () => BattleScene | null;
+    getCurrentBattle: () => Battle | null;
+    getWaveAndTurn: () => { waveIndex: number; turnIndex: number } | null;
+    getWaveAndTurnJson: () => string | null;
+    getPlayerPokemon: () => unknown | null;
+    getPlayerPokemonOnIndex: (index: number) => unknown | null;
+    getModifiers: () => BattleScene["modifiers"] | null;
+    setGameSettings: (newGameSettings: GameSettingsInput) => SettingsMutationResult;
+    isUiHandlerActive: () => boolean;
+    currentBattleHasEnemyTrainer: () => boolean;
+    fixFaintedEnemyBug: (index: number) => void;
+    resetStarterToDefault: () => boolean;
+};
+
+type PoruRoot = {
+    util?: UtilApi;
+};
+
+declare const window: Window & typeof globalThis & { poru?: PoruRoot };
 
 if(!window.poru) window.poru = {};
+const poruRoot = window.poru;
 
 // Helper to get the current battle scene
-const getScene = () => window.poru.util.getBattleScene();
+const getScene = (): BattleScene | null => window.poru.util.getBattleScene();
 
-window.poru.util = {
+const getPhase = (): Phase | null => getScene()?.phaseManager.getCurrentPhase() ?? null;
+
+const getCurrentBattle = (): Battle | null => getScene()?.currentBattle ?? null;
+
+const isBattleScene = (scene: unknown): scene is BattleScene => {
+    return !!scene
+        && typeof scene === "object"
+        && "phaseManager" in scene
+        && "ui" in scene
+        && "getPlayerParty" in scene;
+};
+
+const utilApi: UtilApi = {
     // --- Phase and Game Info ---
-    getPhaseName: () => getScene()?.currentPhase?.constructor?.name ?? null,
+    getPhaseName: () => getPhase()?.phaseName ?? null,
 
-    getUiMode: () => getScene()?.ui?.mode ?? null,
+    getUiMode: () => getScene()?.ui?.getMode() ?? null,
 
-    getPhase: () => getScene()?.currentPhase ?? null,
+    getPhase: () => getPhase(),
 
     getGameData: () => getScene()?.gameData ?? null,
 
     getDexData: () => getScene()?.gameData?.dexData ?? null,
 
-    getBattleScene: () => {
-        const scenes = Phaser?.Display?.Canvas?.CanvasPool?.pool?.[0]?.parent?.game?.scene?.scenes;
-        if (!scenes) return null;
-        return scenes.length > 1 ? scenes[1] : scenes[0];
+    getBattleScene: (): BattleScene | null => {
+        const canvasPool = Phaser?.Display?.Canvas?.CanvasPool as typeof Phaser.Display.Canvas.CanvasPool & CanvasPoolWithGame;
+        const scenes = canvasPool.pool?.[0]?.parent?.game?.scene?.scenes;
+        if (!Array.isArray(scenes)) return null;
+
+        const battleScene = scenes.find(isBattleScene);
+        return battleScene ?? null;
     },
 
-    getCurrentBattle: () => getScene()?.currentBattle ?? null,
+    getCurrentBattle: () => getCurrentBattle(),
 
     // --- Wave and Turn ---
     getWaveAndTurn: () => {
-        const currentBattle = getScene()?.currentBattle;
+        const currentBattle = getCurrentBattle();
         if(currentBattle){
             return {
                 waveIndex: currentBattle.waveIndex,
@@ -46,12 +122,12 @@ window.poru.util = {
 
     getPlayerPokemon: () => {
         const scene = getScene();
-        return scene?.party?.[0] ?? null;
+        return scene?.getPlayerParty()?.[0] ?? null;
     },
 
     getPlayerPokemonOnIndex: (index: number) => {
         const scene = getScene();
-        return scene?.party?.[index] ?? null;
+        return scene?.getPlayerParty()?.[index] ?? null;
     },
 
     // --- Modifiers ---
@@ -60,8 +136,8 @@ window.poru.util = {
         return scene?.modifiers ?? null;
     },
 
-    setGameSettings: (newGameSettings: any) => {
-        const scene = window.poru.util.getBattleScene()
+    setGameSettings: (newGameSettings: GameSettingsInput) => {
+        const scene = utilApi.getBattleScene()
         if(!scene){
             return { success: false, error: "Battle scene not available" }
         }
@@ -219,41 +295,31 @@ window.poru.util = {
     },
 
     currentBattleHasEnemyTrainer: () => {
-        const scene = window.poru.util.getBattleScene()
-        if(scene){
-            if(scene.currentBattle.trainer){
-                return true
-            }
-        }
-        return false
+        return getCurrentBattle()?.trainer != null
     },
 
     fixFaintedEnemyBug: (index: number) => {
-        const scene = window.poru.util.getBattleScene()
-        if(scene){
-            const currentBattle = scene.currentBattle
-            if(currentBattle){
-                const enemyParty = currentBattle.enemyParty
-                if(enemyParty && enemyParty.length >= index){
-                    const pokemon = enemyParty[index]
-                    if(pokemon){
-                        pokemon.hp = 1
-                        console.log("set hp successfully")
-                        return;
-                    }
+        const enemyParty = getScene()?.getEnemyParty()
+        if(enemyParty){
+            if(enemyParty.length > index){
+                const pokemon = enemyParty[index]
+                if(pokemon){
+                    pokemon.hp = 1
+                    console.log("set hp successfully")
+                    return;
                 }
-                else{
-                    console.log("party not found or length to small: " + enemyParty.length)
-                }
+            }
+            else{
+                console.log("party not found or length to small: " + enemyParty.length)
             }
         }
         console.log("set hp not successfully")
     },
 
     resetStarterToDefault: () => {
-        const scene = window.poru.util.getBattleScene()
+        const scene = utilApi.getBattleScene()
         if(scene){
-            const playerParty = scene.party
+            const playerParty = scene.getPlayerParty()
             if(playerParty && playerParty.length > 0){
                 let resetCount = 0
                 for(const pokemon of playerParty){
@@ -274,3 +340,5 @@ window.poru.util = {
     },
 
 };
+
+poruRoot.util = utilApi;

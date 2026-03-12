@@ -1,0 +1,55 @@
+{
+  "summary": {
+    "transitions": 17,
+    "episodes": 2,
+    "wins": 2,
+    "losses": 0,
+    "timeouts": 0,
+    "truncated": 0,
+    "avg_reward": 10.267857142857142,
+    "avg_turns": 8.5,
+    "avg_switches": 4,
+    "avg_status_moves": 2,
+    "win_rate": 1
+  },
+  "action_sources": {
+    "random": 17
+  },
+  "per_wave": {
+    "1": {
+      "transitions": 17,
+      "episodes": 2,
+      "wins": 2,
+      "losses": 0,
+      "timeouts": 0,
+      "truncated": 0,
+      "avg_reward": 10.267857142857142,
+      "avg_turns": 8.5,
+      "avg_switches": 4,
+      "avg_status_moves": 2,
+      "win_rate": 1,
+      "generation_duration_ms": 15711
+    }
+  },
+  "per_scenario": {
+    "wild-w1-7b4e667b0cdd": {
+      "transitions": 17,
+      "episodes": 2,
+      "wins": 2,
+      "losses": 0,
+      "timeouts": 0,
+      "truncated": 0,
+      "avg_reward": 10.267857142857142,
+      "avg_turns": 8.5,
+      "avg_switches": 4,
+      "avg_status_moves": 2,
+      "win_rate": 1,
+      "generation_duration_ms": 15711
+    }
+  },
+  "generation": {
+    "phase": "random_collect",
+    "total_duration_ms": 15711,
+    "completed_batches": 2
+  }
+}

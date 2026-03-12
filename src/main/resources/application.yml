@@ -60,6 +60,22 @@ bot:
   backoffPerRetry: 2500
   maxRunsTillShutdown: -1
   startBotOnStartup: true
+  combat-policy-mode: dqn
+  capture:
+    enabled: false
+  productive-wave-library:
+    enabled: true
+    output-dir: "data/offline-wave-library"
+    snapshot-file-name: "productive-wave-snapshots-v1.jsonl"
+    fingerprint-file-name: "productive-wave-fingerprints-v1.txt"
+  dqn:
+    python-command: python3
+    infer-script: scripts/dqn_policy_infer_worker.py
+    combat-checkpoint: data/rl/models/dqn-combat-wave-library-bootstrap-combined-960.pt
+    device: cpu
+    worker-timeout-ms: 5000
+    avoid-low-value-status-moves: true
+    status-move-override-min-damage-ratio: 0.45
 
 # Reinforcement Learning Configuration
 # Controls AI agent behavior for automated decision making during gameplay

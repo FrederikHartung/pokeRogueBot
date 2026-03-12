@@ -1,0 +1,295 @@
+{
+  "source": {
+    "snapshot_fingerprint": "example-fingerprint-wave-8-rival",
+    "schema_version": 1,
+    "snapshot_file": "data/offline-wave-library/productive-wave-snapshots-v1.jsonl"
+  },
+  "wave_index": 8,
+  "battle_type": "TRAINER",
+  "battle_spec": "DEFAULT",
+  "battle_style": "SET",
+  "is_double_fight": false,
+  "biome": "TOWN",
+  "trainer": {
+    "trainer_type": "RIVAL",
+    "trainer_name": "Ivy",
+    "trainer_display_name": "Rival Ivy",
+    "trainer_is_boss": false,
+    "trainer_specialty_type": null
+  },
+  "difficulty_group": "hard",
+  "difficulty_reason": "wave_8_rival",
+  "player_global_modifiers": [],
+  "enemy_global_modifiers": [],
+  "player_team": [
+    {
+      "id": 1001,
+      "name": "Bulbasaur",
+      "species_id": 1,
+      "species_name": "Bulbasaur",
+      "form_index": 0,
+      "level": 6,
+      "gender": "MALE",
+      "nature": "DOCILE",
+      "hp": 11,
+      "max_hp": 22,
+      "ivs": {
+        "hp": 10,
+        "attack": 10,
+        "defense": 10,
+        "specialAttack": 10,
+        "specialDefense": 10,
+        "speed": 10
+      },
+      "stats": {
+        "hp": 22,
+        "attack": 11,
+        "defense": 11,
+        "specialAttack": 13,
+        "specialDefense": 13,
+        "speed": 11
+      },
+      "battle_stats": {
+        "hp": 22,
+        "attack": 11,
+        "defense": 11,
+        "specialAttack": 13,
+        "specialDefense": 13,
+        "speed": 11
+      },
+      "stat_stages": [0, 0, 0, 0, 0, 0, 0],
+      "status": null,
+      "moveset": [
+        {
+          "id": 33,
+          "name": "Tackle",
+          "move_pp": 35,
+          "pp_used": 10,
+          "pp_left": 25,
+          "is_usable": true
+        },
+        {
+          "id": 45,
+          "name": "Growl",
+          "move_pp": 40,
+          "pp_used": 9,
+          "pp_left": 31,
+          "is_usable": true
+        },
+        {
+          "id": 22,
+          "name": "Vine Whip",
+          "move_pp": 25,
+          "pp_used": 11,
+          "pp_left": 14,
+          "is_usable": true
+        },
+        {
+          "id": 74,
+          "name": "Growth",
+          "move_pp": 20,
+          "pp_used": 1,
+          "pp_left": 19,
+          "is_usable": true
+        }
+      ],
+      "current_ability_id": 65,
+      "current_ability_name": "Overgrow",
+      "passive_ability_id": 229,
+      "passive_ability_name": "Grassy Surge",
+      "ability_suppressed": false,
+      "held_items": [],
+      "is_on_field": true,
+      "active_field_slot_index": 0,
+      "is_boss": false,
+      "boss_segments": 0,
+      "is_shiny": false,
+      "player": true
+    },
+    {
+      "id": 1002,
+      "name": "Charmander",
+      "species_id": 4,
+      "species_name": "Charmander",
+      "form_index": 0,
+      "level": 6,
+      "gender": "MALE",
+      "nature": "QUIRKY",
+      "hp": 0,
+      "max_hp": 21,
+      "ivs": {
+        "hp": 10,
+        "attack": 10,
+        "defense": 10,
+        "specialAttack": 10,
+        "specialDefense": 10,
+        "speed": 10
+      },
+      "stats": {
+        "hp": 21,
+        "attack": 11,
+        "defense": 10,
+        "specialAttack": 12,
+        "specialDefense": 11,
+        "speed": 13
+      },
+      "battle_stats": {
+        "hp": 21,
+        "attack": 11,
+        "defense": 10,
+        "specialAttack": 12,
+        "specialDefense": 11,
+        "speed": 13
+      },
+      "stat_stages": [0, 0, 0, 0, 0, 0, 0],
+      "status": {
+        "effect": "FAINT",
+        "turnCount": 0
+      },
+      "moveset": [
+        {
+          "id": 10,
+          "name": "Scratch",
+          "move_pp": 35,
+          "pp_used": 5,
+          "pp_left": 30,
+          "is_usable": true
+        }
+      ],
+      "current_ability_id": 66,
+      "current_ability_name": "Blaze",
+      "passive_ability_id": 125,
+      "passive_ability_name": "Sheer Force",
+      "ability_suppressed": false,
+      "held_items": [],
+      "is_on_field": false,
+      "active_field_slot_index": null,
+      "is_boss": false,
+      "boss_segments": 0,
+      "is_shiny": false,
+      "player": true
+    }
+  ],
+  "enemy_team": [
+    {
+      "id": 2001,
+      "name": "Grookey",
+      "species_id": 810,
+      "species_name": "Grookey",
+      "form_index": 0,
+      "level": 7,
+      "gender": "MALE",
+      "nature": "NAUGHTY",
+      "hp": 24,
+      "max_hp": 24,
+      "ivs": {
+        "hp": 8,
+        "attack": 22,
+        "defense": 5,
+        "specialAttack": 22,
+        "specialDefense": 9,
+        "speed": 0
+      },
+      "stats": {
+        "hp": 24,
+        "attack": 17,
+        "defense": 12,
+        "specialAttack": 12,
+        "specialDefense": 9,
+        "speed": 14
+      },
+      "battle_stats": {
+        "hp": 24,
+        "attack": 17,
+        "defense": 12,
+        "specialAttack": 12,
+        "specialDefense": 9,
+        "speed": 14
+      },
+      "stat_stages": [0, 0, 0, 0, 0, 0, 0],
+      "status": null,
+      "moveset": [
+        {
+          "id": 785,
+          "name": "Branch Poke",
+          "move_pp": 40,
+          "pp_used": 0,
+          "pp_left": 40,
+          "is_usable": true
+        }
+      ],
+      "current_ability_id": 65,
+      "current_ability_name": "Overgrow",
+      "passive_ability_id": 124,
+      "passive_ability_name": "Pickpocket",
+      "ability_suppressed": false,
+      "held_items": [],
+      "is_on_field": true,
+      "active_field_slot_index": 0,
+      "is_boss": false,
+      "boss_segments": 0,
+      "is_shiny": false,
+      "player": false
+    },
+    {
+      "id": 2002,
+      "name": "Taillow",
+      "species_id": 276,
+      "species_name": "Taillow",
+      "form_index": 0,
+      "level": 6,
+      "gender": "FEMALE",
+      "nature": "NAUGHTY",
+      "hp": 21,
+      "max_hp": 21,
+      "ivs": {
+        "hp": 15,
+        "attack": 7,
+        "defense": 4,
+        "specialAttack": 24,
+        "specialDefense": 10,
+        "speed": 15
+      },
+      "stats": {
+        "hp": 21,
+        "attack": 14,
+        "defense": 8,
+        "specialAttack": 10,
+        "specialDefense": 8,
+        "speed": 16
+      },
+      "battle_stats": {
+        "hp": 21,
+        "attack": 14,
+        "defense": 8,
+        "specialAttack": 10,
+        "specialDefense": 8,
+        "speed": 16
+      },
+      "stat_stages": [0, 0, 0, 0, 0, 0, 0],
+      "status": null,
+      "moveset": [
+        {
+          "id": 64,
+          "name": "Peck",
+          "move_pp": 35,
+          "pp_used": 0,
+          "pp_left": 35,
+          "is_usable": true
+        }
+      ],
+      "current_ability_id": 62,
+      "current_ability_name": "Guts",
+      "passive_ability_id": 184,
+      "passive_ability_name": "Aerilate",
+      "ability_suppressed": false,
+      "held_items": [],
+      "is_on_field": false,
+      "active_field_slot_index": null,
+      "is_boss": false,
+      "boss_segments": 0,
+      "is_shiny": false,
+      "player": false
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "seed": "starter-defaults-seed",
+  "wave": 1,
+  "timestamp": 1772939061354,
+  "starters": [
+    {
+      "species_id": 1,
+      "species_name": "BULBASAUR",
+      "level": 5,
+      "form_index": 0,
+      "nature": 7,
+      "ability_index": 0,
+      "ivs": [
+        24,
+        14,
+        1,
+        7,
+        4,
+        26
+      ],
+      "shiny": false,
+      "variant": 0,
+      "pokerus": false,
+      "moveset": []
+    },
+    {
+      "species_id": 4,
+      "species_name": "CHARMANDER",
+      "level": 5,
+      "form_index": 0,
+      "nature": 4,
+      "ability_index": 0,
+      "ivs": [
+        7,
+        2,
+        22,
+        0,
+        11,
+        13
+      ],
+      "shiny": false,
+      "variant": 0,
+      "pokerus": false,
+      "moveset": []
+    },
+    {
+      "species_id": 7,
+      "species_name": "SQUIRTLE",
+      "level": 5,
+      "form_index": 0,
+      "nature": 24,
+      "ability_index": 0,
+      "ivs": [
+        23,
+        5,
+        19,
+        23,
+        2,
+        2
+      ],
+      "shiny": false,
+      "variant": 0,
+      "pokerus": false,
+      "moveset": []
+    }
+  ]
+}
