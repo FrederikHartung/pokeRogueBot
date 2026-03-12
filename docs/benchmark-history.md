@@ -330,3 +330,32 @@ Kurzfazit:
 - Das Kernproblem ist erneut die Effizienz: `avg_turns` steigen massiv auf `19.62`, und die Benchmark-Transitionen wachsen von `39` in `Run 11` auf `157`.
 - `truncated_rate` blieb fuer alle Policies bei `0.000`; die Regression ist damit kein Stabilitaetsproblem des Benchmarks, sondern ein Policy-Verhalten.
 - Zusaetzlich muss der Lauf heute mit Vorsicht gelesen werden, weil der Batch-Bug die Qualitaet und Verteilung der damals erzeugten Trainingsdaten verschlechtert hat.
+
+## Run 13
+
+- Datum: 2026-03-11
+- Beschreibung: Finales Wave-Library-V2-Modell auf kombiniertem Bootstrap-Datensatz aus `480` `all random valid` Episoden plus `480` model-guided Episoden mit pretrained-DQN im Exploit-Zweig
+- Laufnummer: 13
+- Trainingsdaten: `6275` Transitions aus `data/rl/combat/train-wave-library-bootstrap-combined-960-w1-8.jsonl` (`960` eindeutige Episoden; Quellen `random_bootstrap` + `model_guided_bootstrap`)
+- Checkpoint: `data/rl/models/dqn-combat-wave-library-bootstrap-combined-960.pt`
+- Benchmark-Report: `data/rl/combat/eval-policy-compare-wave-library-bootstrap-combined-960-report.json`
+
+Ergebnisse:
+
+| Policy | Win Rate | Avg Reward | Avg Turns | Benchmark-Transitions |
+| --- | ---: | ---: | ---: | ---: |
+| `random` | 0.875 | 6.2849 | 8.12 | 65 |
+| `always_move_0` | 0.875 | 7.1570 | 5.75 | 46 |
+| `dqn` | 0.875 | 7.5577 | 9.38 | 75 |
+
+Delta:
+
+- `dqn_vs_random`: win_rate `+0.000`, avg_reward `+1.2728`, avg_turns `+1.25`
+- `dqn_vs_always_move_0`: win_rate `+0.000`, avg_reward `+0.4007`, avg_turns `+3.63`
+
+Kurzfazit:
+
+- Das kombinierte Bootstrap-Training hebt den `avg_reward` des DQN wieder ueber beide Baselines, ohne die `win_rate` zu verschlechtern.
+- Gegenueber `always_move_0` bleibt aber ein klares Effizienzproblem: der DQN braucht im Benchmark weiterhin deutlich mehr Zuege (`9.38` vs. `5.75`).
+- `truncated_rate` blieb fuer alle Policies bei `0.000`; der Lauf ist damit stabil und fachlich belastbar.
+- Inhaltlich ist das ein brauchbarer Fortschritt: der Agent trifft erkennbar bessere Reward-Entscheidungen als `random` und leicht bessere als `always_move_0`, muss aber vor allem im spaeteren Kampfverlauf noch konsequenter abschliessen statt Kaempfe zu verlaengern.

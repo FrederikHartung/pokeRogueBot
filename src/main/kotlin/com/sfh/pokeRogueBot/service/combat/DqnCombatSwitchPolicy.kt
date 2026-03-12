@@ -1,35 +1,33 @@
 package com.sfh.pokeRogueBot.service.combat
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.sfh.pokeRogueBot.model.decisions.AttackDecisionForPokemon
 import com.sfh.pokeRogueBot.model.decisions.SwitchDecision
 import com.sfh.pokeRogueBot.model.dto.WaveDto
 import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
-import java.io.File
-import java.nio.charset.StandardCharsets
 
 @Component
 class DqnCombatSwitchPolicy(
     private val support: CombatPolicySupport,
     private val heuristicCombatSwitchPolicy: HeuristicCombatSwitchPolicy,
-    @param:Value("\${bot.dqn.python-command:python3}") private val pythonCommand: String,
-    @param:Value("\${bot.dqn.infer-script:scripts/dqn_policy_infer.py}") private val inferScriptPath: String,
-    @param:Value("\${bot.dqn.combat-checkpoint:data/rl/models/dqn-combat-wave-library-v2-deep.pt}") private val checkpointPath: String,
-    @param:Value("\${bot.dqn.device:cpu}") private val device: String,
+    private val dqnInferenceWorkerClient: DqnInferenceWorkerClient,
+    @param:Value("\${bot.dqn.avoid-low-value-status-moves:true}") private val avoidLowValueStatusMoves: Boolean,
+    @param:Value("\${bot.dqn.status-move-override-min-damage-ratio:0.45}") private val statusMoveOverrideMinDamageRatio: Double,
 ) : CombatSwitchPolicy {
 
     companion object {
         private val log = LoggerFactory.getLogger(DqnCombatSwitchPolicy::class.java)
     }
 
-    private val objectMapper = ObjectMapper()
-
     override fun chooseCommandAction(waveDto: WaveDto, tryToCatch: Boolean): CombatCommandChoice {
         if (waveDto.isDoubleFight) {
+            log.debug("Falling back to heuristic combat policy for double battle")
             return heuristicCombatSwitchPolicy.chooseCommandAction(waveDto, tryToCatch)
+        }
+        if (tryToCatch) {
+            log.debug("Falling back to heuristic combat policy because capture flow is active")
+            return heuristicCombatSwitchPolicy.chooseCommandAction(waveDto, true)
         }
 
         val state = support.buildOfflineCombatState(waveDto)
@@ -37,11 +35,32 @@ class DqnCombatSwitchPolicy(
         val actionMask = ((state["action_mask"] as? List<*>) ?: emptyList<Any>())
             .map { if (it == 1) 1 else 0 }
 
-        val action = inferAction(state, actionMask) ?: return heuristicCombatSwitchPolicy.chooseCommandAction(waveDto, tryToCatch)
+        val action = dqnInferenceWorkerClient.inferAction(state, actionMask)
+            ?: return fallbackCommandAction(waveDto, tryToCatch, "model inference unavailable")
         if (action in 0..3) {
             val playerPokemon = support.getActivePlayerPokemon(waveDto)
             val move = playerPokemon?.moveset?.getOrNull(action)
             if (playerPokemon != null && move != null && move.isUsable && move.pPLeft > 0) {
+                if (avoidLowValueStatusMoves) {
+                    val overrideDecision = support.findStatusMoveAttackOverride(
+                        waveDto = waveDto,
+                        selectedMoveIndex = action,
+                        minDamageRatio = statusMoveOverrideMinDamageRatio,
+                    )
+                    if (overrideDecision != null) {
+                        log.debug(
+                            "DQN status-move guard overrode action={} move={} wave={}",
+                            action,
+                            move.name,
+                            waveDto.waveIndex,
+                        )
+                        return CombatCommandChoice(
+                            commandDecision = CommandPhaseDecision.ATTACK,
+                            attackDecision = overrideDecision,
+                        )
+                    }
+                }
+                log.debug("DQN selected attack action={} move={} wave={}", action, move.name, waveDto.waveIndex)
                 return CombatCommandChoice(
                     commandDecision = CommandPhaseDecision.ATTACK,
                     attackDecision = support.toAttackDecision(playerPokemon, action, move),
@@ -53,6 +72,7 @@ class DqnCombatSwitchPolicy(
             val switchDecision = support.toSwitchDecision(waveDto, action - 4)
                 ?: heuristicCombatSwitchPolicy.chooseSwitchDecision(waveDto, true)
             if (switchDecision != null) {
+                log.debug("DQN selected switch action={} switchTarget={} wave={}", action, switchDecision.pokeName, waveDto.waveIndex)
                 return CombatCommandChoice(
                     commandDecision = CommandPhaseDecision.SWITCH,
                     switchDecision = switchDecision,
@@ -60,11 +80,12 @@ class DqnCombatSwitchPolicy(
             }
         }
 
-        return heuristicCombatSwitchPolicy.chooseCommandAction(waveDto, tryToCatch)
+        return fallbackCommandAction(waveDto, tryToCatch, "model returned invalid or unusable action=$action")
     }
 
     override fun chooseSwitchDecision(waveDto: WaveDto, ignoreFirstPokemon: Boolean): SwitchDecision? {
         if (waveDto.isDoubleFight) {
+            log.debug("Falling back to heuristic switch policy for double battle")
             return heuristicCombatSwitchPolicy.chooseSwitchDecision(waveDto, ignoreFirstPokemon)
         }
         val state = support.buildOfflineCombatState(waveDto) ?: return heuristicCombatSwitchPolicy.chooseSwitchDecision(waveDto, ignoreFirstPokemon)
@@ -72,61 +93,44 @@ class DqnCombatSwitchPolicy(
         val switchOnlyMask = originalMask.mapIndexed { index, value ->
             if (index in 4..9 && value == 1) 1 else 0
         }
-        val action = inferAction(state, switchOnlyMask) ?: return heuristicCombatSwitchPolicy.chooseSwitchDecision(waveDto, ignoreFirstPokemon)
+        val action = dqnInferenceWorkerClient.inferAction(state, switchOnlyMask)
+            ?: return fallbackSwitchDecision(waveDto, ignoreFirstPokemon, "model inference unavailable")
         return if (action in 4..9) {
-            support.toSwitchDecision(waveDto, action - 4) ?: heuristicCombatSwitchPolicy.chooseSwitchDecision(waveDto, ignoreFirstPokemon)
+            support.toSwitchDecision(waveDto, action - 4) ?: fallbackSwitchDecision(
+                waveDto,
+                ignoreFirstPokemon,
+                "model returned unusable switch action=$action",
+            )
         } else {
-            heuristicCombatSwitchPolicy.chooseSwitchDecision(waveDto, ignoreFirstPokemon)
+            fallbackSwitchDecision(waveDto, ignoreFirstPokemon, "model returned non-switch action=$action for switch-only request")
         }
     }
 
     override fun shouldSwitchPokemon(waveDto: WaveDto): Boolean {
         if (waveDto.isDoubleFight) {
+            log.debug("Falling back to heuristic shouldSwitch decision for double battle")
             return heuristicCombatSwitchPolicy.shouldSwitchPokemon(waveDto)
         }
         val state = support.buildOfflineCombatState(waveDto) ?: return heuristicCombatSwitchPolicy.shouldSwitchPokemon(waveDto)
         val actionMask = ((state["action_mask"] as? List<*>) ?: emptyList<Any>())
             .map { if (it == 1) 1 else 0 }
-        val action = inferAction(state, actionMask) ?: return heuristicCombatSwitchPolicy.shouldSwitchPokemon(waveDto)
+        val action = dqnInferenceWorkerClient.inferAction(state, actionMask)
+            ?: return fallbackShouldSwitch(waveDto, "model inference unavailable")
         return action in 4..9
     }
 
-    private fun inferAction(state: Map<String, Any>, actionMask: List<Int>): Int? {
-        val checkpointFile = File(checkpointPath)
-        if (!checkpointFile.exists()) {
-            log.warn("DQN checkpoint not found at {}, falling back to heuristic policy", checkpointFile.absolutePath)
-            return null
-        }
+    private fun fallbackCommandAction(waveDto: WaveDto, tryToCatch: Boolean, reason: String): CombatCommandChoice {
+        log.debug("Falling back to heuristic command policy: reason={} wave={}", reason, waveDto.waveIndex)
+        return heuristicCombatSwitchPolicy.chooseCommandAction(waveDto, tryToCatch)
+    }
 
-        return try {
-            val process = ProcessBuilder(
-                pythonCommand,
-                inferScriptPath,
-                "--checkpoint",
-                checkpointFile.path,
-                "--device",
-                device,
-            )
-                .redirectErrorStream(true)
-                .start()
+    private fun fallbackSwitchDecision(waveDto: WaveDto, ignoreFirstPokemon: Boolean, reason: String): SwitchDecision? {
+        log.debug("Falling back to heuristic switch policy: reason={} wave={}", reason, waveDto.waveIndex)
+        return heuristicCombatSwitchPolicy.chooseSwitchDecision(waveDto, ignoreFirstPokemon)
+    }
 
-            process.outputStream.bufferedWriter(StandardCharsets.UTF_8).use { writer ->
-                writer.write(objectMapper.writeValueAsString(mapOf("state" to state, "action_mask" to actionMask)))
-                writer.flush()
-            }
-
-            val output = process.inputStream.bufferedReader(StandardCharsets.UTF_8).readText().trim()
-            val exitCode = process.waitFor()
-            if (exitCode != 0) {
-                log.warn("DQN inference process failed with exitCode={} output={}", exitCode, output)
-                null
-            } else {
-                val payload = objectMapper.readTree(output)
-                if (payload.has("action")) payload.get("action").asInt() else null
-            }
-        } catch (ex: Exception) {
-            log.warn("Failed to infer DQN combat action, falling back to heuristic policy", ex)
-            null
-        }
+    private fun fallbackShouldSwitch(waveDto: WaveDto, reason: String): Boolean {
+        log.debug("Falling back to heuristic shouldSwitch policy: reason={} wave={}", reason, waveDto.waveIndex)
+        return heuristicCombatSwitchPolicy.shouldSwitchPokemon(waveDto)
     }
 }

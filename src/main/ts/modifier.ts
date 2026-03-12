@@ -3,7 +3,7 @@ import type { ModifierTypeOption } from "../../../pokerogue/src/modifier/modifie
 
 type ModifierOptionDto = {
     group: unknown;
-    id: number;
+    id: string;
     tier: string | number;
     name: string;
     typeName: string;
@@ -25,6 +25,21 @@ type ModifierOptionLike = {
     modifierTypeOption: ModifierTypeOption;
     x?: number;
     y?: number;
+};
+
+type ModifierTypeMetadata = {
+    id: string;
+    group: unknown;
+    tier: number;
+    name: string;
+    count?: number;
+    pokeballType?: number;
+    vouchertype?: unknown;
+    healStatus?: unknown;
+    restorePercent?: number;
+    restorePoints?: number;
+    moveId?: number;
+    tempBattleStat?: unknown;
 };
 
 type ContainerLike = {
@@ -57,6 +72,10 @@ declare const window: Window & typeof globalThis & { poru?: PoruRoot };
 if(!window.poru) window.poru = {};
 const poruRoot = window.poru;
 
+function getModifierTypeMetadata(modifierOption: ModifierTypeOption): ModifierTypeMetadata {
+    return modifierOption.type as unknown as ModifierTypeMetadata;
+}
+
 const modifierApi: ModifierApi = {
 
     getModifierTierEnumString: (tier: number) => {
@@ -76,12 +95,13 @@ const modifierApi: ModifierApi = {
     },
 
     buildResult: (container: ModifierOptionLike, resultArray: ModifierOptionDto[]) => {
+        const modifierType = getModifierTypeMetadata(container.modifierTypeOption);
         const option: ModifierOptionDto = {
             //ModifierType
-            id: container.modifierTypeOption.type.id,
-            group: container.modifierTypeOption.type.group,
-            tier: modifierApi.getModifierTierEnumString(container.modifierTypeOption.type.tier),
-            name: container.modifierTypeOption.type.name,
+            id: modifierType.id,
+            group: modifierType.group,
+            tier: modifierApi.getModifierTierEnumString(modifierType.tier),
+            name: modifierType.name,
             typeName: container.modifierTypeOption.type.constructor.name,
             x: container.x ?? 0,
             y: container.y ?? 0,
@@ -92,30 +112,32 @@ const modifierApi: ModifierApi = {
         }
 
         if (option.typeName === "AddPokeballModifierType"){
-            option.count = container.modifierTypeOption.type.count;
-            option.pokeballType = window.poru.modifier.getPokeBallTypeEnumString(container.modifierTypeOption.type.pokeballType);
+            option.count = modifierType.count;
+            option.pokeballType = modifierType.pokeballType !== undefined
+                ? window.poru.modifier.getPokeBallTypeEnumString(modifierType.pokeballType)
+                : undefined;
         }
         else if (option.typeName === "AddVoucherModifierType"){
-            option.vouchertype = container.modifierTypeOption.type.vouchertype;
-            option.count = container.modifierTypeOption.type.count;
+            option.vouchertype = modifierType.vouchertype;
+            option.count = modifierType.count;
         }
         else if (option.typeName === "PokemonHpRestoreModifierType"){
-            option.healStatus = container.modifierTypeOption.type.healStatus;
-            option.restorePercent = container.modifierTypeOption.type.restorePercent;
-            option.restorePoints = container.modifierTypeOption.type.restorePoints;
+            option.healStatus = modifierType.healStatus;
+            option.restorePercent = modifierType.restorePercent;
+            option.restorePoints = modifierType.restorePoints;
         }
         else if (option.typeName === "PokemonReviveModifierType"){
-            option.restorePoints = container.modifierTypeOption.type.restorePoints;
-            option.restorePercent = container.modifierTypeOption.type.restorePercent;
+            option.restorePoints = modifierType.restorePoints;
+            option.restorePercent = modifierType.restorePercent;
         }
         else if (option.typeName === "TmModifierType"){
-            option.moveId = container.modifierTypeOption.type.moveId;
+            option.moveId = modifierType.moveId;
         }
         else if (option.typeName === "PokemonPpRestoreModifierType"){
-            option.restorePoints = container.modifierTypeOption.type.restorePoints;
+            option.restorePoints = modifierType.restorePoints;
         }
         else if (option.typeName === "TempBattleStatBoosterModifierType"){
-            option.tempBattleStat = container.modifierTypeOption.type.tempBattleStat;
+            option.tempBattleStat = modifierType.tempBattleStat;
         }
 
         resultArray.push(option);
@@ -149,11 +171,12 @@ const modifierApi: ModifierApi = {
         const modifierItemDtoArray: ModifierOptionDto[] = [];
         for(let i = 0; i < modifierItemArray.length; i++){
             const modifierTypeOption = modifierItemArray[i].modifierTypeOption;
+            const modifierType = getModifierTypeMetadata(modifierTypeOption);
             const option: ModifierOptionDto = {
-                group: modifierTypeOption.type.group,
-                id: modifierTypeOption.type.id,
-                tier: modifierTypeOption.type.tier,
-                name: modifierTypeOption.type.name,
+                group: modifierType.group,
+                id: modifierType.id,
+                tier: modifierType.tier,
+                name: modifierType.name,
 
                 typeName: modifierTypeOption.type.constructor.name,
 
@@ -162,30 +185,32 @@ const modifierApi: ModifierApi = {
             };
 
         if (option.typeName === "AddPokeballModifierType"){
-            option.count = modifierTypeOption.type.count;
-            option.pokeballType = window.poru.modifier.getPokeBallTypeEnumString(modifierTypeOption.type.pokeballType);
+            option.count = modifierType.count;
+            option.pokeballType = modifierType.pokeballType !== undefined
+                ? window.poru.modifier.getPokeBallTypeEnumString(modifierType.pokeballType)
+                : undefined;
         }
         else if (option.typeName === "AddVoucherModifierType"){
-            option.vouchertype = modifierTypeOption.type.vouchertype;
-            option.count = modifierTypeOption.type.count;
+            option.vouchertype = modifierType.vouchertype;
+            option.count = modifierType.count;
         }
         else if (option.typeName === "PokemonHpRestoreModifierType"){
-            option.healStatus = modifierTypeOption.type.healStatus;
-            option.restorePercent = modifierTypeOption.type.restorePercent;
-            option.restorePoints = modifierTypeOption.type.restorePoints;
+            option.healStatus = modifierType.healStatus;
+            option.restorePercent = modifierType.restorePercent;
+            option.restorePoints = modifierType.restorePoints;
         }
         else if (option.typeName === "PokemonReviveModifierType"){
-            option.restorePoints = modifierTypeOption.type.restorePoints;
-            option.restorePercent = modifierTypeOption.type.restorePercent;
+            option.restorePoints = modifierType.restorePoints;
+            option.restorePercent = modifierType.restorePercent;
         }
         else if (option.typeName === "TmModifierType"){
-            option.moveId = modifierTypeOption.type.moveId;
+            option.moveId = modifierType.moveId;
         }
         else if (option.typeName === "PokemonPpRestoreModifierType"){
-            option.restorePoints = modifierTypeOption.type.restorePoints;
+            option.restorePoints = modifierType.restorePoints;
         }
         else if (option.typeName === "TempBattleStatBoosterModifierType"){
-            option.tempBattleStat = modifierTypeOption.type.tempBattleStat;
+            option.tempBattleStat = modifierType.tempBattleStat;
         }
 
             modifierItemDtoArray.push(option);

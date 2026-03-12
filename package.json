@@ -1,7 +1,8 @@
 {
   "private": true,
   "scripts": {
-    "build:js": "node build-js.mjs",
+    "typecheck:js-bridge": "node scripts/typecheck-js-bridge.mjs",
+    "build:js": "npm run typecheck:js-bridge && node build-js.mjs",
     "rl:dump:starters": "node scripts/dump-pokerogue-starter-defaults.mjs",
     "rl:collect": "node scripts/run-pokerogue-experience-collector.mjs",
     "rl:gen:scenarios": "node scripts/run-wave-library-scenario-adapter.mjs",
@@ -14,6 +15,9 @@
     "rl:collect:bench": "node scripts/run-pokerogue-experience-collector.mjs ./data/rl/collector-run-benchmarked-wave-library-v2.json",
     "rl:collect:bench:wave-lib:v2": "node scripts/run-pokerogue-experience-collector.mjs ./data/rl/collector-run-benchmarked-wave-library-v2.json",
     "rl:check:dataset": "node scripts/run-rl-dataset-sanity.mjs",
+    "rl:merge:datasets": "node scripts/merge-rl-jsonl-datasets.mjs",
+    "rl:report:dataset": "node scripts/report-rl-dataset.mjs",
+    "rl:pipeline:wave-lib:bootstrap": "node scripts/run-wave-library-bootstrap-pipeline.mjs",
     "rl:train:dqn:poc": "python3 scripts/train_dqn_offline.py --config ./data/rl/train-dqn-offline-poc.json",
     "rl:train:dqn:wave-lib:v2": "python3 scripts/train_dqn_offline.py --config ./data/rl/train-dqn-offline-wave-library-v2-deep.json",
     "rl:eval:dqn:poc": "python3 scripts/eval_dqn_policy.py",
@@ -23,6 +27,7 @@
     "rl:inspect:dataset": "python3 -m streamlit run scripts/streamlit_rl_dataset_inspector.py"
   },
   "devDependencies": {
-    "esbuild": "^0.25.0"
+    "esbuild": "^0.25.0",
+    "typescript": "^5.9.2"
   }
 }

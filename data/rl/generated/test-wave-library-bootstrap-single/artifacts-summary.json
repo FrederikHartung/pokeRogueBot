@@ -1,0 +1,30 @@
+{
+  "manifest_path": "/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/rl/generated/test-wave-library-bootstrap-single/manifest.json",
+  "updated_at": "2026-03-12T12:58:24.709Z",
+  "outputs": {
+    "random_collect": {
+      "dataset_path": "/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/rl/generated/test-wave-library-bootstrap-single/merged/random_collect.jsonl",
+      "rows": 17,
+      "report_path": "/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/rl/generated/test-wave-library-bootstrap-single/merged/random_collect-report.json"
+    }
+  },
+  "steps": {
+    "random_collect": {
+      "status": "completed",
+      "error": null,
+      "updated_at": "2026-03-12T12:58:17.676Z"
+    },
+    "random_report": {
+      "status": "completed",
+      "error": null,
+      "updated_at": "2026-03-12T12:58:24.708Z"
+    }
+  },
+  "recommended_downloads": {
+    "random_report": "/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/rl/generated/test-wave-library-bootstrap-single/merged/random_collect-report.json",
+    "dqn_report": null,
+    "final_model": null,
+    "initial_benchmark_report": null,
+    "final_benchmark_report": null
+  }
+}

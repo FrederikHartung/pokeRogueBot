@@ -1,0 +1,15 @@
+{
+  "append_output": false,
+  "max_steps_per_episode": 300,
+  "test_timeout_ms": 600000,
+  "quiet_game_logs": true,
+  "scenario_files": [
+    "/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/rl/scenarios/generated-wave-library-v2-w1-7/wild-w2-762fd9254a15.json"
+  ],
+  "output_path": "/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/rl/generated/test-wave-library-bootstrap-pipeline/random_collect/batches/wild-w2-762fd9254a15--batch-001.jsonl",
+  "episodes_per_seed": 1,
+  "episode_index_offset": 3,
+  "policy": {
+    "type": "random"
+  }
+}

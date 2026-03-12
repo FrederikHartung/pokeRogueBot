@@ -143,6 +143,15 @@ type PokeApi = {
     getPokemonDto: (pokemon: Pokemon) => PokemonDto;
 };
 
+type BossSegmentCapablePokemon = Pokemon & {
+    bossSegments?: number;
+    getBossSegments?: () => number;
+};
+
+type CompatibleTmsCapablePokemon = Pokemon & {
+    compatibleTms?: number[];
+};
+
 type PoruRoot = {
     poke?: PokeApi;
 };
@@ -150,6 +159,18 @@ type PoruRoot = {
 declare const window: Window & typeof globalThis & { poru?: PoruRoot };
 
 const poruRoot = window.poru ?? (window.poru = {});
+
+function getBossSegments(pokemon: BossSegmentCapablePokemon): number {
+    if (!pokemon.isBoss()) {
+        return 0;
+    }
+
+    if (typeof pokemon.getBossSegments === "function") {
+        return pokemon.getBossSegments();
+    }
+
+    return pokemon.bossSegments ?? 0;
+}
 
 const pokeApi: PokeApi = {
 
@@ -471,12 +492,13 @@ const pokeApi: PokeApi = {
 
             //battleInfo
             boss: pokemon.isBoss(), //boolean
-            bossSegments: pokemon.isBoss() ? pokemon.getBossSegments() : 0, //integer
+            bossSegments: getBossSegments(pokemon), //integer
             player: pokemon.isPlayer(), //boolean
         }
 
-        if(pokemon.compatibleTms){
-            dto.compatibleTms = pokemon.compatibleTms; //array of integers
+        const compatibleTmsPokemon = pokemon as CompatibleTmsCapablePokemon;
+        if (compatibleTmsPokemon.compatibleTms) {
+            dto.compatibleTms = compatibleTmsPokemon.compatibleTms; //array of integers
         }
 
         return dto;

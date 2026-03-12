@@ -23,10 +23,17 @@ After getting to a Result, the bot calculates which buttons are to press and sen
 6. This Bot only works with the english version of the game. Make sure to set the language to english in the game settings before starting.
 7. Start the Spring Boot application from the project root:
    - `mvn spring-boot:run`
-   - optional explicit combat policy: `mvn spring-boot:run -Dspring-boot.run.arguments=--bot.combat-policy-mode=random_move`
+   - default runtime mode now uses the live DQN combat policy from `application.yml`
+   - optional explicit random baseline: `mvn spring-boot:run -Dspring-boot.run.arguments=--bot.combat-policy-mode=random_move`
+   - optional explicit DQN smoke path: `mvn spring-boot:run -Dspring-boot.run.arguments=--bot.combat-policy-mode=dqn`
 8. Alternatively, open this repository in Intellij Idea and run the Application class. The bot should start and connect to the browser at `http://localhost:8000/`.
 
 Note: The JS bridge files (`src/main/js/*.js`) are generated from TypeScript sources in `src/main/ts/`. Maven automatically rebuilds them during compilation. The TypeScript files import game enums and use `import type` for game classes (Pokemon, BattleScene, Move, etc.) directly from the PokeRogue submodule, so they stay in sync with the game version. For full IDE type support (autocomplete, type checking), install the submodule's dependencies: `cd pokerogue && pnpm install`.
+Current runtime defaults:
+- `bot.combat-policy-mode: dqn`
+- `bot.dqn.infer-script: scripts/dqn_policy_infer_worker.py`
+- `bot.dqn.combat-checkpoint: data/rl/models/dqn-combat-wave-library-bootstrap-combined-960.pt`
+- `bot.capture.enabled: false` so the bot currently prioritizes defeating wild and trainer Pokemon over capture attempts
 Static guardrails for bridge drift are covered by tests:
 - `UiModeDriftTest`
 - `UiHandlerCoverageTest`
@@ -36,9 +43,45 @@ Static guardrails for bridge drift are covered by tests:
 - `UiHandlerBridgeContractTest`
 - `BridgeContractCoverageGuardTest`
 
+## Offline RL Data Generation
+
+There are now two separate paths and both should stay available:
+
+- Local quick POC path:
+  - use the existing collector commands for short local experiments and small/fast datasets
+  - examples:
+    - `npm run rl:collect:wave-lib:regression`
+    - `npm run rl:collect:wave-lib:train:broad-shallow`
+    - `npm run rl:collect:wave-lib:train:deep`
+- Remote long-run path:
+  - use the new batch-based bootstrap pipeline for long data-generation jobs on a remote Linux server
+  - entrypoint:
+    - `scripts/run-wave-library-bootstrap-remote.sh start`
+  - this path checks dependencies first and then starts the pipeline detached via `nohup`
+  - the run continues even if the SSH session is closed
+  - after the run, use `data/rl/pipeline-runs/wave-library-bootstrap-remote/artifacts-summary.json` as the central index for downloading the final model and reports
+  - helper commands:
+    - `scripts/run-wave-library-bootstrap-remote.sh status`
+    - `scripts/run-wave-library-bootstrap-remote.sh logs`
+    - `scripts/run-wave-library-bootstrap-remote.sh stop`
+
+The remote helper currently checks:
+
+- `node`
+- `npm`
+- `python3`
+- Python `torch`
+- root `node_modules`
+- `pokerogue/node_modules`
+- `pokerogue/locales/en`
+
 ## Hows does the bot work
-Currently the bot implementation is very simple. It choses the first attack and tries to pick a potion item and apply it to the first pokemon in the team. This is done, till the player team is beaten.  
-I am working on improving the bot and adding more features.
+Current live-bot status:
+- Combat and switch decisions default to the live DQN policy in single battles
+- DQN inference uses a persistent local Python worker instead of starting a new process for every action
+- Double battles still fall back to heuristic combat behavior
+- Wild-Pokemon capture is currently disabled by default so the bot focuses on ending battles quickly
+- Modifier/item decisions still use the separate Kotlin RL path (`ModifierRLNeuron`)
 
 ## How to add a chrome profile to persist the settings chosen in the title menu
 It is possible to add a Chrome Profile to the bot. The advantage is, that you can open the browser with the profile and choose the settings in the title menu like game speed or show tutorials.  

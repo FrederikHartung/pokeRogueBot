@@ -217,7 +217,8 @@
   "meta": {
     "seed": "000123",
     "wave": 5,
-    "battle_type": "single"
+    "battle_type": "single",
+    "action_source": "model"
   },
   "timestamp": 1772937000000
 }

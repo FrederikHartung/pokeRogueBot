@@ -2,9 +2,11 @@
 
 ## Current Implementation Priority
 
-- Before further live-bot policy expansion, the immediate goal is a working end-to-end bot run with combat policy `random_move`.
-- For this recovery step, `random_move` means: always enter `FIGHT` when a legal move exists, then choose a random legal move.
-- Switch/DQN behavior remains secondary until the live application is stable again.
+- The live bot now has a first end-to-end DQN combat integration for single battles.
+- Runtime default is `bot.combat-policy-mode=dqn`.
+- Live inference now uses the persistent worker path `scripts/dqn_policy_infer_worker.py` instead of one-shot per-action inference.
+- Current runtime focus is not capture behavior; `bot.capture.enabled=false` by default so wild encounters are handled like normal "win fast" battles.
+- Double battles and broader live observability remain secondary follow-up tasks until the single-battle live path is better validated.
 
 ## Goal
 
@@ -29,7 +31,8 @@ Out of scope (v1):
 - PokeRogue submodule remains read-only for now.
 - Main repo defines RL data contract and training pipeline.
 - Headless simulation is executed against pinned submodule code.
-- Training is external (Python/PyTorch), inference integration follows later.
+- Training is external (Python/PyTorch).
+- Inference integration now exists in the live Kotlin bot for the single-battle combat/switch path.
 
 ## Environment Contract (v1)
 
@@ -203,6 +206,7 @@ Current note:
 - The old POC `seed x wave` generation path is removed from the active toolchain.
 - The production-facing scenario path now starts from the productive wave library and is documented in `docs/combat-training-wave-library-v2.md`.
 - The materialization step for that path is `npm run rl:gen:scenarios`.
+- The new remote batch pipeline is an additional long-run path for SSH/server collection and does not replace the existing quick local collector workflows.
 - For data generation, `epsilon_random` with `first_valid` as exploit fallback is no longer considered a good default for future runs, because it over-biases the dataset toward low-index move slots instead of toward actually promising actions.
 - Preferred bootstrap direction for future collector experiments:
   - first generate a broad `all random valid` dataset
@@ -218,13 +222,21 @@ Current practical bootstrap procedure:
 - Step 4: keep exploration random, but set `policy.exploit_policy.type = external_command`
 - Step 5: point that exploit policy at a pretrained checkpoint via `scripts/dqn_policy_infer_worker.py`
 - Step 6: enable `persistent = true` so the worker loads the checkpoint once and serves all exploit decisions over a long-lived local stdin/stdout session
-- Step 7: train the next checkpoint on the combined bootstrap + model-guided dataset
+- Step 7: merge both JSONL datasets with `npm run rl:merge:datasets -- --output ... --input <random.jsonl:random_bootstrap> --input <model.jsonl:model_guided_bootstrap>` so `episode_id` values stay unique and `meta.dataset_source` is preserved
+- Step 8: train the next checkpoint on the combined bootstrap + model-guided dataset
+- Step 9: benchmark that checkpoint via `scripts/eval_dqn_policy.py` or `scripts/eval_policy_compare.py`; both evaluation paths now use the same persistent worker pattern instead of one-shot per-action inference
 
 Why the persistent worker matters:
 
 - the earlier one-shot external command path started a new Python/Torch process for every exploit action
 - that made model-guided collection much slower than random collection
 - the persistent worker keeps one local inference process alive for the whole collector run, which removes the repeated process startup and checkpoint reload overhead
+- the same long-lived worker approach is now used in the benchmark/eval scripts as well, so collection and evaluation no longer diverge on inference lifecycle
+
+Current logging note:
+
+- newly generated collector datasets now record `meta.action_source`
+- this makes it possible to separate random exploration from model-driven exploit actions during later dataset analysis
 
 ## Evaluation Metrics (v1)
 

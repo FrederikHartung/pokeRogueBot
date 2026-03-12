@@ -20,6 +20,15 @@ import kotlin.random.Random
 class CombatPolicySupport(
     private val switchPokemonNeuron: SwitchPokemonNeuron,
 ) {
+    data class DamagingMoveCandidate(
+        val index: Int,
+        val move: Move,
+        val estimatedDamageRatio: Double,
+        val effectiveness: Double,
+        val actsFirstIfUsed: Boolean,
+        val canKoBeforeEnemyMoves: Boolean,
+    )
+
     companion object {
         private val log = LoggerFactory.getLogger(CombatPolicySupport::class.java)
     }
@@ -136,6 +145,54 @@ class CombatPolicySupport(
         return getSwitchCandidateIndices(waveDto)
             .firstOrNull()
             ?.let { toSwitchDecision(waveDto, it) }
+    }
+
+    fun findStatusMoveAttackOverride(
+        waveDto: WaveDto,
+        selectedMoveIndex: Int,
+        minDamageRatio: Double,
+    ): AttackDecisionForPokemon? {
+        val playerPokemon = getActivePlayerPokemon(waveDto) ?: return null
+        val enemyPokemon = getPrimaryEnemyPokemon(waveDto) ?: return null
+        val selectedMove = playerPokemon.moveset.getOrNull(selectedMoveIndex) ?: return null
+        if (!isStatusLikeMove(selectedMove)) {
+            return null
+        }
+
+        val bestDamagingCandidate = findBestDamagingMoveCandidate(playerPokemon, enemyPokemon) ?: return null
+        val playerHpRatio = getHpRatio(playerPokemon.hp, playerPokemon.stats.hp)
+        val enemyHpRatio = getHpRatio(enemyPokemon.hp, enemyPokemon.stats.hp)
+        val enemyBestDamageIntoActive = enemyPokemon.moveset
+            .take(4)
+            .filter { it.isUsable && it.pPLeft > 0 }
+            .maxOfOrNull { estimatedDamageRatio(it, enemyPokemon, playerPokemon) }
+            ?: 0.0
+        val underPressure = playerHpRatio <= 0.35 || enemyBestDamageIntoActive >= playerHpRatio
+        val enemyInAttackRange = bestDamagingCandidate.estimatedDamageRatio >= enemyHpRatio * 0.7
+        val strongNeutralHitAvailable =
+            bestDamagingCandidate.effectiveness >= 1.0 && bestDamagingCandidate.estimatedDamageRatio >= minDamageRatio
+
+        val shouldOverride =
+            bestDamagingCandidate.canKoBeforeEnemyMoves ||
+                (bestDamagingCandidate.actsFirstIfUsed && enemyInAttackRange) ||
+                (underPressure && bestDamagingCandidate.estimatedDamageRatio >= minDamageRatio) ||
+                (enemyHpRatio <= 0.5 && strongNeutralHitAvailable)
+
+        if (!shouldOverride) {
+            return null
+        }
+
+        log.debug(
+            "Overriding status-like move {} with damaging move {} (idx={}, dmgRatio={}, eff={}, actsFirst={}, koBeforeEnemy={})",
+            selectedMove.name,
+            bestDamagingCandidate.move.name,
+            bestDamagingCandidate.index,
+            String.format("%.3f", bestDamagingCandidate.estimatedDamageRatio),
+            String.format("%.2f", bestDamagingCandidate.effectiveness),
+            bestDamagingCandidate.actsFirstIfUsed,
+            bestDamagingCandidate.canKoBeforeEnemyMoves,
+        )
+        return toAttackDecision(playerPokemon, bestDamagingCandidate.index, bestDamagingCandidate.move)
     }
 
     fun buildOfflineCombatState(waveDto: WaveDto): Map<String, Any>? {
@@ -442,6 +499,38 @@ class CombatPolicySupport(
     }
 
     private fun effectiveSpeed(pokemon: Pokemon): Int = pokemon.battleStats?.speed ?: pokemon.stats.speed
+
+    private fun findBestDamagingMoveCandidate(attacker: Pokemon, defender: Pokemon): DamagingMoveCandidate? {
+        val bestKnownEnemyPriority = bestKnownEnemyPriority(defender)
+        return attacker.moveset
+            .take(4)
+            .mapIndexedNotNull { index, move ->
+                if (!move.isUsable || move.pPLeft <= 0 || isStatusLikeMove(move)) {
+                    return@mapIndexedNotNull null
+                }
+
+                val estimatedDamageRatio = estimatedDamageRatio(move, attacker, defender)
+                val effectiveness = moveEffectiveness(move, defender)
+                val actsFirstIfUsed = actsFirstIfUsed(attacker, defender, move, bestKnownEnemyPriority)
+                DamagingMoveCandidate(
+                    index = index,
+                    move = move,
+                    estimatedDamageRatio = estimatedDamageRatio,
+                    effectiveness = effectiveness,
+                    actsFirstIfUsed = actsFirstIfUsed,
+                    canKoBeforeEnemyMoves = actsFirstIfUsed && estimatedDamageRatio >= getHpRatio(defender.hp, defender.stats.hp),
+                )
+            }
+            .maxWithOrNull(
+                compareBy<DamagingMoveCandidate> { it.canKoBeforeEnemyMoves }
+                    .thenBy { it.actsFirstIfUsed }
+                    .thenBy { it.estimatedDamageRatio }
+                    .thenBy { it.effectiveness }
+                    .thenBy { it.move.priority }
+            )
+    }
+
+    private fun isStatusLikeMove(move: Move): Boolean = move.category == MoveCategory.STATUS || move.power <= 0
 
     private fun enemyHasKnownPriorityThreat(enemyPokemon: Pokemon): Boolean =
         enemyPokemon.moveset.take(4).any { it.isUsable && it.pPLeft > 0 && it.priority > 0 }

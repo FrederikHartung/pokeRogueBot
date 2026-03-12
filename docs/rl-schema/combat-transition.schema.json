@@ -63,6 +63,17 @@
           "enum": [
             "single"
           ]
+        },
+        "action_source": {
+          "type": "string",
+          "enum": [
+            "random",
+            "scheduled_random",
+            "first_valid",
+            "external_command",
+            "model",
+            "unknown"
+          ]
         }
       }
     },

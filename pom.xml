@@ -253,9 +253,10 @@
 							<goal>exec</goal>
 						</goals>
 						<configuration>
-							<executable>node</executable>
+							<executable>npm</executable>
 							<arguments>
-								<argument>build-js.mjs</argument>
+								<argument>run</argument>
+								<argument>build:js</argument>
 							</arguments>
 						</configuration>
 					</execution>

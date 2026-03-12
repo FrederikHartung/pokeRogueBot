@@ -6,6 +6,7 @@ import com.sfh.pokeRogueBot.model.poke.PokeBallCatchRate;
 import com.sfh.pokeRogueBot.model.poke.Pokemon;
 import com.sfh.pokeRogueBot.service.javascript.JsService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -13,15 +14,24 @@ import org.springframework.stereotype.Component;
 public class CapturePokemonNeuron {
 
     private final JsService jsService;
+    private final boolean captureEnabled;
 
-    public CapturePokemonNeuron(JsService jsService) {
+    public CapturePokemonNeuron(
+            JsService jsService,
+            @Value("${bot.capture.enabled:false}") boolean captureEnabled
+    ) {
         this.jsService = jsService;
+        this.captureEnabled = captureEnabled;
     }
 
     /**
      * @return if the pokemon should be captured
      */
     public boolean shouldCapturePokemon(WaveDto waveDto, Pokemon wildPokemon) {
+        if (!captureEnabled) {
+            log.debug("can't capture: capture is disabled via config");
+            return false;
+        }
 
         if (wildPokemon == null) {
             return false;

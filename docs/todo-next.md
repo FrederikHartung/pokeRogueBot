@@ -1,16 +1,22 @@
 # TODO Next Session
 
 Prioritaetswechsel fuer die naechste Session:
-- Hauptziel ist zuerst eine wieder robuste JS-Bridge gegen die aktuelle PokeRogue-Submodul-Version.
+- Hauptziel ist jetzt nicht mehr nur `random_move`-Stabilisierung, sondern die produktive Nutzung des aktuell trainierten Combat-/Switch-DQN im Live-Bot.
+- Die JS-Bridge bleibt dabei Voraussetzung und Guardrail, ist aber nicht mehr das alleinige Leitprojekt fuer die naechste Session.
 - Spring-Boot-Anwendung und lokales Spiel lassen sich aktuell starten, und der Live-Bot kommt bereits wieder durch die fruehen Spielphasen.
-- Konkret liefert `getBattleScene()` noch ein Objekt, jedoch haben sich Properties/Access-Patterns im Spiel geaendert, sodass mehrere Bridge-Methoden nicht mehr dem aktuellen Submodul-Stand entsprechen.
-- Fuer mehr Sicherheit bei kuenftigen Submodul-Updates sollen deshalb schrittweise alle Methoden in `src/main/ts/` auf echte PokeRogue-Typen umgestellt werden statt weiter implizit mit `any`/ungueltigen Property-Annahmen zu arbeiten.
+- Der Kotlin-Livepfad hat bereits einen `DQN`-Policy-Modus (`CombatPolicyMode.DQN` + `DqnCombatSwitchPolicy`) sowie den Live-State-Builder fuer den Offline-Combat-Contract.
+- Der vorhandene DQN-Pfad ist jetzt erstmals live verdrahtet:
+- Runtime-Default ist jetzt `dqn`
+- Default-Checkpoint zeigt jetzt auf `data/rl/models/dqn-combat-wave-library-bootstrap-combined-960.pt` aus `Run 13`
+- Inferenz laeuft jetzt ueber den persistenten Worker `scripts/dqn_policy_infer_worker.py`
+- Capture ist aktuell standardmaessig deaktiviert (`bot.capture.enabled=false`), damit der Bot wilde und Trainer-Pokemon zunaechst moeglichst schnell besiegt
+- Noch offen bleiben vor allem Observability/Fallback-Zaehler und laengere Live-Validierung
 - Zielbild fuer den naechsten Abschnitt:
-- Build-seitig frueh erkennen, wenn sich BattleScene-/UI-/Pokemon-APIs im Submodul aendern
-- Laufzeitfehler in der Bridge reduzieren
-- erst danach wieder Live-Bot-Funktion und Combat-Policy-Ausbau priorisieren
+- DQN-Combat-/Switch-Policy laeuft im echten Bot reproduzierbar fuer fruehe Waves
+- Fallback auf heuristische Policy bleibt vorhanden, aber transparent geloggt und messbar
+- Build-/Schema-Drift zwischen Kotlin-Live-State, Python-Inferenz und Offline-Training wird frueh sichtbar
 - Dokumentationsfolge:
-- Nach erfolgreicher Wiederinbetriebnahme `docs/combat-training-v1.md` und diese Datei auf den tatsaechlichen Implementierungsstand angleichen.
+- Nach erfolgreicher DQN-Live-Integration `docs/combat-training-v1.md`, README und diese Datei auf den tatsaechlichen Implementierungsstand angleichen.
 - Aktuell bereits abgesichert:
 - `mvn -q -DskipTests compile` laeuft wieder erfolgreich
 - Spring-Boot-Anwendung startet
@@ -22,6 +28,10 @@ Prioritaetswechsel fuer die naechste Session:
 - Live-Run erreicht wieder fruehe Kampfphasen
 - `random_move` waehlt in `CommandPhase` wieder pro Turn eine frische zufaellige legale Attacke statt eine gecachte Altentscheidung zu wiederholen
 - zentrale Bridge-Dateien wurden bereits auf den aktuellen Submodul-Stand nachgezogen (`util.ts`, `wave.ts`, `uihandler.ts`, `poke.ts`)
+- `CombatPolicyMode` kann bereits zwischen `heuristic`, `random_move`, `random_move_or_switch` und `dqn` umschalten
+- `DqnCombatSwitchPolicy` kann den Live-`WaveDto` bereits in den Offline-State-Contract ueberfuehren und Aktion-Masks anwenden
+- `DqnInferenceWorkerClient` haelt jetzt einen persistenten lokalen Python-Inferenzprozess fuer Live-DQN-Entscheidungen offen
+- Capture ist per Config standardmaessig deaktiviert, damit der Live-Bot aktuell nicht auf Schwachschlagen + Pokeball wechselt
 - erste Drift-/Contract-Guardrails fuer die Bridge sind bereits vorhanden:
 - `UiModeDriftTest`
 - `UiHandlerCoverageTest`
@@ -66,17 +76,34 @@ Verbindlicher Schema-Hinweis:
 - die wichtigsten Bridge-Dateien sind typisiert und die aktuell bekannten Laufzeitfehler in fruehen Spielphasen sind beseitigt
 - naechster Fokus innerhalb dieses Punkts: Kampf-/Wave-nahe Bridge-Aufrufe im echten Run weiter pruefen
 
-2. Live-Bot mit `random_move` weiter stabilisieren
-- Ziel: den jetzt wieder funktionierenden `random_move`-Pfad ueber laengere Runs absichern
-- Fokus:
-- laengere Live-Runs beobachten und verbleibende UI-/Bridge-Sonderfaelle dokumentieren
-- bestehende Fallbacks fuer Sonderfaelle (keine legalen Moves, Double Battle, erzwungener Switch) weiter absichern
-- falls neue UI-Drift auftritt, passende Guardrails oder Contract-Fixtures nachziehen
+2. Live-DQN im Bot produktiv integrieren
+- Ziel: der Live-Bot soll in `CommandPhase` und bei erzwungenen Switches das aktuell trainierte Offline-DQN statt zufaelliger legaler Aktionen nutzen
+- Fachlicher Startpunkt:
+- bevorzugter erster Live-Checkpoint ist `data/rl/models/dqn-combat-wave-library-bootstrap-combined-960.pt` aus `Run 13`
+- `Run 11` (`data/rl/models/dqn-combat-wave-library-v2-500-flags.pt`) bleibt sinnvolle Vergleichsbasis, falls `Run 13` live unerwartet unruhig spielt
+- Nicht-Ziel fuer den ersten Integrationsschritt:
+- noch keine Ausweitung auf Double Battles
+- keine Vermischung mit Modifier-RL; `ModifierRLNeuron` bleibt unveraendert
+- Umsetzungsplan Phase 1:
+- Runtime-Config fuer Live-DQN weiter haerten: aktueller Default ist gesetzt; als Naechstes Modellpfad, Device und Timeouts fuer verschiedene lokale Umgebungen sauber pruefen
+- Umsetzungsplan Phase 2:
+- persistenten Worker im echten Live-Lauf beobachten: Request/Response, Timeout, Restart und Shutdown unter echten Browser-Runs validieren
+- Umsetzungsplan Phase 3:
+- DQN-Fallbacks bewusst haerten: bei fehlendem Checkpoint, Worker-Fehler, Schema-Mismatch oder invalider Modellaktion deterministisch auf Heuristik bzw. `random_move` zurueckfallen und den Grund strukturiert loggen
+- explizit mitzaehlen, wie oft Live-Entscheidungen vom Modell, vom Fallback und von UI-Zwangspfaden kamen
+- Umsetzungsplan Phase 4:
+- Live-Sonderfaelle absichern: `tryToCatch`, keine legalen Moves, Forced Switch, leere Gegnerparty, invalide Action-Mask, aktiver Slotwechsel nach KO
+- fuer Double Battles vorerst weiter harter Fallback auf Heuristik
+- Umsetzungsplan Phase 5:
+- Smoke- und Vergleichslauf auf echten fruehen Waves durchfuehren: `random_move`, `random_move_or_switch`, `dqn`
+- dabei auf gleiche Startbedingungen achten und mindestens Turn-Zahl, Siege/Niederlagen, Fallback-Rate und offensichtliche Haenger vergleichen
 - Abschlusskriterium:
-- Anwendung laeuft reproduzierbar ueber mehrere fruehe Waves ohne offensichtlichen UI-/Bridge- oder Policy-Fehler
+- der Bot kann mit `bot.combat-policy-mode=dqn` mehrere fruehe Single-Battle-Waves ohne Inferenz-Neustart pro Aktion und ohne offensichtliche Policy-Haenger spielen
+- DQN-Entscheidungen sind im Log klar von Fallback-Entscheidungen unterscheidbar
+- wenn Live-Verhalten stark von Offline-Benchmark abweicht, ist reproduzierbar sichtbar, ob der Grund eher State-Drift, UI-Drift oder Modellqualitaet ist
 
 3. Kotlin-Bot-Varianten fuer Combat-/Switch-Policies ausbauen
-- Ziel: statt nur `SimpleBot` drei klar unterscheidbare Bot-Varianten bzw. drei Combat-Policy-Modi bereitstellen
+- Ziel: die bereits vorhandenen Combat-Policy-Modi operationalisieren und fuer Live-Vergleiche sauber nutzbar machen
 - Variante 1:
 - Kampfentscheidungen immer als zufaellige Attacke aus den legalen Move-Aktionen
 - keine RL-Combat-/Switch-Entscheidung
@@ -92,26 +119,62 @@ Verbindlicher Schema-Hinweis:
 - kein stilles Vermischen von DQN-Combat und Kotlin-Modifier-RL
 - Konfigurationsziel:
 - Bot-/Policy-Auswahl zur Laufzeit ueber Config/Profile/Enum steuerbar
+- klarer dokumentierter Smoke-Start fuer jede Variante in README bzw. Session-Docs
 - Evaluationsziel:
 - spaeter identische Seeds/Runs mit allen drei Varianten gegeneinander vergleichen koennen
 
+3.1. Konkrete Implementierungsreihenfolge fuer die naechste Session
+- Schritt 1: `DqnCombatSwitchPolicy` auf persistenten Worker umbauen, ohne das bestehende `CombatSwitchPolicy`-Interface zu aendern
+- Schritt 2: Default-Checkpoint und Runtime-Config auf den aktuell besten Benchmark-Stand ziehen
+- Schritt 3: strukturierte Logs/Metrikzaehler fuer `model_action`, `fallback_action`, `forced_switch`, `double_battle_fallback` einfuehren
+- Schritt 4: gezielte Live-Smoke-Runs mit `--bot.combat-policy-mode=dqn` fahren und die ersten Abweichungen dokumentieren
+- Schritt 5: erst danach entscheiden, ob noch State-Feature-Luecken geschlossen werden muessen oder ob primaer Reward-/Datenqualitaet weiter verbessert werden soll
+
 4. Trainingsdaten weiter diversifizieren
 - Zusätzliche Szenarien via Generator erzeugen (`wild` + `trainer`, mehr seeds/waves)
-- Collector-Runs weiterhin als durchgehenden Einzellauf erzeugen; bei Laufzeitproblemen zuerst Timeout/Laufkonfiguration anpassen statt Batching einzuführen
+- wichtige Trennung beibehalten:
+- lokaler schneller POC-/Kurzlauf-Pfad bleibt bestehen fuer kurze Collector-Experimente und kleine Session-Zahlen
+- die neue batch-basierte Pipeline ist ausdruecklich der separate Remote-Pfad fuer lange SSH-/Server-Laeufe
+- fuer lange Remote-Runs ist der bisherige durchgehende Einzellauf nicht mehr die bevorzugte Form
+- neuer Zielpfad ist eine batch-basierte Bootstrap-Pipeline mit Resume-Verhalten pro Batch
+- ein Neustart soll nur den gerade offenen Batch erneut ansetzen statt den gesamten Sammler-Lauf
+- Timeouts sollen dabei konservativ pro Batch statt global fuer einen Mehrstundenlauf gesetzt werden
 - Sanity-Check nach jedem Collector-Lauf laufen lassen (`npm run rl:check:dataset`)
-- Neue Datengenerierungsstrategie fuer den naechsten RL-Bootstrap testen:
-- Schritt 1: grob `500` Episoden mit `all random valid` erzeugen
-- Schritt 2: darauf ein erstes DQN pretrainen
-- Schritt 3: weitere grob `500` Episoden erzeugen, bei denen Exploration weiter zufaellig ist, der Exploit-Zweig aber das pretrained Modell statt `first_valid` nutzt
-- Schritt 4: auf dem kombinierten `~1000`-Episoden-Datensatz trainieren
-- Hintergrund:
+- Aktueller Bootstrap-Stand:
+- der 2-Stufen-Bootstrap wurde bereits einmal produktiv durchlaufen
+- Datensatz 1: `480` Episoden `all random valid`
+- Datensatz 2: `480` Episoden `epsilon_random` mit pretrained-DQN im Exploit-Zweig
+- beide Quellen werden vor dem finalen Training ueber `scripts/merge-rl-jsonl-datasets.mjs` zusammengefuehrt, damit `episode_id` eindeutig bleibt und `meta.dataset_source` gesetzt ist
+- auf dem kombinierten `960`-Episoden-Datensatz wurde bereits ein finales Checkpoint-Training + Benchmark als `Run 13` ausgefuehrt
+- Hintergrund fuer diesen Bootstrap-Pfad:
 - keine starke Handheuristik im Exploit-Zweig erzwingen
 - trotzdem `first_valid`-Bias im Collector abbauen
 - dem DQN frueh mehr policy-nahe Daten geben, ohne den Bootstrap komplett random zu lassen
-- Technische Umsetzung fuer Schritt 3:
-- pretrained Modell nicht pro Aktion neu starten
-- stattdessen persistenten lokalen Inferenz-Worker fuer den gesamten Collector-Lauf verwenden
-- `policy.exploit_policy` ueber `external_command` + `persistent=true` konfigurieren
+- Technischer Ist-Stand:
+- pretrained Modell wird weder im Collector noch in den Eval-Skripten pro Aktion neu gestartet
+- stattdessen wird in beiden Faellen ein persistenter lokaler Inferenz-Worker (`scripts/dqn_policy_infer_worker.py`) verwendet
+- Collector-Exploit laeuft ueber `policy.exploit_policy` mit `external_command` + `persistent=true`
+- neu erzeugte Datensaetze schreiben zusaetzlich `meta.action_source`, damit random vs. model sauber auswertbar bleibt
+- neuer geplanter Remote-Pipeline-Ablauf:
+- Phase 1: alle aktuell vorhandenen Wave-Instanzen batchweise mit `random` sammeln
+- Phase 2: Report 1 mit mindestens `episodes`, `transitions`, `win_rate`, `avg_reward`, `avg_turns`, `action_source` und Laufzeit pro Wave/Instanz
+- Phase 3: erstes Offline-Training auf dem Random-Datensatz
+- Phase 4: kurzer Benchmark als Vorher-Vergleich fuer den model-guided Schritt
+- Phase 5: alle aktuell vorhandenen Wave-Instanzen batchweise mit `dqn only` sammeln
+- Phase 6: Report 2 auf dem DQN-Datensatz
+- Phase 7: Random- und DQN-Datensatz zusammenfuehren und finales Training ausfuehren
+- Phase 8: finalen Benchmark gegen den ersten Benchmark vergleichen
+- Batch-Regeln fuer diesen neuen Pfad:
+- kleine Collector-Batches statt grosser Langlaeufer
+- Resume ueber Manifest-/Statusdatei
+- Batch-Grenzen duerfen einen eventuellen Epsilon-Schedule nicht still zuruecksetzen; globale Episodenfortschritte muessen explizit weitergegeben werden
+- Remote-Startziel:
+- ein einfaches Server-Skript soll vor dem Start `node`, `npm`, `python3`, `torch`, `node_modules`, `pokerogue/node_modules` und `pokerogue/locales/en` pruefen
+- der Remote-Lauf soll detached per `nohup` weiterlaufen koennen, auch wenn die SSH-Session geschlossen wird
+- Nächste sinnvolle Folgefragen in diesem Block:
+- mehr Bootstrap-Runs mit abweichender Szenario-/Wave-Verteilung vergleichen
+- action-source-basierte Qualitätsauswertung als festen Analysepfad ergänzen
+- prüfen, ob die letzte Effizienzlücke aus `Run 13` eher aus späten Switches oder aus fehlenden Finish-Entscheidungen kommt
 - Default in Config:
 - `max_steps_per_episode=400`
 - `reward_step_penalty=-0.05`

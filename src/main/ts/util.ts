@@ -6,6 +6,18 @@ import type { Phase } from "../../../pokerogue/src/phase";
 
 declare const Phaser: typeof PhaserType;
 
+type CanvasPoolWithGame = {
+    pool?: Array<{
+        parent?: {
+            game?: {
+                scene?: {
+                    scenes?: unknown[];
+                };
+            };
+        };
+    }>;
+};
+
 type GameSettingsInput = {
     gameSpeed: number;
     hpBarSpeed: number;
@@ -81,7 +93,8 @@ const utilApi: UtilApi = {
     getDexData: () => getScene()?.gameData?.dexData ?? null,
 
     getBattleScene: (): BattleScene | null => {
-        const scenes = Phaser?.Display?.Canvas?.CanvasPool?.pool?.[0]?.parent?.game?.scene?.scenes;
+        const canvasPool = Phaser?.Display?.Canvas?.CanvasPool as typeof Phaser.Display.Canvas.CanvasPool & CanvasPoolWithGame;
+        const scenes = canvasPool.pool?.[0]?.parent?.game?.scene?.scenes;
         if (!Array.isArray(scenes)) return null;
 
         const battleScene = scenes.find(isBattleScene);

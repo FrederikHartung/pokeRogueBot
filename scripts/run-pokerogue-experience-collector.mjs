@@ -1390,44 +1390,74 @@ async function selectExploitAction(policyConfig: any, state: any, actionMask: nu
   return valid[0];
 }
 
-async function selectActionFromMask(state: any, actionMask: number[], globalEpisodeIndex: number): Promise<number> {
+function normalizeActionSource(source: string | null | undefined): string {
+  switch (source) {
+    case "random":
+    case "scheduled_random":
+    case "first_valid":
+    case "external_command":
+    case "model":
+      return source;
+    default:
+      return "unknown";
+  }
+}
+
+async function selectActionFromMask(
+  state: any,
+  actionMask: number[],
+  globalEpisodeIndex: number,
+): Promise<{ action: number; actionSource: string }> {
   const valid = actionMask
     .map((value, index) => ({ value, index }))
     .filter(entry => entry.value === 1)
     .map(entry => entry.index);
 
   if (valid.length === 0) {
-    return -1;
+    return { action: -1, actionSource: "unknown" };
   }
 
   if (POLICY.type === "random") {
-    return sampleUniformAction(valid);
+    return { action: sampleUniformAction(valid), actionSource: "random" };
   }
 
   if (POLICY.type === "epsilon_random") {
     const epsilon = computeScheduledEpsilonForPolicy(POLICY, globalEpisodeIndex);
     if (Math.random() < epsilon) {
-      return sampleUniformAction(valid);
+      return { action: sampleUniformAction(valid), actionSource: "scheduled_random" };
     }
     const exploitPolicy = typeof POLICY.exploit_policy === "object" && POLICY.exploit_policy !== null
       ? POLICY.exploit_policy
       : { type: "first_valid" };
-    return await selectExploitAction(exploitPolicy, state, actionMask);
+    const exploitAction = await selectExploitAction(exploitPolicy, state, actionMask);
+    const actionSource = exploitPolicy.type === "external_command"
+      ? (
+        Array.isArray(exploitPolicy.command)
+          && exploitPolicy.command.some((part: string) => String(part).includes("dqn_policy_infer"))
+      )
+        ? "model"
+        : "external_command"
+      : normalizeActionSource(exploitPolicy.type);
+    return { action: exploitAction, actionSource };
   }
 
   if (POLICY.type === "first_valid") {
-    return valid[0];
+    return { action: valid[0], actionSource: "first_valid" };
   }
 
   if (POLICY.type === "external_command") {
     const action = await runExternalPolicy(POLICY, state, actionMask);
     if (valid.includes(action)) {
-      return action;
+      const actionSource = Array.isArray(POLICY.command)
+        && POLICY.command.some((part: string) => String(part).includes("dqn_policy_infer"))
+        ? "model"
+        : "external_command";
+      return { action, actionSource };
     }
-    return valid[0];
+    return { action: valid[0], actionSource: "first_valid" };
   }
 
-  return valid[0];
+  return { action: valid[0], actionSource: "first_valid" };
 }
 
 function executeAction(game: GameManager, action: number) {
@@ -1897,7 +1927,7 @@ describe("external combat collector", () => {
 
               for (let stepIndex = 0; stepIndex < MAX_STEPS_PER_EPISODE; stepIndex += 1) {
               const state = buildObservation(game, scenario);
-              const action = await selectActionFromMask(state, state.action_mask, globalEpisodeIndex);
+              const { action, actionSource } = await selectActionFromMask(state, state.action_mask, globalEpisodeIndex);
               if (action < 0) {
                 break;
               }
@@ -1968,6 +1998,7 @@ describe("external combat collector", () => {
                   battle_type: "single",
                   scenario: scenario.__scenario_name,
                   state_variant: episodeStateVariant,
+                  action_source: actionSource,
                   outcome: enemyTeamDefeated ? "win" : playerTeamDefeated ? "loss" : timeoutTruncated ? "timeout" : "truncated",
                 },
                 timestamp: Date.now(),

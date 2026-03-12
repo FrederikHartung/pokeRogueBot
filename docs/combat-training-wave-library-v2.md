@@ -342,6 +342,92 @@ Wichtige Einordnung:
 - Wenn spaeter genug produktive Snapshots vorliegen, ist fuer Trainingsdaten in der Regel ein groesseres `x` wertvoller als ein stark erhoehtes `y`
 - Solange fuer Waves `1-8` erst `15` reale V2-Szenarien vorliegen, ist fuer exploratives Training das tiefe Profil derzeit pragmatischer als ein breites/flaches Profil
 
+## Geplanter Remote-Batch-Pfad
+
+Fuer laengere Remote-Laeufe auf einem separaten Server reicht der bisherige Profil-Runner allein nicht mehr aus.
+
+Wichtige Abgrenzung:
+
+- der neue Batch-Pfad ist die Remote-Testdaten-Generierung fuer lange Serverlaeufe
+- die bestehende lokale Kurzlauf-/POC-Generierung bleibt weiterhin erhalten
+- der Remote-Pfad ersetzt die lokalen schnellen Collector-Kommandos nicht, sondern ergaenzt sie
+
+Neuer Zielpfad:
+
+- ein uebergeordneter Bootstrap-Pipeline-Runner orchestriert Sammlung, Reports, Training und Benchmarks
+- Datengenerierung laeuft dabei nicht mehr als ein einzelner mehrstuendiger Collector-Call
+- stattdessen werden kleine, idempotente Batches pro Wave-Instanz erzeugt und ueber eine Manifest-Datei verfolgt
+- ein abgebrochener Lauf soll danach nur den offenen Batch neu starten
+
+Geplante Stufen:
+
+- Random-Phase:
+  - alle aktuell vorhandenen Wave-Instanzen mehrfach mit `policy.type = random` sammeln
+  - Ausgaben getrennt pro Batch persistieren
+- Report 1:
+  - `episodes`, `transitions`, `win_rate`, `avg_reward`, `avg_turns`, `action_source`
+  - zusaetzlich Laufzeit pro Wave/Instanz und pro Batch
+- erstes Training:
+  - Training auf dem zusammengefuehrten Random-Datensatz
+- Benchmark 1:
+  - kurzer Vergleichslauf als Vorher-Messung fuer den naechsten Schritt
+- DQN-Phase:
+  - dieselben Instanzen erneut sammeln, diesmal mit `dqn only`
+  - Inferenz weiterhin ueber `scripts/dqn_policy_infer_worker.py` mit persistentem Worker
+- Report 2:
+  - dieselben Kennzahlen fuer den DQN-Datensatz
+- finales Training + Benchmark 2:
+  - Random- und DQN-Datensaetze zusammenfuehren
+  - finales Checkpoint-Training und Vergleich gegen Benchmark 1
+
+Wichtige technische Regeln fuer diesen Pfad:
+
+- Timeouts konservativ pro Batch statt global fuer den gesamten Pipeline-Lauf setzen
+- keine neue Python-/Torch-Instanz pro Modellaktion; bestehender persistent-worker-Pfad bleibt Pflicht
+- falls ein epsilon-basierter Batch-Modus genutzt wird, muss der globale Episodenfortschritt ueber Batch-Grenzen hinweg explizit weitergereicht werden
+- Reports muessen klar zwischen `random`-, `scheduled_random`- und `model`-Aktionen unterscheiden koennen
+
+Remote-Server-Bedienung:
+
+- neuer Starthelfer: `scripts/run-wave-library-bootstrap-remote.sh`
+- Aufgaben des Skripts:
+  - vor dem Start `node`, `npm`, `python3` und `torch` pruefen
+  - pruefen, ob Root- und Submodul-Dependencies installiert sind
+  - pruefen, ob `pokerogue/locales/en` vorhanden ist
+  - den Pipeline-Lauf detached via `nohup` starten
+  - dadurch laeuft die Datengenerierung weiter, auch wenn die SSH-Session beendet wird
+- Unterkommandos:
+  - `start [config_path]`
+  - `status`
+  - `logs`
+  - `stop`
+- Standard-Remote-Start:
+  - `scripts/run-wave-library-bootstrap-remote.sh start`
+- Standard-Logdatei:
+  - `data/rl/pipeline-runs/wave-library-bootstrap-remote/remote-bootstrap.log`
+- zentrale Artefakt-Uebersicht:
+  - `data/rl/pipeline-runs/wave-library-bootstrap-remote/artifacts-summary.json`
+  - diese Datei ist der bevorzugte Einstieg fuer spaeteren SFTP-Download von Reports und Modell
+
+Zielbild nach einem laengeren Remote-Lauf:
+
+- per SFTP oder SCP die Artefakte aus `artifacts-summary.json` herunterladen
+- insbesondere:
+  - Random-Collect-Report
+  - DQN-Collect-Report
+  - finales Modell
+  - initialer Benchmark-Report
+  - finaler Benchmark-Report
+- anschliessend lokal gegen das finale Modell erneut benchmarken, falls noetig
+- den final relevanten Benchmark in `docs/benchmark-history.md` dokumentieren
+
+Lokaler Benchmark nach Remote-Training:
+
+- Beispiel:
+  - `python3 scripts/eval_policy_compare.py --collector-config ./data/rl/collector-run-benchmarked-wave-library-v2.json --checkpoint <pfad-zum-heruntergeladenen-oder-lokal-verfuegbaren-modell> --report-path ./data/rl/combat/<neuer-report>.json`
+- danach:
+  - die wichtigsten Kennzahlen und Artefaktpfade in `docs/benchmark-history.md` eintragen
+
 Aktueller V2-Stand der Profil-Steuerung:
 
 - Trainingsprofile verwenden jetzt standardmaessig `selection_mode = random_per_wave` mit festem `selection_seed`

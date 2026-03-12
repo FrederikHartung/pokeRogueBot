@@ -50,6 +50,14 @@ for (let i = 0; i < lines.length; i += 1) {
     issues.push(`[line ${lineNo}] done is not boolean`);
   }
 
+  const actionSource = row?.meta?.action_source;
+  if (
+    actionSource != null
+    && !["random", "scheduled_random", "first_valid", "external_command", "model", "unknown"].includes(actionSource)
+  ) {
+    issues.push(`[line ${lineNo}] invalid meta.action_source`);
+  }
+
   const mask = row?.state?.action_mask;
   if (!Array.isArray(mask) || mask.length < 4 || mask.some(v => v !== 0 && v !== 1)) {
     issues.push(`[line ${lineNo}] invalid action_mask`);

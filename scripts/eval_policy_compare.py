@@ -121,7 +121,7 @@ def main() -> None:
 
     collector_config_path = os.path.abspath(os.path.join(REPO_ROOT, args.collector_config))
     checkpoint_path = os.path.abspath(os.path.join(REPO_ROOT, args.checkpoint))
-    infer_script = os.path.abspath(os.path.join(REPO_ROOT, "scripts", "dqn_policy_infer.py"))
+    infer_script = os.path.abspath(os.path.join(REPO_ROOT, "scripts", "dqn_policy_infer_worker.py"))
     report_path = os.path.abspath(os.path.join(REPO_ROOT, args.report_path))
 
     base = absolutize_collector_paths(load_json(collector_config_path), collector_config_path)
@@ -145,6 +145,7 @@ def main() -> None:
                 "--device",
                 args.device,
             ],
+            "persistent": True,
             "timeout_ms": 15000,
             "step_timeout_ms": 15000,
         },
