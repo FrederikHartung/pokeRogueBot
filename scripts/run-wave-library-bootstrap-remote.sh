@@ -19,6 +19,7 @@ Usage:
   scripts/run-wave-library-bootstrap-remote.sh start [config_path]
   scripts/run-wave-library-bootstrap-remote.sh status
   scripts/run-wave-library-bootstrap-remote.sh logs
+  scripts/run-wave-library-bootstrap-remote.sh last
   scripts/run-wave-library-bootstrap-remote.sh stop
 
 Notes:
@@ -299,6 +300,15 @@ show_logs() {
   fi
 }
 
+show_last_logs() {
+  if [ -f "${LOG_FILE}" ]; then
+    tail -n 50 "${LOG_FILE}"
+  else
+    echo "Log file not found: ${LOG_FILE}" >&2
+    exit 1
+  fi
+}
+
 main() {
   local command="${1:-}"
   case "${command}" in
@@ -310,6 +320,9 @@ main() {
       ;;
     logs)
       show_logs
+      ;;
+    last)
+      show_last_logs
       ;;
     stop)
       stop_pipeline
