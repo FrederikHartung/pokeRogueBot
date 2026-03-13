@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Tuple
 
 
@@ -51,10 +52,94 @@ def absolutize_collector_paths(config: Dict, config_path: str) -> Dict:
     return normalized
 
 
+def resolve_scenario_files(config: Dict) -> List[str]:
+    resolved: List[str] = []
+
+    if isinstance(config.get("scenario_files"), list):
+        for entry in config["scenario_files"]:
+            if isinstance(entry, str):
+                resolved.append(entry)
+
+    scenario_dir = config.get("scenario_dir")
+    if isinstance(scenario_dir, str) and os.path.isdir(scenario_dir):
+        resolved.extend(
+            os.path.join(scenario_dir, name)
+            for name in sorted(os.listdir(scenario_dir))
+            if name.endswith(".json")
+        )
+
+    return list(dict.fromkeys(resolved))
+
+
+def chunk_list(values: List[str], parts: int) -> List[List[str]]:
+    if parts <= 1 or len(values) <= 1:
+        return [values]
+    size = max(1, (len(values) + parts - 1) // parts)
+    return [values[index:index + size] for index in range(0, len(values), size)]
+
+
 def run_collector(config_path: str) -> int:
     command = ["node", "scripts/run-pokerogue-experience-collector.mjs", config_path]
     process = subprocess.run(command, cwd=REPO_ROOT, check=False)
     return process.returncode
+
+
+def run_collector_parallel(config: Dict, parallelism: int) -> None:
+    scenario_files = resolve_scenario_files(config)
+    if parallelism <= 1 or len(scenario_files) <= 1:
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as tmp:
+            temp_config_path = tmp.name
+        write_json(temp_config_path, config)
+        try:
+            code = run_collector(temp_config_path)
+            if code != 0:
+                raise SystemExit(f"Collector run failed with exit code {code}")
+        finally:
+            try:
+                os.remove(temp_config_path)
+            except OSError:
+                pass
+        return
+
+    output_path = str(config["output_path"])
+    output_dir = os.path.dirname(output_path)
+    output_name = os.path.basename(output_path)
+    chunks = chunk_list(scenario_files, parallelism)
+    temp_outputs: List[str] = []
+    temp_configs: List[str] = []
+
+    def worker(index: int, chunk: List[str]) -> None:
+        chunk_output = os.path.join(output_dir, f"{output_name}.part-{index:02d}.jsonl")
+        temp_outputs.append(chunk_output)
+        chunk_config = dict(config)
+        chunk_config["scenario_files"] = chunk
+        chunk_config.pop("scenario_dir", None)
+        chunk_config["output_path"] = chunk_output
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as tmp:
+            temp_config_path = tmp.name
+        temp_configs.append(temp_config_path)
+        write_json(temp_config_path, chunk_config)
+        code = run_collector(temp_config_path)
+        if code != 0:
+            raise RuntimeError(f"collector failed with exit code {code}")
+
+    try:
+        with ThreadPoolExecutor(max_workers=parallelism) as executor:
+            futures = [executor.submit(worker, index, chunk) for index, chunk in enumerate(chunks, start=1)]
+            for future in futures:
+                future.result()
+
+        with open(output_path, "w", encoding="utf-8") as destination:
+            for chunk_output in sorted(temp_outputs):
+                with open(chunk_output, "r", encoding="utf-8") as source:
+                    for line in source:
+                        destination.write(line)
+    finally:
+        for temp_path in temp_outputs + temp_configs:
+            try:
+                os.remove(temp_path)
+            except OSError:
+                pass
 
 
 def load_records(path: str) -> List[Dict]:
@@ -94,6 +179,8 @@ def summarize(records: List[Dict]) -> Tuple[Dict, List[Dict]]:
 
     per_episode: List[Dict] = []
     wins = 0
+    losses = 0
+    truncated = 0
     total_reward = 0.0
     total_turns = 0
 
@@ -105,6 +192,10 @@ def summarize(records: List[Dict]) -> Tuple[Dict, List[Dict]]:
 
         if outcome == "win":
             wins += 1
+        elif outcome == "loss":
+            losses += 1
+        else:
+            truncated += 1
 
         total_reward += episode_reward
         total_turns += turns
@@ -122,9 +213,13 @@ def summarize(records: List[Dict]) -> Tuple[Dict, List[Dict]]:
     summary = {
         "episodes": episode_count,
         "wins": wins,
+        "losses": losses,
+        "truncated": truncated,
+        "truncated_rate": (truncated / episode_count) if episode_count > 0 else 0.0,
         "win_rate": (wins / episode_count) if episode_count > 0 else 0.0,
         "avg_reward": (total_reward / episode_count) if episode_count > 0 else 0.0,
         "avg_turns": (total_turns / episode_count) if episode_count > 0 else 0.0,
+        "transitions": len(records),
     }
     return summary, sorted(per_episode, key=lambda item: item["episode_id"])
 
@@ -152,6 +247,7 @@ def main() -> None:
         help="Summary report output JSON",
     )
     parser.add_argument("--device", default="cpu", help="Torch device for inference")
+    parser.add_argument("--parallelism", type=int, default=1, help="Parallel collector chunks for the benchmark")
     args = parser.parse_args()
 
     checkpoint_path = os.path.abspath(os.path.join(REPO_ROOT, args.checkpoint))
@@ -178,14 +274,8 @@ def main() -> None:
         "timeout_ms": 15000,
     }
 
-    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as tmp:
-        temp_config_path = tmp.name
-    write_json(temp_config_path, eval_config)
-
     try:
-        code = run_collector(temp_config_path)
-        if code != 0:
-            raise SystemExit(f"Collector run failed with exit code {code}")
+        run_collector_parallel(eval_config, max(1, args.parallelism))
 
         records = load_records(output_path)
         if not records:
@@ -211,10 +301,7 @@ def main() -> None:
         print(f"JSONL:      {output_path}")
         print(f"Report:     {report_path}")
     finally:
-        try:
-            os.remove(temp_config_path)
-        except OSError:
-            pass
+        pass
 
 
 if __name__ == "__main__":

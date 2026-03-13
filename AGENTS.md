@@ -126,6 +126,9 @@ This is a Spring Boot application (version 3.5.3) written in mixed Java/Kotlin t
 
 ## Development Notes
 
+- Es sollen keine Dateien versioniert oder committed werden, die nicht auf GitHub bzw. nicht ins Repository muessen.
+- Generierte Artefakte, lokale Laufzeitdaten, temporäre Outputs, Logs und andere nur lokal oder serverseitig relevante Dateien sollen konsequent ueber `.gitignore` aus Git herausgehalten werden.
+
 **Language Usage:**
 
 - Main application logic: Java

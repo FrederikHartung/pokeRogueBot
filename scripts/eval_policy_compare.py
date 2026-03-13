@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List
 
 
@@ -43,6 +44,32 @@ def write_json(path: str, data: Dict) -> None:
         handle.write("\n")
 
 
+def resolve_scenario_files(config: Dict) -> List[str]:
+    resolved: List[str] = []
+
+    if isinstance(config.get("scenario_files"), list):
+        for entry in config["scenario_files"]:
+            if isinstance(entry, str):
+                resolved.append(entry)
+
+    scenario_dir = config.get("scenario_dir")
+    if isinstance(scenario_dir, str) and os.path.isdir(scenario_dir):
+        resolved.extend(
+            os.path.join(scenario_dir, name)
+            for name in sorted(os.listdir(scenario_dir))
+            if name.endswith(".json")
+        )
+
+    return list(dict.fromkeys(resolved))
+
+
+def chunk_list(values: List[str], parts: int) -> List[List[str]]:
+    if parts <= 1 or len(values) <= 1:
+        return [values]
+    size = max(1, (len(values) + parts - 1) // parts)
+    return [values[index:index + size] for index in range(0, len(values), size)]
+
+
 def run_collector(config: Dict) -> None:
     with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as tmp:
         temp_config = tmp.name
@@ -60,6 +87,46 @@ def run_collector(config: Dict) -> None:
             os.remove(temp_config)
         except OSError:
             pass
+
+
+def run_collector_parallel(config: Dict, parallelism: int) -> None:
+    scenario_files = resolve_scenario_files(config)
+    if parallelism <= 1 or len(scenario_files) <= 1:
+        run_collector(config)
+        return
+
+    output_path = str(config["output_path"])
+    output_dir = os.path.dirname(output_path)
+    output_name = os.path.basename(output_path)
+    chunks = chunk_list(scenario_files, parallelism)
+    temp_outputs: List[str] = []
+
+    def worker(index: int, chunk: List[str]) -> None:
+        chunk_output = os.path.join(output_dir, f"{output_name}.part-{index:02d}.jsonl")
+        temp_outputs.append(chunk_output)
+        chunk_config = dict(config)
+        chunk_config["scenario_files"] = chunk
+        chunk_config.pop("scenario_dir", None)
+        chunk_config["output_path"] = chunk_output
+        run_collector(chunk_config)
+
+    try:
+        with ThreadPoolExecutor(max_workers=parallelism) as executor:
+            futures = [executor.submit(worker, index, chunk) for index, chunk in enumerate(chunks, start=1)]
+            for future in futures:
+                future.result()
+
+        with open(output_path, "w", encoding="utf-8") as destination:
+            for chunk_output in sorted(temp_outputs):
+                with open(chunk_output, "r", encoding="utf-8") as source:
+                    for line in source:
+                        destination.write(line)
+    finally:
+        for chunk_output in temp_outputs:
+            try:
+                os.remove(chunk_output)
+            except OSError:
+                pass
 
 
 def load_records(path: str) -> List[Dict]:
@@ -117,6 +184,7 @@ def main() -> None:
     parser.add_argument("--report-path", default="./data/rl/combat/eval-policy-compare-wave-library-v2-report.json")
     parser.add_argument("--max-steps-per-episode", type=int, default=400)
     parser.add_argument("--max-truncated-rate", type=float, default=0.10)
+    parser.add_argument("--parallelism", type=int, default=1)
     args = parser.parse_args()
 
     collector_config_path = os.path.abspath(os.path.join(REPO_ROOT, args.collector_config))
@@ -162,7 +230,7 @@ def main() -> None:
         cfg["test_timeout_ms"] = 600000
         cfg["policy"] = policy
 
-        run_collector(cfg)
+        run_collector_parallel(cfg, max(1, args.parallelism))
         rows = load_records(output_path)
         results[label] = summarize(rows)
 

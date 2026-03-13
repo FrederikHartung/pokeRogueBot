@@ -395,3 +395,81 @@ Kurzfazit:
 - Im bestehenden kleinen V2-Benchmark verbessert der daraus trainierte Checkpoint die `win_rate` nicht und regressiert klar bei Effizienz und Reward gegen beide Baselines.
 - Das staerkt die Vermutung, dass der aktuelle Offline-DQN auf diesem Datensatz noch zu stark zu laengenorientierten oder defensiven Policies neigt, obwohl der Collector- und Repro-Pfad inzwischen stabil ist.
 - Positiv ist vor allem die Infrastruktur-Seite dieses Laufs: die neue Rival-Focus-Pipeline fuer Rematerialisierung, Sammlung, Merge und Training ist jetzt reproduzierbar vorhanden und kann fuer den naechsten Datensatz-/Reward- oder Eval-Schritt direkt wiederverwendet werden.
+
+## Run 15
+
+- Datum: 2026-03-13
+- Beschreibung: Iterativer Wave-Library-Smoke-Test der neuen 5-Runden-Self-Training-Pipeline mit `1` Episode pro Instanz; `Iteration 0` als `random`-Baseline, danach `epsilon_random` mit `epsilon = 1/3` und pretrained-DQN im Exploit-Zweig
+- Laufnummer: 15
+- Benchmark-Typ: smoke
+- Trainingsdaten:
+  - Baseline `D0`: `155` Transitionen
+  - kumulativ bis Iteration `5`: `794` Transitionen
+- Checkpoints:
+  - Baseline: `data/rl/generated/test-wave-library-iterative-smoke/artifacts/dqn-combat-wave-library-iter-baseline.pt`
+  - final: `data/rl/generated/test-wave-library-iterative-smoke/artifacts/dqn-combat-wave-library-iter-5.pt`
+- Benchmark-Summary: `data/rl/generated/test-wave-library-iterative-smoke/benchmark-summary.json`
+
+Ergebnisse fuer die DQN-Policy pro Iteration:
+
+| Iteration | Win Rate | Avg Reward | Avg Turns | Truncated Rate | Benchmark-Transitions |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `0` | 0.557 | -0.0376 | 29.53 | 0.000 | 2067 |
+| `1` | 0.886 | 5.7679 | 30.07 | 0.000 | 2105 |
+| `2` | 0.529 | -0.8758 | 34.10 | 0.000 | 2387 |
+| `3` | 0.857 | -133.6965 | 31.36 | 0.014 | 2195 |
+| `4` | 0.857 | 6.6743 | 19.41 | 0.000 | 1359 |
+| `5` | 0.914 | 8.4545 | 10.96 | 0.000 | 767 |
+
+Delta final gegen Baseline:
+
+- `win_rate`: `+0.357`
+- `avg_reward`: `+8.4921`
+- `avg_turns`: `-18.57`
+- `truncated_rate`: `+0.000`
+
+Kurzfazit:
+
+- Der neue iterative Pipeline-Pfad ist technisch end-to-end stabil: Sammlung, Reports, kumulative Merges, Training und alle `6` Benchmarks liefen ohne fehlgeschlagene Schritte durch.
+- Fachlich ist der Smoke-Test bewusst noch klein, zeigt aber bereits den gewuenschten Vergleichspfad gegen `Iteration 0`: die finale Iteration `5` ist gegenueber der Baseline klar besser bei `win_rate`, `avg_reward` und `avg_turns`.
+- Die Zwischenlaeufe sind nicht monoton besser; besonders Iteration `2` und `3` zeigen, dass der neue Self-Training-Pfad regressiv werden kann und deshalb der feste Vergleich gegen `B0` sinnvoll bleibt.
+- Iteration `3` hatte als einziger Smoke-Benchmark eine kleine `truncated_rate` von `0.014`; der finale Lauf kehrte wieder auf `0.000` zurueck.
+
+## Run 16
+
+- Datum: 2026-03-13
+- Beschreibung: Optimierter Iterations-Smoke-Test mit derselben 5-Runden-Struktur und `1` Episode pro Instanz, aber mit batch-paralleler Datengenerierung (`2` Collector-Prozesse), gecachten Benchmark-Baselines (`random` und `always_move_0` nur einmal in `B0`) sowie fallendem `epsilon` von `0.3333` auf `0.10`
+- Laufnummer: 16
+- Benchmark-Typ: smoke
+- Trainingsdaten:
+  - Baseline `D0`: kleiner Smoke-Datensatz mit `1` Episode pro Instanz
+  - kumulativ bis Iteration `5`: weiterhin Smoke-Niveau; Fokus dieses Laufs lag primaer auf Laufzeitvergleich und Pipeline-Verhalten
+- Checkpoints:
+  - Baseline: `data/rl/generated/test-wave-library-iterative-smoke-optimized-v2/artifacts/dqn-combat-wave-library-iter-baseline.pt`
+  - final: `data/rl/generated/test-wave-library-iterative-smoke-optimized-v2/artifacts/dqn-combat-wave-library-iter-5.pt`
+- Benchmark-Summary: `data/rl/generated/test-wave-library-iterative-smoke-optimized-v2/benchmark-summary.json`
+- Runtime-Summary: `data/rl/generated/test-wave-library-iterative-smoke-optimized-v2/runtime-summary.json`
+
+Ergebnisse fuer die DQN-Policy pro Iteration:
+
+| Iteration | Win Rate | Avg Reward | Avg Turns | Truncated Rate | Benchmark-Transitions |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `0` | 0.757 | -188.5558 | 34.23 | 0.014 | 2396 |
+| `1` | 0.914 | 8.9864 | 5.64 | 0.000 | 395 |
+| `2` | 0.900 | 8.1738 | 12.43 | 0.000 | 870 |
+| `3` | 0.886 | -5.0991 | 20.10 | 0.000 | 1407 |
+| `4` | 0.900 | -25.8856 | 32.26 | 0.014 | 2258 |
+| `5` | 0.900 | -28.6834 | 27.81 | 0.014 | 1947 |
+
+Laufzeitvergleich gegen Run 15:
+
+- Gesamtlauf: von `48m 17s` auf `21m 09s` (`-27m 08s`)
+- Collect gesamt: von `23m 31s` auf `6m 30s`
+- Benchmark gesamt: von `24m 07s` auf `14m 21s`
+
+Kurzfazit:
+
+- Die technischen Optimierungen wirken deutlich auf die Laufzeit: der komplette 5-Runden-Smoke wurde um rund `56%` kuerzer.
+- Die Benchmark-Cache-Logik und die parallele Datengenerierung funktionieren fachlich sauber; die Pipeline lief nach Collector-Tempfile-Fix wieder vollstaendig durch.
+- Inhaltlich ist dieser Lauf nicht als reiner Qualitaetsgewinn zu lesen: durch fallendes `epsilon`, parallele Datengenerierung und wiederverwendete Benchmark-Baselines wurde die Infrastruktur schneller, aber die finale Policy war im Smoke diesmal schlechter als in `Run 15`.
+- Fuer kuenftige Vergleiche ist damit jetzt beides vorhanden: eine langsamere Referenzpipeline und eine deutlich schnellere optimierte Variante, deren Dateneffekt wir nun gezielt weiter untersuchen koennen.

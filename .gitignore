@@ -55,9 +55,11 @@ src/main/js/*.js
 # RL generated artifacts
 data/rl/scenarios/generated-*/
 data/rl/generated/*.json
+data/rl/generated/test-wave-library-iterative-*/
 data/rl/combat/*.jsonl
 data/rl/combat/*-report.json
 data/rl/models/*.pt
+data/rl/pipeline-runs/wave-library-iterative-remote-*/
 
 # Productive wave library runtime artifacts
 data/offline-wave-library/

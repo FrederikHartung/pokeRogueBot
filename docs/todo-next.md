@@ -179,6 +179,12 @@ Verbindlicher Schema-Hinweis:
 - kleine Collector-Batches statt grosser Langlaeufer
 - Resume ueber Manifest-/Statusdatei
 - Batch-Grenzen duerfen einen eventuellen Epsilon-Schedule nicht still zuruecksetzen; globale Episodenfortschritte muessen explizit weitergegeben werden
+- fuer die neue iterative Pipeline ist zusaetzlich eine fallende `epsilon`-Strategie innerhalb eines Laufs umgesetzt
+- fuer eingefrorene Benchmark-Sets koennen `random` und `always_move_0` ab dem Baseline-Benchmark wiederverwendet werden, damit spaetere Iterationen nur noch den aktuellen DQN neu evaluieren
+- fuer Laufzeitvergleiche steht jetzt ein eigener Runtime-Report ueber das Pipeline-Manifest bereit:
+  - `node scripts/report-iterative-pipeline-runtime.mjs --manifest <manifest.json>`
+- konservativer Paralleltest ist umgesetzt:
+  - Datengenerierung kann zunaechst mit `2` parallelen Collector-Prozessen gefahren werden, um CPU-/RAM-Auswirkung gegen den Single-Worker-Pfad zu vergleichen
 - Remote-Startziel:
 - ein einfaches Server-Skript soll vor dem Start `node`, `npm`, `python3`, `torch`, `node_modules`, `pokerogue/node_modules` und `pokerogue/locales/en` pruefen
 - der Remote-Lauf soll detached per `nohup` weiterlaufen koennen, auch wenn die SSH-Session geschlossen wird

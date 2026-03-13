@@ -3,23 +3,24 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-DEFAULT_CONFIG="${REPO_ROOT}/data/rl/wave-library-bootstrap-pipeline-run.json"
-RUNTIME_DIR="${REPO_ROOT}/data/rl/pipeline-runs/wave-library-bootstrap-remote"
-PID_FILE="${RUNTIME_DIR}/remote-bootstrap.pid"
-LOG_FILE="${RUNTIME_DIR}/remote-bootstrap.log"
-ERROR_LOG_FILE="${RUNTIME_DIR}/remote-bootstrap-errors.log"
-WARNING_LOG_FILE="${RUNTIME_DIR}/remote-bootstrap-warnings.log"
-ISSUES_SUMMARY_FILE="${RUNTIME_DIR}/issues-summary.txt"
+DEFAULT_CONFIG="${REPO_ROOT}/data/rl/wave-library-iterative-pipeline-remote-10ep.json"
+SMOKE_CONFIG="${REPO_ROOT}/data/rl/wave-library-iterative-pipeline-remote-smoke.json"
+OVERNIGHT_CONFIG="${REPO_ROOT}/data/rl/wave-library-iterative-pipeline-remote-10ep.json"
+CONTROL_DIR="${REPO_ROOT}/data/rl/pipeline-runs/wave-library-iterative-remote-control"
+PID_FILE="${CONTROL_DIR}/remote-iterative.pid"
+ACTIVE_CONFIG_FILE="${CONTROL_DIR}/active-config.txt"
 VENV_DIR="${REPO_ROOT}/.venv"
 VENV_PYTHON="${VENV_DIR}/bin/python"
 VENV_BIN_DIR="${VENV_DIR}/bin"
 
-mkdir -p "${RUNTIME_DIR}"
+mkdir -p "${CONTROL_DIR}"
 
 usage() {
   cat <<'EOF'
 Usage:
   scripts/run-wave-library-bootstrap-remote.sh start [config_path]
+  scripts/run-wave-library-bootstrap-remote.sh start-smoke
+  scripts/run-wave-library-bootstrap-remote.sh start-overnight
   scripts/run-wave-library-bootstrap-remote.sh status
   scripts/run-wave-library-bootstrap-remote.sh logs
   scripts/run-wave-library-bootstrap-remote.sh last
@@ -27,9 +28,10 @@ Usage:
   scripts/run-wave-library-bootstrap-remote.sh stop
 
 Notes:
-  - `start` checks required dependencies and then starts the remote batch pipeline detached via `nohup`.
+  - `start` checks required dependencies and then starts the iterative 5-iteration pipeline detached via `nohup`.
+  - `start-smoke` uses the prepared 1-episode smoke config.
+  - `start-overnight` uses the prepared larger 10-episodes-per-instance config.
   - The process keeps running after the SSH session closes.
-  - `config_path` defaults to `data/rl/wave-library-bootstrap-pipeline-run.json`.
   - `issues` refreshes a separate warning/error summary derived from the log and manifest.
 EOF
 }
@@ -40,6 +42,88 @@ assert_command() {
     echo "Missing dependency: ${command_name}" >&2
     exit 1
   fi
+}
+
+canonicalize_config_path() {
+  local config_path="${1:-${DEFAULT_CONFIG}}"
+  if [[ "${config_path}" != /* ]]; then
+    config_path="${REPO_ROOT}/${config_path}"
+  fi
+  python3 - "${config_path}" <<'PY'
+import os
+import sys
+print(os.path.realpath(sys.argv[1]))
+PY
+}
+
+get_active_config_path() {
+  if [ -f "${ACTIVE_CONFIG_FILE}" ]; then
+    cat "${ACTIVE_CONFIG_FILE}"
+    return 0
+  fi
+  echo "${DEFAULT_CONFIG}"
+}
+
+runtime_dir_for_config() {
+  local config_path
+  config_path="$(canonicalize_config_path "${1:-${DEFAULT_CONFIG}}")"
+  python3 - "${config_path}" "${REPO_ROOT}" <<'PY'
+import json
+import os
+import sys
+
+config_path = os.path.realpath(sys.argv[1])
+repo_root = os.path.realpath(sys.argv[2])
+data_rl_dir = os.path.join(repo_root, "data", "rl")
+config_dir = os.path.dirname(config_path)
+
+with open(config_path, "r", encoding="utf-8") as handle:
+    config = json.load(handle)
+
+value = config.get("output_root", "./pipeline-runs/wave-library-iterative")
+
+def resolve_path_with_fallbacks(path_value, bases):
+    if os.path.isabs(path_value):
+        return path_value
+    for base in bases:
+        candidate = os.path.realpath(os.path.join(base, path_value))
+        parent = os.path.dirname(candidate)
+        if os.path.isdir(candidate) or os.path.isdir(parent):
+            return candidate
+    return os.path.realpath(os.path.join(bases[0], path_value))
+
+print(resolve_path_with_fallbacks(value, [config_dir, data_rl_dir, repo_root]))
+PY
+}
+
+runtime_path() {
+  local config_path="$1"
+  local file_name="$2"
+  echo "$(runtime_dir_for_config "${config_path}")/${file_name}"
+}
+
+log_file_for_config() {
+  runtime_path "${1}" "remote-iterative.log"
+}
+
+error_log_file_for_config() {
+  runtime_path "${1}" "remote-iterative-errors.log"
+}
+
+warning_log_file_for_config() {
+  runtime_path "${1}" "remote-iterative-warnings.log"
+}
+
+issues_summary_file_for_config() {
+  runtime_path "${1}" "issues-summary.txt"
+}
+
+manifest_file_for_config() {
+  runtime_path "${1}" "manifest.json"
+}
+
+artifacts_summary_file_for_config() {
+  runtime_path "${1}" "artifacts-summary.json"
 }
 
 check_dependencies() {
@@ -126,14 +210,14 @@ format_duration_human() {
 }
 
 print_manifest_summary() {
-  if [ ! -f "${RUNTIME_DIR}/manifest.json" ]; then
+  local manifest_path="$1"
+  if [ ! -f "${manifest_path}" ]; then
     return 0
   fi
 
-  python3 - "${RUNTIME_DIR}/manifest.json" <<'PY'
+  python3 - "${manifest_path}" <<'PY'
 import json
 import sys
-from datetime import datetime, timezone
 
 manifest_path = sys.argv[1]
 with open(manifest_path, "r", encoding="utf-8") as handle:
@@ -145,42 +229,37 @@ steps = manifest.get("steps", {})
 total = len(batches)
 completed = sum(1 for batch in batches if batch.get("status") == "completed")
 failed = sum(1 for batch in batches if batch.get("status") == "failed")
+remaining = total - completed
 running_batch = next((batch for batch in batches if batch.get("status") == "running"), None)
-
-step_order = [
-    "random_collect",
-    "random_report",
-    "train_initial",
-    "benchmark_initial",
-    "dqn_collect",
-    "dqn_report",
-    "merge_final",
-    "train_final",
-    "benchmark_final",
-]
+failed_steps = [(name, step) for name, step in steps.items() if step.get("status") == "failed"]
+failed_batches = [batch for batch in batches if batch.get("status") == "failed"]
 
 current_step = None
-for step_name in step_order:
-    step = steps.get(step_name)
-    if step and step.get("status") == "running":
+for step_name, step in steps.items():
+    if step.get("status") == "running":
         current_step = step_name
         break
 
 if current_step is None:
-    for step_name in step_order:
-        step = steps.get(step_name)
-        if step and step.get("status") != "completed":
+    for step_name, step in steps.items():
+        if step.get("status") != "completed":
             current_step = step_name
             break
 
-completed_durations_ms = [
+completed_batch_durations_ms = [
     int(batch.get("duration_ms"))
     for batch in batches
     if batch.get("status") == "completed" and isinstance(batch.get("duration_ms"), int)
 ]
-avg_batch_duration_ms = int(sum(completed_durations_ms) / len(completed_durations_ms)) if completed_durations_ms else 0
-remaining = total - completed
+avg_batch_duration_ms = int(sum(completed_batch_durations_ms) / len(completed_batch_durations_ms)) if completed_batch_durations_ms else 0
 eta_seconds = int((avg_batch_duration_ms * remaining) / 1000) if avg_batch_duration_ms > 0 and remaining > 0 else None
+
+completed_step_durations_ms = [
+    int(step.get("duration_ms"))
+    for step in steps.values()
+    if step.get("status") == "completed" and isinstance(step.get("duration_ms"), int)
+]
+total_step_duration_seconds = int(sum(completed_step_durations_ms) / 1000) if completed_step_durations_ms else None
 
 def fmt_seconds(total_seconds):
     if total_seconds is None:
@@ -197,10 +276,18 @@ def fmt_seconds(total_seconds):
         return f"{minutes}m {seconds:02d}s"
     return f"{seconds}s"
 
-print(f"Phase: {current_step or 'unknown'}")
+if failed_steps or failed_batches:
+    print("Pipeline state: failed")
+elif current_step is None and all(step.get("status") == "completed" for step in steps.values()):
+    print("Pipeline state: completed")
+else:
+    print("Pipeline state: healthy")
+print(f"Phase: {current_step or 'completed'}")
 print(f"Batches: {completed}/{total} completed, {failed} failed, {remaining} remaining")
-if completed_durations_ms:
+if completed_batch_durations_ms:
     print(f"Average batch duration: {fmt_seconds(int(avg_batch_duration_ms / 1000))}")
+if total_step_duration_seconds is not None:
+    print(f"Accumulated step runtime: {fmt_seconds(total_step_duration_seconds)}")
 print(f"ETA: {fmt_seconds(eta_seconds)}")
 
 if running_batch is not None:
@@ -209,47 +296,40 @@ if running_batch is not None:
         f"{running_batch.get('phase')} / wave {running_batch.get('wave_index')} / "
         f"{running_batch.get('scenario_name')} / batch {int(running_batch.get('batch_index', 0)) + 1}"
     )
+
+if failed_steps:
+    last_failed_step_name, last_failed_step = failed_steps[-1]
+    print(f"Failed step: {last_failed_step_name}")
+    if last_failed_step.get("error"):
+        print(f"Step error: {last_failed_step.get('error')}")
+
+if failed_batches:
+    last_failed_batch = failed_batches[-1]
+    print(
+        "Failed batch: "
+        f"{last_failed_batch.get('phase')} / wave {last_failed_batch.get('wave_index')} / "
+        f"{last_failed_batch.get('scenario_name')} / batch {int(last_failed_batch.get('batch_index', 0)) + 1}"
+    )
+    if last_failed_batch.get("error"):
+        print(f"Batch error: {last_failed_batch.get('error')}")
 PY
 }
 
-print_status() {
-  refresh_issue_logs >/dev/null 2>&1 || true
-  if is_running; then
-    local pid
-    pid="$(cat "${PID_FILE}")"
-    echo "Remote bootstrap pipeline is running."
-    echo "PID: ${pid}"
-    local started_at
-    started_at="$(ps -p "${pid}" -o lstart= 2>/dev/null | sed 's/^ *//')"
-    local elapsed_raw
-    elapsed_raw="$(ps -p "${pid}" -o etimes= 2>/dev/null | tr -d ' ')"
-    if [ -n "${started_at}" ]; then
-      echo "Started: ${started_at}"
-    fi
-    if [ -n "${elapsed_raw}" ]; then
-      echo "Elapsed: $(format_duration_human "${elapsed_raw}")"
-    fi
-    echo "Log: ${LOG_FILE}"
-    echo "Warnings: ${WARNING_LOG_FILE}"
-    echo "Errors: ${ERROR_LOG_FILE}"
-    echo "Issues summary: ${ISSUES_SUMMARY_FILE}"
-    echo "Manifest: ${RUNTIME_DIR}/manifest.json"
-    echo "Artifacts summary: ${RUNTIME_DIR}/artifacts-summary.json"
-    print_manifest_summary
-  else
-    echo "Remote bootstrap pipeline is not running."
-    echo "Log: ${LOG_FILE}"
-    echo "Warnings: ${WARNING_LOG_FILE}"
-    echo "Errors: ${ERROR_LOG_FILE}"
-    echo "Issues summary: ${ISSUES_SUMMARY_FILE}"
-    echo "Manifest: ${RUNTIME_DIR}/manifest.json"
-    echo "Artifacts summary: ${RUNTIME_DIR}/artifacts-summary.json"
-    print_manifest_summary
-  fi
-}
-
 refresh_issue_logs() {
-  python3 - "${LOG_FILE}" "${RUNTIME_DIR}/manifest.json" "${ERROR_LOG_FILE}" "${WARNING_LOG_FILE}" "${ISSUES_SUMMARY_FILE}" <<'PY'
+  local config_path
+  config_path="$(get_active_config_path)"
+  local log_file
+  log_file="$(log_file_for_config "${config_path}")"
+  local manifest_file
+  manifest_file="$(manifest_file_for_config "${config_path}")"
+  local error_log_file
+  error_log_file="$(error_log_file_for_config "${config_path}")"
+  local warning_log_file
+  warning_log_file="$(warning_log_file_for_config "${config_path}")"
+  local issues_summary_file
+  issues_summary_file="$(issues_summary_file_for_config "${config_path}")"
+
+  python3 - "${log_file}" "${manifest_file}" "${error_log_file}" "${warning_log_file}" "${issues_summary_file}" <<'PY'
 import json
 import re
 import sys
@@ -286,13 +366,13 @@ manifest_errors = []
 if manifest_path.exists():
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     for step_name, step in (manifest.get("steps") or {}).items():
-      if step.get("status") == "failed" or step.get("error"):
-        manifest_errors.append(f"[manifest step:{step_name}] status={step.get('status')} error={step.get('error')}")
+        if step.get("status") == "failed" or step.get("error"):
+            manifest_errors.append(f"[manifest step:{step_name}] status={step.get('status')} error={step.get('error')}")
     for batch in manifest.get("batches") or []:
-      if batch.get("status") == "failed" or batch.get("error"):
-        manifest_errors.append(
-            f"[manifest batch:{batch.get('id')}] phase={batch.get('phase')} status={batch.get('status')} error={batch.get('error')}"
-        )
+        if batch.get("status") == "failed" or batch.get("error"):
+            manifest_errors.append(
+                f"[manifest batch:{batch.get('id')}] phase={batch.get('phase')} status={batch.get('status')} error={batch.get('error')}"
+            )
 
 seen_errors = set()
 deduped_errors = []
@@ -335,11 +415,59 @@ print(summary_path)
 PY
 }
 
-start_pipeline() {
-  local config_path="${1:-${DEFAULT_CONFIG}}"
-  if [[ "${config_path}" != /* ]]; then
-    config_path="${REPO_ROOT}/${config_path}"
+print_status() {
+  local config_path
+  config_path="$(get_active_config_path)"
+  local runtime_dir
+  runtime_dir="$(runtime_dir_for_config "${config_path}")"
+  local log_file
+  log_file="$(log_file_for_config "${config_path}")"
+  local error_log_file
+  error_log_file="$(error_log_file_for_config "${config_path}")"
+  local warning_log_file
+  warning_log_file="$(warning_log_file_for_config "${config_path}")"
+  local issues_summary_file
+  issues_summary_file="$(issues_summary_file_for_config "${config_path}")"
+  local manifest_file
+  manifest_file="$(manifest_file_for_config "${config_path}")"
+  local artifacts_summary_file
+  artifacts_summary_file="$(artifacts_summary_file_for_config "${config_path}")"
+
+  refresh_issue_logs >/dev/null 2>&1 || true
+  if is_running; then
+    local pid
+    pid="$(cat "${PID_FILE}")"
+    echo "Remote iterative pipeline is running."
+    echo "PID: ${pid}"
+    echo "Config: ${config_path}"
+    local started_at
+    started_at="$(ps -p "${pid}" -o lstart= 2>/dev/null | sed 's/^ *//')"
+    local elapsed_raw
+    elapsed_raw="$(ps -p "${pid}" -o etimes= 2>/dev/null | tr -d ' ')"
+    if [ -n "${started_at}" ]; then
+      echo "Started: ${started_at}"
+    fi
+    if [ -n "${elapsed_raw}" ]; then
+      echo "Elapsed: $(format_duration_human "${elapsed_raw}")"
+    fi
+  else
+    echo "Remote iterative pipeline is not running."
+    echo "Config: ${config_path}"
   fi
+
+  echo "Runtime dir: ${runtime_dir}"
+  echo "Log: ${log_file}"
+  echo "Warnings: ${warning_log_file}"
+  echo "Errors: ${error_log_file}"
+  echo "Issues summary: ${issues_summary_file}"
+  echo "Manifest: ${manifest_file}"
+  echo "Artifacts summary: ${artifacts_summary_file}"
+  print_manifest_summary "${manifest_file}"
+}
+
+start_pipeline() {
+  local config_path
+  config_path="$(canonicalize_config_path "${1:-${DEFAULT_CONFIG}}")"
 
   if [ ! -f "${config_path}" ]; then
     echo "Config not found: ${config_path}" >&2
@@ -347,23 +475,40 @@ start_pipeline() {
   fi
 
   if is_running; then
-    echo "A remote bootstrap pipeline is already running."
+    echo "An iterative remote pipeline is already running."
     print_status
     exit 1
   fi
 
+  rm -f "${PID_FILE}"
   check_dependencies
 
-  echo "Starting remote bootstrap pipeline..."
+  local runtime_dir
+  runtime_dir="$(runtime_dir_for_config "${config_path}")"
+  mkdir -p "${runtime_dir}"
+
+  local log_file
+  log_file="$(log_file_for_config "${config_path}")"
+  local error_log_file
+  error_log_file="$(error_log_file_for_config "${config_path}")"
+  local warning_log_file
+  warning_log_file="$(warning_log_file_for_config "${config_path}")"
+  local issues_summary_file
+  issues_summary_file="$(issues_summary_file_for_config "${config_path}")"
+
+  echo "${config_path}" > "${ACTIVE_CONFIG_FILE}"
+
+  echo "Starting remote iterative pipeline..."
   echo "Config: ${config_path}"
-  echo "Log: ${LOG_FILE}"
-  : > "${ERROR_LOG_FILE}"
-  : > "${WARNING_LOG_FILE}"
-  : > "${ISSUES_SUMMARY_FILE}"
+  echo "Runtime dir: ${runtime_dir}"
+  echo "Log: ${log_file}"
+  : > "${error_log_file}"
+  : > "${warning_log_file}"
+  : > "${issues_summary_file}"
   echo "Python: ${VENV_PYTHON}"
 
-  nohup bash -lc "export PATH='${VENV_BIN_DIR}':\"\$PATH\" && cd '${REPO_ROOT}' && npm run rl:pipeline:wave-lib:bootstrap -- '${config_path}'" \
-    >"${LOG_FILE}" 2>&1 < /dev/null &
+  nohup bash -lc "export PATH='${VENV_BIN_DIR}':\"\$PATH\" && cd '${REPO_ROOT}' && npm run rl:pipeline:wave-lib:iterative -- '${config_path}'" \
+    >"${log_file}" 2>&1 < /dev/null &
   local pid=$!
   echo "${pid}" > "${PID_FILE}"
   sleep 1
@@ -374,14 +519,14 @@ start_pipeline() {
     echo "Follow logs with:"
     echo "  scripts/run-wave-library-bootstrap-remote.sh logs"
   else
-    echo "Pipeline process exited immediately. Check log: ${LOG_FILE}" >&2
+    echo "Pipeline process exited immediately. Check log: ${log_file}" >&2
     exit 1
   fi
 }
 
 stop_pipeline() {
   if ! is_running; then
-    echo "No running remote bootstrap pipeline found."
+    echo "No running remote iterative pipeline found."
     exit 0
   fi
 
@@ -394,31 +539,48 @@ stop_pipeline() {
 }
 
 show_logs() {
-  if [ -f "${LOG_FILE}" ]; then
-    tail -n 200 -f "${LOG_FILE}"
+  local config_path
+  config_path="$(get_active_config_path)"
+  local log_file
+  log_file="$(log_file_for_config "${config_path}")"
+  if [ -f "${log_file}" ]; then
+    tail -n 200 -f "${log_file}"
   else
-    echo "Log file not found: ${LOG_FILE}" >&2
+    echo "Log file not found: ${log_file}" >&2
     exit 1
   fi
 }
 
 show_last_logs() {
-  if [ -f "${LOG_FILE}" ]; then
-    tail -n 50 "${LOG_FILE}"
+  local config_path
+  config_path="$(get_active_config_path)"
+  local log_file
+  log_file="$(log_file_for_config "${config_path}")"
+  if [ -f "${log_file}" ]; then
+    tail -n 50 "${log_file}"
   else
-    echo "Log file not found: ${LOG_FILE}" >&2
+    echo "Log file not found: ${log_file}" >&2
     exit 1
   fi
 }
 
 show_issues() {
-  if [ ! -f "${LOG_FILE}" ] && [ ! -f "${RUNTIME_DIR}/manifest.json" ]; then
-    echo "Neither log nor manifest found in ${RUNTIME_DIR}" >&2
+  local config_path
+  config_path="$(get_active_config_path)"
+  local log_file
+  log_file="$(log_file_for_config "${config_path}")"
+  local manifest_file
+  manifest_file="$(manifest_file_for_config "${config_path}")"
+  local issues_summary_file
+  issues_summary_file="$(issues_summary_file_for_config "${config_path}")"
+
+  if [ ! -f "${log_file}" ] && [ ! -f "${manifest_file}" ]; then
+    echo "Neither log nor manifest found for config ${config_path}" >&2
     exit 1
   fi
 
   refresh_issue_logs >/dev/null
-  cat "${ISSUES_SUMMARY_FILE}"
+  cat "${issues_summary_file}"
 }
 
 main() {
@@ -426,6 +588,12 @@ main() {
   case "${command}" in
     start)
       start_pipeline "${2:-${DEFAULT_CONFIG}}"
+      ;;
+    start-smoke)
+      start_pipeline "${SMOKE_CONFIG}"
+      ;;
+    start-overnight)
+      start_pipeline "${OVERNIGHT_CONFIG}"
       ;;
     status)
       print_status

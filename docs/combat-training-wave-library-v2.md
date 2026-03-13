@@ -485,6 +485,52 @@ Geplante Stufen:
   - Random- und DQN-Datensaetze zusammenfuehren
   - finales Checkpoint-Training und Vergleich gegen Benchmark 1
 
+Aktualisierte Iterationsrichtung:
+
+- der bisherige 2-Stufen-Bootstrap bleibt als einfacher Altpfad erhalten
+- fuer kuenftige Vergleiche soll zusaetzlich ein iterativer Wave-Library-Self-Training-Pfad existieren
+- Iteration `0` ist die feste Baseline:
+  - alle vorhandenen Wave-Library-Instanzen sammeln
+  - `policy.type = random`
+  - daraus Baseline-Datensatz, Baseline-Checkpoint und Baseline-Benchmark erzeugen
+- Iterationen `1..5` wiederholen danach denselben Ablauf auf derselben eingefrorenen Instanzmenge:
+  - Sammlung mit `policy.type = epsilon_random`
+  - fruehe Iterationen koennen mit hoeherem `epsilon` starten, spaetere Iterationen mit kleinerem `epsilon` enden
+  - Beispielrichtung: von `1/3` random in Iteration `1` hin zu `0.10` in der letzten Iteration
+  - der Exploit-Zweig bleibt pretrained-DQN ueber `exploit_policy`
+  - anschliessend kumulativer Merge aller bis dahin erzeugten Datensaetze
+  - neues Checkpoint-Training
+  - voller Benchmark ueber alle Instanzen der Wave Library
+- der fachlich wichtigste Vergleich ist immer `Benchmark_i` gegen `Benchmark_0`, damit schnell sichtbar wird, ob spaetere Trainingsiterationen echten Mehrwert liefern oder regressiv werden
+- der Pfad soll bewusst mit denselben Konfigurationshebeln fuer kurze Smoke- und spaetere Langlaeufe nutzbar bleiben
+- falls das Benchmark-Set eingefroren bleibt, sollen `random` und `always_move_0` nur einmal in `Benchmark_0` laufen; spaetere Iterationen benchmarken dann nur noch den neuen DQN-Checkpoint und kombinieren ihn mit den gecachten Baseline-Referenzen
+- fuer kuerzere Wall-Clock-Zeiten kann die Datengenerierung vorsichtig batch-parallel gefahren werden, z. B. zuerst mit `2` Collector-Prozessen, um CPU- und RAM-Auswirkung kontrolliert zu beobachten
+
+Neue Infrastruktur-Helfer fuer diesen Pfad:
+
+- Iterative Pipeline:
+  - `node scripts/run-wave-library-iterative-pipeline.mjs <config>`
+- Laufzeit-Summary aus dem Manifest:
+  - `node scripts/report-iterative-pipeline-runtime.mjs --manifest <manifest.json>`
+  - optional mit JSON-Output:
+    - `node scripts/report-iterative-pipeline-runtime.mjs --manifest <manifest.json> --output <runtime-summary.json>`
+- Zweck der Runtime-Summary:
+  - Dauer pro Step
+  - Summen pro Kategorie (`collect`, `benchmark`, `train`, ...)
+  - Summen pro Iteration
+  - spaeterer Vergleich zwischen `1`, `10`, `100` Episoden pro Instanz
+
+Aktueller optimierter Smoke-Referenzlauf:
+
+- Config:
+  - `data/rl/test-wave-library-iterative-pipeline-smoke-optimized.json`
+- Eigenschaften:
+  - `5` Iterationen
+  - `1` Episode pro Instanz
+  - `2` parallele Collector-Prozesse
+  - fallendes `epsilon` von `0.3333` auf `0.10`
+  - gecachte Benchmark-Baselines ab `Iteration 1`
+
 Wichtige technische Regeln fuer diesen Pfad:
 
 - Timeouts konservativ pro Batch statt global fuer den gesamten Pipeline-Lauf setzen

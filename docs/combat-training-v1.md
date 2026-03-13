@@ -226,6 +226,21 @@ Current practical bootstrap procedure:
 - Step 8: train the next checkpoint on the combined bootstrap + model-guided dataset
 - Step 9: benchmark that checkpoint via `scripts/eval_dqn_policy.py` or `scripts/eval_policy_compare.py`; both evaluation paths now use the same persistent worker pattern instead of one-shot per-action inference
 
+Current iterative wave-library direction:
+
+- Iteration `0` is the fixed baseline bootstrap over all available wave-library instances with `policy.type = random`
+- This baseline produces dataset `D0`, checkpoint `M0` and benchmark report `B0`
+- Iterations `1..N` then repeat collection on the same frozen instance set with `policy.type = epsilon_random`
+- For those later iterations the collector should start with a higher exploration share and can then reduce it per iteration, for example from `epsilon = 1/3` toward `0.10`
+- This means early iterations stay more exploratory, while later iterations become more policy-near
+- Exploit decisions continue to come from the pretrained DQN via `policy.exploit_policy.type = external_command`
+- Each iteration `i` adds a new dataset shard `Di`; training uses the cumulative dataset `D0 + D1 + ... + Di`
+- After every training stage a full benchmark over the same wave-library instance set should be executed
+- `random` and `always_move_0` do not need to be recomputed on every iteration if the benchmark scenario set stays frozen; they can be benchmarked once in `B0` and reused as cached reference policies for later DQN-only benchmark passes
+- The primary comparison target is the baseline benchmark `B0`, with secondary comparison against the direct previous iteration to spot regressions
+- Collector batches can also be processed with a small configurable worker pool to reduce wall-clock time without changing the scenario set or the benchmark contract
+- All major runtime knobs such as iteration count, episodes per instance, batch size, epsilon schedule, collect parallelism and benchmark config should stay configurable so the same pipeline can be reused for smoke tests and longer runs
+
 Why the persistent worker matters:
 
 - the earlier one-shot external command path started a new Python/Torch process for every exploit action

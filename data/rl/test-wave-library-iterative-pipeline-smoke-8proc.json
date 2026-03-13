@@ -1,0 +1,66 @@
+{
+  "scenario_dirs": [
+    "./scenarios/generated-wave-library-v2-w1-7",
+    "./scenarios/generated-wave-library-v2-w8"
+  ],
+  "include_waves": [1, 2, 3, 4, 5, 6, 7, 8],
+  "iterations": 5,
+  "collect_parallelism": 2,
+  "benchmark_parallelism": 4,
+  "output_root": "./generated/test-wave-library-iterative-smoke-8proc",
+  "manifest_path": "./generated/test-wave-library-iterative-smoke-8proc/manifest.json",
+  "collector_defaults": {
+    "append_output": false,
+    "max_steps_per_episode": 300,
+    "test_timeout_ms": 600000,
+    "quiet_game_logs": true
+  },
+  "baseline_collect": {
+    "episodes_per_instance": 1,
+    "batch_size": 1,
+    "parallelism": 2,
+    "collector": {},
+    "policy": {
+      "type": "random"
+    }
+  },
+  "iterative_collect": {
+    "episodes_per_instance": 1,
+    "batch_size": 1,
+    "parallelism": 2,
+    "collector": {},
+    "policy": {
+      "type": "epsilon_random",
+      "epsilon_start": 0.3333333333,
+      "epsilon_end": 0.10,
+      "exploit_policy": {
+        "type": "external_command",
+        "timeout_ms": 15000,
+        "step_timeout_ms": 15000
+      }
+    }
+  },
+  "train_baseline": {
+    "template_config_path": "./train-dqn-offline-wave-library-bootstrap-combined-960.json",
+    "output_path": "./generated/test-wave-library-iterative-smoke-8proc/artifacts/dqn-combat-wave-library-iter-baseline.pt"
+  },
+  "train_iteration": {
+    "template_config_path": "./train-dqn-offline-wave-library-bootstrap-combined-960.json",
+    "output_path_pattern": "./generated/test-wave-library-iterative-smoke-8proc/artifacts/dqn-combat-wave-library-iter-{iteration}.pt"
+  },
+  "benchmark_baseline": {
+    "collector_config_path": "./collector-run-benchmarked-wave-library-v2-full.json",
+    "report_path": "./generated/test-wave-library-iterative-smoke-8proc/artifacts/eval-policy-compare-wave-library-iter-baseline.json",
+    "parallelism": 4,
+    "max_steps_per_episode": 400
+  },
+  "benchmark_iteration": {
+    "collector_config_path": "./collector-run-benchmarked-wave-library-v2-full.json",
+    "report_path_pattern": "./generated/test-wave-library-iterative-smoke-8proc/artifacts/eval-policy-compare-wave-library-iter-{iteration}.json",
+    "dqn_output_path_pattern": "./generated/test-wave-library-iterative-smoke-8proc/artifacts/eval-dqn-wave-library-iter-{iteration}.jsonl",
+    "dqn_report_path_pattern": "./generated/test-wave-library-iterative-smoke-8proc/artifacts/eval-dqn-wave-library-iter-{iteration}-report.json",
+    "reuse_baseline_policies": true,
+    "parallelism": 4,
+    "max_steps_per_episode": 400
+  }
+}

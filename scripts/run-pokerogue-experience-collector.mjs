@@ -16,8 +16,10 @@ const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, "..");
 const pokerogueRoot = path.join(repoRoot, "pokerogue");
 const pokerogueVitestBin = path.join(pokerogueRoot, "node_modules", ".bin", "vitest");
-const tempDir = path.join(pokerogueRoot, "test", ".external-rl");
-const tempTestPath = path.join(tempDir, "experience-collector.test.ts");
+const tempRunId = `${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+const tempDir = path.join(pokerogueRoot, "test", ".external-rl", tempRunId);
+const tempTestRelativePath = path.join("test", ".external-rl", tempRunId, "experience-collector.test.ts");
+const tempTestPath = path.join(pokerogueRoot, tempTestRelativePath);
 
 const defaultConfigPath = path.join(repoRoot, "data", "rl", "collector-run.json");
 const configPath = process.argv[2] ? path.resolve(process.argv[2]) : defaultConfigPath;
@@ -2090,7 +2092,7 @@ const runnerEnv = {
 
 const result = spawnSync(
   pokerogueVitestBin,
-  ["run", "test/.external-rl/experience-collector.test.ts", "--no-isolate"],
+  ["run", tempTestRelativePath, "--no-isolate"],
   {
     cwd: pokerogueRoot,
     env: runnerEnv,
