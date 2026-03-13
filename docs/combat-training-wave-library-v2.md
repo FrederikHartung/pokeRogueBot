@@ -549,15 +549,36 @@ Remote-Server-Bedienung:
   - dadurch laeuft die Datengenerierung weiter, auch wenn die SSH-Session beendet wird
 - Unterkommandos:
   - `start [config_path]`
+  - `start-smoke`
+  - `start-overnight`
   - `status`
   - `logs`
+  - `issues`
   - `stop`
-- Standard-Remote-Start:
-  - `scripts/run-wave-library-bootstrap-remote.sh start`
-- Standard-Logdatei:
-  - `data/rl/pipeline-runs/wave-library-bootstrap-remote/remote-bootstrap.log`
+- vorbereiteter Mini-Smoke:
+  - Config: `data/rl/wave-library-iterative-pipeline-remote-smoke.json`
+  - genau `8` Szenarien:
+    - jeweils `1` Szenario aus Welle `1-8`
+  - `1` Episode pro Szenario
+  - `2` Collect-Worker
+  - `1` Benchmark-Worker
+  - Start:
+    - `scripts/run-wave-library-bootstrap-remote.sh start-smoke`
+- vorbereiteter Overnight-Lauf:
+  - Config: `data/rl/wave-library-iterative-pipeline-remote-10ep.json`
+  - voller `w1-8`-Satz
+  - `10` Episoden pro Szenario
+  - `batch_size = 10`
+  - `2` Collect-Worker
+  - `1` Benchmark-Worker
+  - Start:
+    - `scripts/run-wave-library-bootstrap-remote.sh start-overnight`
+- Logdateien:
+  - Smoke: `data/rl/pipeline-runs/wave-library-iterative-remote-smoke/remote-iterative.log`
+  - Overnight: `data/rl/pipeline-runs/wave-library-iterative-remote-10ep/remote-iterative.log`
 - zentrale Artefakt-Uebersicht:
-  - `data/rl/pipeline-runs/wave-library-bootstrap-remote/artifacts-summary.json`
+  - Smoke: `data/rl/pipeline-runs/wave-library-iterative-remote-smoke/artifacts-summary.json`
+  - Overnight: `data/rl/pipeline-runs/wave-library-iterative-remote-10ep/artifacts-summary.json`
   - diese Datei ist der bevorzugte Einstieg fuer spaeteren SFTP-Download von Reports und Modell
 
 Ubuntu-Setup-Kurzpfad fuer spaetere Server:
@@ -596,19 +617,23 @@ Ubuntu-Setup-Kurzpfad fuer spaetere Server:
     - `cd pokerogue && npm install && cd ..`
 - Szenarien aus der kopierten Wave-Library materialisieren:
   - `npm run rl:gen:scenarios:wave-lib`
-- Remote-Pipeline fuer alle verfuegbaren Wave-Library-Szenarien konfigurieren:
-  - in `data/rl/wave-library-bootstrap-pipeline-run.json`
-  - `scenario_dirs` auf `./scenarios/generated-wave-library-v2` setzen
-  - `include_waves` auf `[]` setzen
-- alten Remote-Laufzustand vor dem ersten echten Langlauf loeschen:
-  - `rm -rf data/rl/pipeline-runs/wave-library-bootstrap-remote`
-- danach Remote-Pipeline starten:
-  - `bash scripts/run-wave-library-bootstrap-remote.sh start`
+- vorbereiteten Mini-Smoke bei Bedarf zur schnellen Pipeline-Validierung nutzen:
+  - alten Smoke-Zustand loeschen:
+    - `rm -rf data/rl/pipeline-runs/wave-library-iterative-remote-smoke`
+  - danach Smoke starten:
+    - `bash scripts/run-wave-library-bootstrap-remote.sh start-smoke`
+- fuer den groesseren Lauf:
+  - alten Overnight-Zustand loeschen:
+    - `rm -rf data/rl/pipeline-runs/wave-library-iterative-remote-10ep`
+  - danach Overnight-Lauf starten:
+    - `bash scripts/run-wave-library-bootstrap-remote.sh start-overnight`
 - Monitoring:
   - `bash scripts/run-wave-library-bootstrap-remote.sh status`
   - `bash scripts/run-wave-library-bootstrap-remote.sh logs`
+  - `bash scripts/run-wave-library-bootstrap-remote.sh issues`
   - fuer eine kurze Momentaufnahme statt Dauer-Streaming:
-    - `tail -n 50 data/rl/pipeline-runs/wave-library-bootstrap-remote/remote-bootstrap.log`
+    - `tail -n 50 data/rl/pipeline-runs/wave-library-iterative-remote-smoke/remote-iterative.log`
+    - `tail -n 50 data/rl/pipeline-runs/wave-library-iterative-remote-10ep/remote-iterative.log`
 
 Zielbild nach einem laengeren Remote-Lauf:
 
