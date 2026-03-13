@@ -230,6 +230,21 @@ total = len(batches)
 completed = sum(1 for batch in batches if batch.get("status") == "completed")
 failed = sum(1 for batch in batches if batch.get("status") == "failed")
 remaining = total - completed
+planned_episodes = sum(int(batch.get("episodes", 0) or 0) for batch in batches)
+completed_episodes = sum(int(batch.get("episodes", 0) or 0) for batch in batches if batch.get("status") == "completed")
+remaining_episodes = planned_episodes - completed_episodes
+scenario_names = {
+    str(batch.get("scenario_name"))
+    for batch in batches
+    if batch.get("scenario_name") is not None
+}
+scenario_count = len(scenario_names)
+episodes_per_scenario_values = set()
+for batch in batches:
+    phase = str(batch.get("phase") or "")
+    if phase != "baseline_collect":
+        continue
+    episodes_per_scenario_values.add(int(batch.get("episodes", 0) or 0))
 running_batch = next((batch for batch in batches if batch.get("status") == "running"), None)
 failed_steps = [(name, step) for name, step in steps.items() if step.get("status") == "failed"]
 failed_batches = [batch for batch in batches if batch.get("status") == "failed"]
@@ -284,6 +299,12 @@ else:
     print("Pipeline state: healthy")
 print(f"Phase: {current_step or 'completed'}")
 print(f"Batches: {completed}/{total} completed, {failed} failed, {remaining} remaining")
+if scenario_count > 0:
+    print(f"Scenarios: {scenario_count}")
+if len(episodes_per_scenario_values) == 1:
+    value = next(iter(episodes_per_scenario_values))
+    print(f"Episodes per scenario: {value}")
+print(f"Episodes: {completed_episodes}/{planned_episodes} completed, {remaining_episodes} remaining")
 if completed_batch_durations_ms:
     print(f"Average batch duration: {fmt_seconds(int(avg_batch_duration_ms / 1000))}")
 if total_step_duration_seconds is not None:
