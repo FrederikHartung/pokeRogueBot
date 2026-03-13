@@ -54,15 +54,23 @@ There are now two separate paths and both should stay available:
     - `npm run rl:collect:wave-lib:train:broad-shallow`
     - `npm run rl:collect:wave-lib:train:deep`
 - Remote long-run path:
-  - use the new batch-based bootstrap pipeline for long data-generation jobs on a remote Linux server
+  - use the iterative 5-iteration pipeline for remote smoke tests and longer data-generation jobs on a remote Linux server
   - entrypoint:
-    - `scripts/run-wave-library-bootstrap-remote.sh start`
+    - smoke test: `scripts/run-wave-library-bootstrap-remote.sh start-smoke`
+    - larger overnight run: `scripts/run-wave-library-bootstrap-remote.sh start-overnight`
   - this path checks dependencies first and then starts the pipeline detached via `nohup`
   - the run continues even if the SSH session is closed
-  - after the run, use `data/rl/pipeline-runs/wave-library-bootstrap-remote/artifacts-summary.json` as the central index for downloading the final model and reports
+  - smoke config:
+    - `data/rl/wave-library-iterative-pipeline-remote-smoke.json`
+    - mini-smoke with exactly `1` scenario from each wave `1-8`, `1` episode per scenario, `2` collect workers and `1` benchmark worker
+  - overnight config:
+    - `data/rl/wave-library-iterative-pipeline-remote-10ep.json`
+    - full `w1-8` iterative run with `10` episodes per scenario, `batch_size = 10`, `2` collect workers and `1` benchmark worker
+  - after the run, use the `artifacts-summary.json` inside the selected runtime directory as the central index for downloading the final model and reports
   - helper commands:
     - `scripts/run-wave-library-bootstrap-remote.sh status`
     - `scripts/run-wave-library-bootstrap-remote.sh logs`
+    - `scripts/run-wave-library-bootstrap-remote.sh issues`
     - `scripts/run-wave-library-bootstrap-remote.sh stop`
 
 The remote helper currently checks:
@@ -143,24 +151,30 @@ For future remote runs on a fresh Ubuntu server, this is the recommended order.
    - `git submodule status`
 10. Materialize scenarios from the copied wave library:
    - `npm run rl:gen:scenarios:wave-lib`
-11. Configure the remote batch pipeline to use all materialized wave-library scenarios:
-   - edit `data/rl/wave-library-bootstrap-pipeline-run.json`
-   - set:
-     - `"scenario_dirs": ["./scenarios/generated-wave-library-v2"]`
-     - `"include_waves": []`
-   - this makes the remote run use all currently available entries instead of the older `w1-7`/`w8` subset
-12. Reset stale remote pipeline state before the first real long run:
-   - `rm -rf data/rl/pipeline-runs/wave-library-bootstrap-remote`
-13. Start the long-running remote pipeline:
-   - `bash scripts/run-wave-library-bootstrap-remote.sh start`
-14. Monitor or inspect the run:
+11. Optional smoke-first workflow:
+   - the prepared mini-smoke config uses exactly `8` scenarios:
+     - one scenario from each wave `1-8`
+   - reset stale smoke state if needed:
+     - `rm -rf data/rl/pipeline-runs/wave-library-iterative-remote-smoke`
+   - start smoke:
+     - `bash scripts/run-wave-library-bootstrap-remote.sh start-smoke`
+12. Start the longer iterative overnight run:
+   - reset stale overnight state if needed:
+     - `rm -rf data/rl/pipeline-runs/wave-library-iterative-remote-10ep`
+   - start overnight:
+     - `bash scripts/run-wave-library-bootstrap-remote.sh start-overnight`
+13. Monitor or inspect the run:
    - `bash scripts/run-wave-library-bootstrap-remote.sh status`
    - `bash scripts/run-wave-library-bootstrap-remote.sh logs`
-   - use `tail -n 50 data/rl/pipeline-runs/wave-library-bootstrap-remote/remote-bootstrap.log` for a short snapshot instead of continuous log streaming
+   - `bash scripts/run-wave-library-bootstrap-remote.sh issues`
+   - use `tail -n 50 data/rl/pipeline-runs/wave-library-iterative-remote-smoke/remote-iterative.log` or `tail -n 50 data/rl/pipeline-runs/wave-library-iterative-remote-10ep/remote-iterative.log` for a short snapshot instead of continuous log streaming
 
 After the run finishes, the central download index is:
 
-- `data/rl/pipeline-runs/wave-library-bootstrap-remote/artifacts-summary.json`
+- smoke:
+  - `data/rl/pipeline-runs/wave-library-iterative-remote-smoke/artifacts-summary.json`
+- overnight:
+  - `data/rl/pipeline-runs/wave-library-iterative-remote-10ep/artifacts-summary.json`
 
 Use that file to identify which reports and model artifacts to download via SFTP/SCP.
 
