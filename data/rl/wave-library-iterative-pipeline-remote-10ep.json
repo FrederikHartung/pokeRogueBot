@@ -16,8 +16,8 @@
     "quiet_game_logs": true
   },
   "baseline_collect": {
-    "episodes_per_instance": 10,
-    "batch_size": 10,
+    "episodes_per_instance": 60,
+    "batch_size": 60,
     "parallelism": 2,
     "collector": {},
     "policy": {
@@ -25,8 +25,8 @@
     }
   },
   "iterative_collect": {
-    "episodes_per_instance": 10,
-    "batch_size": 10,
+    "episodes_per_instance": 60,
+    "batch_size": 60,
     "parallelism": 2,
     "collector": {},
     "policy": {
