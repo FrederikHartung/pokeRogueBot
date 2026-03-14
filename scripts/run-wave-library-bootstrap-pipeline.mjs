@@ -1,4 +1,5 @@
 import {
+  appendFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -490,8 +491,12 @@ function runBenchmarkPhase(currentManifest, rootConfig, configDir, benchmarkPhas
 
 function mergePhaseDatasets(currentManifest, outputKey, sources) {
   const manifest = structuredClone(currentManifest);
-  const mergedLines = [];
+  let rowCount = 0;
 
+  const mergedDir = path.join(pipelineRoot, "merged");
+  mkdirSync(mergedDir, { recursive: true });
+  const datasetPath = path.join(mergedDir, `${outputKey}.jsonl`);
+  writeFileSync(datasetPath, "", "utf8");
   for (const source of sources) {
     const matchingBatches = manifest.batches
       .filter(batch => batch.phase === source.phaseName && batch.status === "completed")
@@ -509,20 +514,17 @@ function mergePhaseDatasets(currentManifest, outputKey, sources) {
           ...(row.meta ?? {}),
           dataset_source: source.sourceLabel,
         };
-        mergedLines.push(JSON.stringify(row));
+        appendFileSync(datasetPath, `${JSON.stringify(row)}\n`, "utf8");
+        rowCount += 1;
       }
     }
   }
 
-  const mergedDir = path.join(pipelineRoot, "merged");
-  mkdirSync(mergedDir, { recursive: true });
-  const datasetPath = path.join(mergedDir, `${outputKey}.jsonl`);
-  writeFileSync(datasetPath, `${mergedLines.join("\n")}\n`, "utf8");
   runCommand("node", ["scripts/run-rl-dataset-sanity.mjs", datasetPath], repoRoot);
 
   manifest.outputs[outputKey] = {
     dataset_path: datasetPath,
-    rows: mergedLines.length,
+    rows: rowCount,
   };
   return manifest;
 }
