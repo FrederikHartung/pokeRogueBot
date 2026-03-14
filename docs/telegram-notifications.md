@@ -95,11 +95,10 @@ Aktive Events:
 Mitgesendete Nutzdaten:
 
 - Run-Name oder Runtime-Ordner
-- aktueller Phase-/Iterationsname
-- Kurzstatus
-- Fehlertext bei Abbruch
-- Manifest-Pfad
-- optional Artefaktpfad
+- kompakter Kurzstatus fuer Mobilansicht
+- DQN-Benchmarkwerte bei Iterationsabschluss
+- Iterationsdauer und Gesamtdauern
+- gekuerzter Fehlertext bei Abbruch
 
 ## Beispiel-Nachrichten
 
@@ -107,28 +106,36 @@ Iteration fertig:
 
 ```text
 Run: wave-library-iterative-remote-10ep
-Status: iteration_completed
-Iteration: 3
-Phase: benchmark_iter_3
-Manifest: /home/.../manifest.json
+State: iteration completed
+Iteration: 3/5
+DQN win_rate: 0.914
+DQN avg_reward: 1.157
+DQN avg_turns: 17.757
+Iteration runtime: 1h 18m
 ```
 
 Fehler:
 
 ```text
 Run: wave-library-iterative-remote-10ep
-Status: pipeline_failed
+State: failed
 Phase: collect_iter_4
+Iteration: 4/5
+Batches: 272/408
+Episodes: 16320/24480
+Failed step: collect_iter_4
 Error: <FEHLER_AUS_MANIFEST>
-Log: /home/.../remote-iterative.log
 ```
 
 Abschluss:
 
 ```text
 Run: wave-library-iterative-remote-10ep
-Status: pipeline_completed
-Artifacts: /home/.../artifacts-summary.json
+State: completed
+Batches: 408/408
+Episodes: 24480/24480
+Total runtime: 9h 47m
+Iterations: 1=1h 52m, 2=1h 46m, 3=1h 58m, 4=2h 01m, 5=1h 50m
 ```
 
 ## Sicherheitsregeln
@@ -181,9 +188,48 @@ Zusätzlich zum Push bei Fehlern oder abgeschlossenen Iterationen kann ein klein
 Erlaubte Commands:
 
 - `/status`
+- `/benchmarks`
 - `/issues`
 - `/last`
 - `/help`
+
+Format von `/status`:
+
+```text
+Run: wave-library-iterative-remote-10ep
+State: running
+Phase: collect_iter_2
+Iteration: 2/5
+Batches: 136/408
+Episodes: 8160/24480
+ETA: 5h 42m
+```
+
+Format von `/status` bei Fehler:
+
+```text
+Run: wave-library-iterative-remote-10ep
+State: failed
+Phase: collect_iter_1
+Iteration: 1/5
+Batches: 68/408
+Episodes: 4080/24480
+Failed step: collect_iter_1
+Error: dataset sanity failed: ERR_STRING_TOO_LONG
+```
+
+Format von `/benchmarks`:
+
+```text
+Run: wave-library-iterative-remote-10ep
+Benchmarks:
+baseline: wr=0.800 reward=5.868 turns=10.929
+iter 1: wr=0.886 reward=3.485 turns=23.957
+iter 2: wr=0.886 reward=0.953 turns=19.571
+iter 3: wr=0.914 reward=1.157 turns=17.757
+iter 4: wr=0.829 reward=0.275 turns=37.000
+iter 5: wr=0.886 reward=2.878 turns=13.714
+```
 
 Sicherheitsregel:
 
@@ -227,4 +273,6 @@ Beispielablauf:
 1. Auf dem iPhone dem Bot `/status` schicken.
 2. Der Poller holt periodisch neue Updates ab.
 3. Er führt serverseitig `status`, `issues` oder `last` über das bestehende Remote-Skript aus.
-4. Die Ausgabe kommt als Telegram-Nachricht zurück.
+4. Fuer `/status` wird die Manifest-Information mobilfreundlich verdichtet.
+5. Fuer `/benchmarks` wird `benchmark-summary.json` der aktuellen Pipeline kompakt zusammengefasst.
+6. Die Ausgabe kommt als Telegram-Nachricht zurück.

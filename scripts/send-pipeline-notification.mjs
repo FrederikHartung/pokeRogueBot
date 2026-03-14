@@ -29,8 +29,6 @@ const message = buildMessage({
   event: cli.event,
   runtimeDir: cli.runtimeDir,
   manifestPath: cli.manifestPath,
-  artifactsSummaryPath: cli.artifactsSummaryPath,
-  benchmarkSummaryPath: cli.benchmarkSummaryPath,
   phase: cli.phase,
   iteration: cli.iteration,
   error: cli.errorText,
@@ -54,7 +52,6 @@ function parseCli(args) {
     phase: null,
     iteration: null,
     errorText: null,
-    artifactsSummaryPath: null,
     benchmarkSummaryPath: null,
   };
 
@@ -91,15 +88,9 @@ function parseCli(args) {
       index += 1;
       continue;
     }
-    if (arg === "--artifacts-summary") {
-      state.artifactsSummaryPath = resolveOptionalPath(args[index + 1] ?? null);
-      index += 1;
-      continue;
-    }
     if (arg === "--benchmark-summary") {
       state.benchmarkSummaryPath = resolveOptionalPath(args[index + 1] ?? null);
       index += 1;
-      continue;
     }
   }
 
@@ -114,10 +105,7 @@ function resolveOptionalPath(value) {
 }
 
 function isEnabled(value) {
-  if (typeof value !== "string") {
-    return false;
-  }
-  return ["1", "true", "yes", "on"].includes(value.toLowerCase());
+  return typeof value === "string" && ["1", "true", "yes", "on"].includes(value.toLowerCase());
 }
 
 function loadOptionalJson(filePath) {
@@ -127,93 +115,82 @@ function loadOptionalJson(filePath) {
   return JSON.parse(readFileSync(filePath, "utf8"));
 }
 
-function buildMessage({
-  event,
-  runtimeDir,
-  manifestPath,
-  artifactsSummaryPath,
-  benchmarkSummaryPath,
-  phase,
-  iteration,
-  error,
-  manifest,
-  benchmarkSummary,
-}) {
-  const lines = [];
-  lines.push(titleForEvent(event));
-  lines.push(`Run: ${runtimeDir ? path.basename(runtimeDir) : "unknown-run"}`);
-
-  if (iteration != null) {
-    lines.push(`Iteration: ${iteration}`);
-  }
-  if (phase) {
-    lines.push(`Phase: ${phase}`);
-  }
-
+function buildMessage({ event, runtimeDir, manifestPath, phase, iteration, error, manifest, benchmarkSummary }) {
+  const runName = runtimeDir ? path.basename(runtimeDir) : "unknown-run";
   const progress = summarizeProgress(manifest);
-  if (progress) {
-    lines.push(`Batches: ${progress.completedBatches}/${progress.totalBatches}`);
-    lines.push(`Episodes: ${progress.completedEpisodes}/${progress.totalEpisodes}`);
-  }
+  const lines = [`Run: ${runName}`];
 
-  const latestBenchmark = summarizeLatestBenchmark(iteration, benchmarkSummary);
-  if (latestBenchmark) {
-    lines.push(
-      `DQN: win_rate=${formatNumber(latestBenchmark.win_rate)} avg_reward=${formatNumber(latestBenchmark.avg_reward)} avg_turns=${formatNumber(latestBenchmark.avg_turns)}`,
-    );
-  }
-
-  if (error) {
-    lines.push(`Error: ${truncate(error, 500)}`);
-  }
-  if (manifestPath) {
-    lines.push(`Manifest: ${manifestPath}`);
-  }
-  if (artifactsSummaryPath && (event === "pipeline_completed" || event === "iteration_completed")) {
-    lines.push(`Artifacts: ${artifactsSummaryPath}`);
-  }
-  if (benchmarkSummaryPath && event === "iteration_completed") {
-    lines.push(`Benchmark summary: ${benchmarkSummaryPath}`);
+  if (event === "iteration_completed") {
+    lines.push("State: iteration completed");
+    lines.push(`Iteration: ${iteration ?? "?"}/${inferIterationCount(manifest) ?? "?"}`);
+    const benchmark = summarizeLatestBenchmark(iteration, benchmarkSummary);
+    if (benchmark) {
+      lines.push(`DQN win_rate: ${formatNumber(benchmark.win_rate)}`);
+      lines.push(`DQN avg_reward: ${formatNumber(benchmark.avg_reward)}`);
+      lines.push(`DQN avg_turns: ${formatNumber(benchmark.avg_turns)}`);
+    }
+    const iterationRuntime = summarizeIterationRuntime(manifest, iteration);
+    if (iterationRuntime != null) {
+      lines.push(`Iteration runtime: ${formatDuration(iterationRuntime)}`);
+    }
+  } else if (event === "pipeline_failed") {
+    lines.push("State: failed");
+    lines.push(`Phase: ${phase ?? inferCurrentPhase(manifest) ?? "unknown"}`);
+    const currentIteration = iteration ?? inferIterationFromPhase(phase ?? inferCurrentPhase(manifest));
+    if (currentIteration != null) {
+      lines.push(`Iteration: ${currentIteration}/${inferIterationCount(manifest) ?? "?"}`);
+    }
+    if (progress) {
+      lines.push(`Batches: ${progress.completedBatches}/${progress.totalBatches}`);
+      lines.push(`Episodes: ${progress.completedEpisodes}/${progress.totalEpisodes}`);
+    }
+    const failedStep = inferFailedStep(manifest);
+    if (failedStep) {
+      lines.push(`Failed step: ${failedStep.name}`);
+    }
+    lines.push(`Error: ${truncate(error ?? failedStep?.error ?? "unknown error", 220)}`);
+  } else if (event === "pipeline_completed") {
+    lines.push("State: completed");
+    if (progress) {
+      lines.push(`Batches: ${progress.completedBatches}/${progress.totalBatches}`);
+      lines.push(`Episodes: ${progress.completedEpisodes}/${progress.totalEpisodes}`);
+    }
+    const totalRuntime = summarizeTotalRuntime(manifest);
+    if (totalRuntime != null) {
+      lines.push(`Total runtime: ${formatDuration(totalRuntime)}`);
+    }
+    const iterationDurations = summarizeAllIterationRuntimes(manifest);
+    if (iterationDurations.length > 0) {
+      lines.push(`Iterations: ${iterationDurations.map(item => `${item.iteration}=${formatDuration(item.durationMs)}`).join(", ")}`);
+    }
+  } else {
+    lines.push(`State: ${event}`);
+    if (phase) {
+      lines.push(`Phase: ${phase}`);
+    }
+    if (manifestPath) {
+      lines.push(`Manifest: ${manifestPath}`);
+    }
   }
 
   const host = process.env.HOSTNAME || process.env.HOST || null;
   if (host) {
     lines.push(`Host: ${host}`);
   }
-
   return lines.join("\n");
-}
-
-function titleForEvent(event) {
-  switch (event) {
-    case "iteration_completed":
-      return "Pipeline update: iteration completed";
-    case "pipeline_failed":
-      return "Pipeline alert: failed";
-    case "pipeline_completed":
-      return "Pipeline update: completed";
-    case "test":
-      return "Pipeline notification test";
-    default:
-      return `Pipeline event: ${event}`;
-  }
 }
 
 function summarizeProgress(manifest) {
   if (!manifest || !Array.isArray(manifest.batches)) {
     return null;
   }
-  const totalBatches = manifest.batches.length;
-  const completedBatches = manifest.batches.filter(batch => batch.status === "completed").length;
-  const totalEpisodes = manifest.batches.reduce((sum, batch) => sum + Number(batch.episodes ?? 0), 0);
-  const completedEpisodes = manifest.batches
-    .filter(batch => batch.status === "completed")
-    .reduce((sum, batch) => sum + Number(batch.episodes ?? 0), 0);
   return {
-    totalBatches,
-    completedBatches,
-    totalEpisodes,
-    completedEpisodes,
+    totalBatches: manifest.batches.length,
+    completedBatches: manifest.batches.filter(batch => batch.status === "completed").length,
+    totalEpisodes: manifest.batches.reduce((sum, batch) => sum + Number(batch.episodes ?? 0), 0),
+    completedEpisodes: manifest.batches
+      .filter(batch => batch.status === "completed")
+      .reduce((sum, batch) => sum + Number(batch.episodes ?? 0), 0),
   };
 }
 
@@ -228,8 +205,116 @@ function summarizeLatestBenchmark(iteration, benchmarkSummary) {
   return rows[rows.length - 1] ?? null;
 }
 
+function summarizeIterationRuntime(manifest, iteration) {
+  if (!manifest || iteration == null) {
+    return null;
+  }
+  const stepNames = [
+    `collect_iter_${iteration}`,
+    `report_iter_${iteration}`,
+    `merge_cumulative_${iteration}`,
+    `train_iter_${iteration}`,
+    `benchmark_iter_${iteration}`,
+  ];
+  const durations = stepNames
+    .map(name => manifest.steps?.[name]?.duration_ms)
+    .filter(value => typeof value === "number" && Number.isFinite(value));
+  return durations.length > 0 ? durations.reduce((sum, value) => sum + value, 0) : null;
+}
+
+function summarizeAllIterationRuntimes(manifest) {
+  const totalIterations = inferIterationCount(manifest) ?? 0;
+  const rows = [];
+  for (let iteration = 1; iteration <= totalIterations; iteration += 1) {
+    const durationMs = summarizeIterationRuntime(manifest, iteration);
+    if (durationMs != null) {
+      rows.push({ iteration, durationMs });
+    }
+  }
+  return rows;
+}
+
+function summarizeTotalRuntime(manifest) {
+  if (!manifest || typeof manifest !== "object") {
+    return null;
+  }
+  const durations = Object.values(manifest.steps ?? {})
+    .map(step => step?.duration_ms)
+    .filter(value => typeof value === "number" && Number.isFinite(value));
+  return durations.length > 0 ? durations.reduce((sum, value) => sum + value, 0) : null;
+}
+
+function inferIterationCount(manifest) {
+  if (!manifest || typeof manifest !== "object") {
+    return null;
+  }
+  let maxIteration = 0;
+  for (const name of Object.keys(manifest.steps ?? {})) {
+    const iteration = inferIterationFromPhase(name);
+    if (iteration != null) {
+      maxIteration = Math.max(maxIteration, iteration);
+    }
+  }
+  return maxIteration > 0 ? maxIteration : null;
+}
+
+function inferIterationFromPhase(phase) {
+  if (typeof phase !== "string") {
+    return null;
+  }
+  const match = phase.match(/(?:collect_iter_|report_iter_|merge_cumulative_|train_iter_|benchmark_iter_)(\d+)$/);
+  if (!match) {
+    return null;
+  }
+  const value = Number(match[1]);
+  return Number.isInteger(value) && value > 0 ? value : null;
+}
+
+function inferCurrentPhase(manifest) {
+  if (!manifest || typeof manifest !== "object") {
+    return null;
+  }
+  for (const [name, step] of Object.entries(manifest.steps ?? {})) {
+    if (step?.status === "running") {
+      return name;
+    }
+  }
+  for (const [name, step] of Object.entries(manifest.steps ?? {})) {
+    if (step?.status !== "completed") {
+      return name;
+    }
+  }
+  return "completed";
+}
+
+function inferFailedStep(manifest) {
+  if (!manifest || typeof manifest !== "object") {
+    return null;
+  }
+  const failedEntries = Object.entries(manifest.steps ?? {}).filter(([, step]) => step?.status === "failed");
+  if (failedEntries.length === 0) {
+    return null;
+  }
+  const [name, step] = failedEntries[failedEntries.length - 1];
+  return { name, error: typeof step?.error === "string" ? step.error : null };
+}
+
 function formatNumber(value) {
   return typeof value === "number" && Number.isFinite(value) ? value.toFixed(3) : "n/a";
+}
+
+function formatDuration(durationMs) {
+  const totalSeconds = Math.max(0, Math.round(durationMs / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) {
+    return `${hours}h ${minutes.toString().padStart(2, "0")}m`;
+  }
+  if (minutes > 0) {
+    return `${minutes}m ${seconds.toString().padStart(2, "0")}s`;
+  }
+  return `${seconds}s`;
 }
 
 function truncate(value, maxLength) {

@@ -595,8 +595,10 @@ Remote-Server-Bedienung:
   - Pipeline-Fehler
   - vollstaendig abgeschlossene Laeufe
 - optional kann ein separater Telegram-Control-Bot Statusanfragen beantworten:
-  - erlaubte Commands: `/status`, `/issues`, `/last`, `/help`
+  - erlaubte Commands: `/status`, `/benchmarks`, `/issues`, `/last`, `/help`
   - Standard-Polling: `600s`
+  - `/status` liefert bewusst nur eine kompakte Mobile-Zusammenfassung statt der vollen Shell-Ausgabe
+  - `/benchmarks` liefert eine kompakte Uebersicht der DQN-Benchmarkwerte aller Iterationen der aktuellen Pipeline
   - wird bei `start-smoke` oder `start-overnight` automatisch mitgestartet, falls Telegram konfiguriert ist
   - wird nach Pipeline-Ende oder Pipeline-Fehler automatisch wieder gestoppt
 

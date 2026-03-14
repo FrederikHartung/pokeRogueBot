@@ -23,6 +23,8 @@ if (!token || !allowedChatId) {
 
 const stateDir = cli.stateDir ?? path.join(repoRoot, "data", "rl", "pipeline-runs", "wave-library-iterative-remote-control");
 const offsetPath = path.join(stateDir, "telegram-control-offset.txt");
+const activeConfigPathFile = path.join(stateDir, "active-config.txt");
+const defaultConfigPath = path.join(repoRoot, "data", "rl", "wave-library-iterative-pipeline-remote-10ep.json");
 mkdirSync(stateDir, { recursive: true });
 
 let offset = loadOffset(offsetPath);
@@ -54,19 +56,12 @@ async function handleUpdate(update) {
   }
 
   const command = normalizeCommand(text);
-  const allowedCommands = new Set(["status", "issues", "last", "help"]);
+  const allowedCommands = new Set(["status", "issues", "last", "benchmarks", "help"]);
   if (!allowedCommands.has(command)) {
     await sendMessage({
       token,
       chatId,
-      text: [
-        "Unknown command.",
-        "Allowed commands:",
-        "/status",
-        "/issues",
-        "/last",
-        "/help",
-      ].join("\n"),
+      text: ["Unknown command.", "Allowed commands:", "/status", "/benchmarks", "/issues", "/last", "/help"].join("\n"),
     });
     return;
   }
@@ -75,21 +70,20 @@ async function handleUpdate(update) {
     await sendMessage({
       token,
       chatId,
-      text: [
-        "Available commands:",
-        "/status",
-        "/issues",
-        "/last",
-      ].join("\n"),
+      text: ["Available commands:", "/status", "/benchmarks", "/issues", "/last"].join("\n"),
     });
     return;
   }
 
-  const output = runRemoteHelper(command);
+  const reply = command === "status"
+    ? buildCompactStatusReply()
+    : command === "benchmarks"
+      ? buildBenchmarksReply()
+      : runRemoteHelper(command);
   await sendMessage({
     token,
     chatId,
-    text: formatReply(command, output),
+    text: reply,
   });
 }
 
@@ -154,12 +148,212 @@ function runRemoteHelper(command) {
   return truncate(stdout.trim() || "No output.", 3500);
 }
 
-function formatReply(command, output) {
-  return [`Command: ${command}`, "", output].join("\n");
+function buildCompactStatusReply() {
+  const configPath = loadActiveConfigPath();
+  const runtimeDir = runtimeDirForConfig(configPath);
+  const manifestPath = path.join(runtimeDir, "manifest.json");
+  const runName = path.basename(runtimeDir);
+
+  if (!existsSync(manifestPath)) {
+    return [`Run: ${runName}`, "State: not started"].join("\n");
+  }
+
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  const lines = [`Run: ${runName}`];
+  const progress = summarizeProgress(manifest);
+  const state = inferPipelineState(manifest);
+  const phase = inferCurrentPhase(manifest);
+  const iteration = inferIterationFromPhase(phase);
+  const totalIterations = inferIterationCount(manifest);
+
+  lines.push(`State: ${state}`);
+  lines.push(`Phase: ${phase ?? "unknown"}`);
+  if (iteration != null && totalIterations != null) {
+    lines.push(`Iteration: ${iteration}/${totalIterations}`);
+  } else if (state === "completed" && totalIterations != null) {
+    lines.push(`Iteration: ${totalIterations}/${totalIterations}`);
+  }
+  if (progress) {
+    lines.push(`Batches: ${progress.completedBatches}/${progress.totalBatches}`);
+    lines.push(`Episodes: ${progress.completedEpisodes}/${progress.totalEpisodes}`);
+  }
+
+  if (state === "running") {
+    const eta = summarizeEta(manifest);
+    if (eta != null) {
+      lines.push(`ETA: ${formatDuration(eta)}`);
+    }
+  }
+
+  if (state === "failed") {
+    const failedStep = inferFailedStep(manifest);
+    if (failedStep) {
+      lines.push(`Failed step: ${failedStep.name}`);
+      lines.push(`Error: ${truncate(failedStep.error ?? "unknown error", 220)}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+function buildBenchmarksReply() {
+  const configPath = loadActiveConfigPath();
+  const runtimeDir = runtimeDirForConfig(configPath);
+  const benchmarkSummaryPath = path.join(runtimeDir, "benchmark-summary.json");
+  const runName = path.basename(runtimeDir);
+
+  if (!existsSync(benchmarkSummaryPath)) {
+    return [`Run: ${runName}`, "Benchmarks: not available yet"].join("\n");
+  }
+
+  const summary = JSON.parse(readFileSync(benchmarkSummaryPath, "utf8"));
+  const rows = Array.isArray(summary?.benchmarks) ? summary.benchmarks : [];
+  if (rows.length === 0) {
+    return [`Run: ${runName}`, "Benchmarks: not available yet"].join("\n");
+  }
+
+  const lines = [`Run: ${runName}`, "Benchmarks:"];
+  for (const row of rows) {
+    const label = Number(row.iteration) === 0 ? "baseline" : `iter ${row.iteration}`;
+    lines.push(
+      `${label}: wr=${formatNumber(row.win_rate)} reward=${formatNumber(row.avg_reward)} turns=${formatNumber(row.avg_turns)}`,
+    );
+  }
+  return truncate(lines.join("\n"), 3500);
+}
+
+function loadActiveConfigPath() {
+  if (existsSync(activeConfigPathFile)) {
+    return readFileSync(activeConfigPathFile, "utf8").trim();
+  }
+  return defaultConfigPath;
+}
+
+function runtimeDirForConfig(configPath) {
+  const absoluteConfigPath = path.resolve(configPath);
+  const configDir = path.dirname(absoluteConfigPath);
+  const dataRlDir = path.join(repoRoot, "data", "rl");
+  const config = JSON.parse(readFileSync(absoluteConfigPath, "utf8"));
+  const value = config.output_root ?? "./pipeline-runs/wave-library-iterative";
+  return resolvePathWithFallbacks(value, [configDir, dataRlDir, repoRoot]);
+}
+
+function resolvePathWithFallbacks(value, baseDirs) {
+  if (path.isAbsolute(value)) {
+    return value;
+  }
+  for (const baseDir of baseDirs) {
+    const candidate = path.resolve(baseDir, value);
+    if (existsSync(candidate) || existsSync(path.dirname(candidate))) {
+      return candidate;
+    }
+  }
+  return path.resolve(baseDirs[0], value);
+}
+
+function summarizeProgress(manifest) {
+  if (!manifest || !Array.isArray(manifest.batches)) {
+    return null;
+  }
+  return {
+    totalBatches: manifest.batches.length,
+    completedBatches: manifest.batches.filter(batch => batch.status === "completed").length,
+    totalEpisodes: manifest.batches.reduce((sum, batch) => sum + Number(batch.episodes ?? 0), 0),
+    completedEpisodes: manifest.batches
+      .filter(batch => batch.status === "completed")
+      .reduce((sum, batch) => sum + Number(batch.episodes ?? 0), 0),
+  };
+}
+
+function inferPipelineState(manifest) {
+  const steps = Object.values(manifest?.steps ?? {});
+  if (steps.some(step => step?.status === "failed")) {
+    return "failed";
+  }
+  if (steps.length > 0 && steps.every(step => step?.status === "completed")) {
+    return "completed";
+  }
+  return "running";
+}
+
+function inferCurrentPhase(manifest) {
+  for (const [name, step] of Object.entries(manifest?.steps ?? {})) {
+    if (step?.status === "running") {
+      return name;
+    }
+  }
+  for (const [name, step] of Object.entries(manifest?.steps ?? {})) {
+    if (step?.status !== "completed") {
+      return name;
+    }
+  }
+  return "completed";
+}
+
+function inferIterationFromPhase(phase) {
+  if (typeof phase !== "string") {
+    return null;
+  }
+  const match = phase.match(/(?:collect_iter_|report_iter_|merge_cumulative_|train_iter_|benchmark_iter_)(\d+)$/);
+  if (!match) {
+    return null;
+  }
+  const value = Number(match[1]);
+  return Number.isInteger(value) && value > 0 ? value : null;
+}
+
+function inferIterationCount(manifest) {
+  let maxIteration = 0;
+  for (const name of Object.keys(manifest?.steps ?? {})) {
+    const iteration = inferIterationFromPhase(name);
+    if (iteration != null) {
+      maxIteration = Math.max(maxIteration, iteration);
+    }
+  }
+  return maxIteration > 0 ? maxIteration : null;
+}
+
+function inferFailedStep(manifest) {
+  const failedEntries = Object.entries(manifest?.steps ?? {}).filter(([, step]) => step?.status === "failed");
+  if (failedEntries.length === 0) {
+    return null;
+  }
+  const [name, step] = failedEntries[failedEntries.length - 1];
+  return {
+    name,
+    error: typeof step?.error === "string" ? step.error : null,
+  };
+}
+
+function summarizeEta(manifest) {
+  const batches = manifest?.batches ?? [];
+  const completedDurations = batches
+    .filter(batch => batch?.status === "completed" && typeof batch?.duration_ms === "number")
+    .map(batch => batch.duration_ms);
+  const remaining = batches.filter(batch => batch?.status !== "completed").length;
+  if (completedDurations.length === 0 || remaining <= 0) {
+    return null;
+  }
+  const averageDurationMs = completedDurations.reduce((sum, value) => sum + value, 0) / completedDurations.length;
+  return averageDurationMs * remaining;
+}
+
+function formatDuration(durationMs) {
+  const totalSeconds = Math.max(0, Math.round(durationMs / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) {
+    return `${hours}h ${minutes.toString().padStart(2, "0")}m`;
+  }
+  if (minutes > 0) {
+    return `${minutes}m ${seconds.toString().padStart(2, "0")}s`;
+  }
+  return `${seconds}s`;
 }
 
 function truncate(value, maxLength) {
-  if (value.length <= maxLength) {
+  if (typeof value !== "string" || value.length <= maxLength) {
     return value;
   }
   return `${value.slice(0, Math.max(0, maxLength - 3))}...`;

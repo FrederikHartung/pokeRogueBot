@@ -84,8 +84,9 @@ There are now two separate paths and both should stay available:
   - deleting `data/rl/pipeline-runs/...` is only needed for a clean restart, not for every resume after a code fix
   - if Telegram env vars are available, the iterative pipeline sends notifications for completed benchmark iterations, failures and full completion
   - optional Telegram control bot:
-    - accepts `/status`, `/issues`, `/last`, `/help`
+    - accepts `/status`, `/benchmarks`, `/issues`, `/last`, `/help`
     - polls Telegram every `600` seconds by default
+    - `/status` is formatted as a compact mobile summary instead of raw shell output
     - starts automatically with `start-smoke` or `start-overnight` when Telegram is configured
     - stops automatically again when the pipeline exits, whether successful or failed
 
