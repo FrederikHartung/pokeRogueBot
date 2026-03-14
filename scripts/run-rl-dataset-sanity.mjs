@@ -1,5 +1,6 @@
-import { existsSync, readFileSync } from "node:fs";
+import { createReadStream, existsSync } from "node:fs";
 import path from "node:path";
+import readline from "node:readline";
 
 const inputArg = process.argv[2] ?? "./data/rl/combat/train-benchmarked-wave-library-v2.jsonl";
 const inputPath = path.resolve(inputArg);
@@ -9,19 +10,27 @@ if (!existsSync(inputPath)) {
   process.exit(1);
 }
 
-const lines = readFileSync(inputPath, "utf8")
-  .split("\n")
-  .filter(Boolean);
-
 const issues = [];
 let parsedCount = 0;
+let rowCount = 0;
 
-for (let i = 0; i < lines.length; i += 1) {
-  const lineNo = i + 1;
+const reader = readline.createInterface({
+  input: createReadStream(inputPath, { encoding: "utf8" }),
+  crlfDelay: Infinity,
+});
+
+let lineNo = 0;
+for await (const line of reader) {
+  if (!line) {
+    continue;
+  }
+
+  lineNo += 1;
+  rowCount += 1;
   let row;
 
   try {
-    row = JSON.parse(lines[i]);
+    row = JSON.parse(line);
   } catch {
     issues.push(`[line ${lineNo}] invalid json`);
     continue;
@@ -170,7 +179,7 @@ for (let i = 0; i < lines.length; i += 1) {
 }
 
 console.log(`Dataset: ${inputPath}`);
-console.log(`Rows: ${lines.length}`);
+console.log(`Rows: ${rowCount}`);
 console.log(`Parsed rows: ${parsedCount}`);
 console.log(`Issues: ${issues.length}`);
 

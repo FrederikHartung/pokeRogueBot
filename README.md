@@ -65,13 +65,28 @@ There are now two separate paths and both should stay available:
     - mini-smoke with exactly `1` scenario from each wave `1-8`, `1` episode per scenario, `2` collect workers and `1` benchmark worker
   - overnight config:
     - `data/rl/wave-library-iterative-pipeline-remote-10ep.json`
-    - full `w1-8` iterative run with `10` episodes per scenario, `batch_size = 10`, `2` collect workers and `1` benchmark worker
+    - full `w1-8` iterative run with `60` episodes per scenario, `batch_size = 60`, `2` collect workers and `1` benchmark worker
   - after the run, use the `artifacts-summary.json` inside the selected runtime directory as the central index for downloading the final model and reports
   - helper commands:
     - `scripts/run-wave-library-bootstrap-remote.sh status`
     - `scripts/run-wave-library-bootstrap-remote.sh logs`
     - `scripts/run-wave-library-bootstrap-remote.sh issues`
     - `scripts/run-wave-library-bootstrap-remote.sh stop`
+  - `status` also reports scenario count, episodes per scenario and total/completed episode counts
+  - the iterative pipeline can resume from an existing runtime directory; already completed batches and steps stay reusable after a restart
+  - deleting `data/rl/pipeline-runs/...` is only needed for a clean restart, not for every resume after a code fix
+
+Large dataset note:
+
+- for larger local or remote JSONL datasets, the pipeline now avoids loading or joining whole files into one giant string during merge/report/sanity steps
+- this specifically hardens:
+  - iterative phase merging
+  - dataset sanity checks
+  - generic JSONL dataset merges
+  - dataset reporting
+- practical implication:
+  - prefer larger `batch_size` values for long collection runs when `episodes_per_instance` is high, so fewer long collector batches are created
+  - the current remote overnight profile therefore uses `60/60` instead of many smaller sub-batches
 
 The remote helper currently checks:
 
@@ -159,10 +174,11 @@ For future remote runs on a fresh Ubuntu server, this is the recommended order.
    - start smoke:
      - `bash scripts/run-wave-library-bootstrap-remote.sh start-smoke`
 12. Start the longer iterative overnight run:
-   - reset stale overnight state if needed:
+   - reset stale overnight state only if you want a completely fresh run:
      - `rm -rf data/rl/pipeline-runs/wave-library-iterative-remote-10ep`
    - start overnight:
      - `bash scripts/run-wave-library-bootstrap-remote.sh start-overnight`
+   - after a code fix, a plain restart is usually enough because the pipeline resumes from the recorded manifest state
 13. Monitor or inspect the run:
    - `bash scripts/run-wave-library-bootstrap-remote.sh status`
    - `bash scripts/run-wave-library-bootstrap-remote.sh logs`

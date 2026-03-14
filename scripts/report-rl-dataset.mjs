@@ -1,5 +1,6 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { createReadStream, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import readline from "node:readline";
 
 function usage() {
   console.error(
@@ -50,7 +51,7 @@ if (!existsSync(absInputPath)) {
   process.exit(1);
 }
 
-const rows = readJsonl(absInputPath);
+const rows = await readJsonl(absInputPath);
 const manifest = manifestPath ? readOptionalJson(path.resolve(manifestPath)) : null;
 const report = buildDatasetReport(rows, manifest, manifestPhase);
 
@@ -70,12 +71,20 @@ console.log(`Avg turns: ${report.summary.avg_turns.toFixed(2)}`);
 console.log(`Avg switches: ${report.summary.avg_switches.toFixed(2)}`);
 console.log(`Avg status moves: ${report.summary.avg_status_moves.toFixed(2)}`);
 
-function readJsonl(filePath) {
-  return readFileSync(filePath, "utf8")
-    .split(/\r?\n/)
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => JSON.parse(line));
+async function readJsonl(filePath) {
+  const rows = [];
+  const reader = readline.createInterface({
+    input: createReadStream(filePath, { encoding: "utf8" }),
+    crlfDelay: Infinity,
+  });
+  for await (const line of reader) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      continue;
+    }
+    rows.push(JSON.parse(trimmed));
+  }
+  return rows;
 }
 
 function readOptionalJson(filePath) {

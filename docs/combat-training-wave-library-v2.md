@@ -567,8 +567,8 @@ Remote-Server-Bedienung:
 - vorbereiteter Overnight-Lauf:
   - Config: `data/rl/wave-library-iterative-pipeline-remote-10ep.json`
   - voller `w1-8`-Satz
-  - `10` Episoden pro Szenario
-  - `batch_size = 10`
+  - `60` Episoden pro Szenario
+  - `batch_size = 60`
   - `2` Collect-Worker
   - `1` Benchmark-Worker
   - Start:
@@ -580,6 +580,24 @@ Remote-Server-Bedienung:
   - Smoke: `data/rl/pipeline-runs/wave-library-iterative-remote-smoke/artifacts-summary.json`
   - Overnight: `data/rl/pipeline-runs/wave-library-iterative-remote-10ep/artifacts-summary.json`
   - diese Datei ist der bevorzugte Einstieg fuer spaeteren SFTP-Download von Reports und Modell
+- `status` zeigt zusaetzlich:
+  - Anzahl der Szenarien
+  - Episoden pro Szenario
+  - bereits erzeugte und insgesamt geplante Episoden
+
+Robustheit fuer groessere Trainingssaetze:
+
+- die iterative Pipeline und die zugehoerigen Hilfsskripte verarbeiten grosse JSONL-Dateien jetzt an den offensichtlichen Node-Hotspots streamend statt ueber einen einzelnen Riesens-tring
+- konkret abgesichert sind:
+  - Merge der Batch-Dateien innerhalb einer Iteration
+  - Sanity-Check des gemergten Datensatzes
+  - generischer JSONL-Dataset-Merge
+  - Dataset-Reporting
+- dadurch sollen Fehler der Form `Invalid string length` oder `ERR_STRING_TOO_LONG` bei grossen lokalen oder Remote-Laeufen vermieden werden
+- verbleibende praktische Regel:
+  - wenn `episodes_per_instance` hoch ist, sollte `batch_size` moeglichst ebenfalls hoch sein
+  - das reduziert Collector-/Vitest-Overhead und vermeidet unnoetig viele kleine Batch-Dateien
+  - fuer den aktuellen Overnight-Pfad ist deshalb `60/60` die bevorzugte Basiskonfiguration
 
 Ubuntu-Setup-Kurzpfad fuer spaetere Server:
 
@@ -623,10 +641,13 @@ Ubuntu-Setup-Kurzpfad fuer spaetere Server:
   - danach Smoke starten:
     - `bash scripts/run-wave-library-bootstrap-remote.sh start-smoke`
 - fuer den groesseren Lauf:
-  - alten Overnight-Zustand loeschen:
+  - alten Overnight-Zustand nur fuer einen wirklich sauberen Neustart loeschen:
     - `rm -rf data/rl/pipeline-runs/wave-library-iterative-remote-10ep`
   - danach Overnight-Lauf starten:
     - `bash scripts/run-wave-library-bootstrap-remote.sh start-overnight`
+  - nach einem Code-Fix ist ein Resume ueber denselben Runtime-Ordner ausdruecklich gewollt:
+    - bereits abgeschlossene Batches werden wiederverwendet
+    - die Pipeline setzt am ersten fehlgeschlagenen oder offenen Schritt fort
 - Monitoring:
   - `bash scripts/run-wave-library-bootstrap-remote.sh status`
   - `bash scripts/run-wave-library-bootstrap-remote.sh logs`

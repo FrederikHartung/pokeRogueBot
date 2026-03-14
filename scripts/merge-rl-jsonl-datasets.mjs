@@ -1,5 +1,6 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, createReadStream, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import readline from "node:readline";
 
 function usage() {
   console.error(
@@ -62,16 +63,27 @@ function parseInputSpec(spec) {
   };
 }
 
-const mergedLines = [];
 const sourceSummaries = [];
+let totalRows = 0;
+const totalEpisodeIds = new Set();
+
+const absOutputPath = path.resolve(outputPath);
+mkdirSync(path.dirname(absOutputPath), { recursive: true });
+writeFileSync(absOutputPath, "", { encoding: "utf8" });
 
 for (const inputSpec of inputs) {
   const { sourcePath, sourceLabel } = parseInputSpec(inputSpec);
-  const lines = readFileSync(sourcePath, "utf8").split("\n").filter(Boolean);
-  let episodeCount = 0;
+  let rowCount = 0;
   const episodeIds = new Set();
+  const reader = readline.createInterface({
+    input: createReadStream(sourcePath, { encoding: "utf8" }),
+    crlfDelay: Infinity,
+  });
 
-  for (const line of lines) {
+  for await (const line of reader) {
+    if (!line) {
+      continue;
+    }
     const row = JSON.parse(line);
     const originalEpisodeId = String(row.episode_id ?? "unknown");
     row.episode_id = `${originalEpisodeId}::${sourceLabel}`;
@@ -80,29 +92,23 @@ for (const inputSpec of inputs) {
       dataset_source: sourceLabel,
     };
     episodeIds.add(row.episode_id);
-    mergedLines.push(JSON.stringify(row));
+    totalEpisodeIds.add(row.episode_id);
+    appendFileSync(absOutputPath, `${JSON.stringify(row)}\n`, { encoding: "utf8" });
+    rowCount += 1;
+    totalRows += 1;
   }
 
-  episodeCount = episodeIds.size;
   sourceSummaries.push({
     source: sourceLabel,
-    rows: lines.length,
-    episodes: episodeCount,
+    rows: rowCount,
+    episodes: episodeIds.size,
     path: sourcePath,
   });
 }
 
-const absOutputPath = path.resolve(outputPath);
-mkdirSync(path.dirname(absOutputPath), { recursive: true });
-writeFileSync(absOutputPath, mergedLines.join("\n") + "\n", { encoding: "utf8" });
-
-const totalEpisodes = new Set(
-  mergedLines.map(line => JSON.parse(line).episode_id),
-).size;
-
 console.log(`Output: ${absOutputPath}`);
-console.log(`Rows: ${mergedLines.length}`);
-console.log(`Episodes: ${totalEpisodes}`);
+console.log(`Rows: ${totalRows}`);
+console.log(`Episodes: ${totalEpisodeIds.size}`);
 for (const summary of sourceSummaries) {
   console.log(
     `Source ${summary.source}: rows=${summary.rows} episodes=${summary.episodes} path=${summary.path}`,
