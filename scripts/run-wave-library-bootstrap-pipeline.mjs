@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, "..");
+const defaultPythonCommand = resolvePythonCommand();
 
 const defaultConfigPath = path.join(repoRoot, "data", "rl", "wave-library-bootstrap-pipeline-run.json");
 const cli = parseCli(process.argv.slice(2));
@@ -378,7 +379,7 @@ function resolvePolicyForPhase({ phaseConfig, phaseName, rootConfig, configDir, 
   const inferScriptPath = path.join(repoRoot, "scripts", "dqn_policy_infer_worker.py");
   const device = phaseConfig.device ?? rootConfig.device ?? "cpu";
   policy.command = [
-    "python3",
+    defaultPythonCommand,
     inferScriptPath,
     "--checkpoint",
     checkpointPath,
@@ -439,7 +440,7 @@ function runTrainPhase(currentManifest, rootConfig, configDir, datasetPhaseName,
   };
   writeFileSync(generatedConfigPath, `${JSON.stringify(generatedConfig, null, 2)}\n`, "utf8");
 
-  runCommand("python3", ["scripts/train_dqn_offline.py", "--config", generatedConfigPath], repoRoot);
+  runCommand(defaultPythonCommand, ["scripts/train_dqn_offline.py", "--config", generatedConfigPath], repoRoot);
 
   manifest.outputs[`train_${trainingStage}`] = {
     config_path: generatedConfigPath,
@@ -466,7 +467,7 @@ function runBenchmarkPhase(currentManifest, rootConfig, configDir, benchmarkPhas
   const reportPath = resolvePathWithFallbacks(benchmarkConfig.report_path, [configDir, dataRlDir, repoRoot]);
 
   runCommand(
-    "python3",
+    defaultPythonCommand,
     [
       "scripts/eval_policy_compare.py",
       "--collector-config",
@@ -555,6 +556,22 @@ function resolvePathWithFallbacks(value, baseDirs) {
     }
   }
   return path.resolve(baseDirs[0], value);
+}
+
+function resolvePythonCommand() {
+  const configured = process.env.POKEROGUE_PYTHON_BIN;
+  if (typeof configured === "string" && configured.length > 0) {
+    return configured;
+  }
+  const venvPython3 = path.join(repoRoot, ".venv", "bin", "python3");
+  if (existsSync(venvPython3)) {
+    return venvPython3;
+  }
+  const venvPython = path.join(repoRoot, ".venv", "bin", "python");
+  if (existsSync(venvPython)) {
+    return venvPython;
+  }
+  return "python3";
 }
 
 function saveManifest(filePath, manifest) {

@@ -11,6 +11,8 @@ if (!cli.event) {
 const enabled = isEnabled(process.env.POKEROGUE_TELEGRAM_ENABLED);
 const token = process.env.POKEROGUE_TELEGRAM_BOT_TOKEN ?? "";
 const chatId = process.env.POKEROGUE_TELEGRAM_CHAT_ID ?? "";
+const maxAttempts = resolvePositiveInt(process.env.POKEROGUE_TELEGRAM_SEND_RETRIES, 3);
+const requestTimeoutMs = resolvePositiveInt(process.env.POKEROGUE_TELEGRAM_REQUEST_TIMEOUT_MS, 15000);
 
 if (!enabled) {
   console.log("Telegram notifications disabled. Skipping.");
@@ -36,10 +38,12 @@ const message = buildMessage({
   benchmarkSummary,
 });
 
-await sendTelegramMessage({
+await sendTelegramMessageWithRetry({
   token,
   chatId,
   text: message,
+  maxAttempts,
+  requestTimeoutMs,
 });
 
 console.log(`Telegram notification sent for event: ${cli.event}`);
@@ -106,6 +110,14 @@ function resolveOptionalPath(value) {
 
 function isEnabled(value) {
   return typeof value === "string" && ["1", "true", "yes", "on"].includes(value.toLowerCase());
+}
+
+function resolvePositiveInt(value, fallback) {
+  const parsed = Number(value);
+  if (Number.isInteger(parsed) && parsed > 0) {
+    return parsed;
+  }
+  return fallback;
 }
 
 function loadOptionalJson(filePath) {
@@ -324,7 +336,24 @@ function truncate(value, maxLength) {
   return `${value.slice(0, Math.max(0, maxLength - 3))}...`;
 }
 
-function sendTelegramMessage({ token, chatId, text }) {
+async function sendTelegramMessageWithRetry({ token, chatId, text, maxAttempts, requestTimeoutMs }) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      await sendTelegramMessage({ token, chatId, text, requestTimeoutMs });
+      return;
+    } catch (error) {
+      lastError = error;
+      console.error(`Telegram send attempt ${attempt}/${maxAttempts} failed: ${String(error?.message ?? error)}`);
+      if (attempt < maxAttempts) {
+        await sleep(1000 * attempt);
+      }
+    }
+  }
+  throw lastError ?? new Error("Telegram send failed");
+}
+
+function sendTelegramMessage({ token, chatId, text, requestTimeoutMs }) {
   const payload = JSON.stringify({
     chat_id: chatId,
     text,
@@ -359,8 +388,17 @@ function sendTelegramMessage({ token, chatId, text }) {
       },
     );
 
+    request.setTimeout(requestTimeoutMs, () => {
+      request.destroy(new Error(`Telegram request timed out after ${requestTimeoutMs}ms`));
+    });
     request.on("error", reject);
     request.write(payload);
     request.end();
+  });
+}
+
+function sleep(ms) {
+  return new Promise(resolve => {
+    setTimeout(resolve, ms);
   });
 }

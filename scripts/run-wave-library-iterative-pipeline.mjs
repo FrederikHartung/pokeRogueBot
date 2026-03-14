@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, "..");
+const defaultPythonCommand = resolvePythonCommand();
 
 const defaultConfigPath = path.join(repoRoot, "data", "rl", "wave-library-iterative-pipeline-run.json");
 const cli = parseCli(process.argv.slice(2));
@@ -604,7 +605,7 @@ function runTrainPhase(currentManifest, rootConfig, configDirInput, datasetOutpu
   };
   writeFileSync(generatedConfigPath, `${JSON.stringify(generatedConfig, null, 2)}\n`, "utf8");
 
-  runCommand("python3", ["scripts/train_dqn_offline.py", "--config", generatedConfigPath], repoRoot);
+  runCommand(defaultPythonCommand, ["scripts/train_dqn_offline.py", "--config", generatedConfigPath], repoRoot);
 
   manifest.outputs[trainKey] = {
     config_path: generatedConfigPath,
@@ -634,7 +635,7 @@ function runBenchmarkPhase(currentManifest, rootConfig, configDirInput, benchmar
 
   if (iteration == null || benchmarkConfig.reuse_baseline_policies !== true) {
     runCommand(
-      "python3",
+      defaultPythonCommand,
       [
         "scripts/eval_policy_compare.py",
         "--collector-config",
@@ -659,7 +660,7 @@ function runBenchmarkPhase(currentManifest, rootConfig, configDirInput, benchmar
     }
 
     runCommand(
-      "python3",
+      defaultPythonCommand,
       [
         "scripts/eval_dqn_policy.py",
         "--collector-config",
@@ -957,6 +958,22 @@ function resolvePathWithFallbacks(value, baseDirs) {
   return path.resolve(baseDirs[0], value);
 }
 
+function resolvePythonCommand() {
+  const configured = process.env.POKEROGUE_PYTHON_BIN;
+  if (typeof configured === "string" && configured.length > 0) {
+    return configured;
+  }
+  const venvPython3 = path.join(repoRoot, ".venv", "bin", "python3");
+  if (existsSync(venvPython3)) {
+    return venvPython3;
+  }
+  const venvPython = path.join(repoRoot, ".venv", "bin", "python");
+  if (existsSync(venvPython)) {
+    return venvPython;
+  }
+  return "python3";
+}
+
 function saveManifest(filePath, manifest) {
   const nextManifest = {
     ...manifest,
@@ -1032,7 +1049,7 @@ async function notifyIfConfigured({ event, phase, iteration = null, error = null
   }
 
   try {
-    await runCommandAsync("node", args, repoRoot, "pipe");
+    await runCommandAsync("node", args, repoRoot, "inherit");
   } catch (notificationError) {
     console.warn(`Notification failed for ${event}: ${String(notificationError?.message ?? notificationError)}`);
   }

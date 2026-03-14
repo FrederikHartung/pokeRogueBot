@@ -610,11 +610,19 @@ Robustheit fuer groessere Trainingssaetze:
   - Sanity-Check des gemergten Datensatzes
   - generischer JSONL-Dataset-Merge
   - Dataset-Reporting
+- zusaetzlich wurde das Offline-DQN-Training fuer grosse kumulative Datensaetze umgestellt:
+  - `train_dqn_offline.py` laedt das JSONL nicht mehr vollstaendig in Python-Listen und Tensoren vorab
+  - stattdessen wird ein JSONL-basiertes PyTorch-`Dataset` mit `DataLoader` verwendet
+  - Samples werden pro Mini-Batch gelesen und erst dann aufs Device verschoben
+- dadurch soll das Risiko sinken, dass laengere iterative Remote-Laeufe beim Training mit `Killed` bzw. OOM abbrechen
 - dadurch sollen Fehler der Form `Invalid string length` oder `ERR_STRING_TOO_LONG` bei grossen lokalen oder Remote-Laeufen vermieden werden
 - verbleibende praktische Regel:
   - wenn `episodes_per_instance` hoch ist, sollte `batch_size` moeglichst ebenfalls hoch sein
   - das reduziert Collector-/Vitest-Overhead und vermeidet unnoetig viele kleine Batch-Dateien
   - fuer den aktuellen Overnight-Pfad ist deshalb `60/60` die bevorzugte Basiskonfiguration
+- fuer Python-Schritte in der Pipeline gilt jetzt ausserdem:
+  - bevorzugt wird die Repo-venv unter `.venv/bin/python3` bzw. `.venv/bin/python`
+  - optional kann `POKEROGUE_PYTHON_BIN` gesetzt werden, falls ein anderer Interpreter erzwungen werden soll
 
 Ubuntu-Setup-Kurzpfad fuer spaetere Server:
 

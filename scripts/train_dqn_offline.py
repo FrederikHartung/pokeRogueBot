@@ -4,13 +4,13 @@ import json
 import math
 import os
 import random
-from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
 try:
     import torch
     import torch.nn as nn
     import torch.optim as optim
+    from torch.utils.data import DataLoader, Dataset
 except ModuleNotFoundError as exc:
     raise SystemExit(
         "PyTorch is not installed. Install with: python3 -m pip install torch"
@@ -22,17 +22,6 @@ FEATURE_SCHEMA_VERSION = 6
 WAVE_INDEX_SCALE = 100.0
 LEVEL_SCALE = 100.0
 TYPE_ID_SCALE = 20.0
-
-
-@dataclass
-class TransitionBatch:
-    states: torch.Tensor
-    actions: torch.Tensor
-    rewards: torch.Tensor
-    next_states: torch.Tensor
-    dones: torch.Tensor
-    next_masks: torch.Tensor
-
 
 class QNetwork(nn.Module):
     def __init__(self, input_dim: int, hidden_dims: List[int], output_dim: int):
@@ -222,54 +211,74 @@ def encode_state(state: Dict) -> Tuple[List[float], List[float]]:
     return features, mask
 
 
-def load_dataset(path: str) -> TransitionBatch:
-    states: List[List[float]] = []
-    actions: List[int] = []
-    rewards: List[float] = []
-    next_states: List[List[float]] = []
-    dones: List[float] = []
-    next_masks: List[List[float]] = []
+class JsonlTransitionDataset(Dataset):
+    def __init__(self, path: str):
+        self.path = path
+        self.offsets = self._build_offsets(path)
+        self._file_handle = None
 
-    with open(path, "r", encoding="utf-8") as handle:
-        for line_no, line in enumerate(handle, start=1):
-            line = line.strip()
-            if not line:
-                continue
-            record = json.loads(line)
-            state = record.get("state")
-            next_state = record.get("next_state")
-            action = record.get("action")
-            reward = record.get("reward")
-            done = record.get("done")
+        if not self.offsets:
+            raise ValueError(f"No rows found in dataset: {path}")
 
-            if not isinstance(state, dict) or not isinstance(next_state, dict):
-                raise ValueError(f"Invalid state/next_state in line {line_no}")
-            if not isinstance(action, int) or action < 0 or action >= ACTION_DIM:
-                raise ValueError(f"Invalid action in line {line_no}: {action}")
+        first_sample = self[0]
+        self.input_dim = int(first_sample["state"].numel())
 
-            state_vec, state_mask = encode_state(state)
-            next_state_vec, next_mask = encode_state(next_state)
-            if state_mask[action] <= 0.5:
-                raise ValueError(f"Action {action} is not legal in line {line_no}")
+    def __len__(self) -> int:
+        return len(self.offsets)
 
-            states.append(state_vec)
-            actions.append(action)
-            rewards.append(_safe_num(reward, 0.0))
-            next_states.append(next_state_vec)
-            dones.append(1.0 if bool(done) else 0.0)
-            next_masks.append(next_mask)
+    def __getitem__(self, index: int) -> Dict[str, torch.Tensor]:
+        handle = self._get_file_handle()
+        handle.seek(self.offsets[index])
+        line = handle.readline()
+        if not line:
+            raise IndexError(f"Dataset row {index} could not be read from {self.path}")
+        return parse_transition_row(line, index + 1)
 
-    if not states:
-        raise ValueError(f"No rows found in dataset: {path}")
+    def _get_file_handle(self):
+        if self._file_handle is None or self._file_handle.closed:
+            self._file_handle = open(self.path, "r", encoding="utf-8")
+        return self._file_handle
 
-    return TransitionBatch(
-        states=torch.tensor(states, dtype=torch.float32),
-        actions=torch.tensor(actions, dtype=torch.int64),
-        rewards=torch.tensor(rewards, dtype=torch.float32),
-        next_states=torch.tensor(next_states, dtype=torch.float32),
-        dones=torch.tensor(dones, dtype=torch.float32),
-        next_masks=torch.tensor(next_masks, dtype=torch.float32),
-    )
+    @staticmethod
+    def _build_offsets(path: str) -> List[int]:
+        offsets: List[int] = []
+        with open(path, "rb") as handle:
+            while True:
+                offset = handle.tell()
+                line = handle.readline()
+                if not line:
+                    break
+                if line.strip():
+                    offsets.append(offset)
+        return offsets
+
+
+def parse_transition_row(line: str, line_no: int) -> Dict[str, torch.Tensor]:
+    record = json.loads(line)
+    state = record.get("state")
+    next_state = record.get("next_state")
+    action = record.get("action")
+    reward = record.get("reward")
+    done = record.get("done")
+
+    if not isinstance(state, dict) or not isinstance(next_state, dict):
+        raise ValueError(f"Invalid state/next_state in line {line_no}")
+    if not isinstance(action, int) or action < 0 or action >= ACTION_DIM:
+        raise ValueError(f"Invalid action in line {line_no}: {action}")
+
+    state_vec, state_mask = encode_state(state)
+    next_state_vec, next_mask = encode_state(next_state)
+    if state_mask[action] <= 0.5:
+        raise ValueError(f"Action {action} is not legal in line {line_no}")
+
+    return {
+        "state": torch.tensor(state_vec, dtype=torch.float32),
+        "action": torch.tensor(action, dtype=torch.int64),
+        "reward": torch.tensor(_safe_num(reward, 0.0), dtype=torch.float32),
+        "next_state": torch.tensor(next_state_vec, dtype=torch.float32),
+        "done": torch.tensor(1.0 if bool(done) else 0.0, dtype=torch.float32),
+        "next_mask": torch.tensor(next_mask, dtype=torch.float32),
+    }
 
 
 def train(config: Dict) -> None:
@@ -281,10 +290,10 @@ def train(config: Dict) -> None:
     random.seed(seed)
     torch.manual_seed(seed)
 
-    batch = load_dataset(dataset_path)
-    dataset_size = batch.states.size(0)
+    dataset = JsonlTransitionDataset(dataset_path)
+    dataset_size = len(dataset)
 
-    input_dim = batch.states.size(1)
+    input_dim = dataset.input_dim
     output_dim = ACTION_DIM
 
     hidden_dims = list(config.get("hidden_dims", [128, 128]))
@@ -294,9 +303,12 @@ def train(config: Dict) -> None:
     batch_size = int(config.get("batch_size", 64))
     target_update = int(config.get("target_update_steps", 50))
     grad_clip = float(config.get("grad_clip_norm", 5.0))
+    dataloader_num_workers = int(config.get("dataloader_num_workers", 0))
 
     if batch_size <= 0:
         raise ValueError("batch_size must be > 0")
+    if dataloader_num_workers < 0:
+        raise ValueError("dataloader_num_workers must be >= 0")
 
     q_net = QNetwork(input_dim, hidden_dims, output_dim).to(device)
     target_net = QNetwork(input_dim, hidden_dims, output_dim).to(device)
@@ -305,29 +317,25 @@ def train(config: Dict) -> None:
 
     optimizer = optim.Adam(q_net.parameters(), lr=lr)
     loss_fn = nn.SmoothL1Loss()
-
-    states = batch.states.to(device)
-    actions = batch.actions.to(device)
-    rewards = batch.rewards.to(device)
-    next_states = batch.next_states.to(device)
-    dones = batch.dones.to(device)
-    next_masks = batch.next_masks.to(device)
+    data_loader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=dataloader_num_workers,
+    )
 
     step = 0
     for epoch in range(1, epochs + 1):
-        indices = torch.randperm(dataset_size, device=device)
         epoch_loss_sum = 0.0
         epoch_batches = 0
 
-        for start in range(0, dataset_size, batch_size):
-            idx = indices[start : start + batch_size]
-
-            s = states[idx]
-            a = actions[idx]
-            r = rewards[idx]
-            ns = next_states[idx]
-            d = dones[idx]
-            nm = next_masks[idx]
+        for batch in data_loader:
+            s = batch["state"].to(device)
+            a = batch["action"].to(device)
+            r = batch["reward"].to(device)
+            ns = batch["next_state"].to(device)
+            d = batch["done"].to(device)
+            nm = batch["next_mask"].to(device)
 
             q_values = q_net(s)
             q_sa = q_values.gather(1, a.unsqueeze(1)).squeeze(1)
