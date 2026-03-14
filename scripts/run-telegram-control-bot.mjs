@@ -75,16 +75,26 @@ async function handleUpdate(update) {
     return;
   }
 
-  const reply = command === "status"
-    ? buildCompactStatusReply()
-    : command === "benchmarks"
-      ? buildBenchmarksReply()
-      : runRemoteHelper(command);
-  await sendMessage({
-    token,
-    chatId,
-    text: reply,
-  });
+  try {
+    const reply = command === "status"
+      ? buildCompactStatusReply()
+      : command === "benchmarks"
+        ? buildBenchmarksReply()
+        : runRemoteHelper(command);
+    await sendMessage({
+      token,
+      chatId,
+      text: reply,
+    });
+  } catch (error) {
+    const errorText = `Telegram command '${command}' failed: ${String(error?.message ?? error)}`;
+    console.error(errorText);
+    await sendMessage({
+      token,
+      chatId,
+      text: truncate(errorText, 3500),
+    });
+  }
 }
 
 function parseCli(args) {
@@ -350,6 +360,10 @@ function formatDuration(durationMs) {
     return `${minutes}m ${seconds.toString().padStart(2, "0")}s`;
   }
   return `${seconds}s`;
+}
+
+function formatNumber(value) {
+  return typeof value === "number" && Number.isFinite(value) ? value.toFixed(3) : "n/a";
 }
 
 function truncate(value, maxLength) {
