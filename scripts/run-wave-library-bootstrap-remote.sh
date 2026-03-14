@@ -15,7 +15,7 @@ VENV_DIR="${REPO_ROOT}/.venv"
 VENV_PYTHON="${VENV_DIR}/bin/python"
 VENV_BIN_DIR="${VENV_DIR}/bin"
 TELEGRAM_ENV_FILE="${POKEROGUE_NOTIFICATION_ENV_FILE:-${HOME}/.config/pokeroguebot/telegram.env}"
-TELEGRAM_POLL_INTERVAL_SECONDS="${POKEROGUE_TELEGRAM_POLL_INTERVAL_SECONDS:-600}"
+TELEGRAM_POLL_INTERVAL_SECONDS_DEFAULT="600"
 
 mkdir -p "${CONTROL_DIR}"
 
@@ -633,6 +633,15 @@ notify_test() {
   node "${args[@]}"
 }
 
+resolve_telegram_poll_interval_seconds() {
+  local value="${POKEROGUE_TELEGRAM_POLL_INTERVAL_SECONDS:-${TELEGRAM_POLL_INTERVAL_SECONDS_DEFAULT}}"
+  if [[ "${value}" =~ ^[0-9]+$ ]] && [ "${value}" -gt 0 ]; then
+    echo "${value}"
+    return 0
+  fi
+  echo "${TELEGRAM_POLL_INTERVAL_SECONDS_DEFAULT}"
+}
+
 telegram_control_start_internal() {
   if is_telegram_control_running; then
     return 0
@@ -640,8 +649,10 @@ telegram_control_start_internal() {
 
   local control_log_file="${CONTROL_DIR}/telegram-control.log"
   source "${TELEGRAM_ENV_FILE}"
+  local poll_interval_seconds
+  poll_interval_seconds="$(resolve_telegram_poll_interval_seconds)"
 
-  nohup bash -lc "export PATH='${VENV_BIN_DIR}':\"\$PATH\" && source '${TELEGRAM_ENV_FILE}' && cd '${REPO_ROOT}' && node scripts/run-telegram-control-bot.mjs --poll-interval-seconds '${TELEGRAM_POLL_INTERVAL_SECONDS}'" \
+  nohup bash -lc "export PATH='${VENV_BIN_DIR}':\"\$PATH\" && source '${TELEGRAM_ENV_FILE}' && cd '${REPO_ROOT}' && node scripts/run-telegram-control-bot.mjs --poll-interval-seconds '${poll_interval_seconds}'" \
     >"${control_log_file}" 2>&1 < /dev/null &
   local pid=$!
   echo "${pid}" > "${TELEGRAM_CONTROL_PID_FILE}"
@@ -670,13 +681,21 @@ telegram_control_start() {
   fi
 
   telegram_control_start_internal
+  local poll_interval_seconds
+  poll_interval_seconds="$(resolve_telegram_poll_interval_seconds)"
   echo "Started Telegram control bot with PID $(cat "${TELEGRAM_CONTROL_PID_FILE}")."
-  echo "Poll interval: ${TELEGRAM_POLL_INTERVAL_SECONDS}s"
+  echo "Poll interval: ${poll_interval_seconds}s"
   echo "Log: ${CONTROL_DIR}/telegram-control.log"
 }
 
 telegram_control_status() {
   local control_log_file="${CONTROL_DIR}/telegram-control.log"
+  if [ -f "${TELEGRAM_ENV_FILE}" ]; then
+    # shellcheck disable=SC1090
+    source "${TELEGRAM_ENV_FILE}"
+  fi
+  local poll_interval_seconds
+  poll_interval_seconds="$(resolve_telegram_poll_interval_seconds)"
   if is_telegram_control_running; then
     local pid
     pid="$(cat "${TELEGRAM_CONTROL_PID_FILE}")"
@@ -686,7 +705,7 @@ telegram_control_status() {
     echo "Telegram control bot is not running."
   fi
   echo "Env: ${TELEGRAM_ENV_FILE}"
-  echo "Poll interval: ${TELEGRAM_POLL_INTERVAL_SECONDS}s"
+  echo "Poll interval: ${poll_interval_seconds}s"
   echo "Log: ${control_log_file}"
 }
 
