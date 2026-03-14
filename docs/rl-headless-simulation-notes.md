@@ -197,26 +197,22 @@ Combat-/Switch-State-Contract:
 
 Implemented in main repo:
 
-- `scripts/run-pokerogue-experience-collector.mjs`
-- `scripts/run-wave-library-scenario-adapter.mjs`
-- `scripts/run-wave-library-collector-profile.mjs`
-- `scripts/run-wave-library-regression-collector.mjs`
-- `scripts/run-wave-library-broad-shallow-training-collector.mjs`
-- `scripts/run-wave-library-deep-training-collector.mjs`
-- `scripts/dump-pokerogue-starter-defaults.mjs`
+- `scripts/01-data-generation/collector/run-pokerogue-experience-collector.mjs`
+- `scripts/01-data-generation/scenarios/run-wave-library-scenario-adapter.mjs`
+- `scripts/01-data-generation/pipeline/run-wave-library-random-collection-pipeline.mjs`
+- `scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh`
+- `scripts/90-dev/tools/dump-pokerogue-starter-defaults.mjs`
 
 Available npm commands:
 
 - `npm run rl:collect`
 - `npm run rl:gen:scenarios`
-- `npm run rl:collect:wave-lib:regression`
-- `npm run rl:collect:wave-lib:train:broad-shallow`
-- `npm run rl:collect:wave-lib:train:deep`
+- `npm run rl:pipeline:wave-lib:collect`
 - `npm run rl:dump:starters`
 
 Current generated artifacts:
 
-- Scenario materialization example: `data/rl/scenarios/generated-wave-library-v2/*.json`
+- Scenario materialization example: `data/rl/scenarios/generated-wave-library-v2-w1-8/*.json`
 - Batch transition output example: `data/rl/combat/train-wave-library-v2-default.jsonl`
 - Deep training dataset example: `data/rl/combat/train-wave-library-deep-w1-8.jsonl`
 - Deep-trained checkpoint example: `data/rl/models/dqn-combat-wave-library-v2-deep.pt`

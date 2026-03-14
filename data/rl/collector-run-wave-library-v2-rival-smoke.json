@@ -1,6 +1,6 @@
 {
   "scenario_files": [
-    "./scenarios/generated-wave-library-v2/trainer-w8-8f55849e7e4d.json"
+    "./scenarios/generated-wave-library-v2-w1-8/trainer-w8-8f55849e7e4d.json"
   ],
   "output_path": "./combat/train-wave-library-v2-rival-smoke.jsonl",
   "append_output": false,

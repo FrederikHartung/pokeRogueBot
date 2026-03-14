@@ -48,6 +48,6 @@
     "max_steps_per_episode": 400
   },
   "scenario_files": [
-    "./scenarios/generated-wave-library-v2-w1-7/wild-w1-7b4e667b0cdd.json"
+    "./scenarios/generated-wave-library-v2-w1-8/wild-w1-7b4e667b0cdd.json"
   ]
 }

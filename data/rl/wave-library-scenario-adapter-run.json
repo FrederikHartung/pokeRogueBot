@@ -1,6 +1,6 @@
 {
   "input_path": "../offline-wave-library/productive-wave-snapshots-v1.jsonl",
-  "output_dir": "./scenarios/generated-wave-library-v2",
+  "output_dir": "./scenarios/generated-wave-library-v2-w1-8",
   "clear_output_dir": true,
   "allowed_battle_types": ["WILD", "TRAINER"],
   "hard_waves": [5, 8, 10],

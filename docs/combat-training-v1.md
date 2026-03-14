@@ -4,7 +4,7 @@
 
 - The live bot now has a first end-to-end DQN combat integration for single battles.
 - Runtime default is `bot.combat-policy-mode=dqn`.
-- Live inference now uses the persistent worker path `scripts/dqn_policy_infer_worker.py` instead of one-shot per-action inference.
+- Live inference now uses the persistent worker path `scripts/02-training/inference/dqn_policy_infer_worker.py` instead of one-shot per-action inference.
 - Current runtime focus is not capture behavior; `bot.capture.enabled=false` by default so wild encounters are handled like normal "win fast" battles.
 - Double battles and broader live observability remain secondary follow-up tasks until the single-battle live path is better validated.
 
@@ -199,7 +199,7 @@ Schema artifacts:
 - JSON schema: `docs/rl-schema/combat-transition.schema.json`
 - Example record: `docs/rl-schema/combat-transition.example.json`
 - Current scenario schema: `docs/rl-schema/combat-scenario-v2.schema.json`
-- Current scenario example: `data/rl/scenarios/poc-battle-v2.json`
+- Current scenario example: `data/rl/scenarios/example-combat-scenario-v2.json`
 
 Current note:
 
@@ -220,11 +220,11 @@ Current practical bootstrap procedure:
 - Step 2: train a first offline checkpoint on that bootstrap dataset
 - Step 3: generate a second dataset with `policy.type = epsilon_random`
 - Step 4: keep exploration random, but set `policy.exploit_policy.type = external_command`
-- Step 5: point that exploit policy at a pretrained checkpoint via `scripts/dqn_policy_infer_worker.py`
+- Step 5: point that exploit policy at a pretrained checkpoint via `scripts/02-training/inference/dqn_policy_infer_worker.py`
 - Step 6: enable `persistent = true` so the worker loads the checkpoint once and serves all exploit decisions over a long-lived local stdin/stdout session
 - Step 7: merge both JSONL datasets with `npm run rl:merge:datasets -- --output ... --input <random.jsonl:random_bootstrap> --input <model.jsonl:model_guided_bootstrap>` so `episode_id` values stay unique and `meta.dataset_source` is preserved
 - Step 8: train the next checkpoint on the combined bootstrap + model-guided dataset
-- Step 9: benchmark that checkpoint via `scripts/eval_dqn_policy.py` or `scripts/eval_policy_compare.py`; both evaluation paths now use the same persistent worker pattern instead of one-shot per-action inference
+- Step 9: benchmark that checkpoint via `scripts/03-benchmark/eval/eval_dqn_policy.py` or `scripts/03-benchmark/eval/eval_policy_compare.py`; both evaluation paths now use the same persistent worker pattern instead of one-shot per-action inference
 
 Current iterative wave-library direction:
 
@@ -316,10 +316,10 @@ Day 5:
   - local mystery-encounter suppression for offline RL pipeline
   - pragmatic `v3` combat observation expansion for better move/switch discrimination
 - Verified Wave-Library-V2 materialization:
-  - output directories: `data/rl/scenarios/generated-wave-library-v2*`
+  - active output directory: `data/rl/scenarios/generated-wave-library-v2-w1-8`
   - scenarios are filtered to trainable single battles from productive wave snapshots
 - Repository policy:
-  - checked in: scripts/config/schema + small benchmark scenario set (`data/rl/scenarios/benchmarked`)
+  - checked in: scripts/config/schema
   - not checked in: bulk generated scenario folders (`data/rl/scenarios/generated-*`) and transition dumps (`data/rl/combat/*.jsonl`)
 - Reproducible mixed benchmark collector:
   - config: `data/rl/collector-run-benchmarked-wave-library-v2.json`

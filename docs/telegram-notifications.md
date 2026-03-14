@@ -2,7 +2,7 @@
 
 ## Ziel
 
-Die iterative Offline-Training-Pipeline soll auf einem Remote-Server Telegram-Benachrichtigungen senden koennen, damit laengere Laeufe nicht still scheitern.
+Die Remote-Pfade fuer Wave-Library-Training und reine Datengenerierung sollen auf einem Remote-Server Telegram-Benachrichtigungen senden koennen, damit laengere Laeufe nicht still scheitern.
 
 Sinnvolle Events:
 
@@ -10,6 +10,8 @@ Sinnvolle Events:
   - z. B. nach `benchmark_iter_1` bis `benchmark_iter_5`
 - Pipeline fehlgeschlagen
 - Pipeline komplett abgeschlossen
+- Random-Collection fehlgeschlagen
+- Random-Collection komplett abgeschlossen
 
 ## Kosten
 
@@ -77,20 +79,24 @@ source ~/.config/pokeroguebot/telegram.env
 
 ## Implementierte Integration
 
-Die Benachrichtigung ist jetzt in der iterativen Wave-Library-Pipeline umgesetzt.
+Die Benachrichtigung ist jetzt in der iterativen Wave-Library-Pipeline und im Random-Collection-Only-Pfad umgesetzt.
 
 Relevante Dateien:
 
-- `scripts/send-pipeline-notification.mjs`
-- `scripts/run-wave-library-iterative-pipeline.mjs`
-- `scripts/run-wave-library-bootstrap-remote.sh`
-- `scripts/run-telegram-control-bot.mjs`
+- `scripts/04-automation/telegram/send-pipeline-notification.mjs`
+- `scripts/01-data-generation/pipeline/run-wave-library-iterative-pipeline.mjs`
+- `scripts/01-data-generation/pipeline/run-wave-library-random-collection-pipeline.mjs`
+- `scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh`
+- `scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh`
+- `scripts/04-automation/telegram/run-telegram-control-bot.mjs`
 
 Aktive Events:
 
 - `iteration_completed`
 - `pipeline_failed`
 - `pipeline_completed`
+- `collection_failed`
+- `collection_completed`
 
 Mitgesendete Nutzdaten:
 
@@ -99,6 +105,12 @@ Mitgesendete Nutzdaten:
 - DQN-Benchmarkwerte bei Iterationsabschluss
 - Iterationsdauer und Gesamtdauern
 - gekuerzter Fehlertext bei Abbruch
+- fuer Random-Collection zusaetzlich:
+  - Anzahl Szenarien
+  - Batch- und Episodenanzahl
+  - Anzahl Transitionen
+  - Datensatz- und Archivgroesse
+  - `download_path` zum komprimierten Trainingsdatensatz
 
 ## Beispiel-Nachrichten
 
@@ -138,6 +150,22 @@ Total runtime: 9h 47m
 Iterations: 1=1h 52m, 2=1h 46m, 3=1h 58m, 4=2h 01m, 5=1h 50m
 ```
 
+Random-Collection abgeschlossen:
+
+```text
+Run: wave-library-random-collection-remote-50ep
+State: collection completed
+Scenarios: 68
+Waves: 1,2,3,4,5,6,7,8
+Batches: 68/68
+Episodes: 3400/3400
+Transitions: 123456
+Dataset size: 850.42 MB
+Archive size: 121.08 MB
+Total runtime: 1h 34m
+Download: /home/SFH-Frederik/repos/pokeRogueBot/data/rl/pipeline-runs/.../artifacts/random-valid-action-w1-8.tar.gz
+```
+
 ## Sicherheitsregeln
 
 - echte Tokens niemals committen
@@ -165,14 +193,14 @@ chmod 600 ~/.config/pokeroguebot/telegram.env
 2. Testnachricht senden:
 
 ```bash
-bash scripts/run-wave-library-bootstrap-remote.sh notify-test
+bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh notify-test
 ```
 
 3. Danach wie gewohnt starten:
 
 ```bash
-bash scripts/run-wave-library-bootstrap-remote.sh start-smoke
-bash scripts/run-wave-library-bootstrap-remote.sh start-overnight
+bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh start-smoke
+bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh start-overnight
 ```
 
 Hinweise:
@@ -238,19 +266,19 @@ Sicherheitsregel:
 Start auf dem Server:
 
 ```bash
-bash scripts/run-wave-library-bootstrap-remote.sh telegram-control-start
+bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh telegram-control-start
 ```
 
 Status prüfen:
 
 ```bash
-bash scripts/run-wave-library-bootstrap-remote.sh telegram-control-status
+bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh telegram-control-status
 ```
 
 Stoppen:
 
 ```bash
-bash scripts/run-wave-library-bootstrap-remote.sh telegram-control-stop
+bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh telegram-control-stop
 ```
 
 Polling:

@@ -8,7 +8,7 @@ Prioritaetswechsel fuer die naechste Session:
 - Der vorhandene DQN-Pfad ist jetzt erstmals live verdrahtet:
 - Runtime-Default ist jetzt `dqn`
 - Default-Checkpoint zeigt jetzt auf `data/rl/models/dqn-combat-wave-library-bootstrap-combined-960.pt` aus `Run 13`
-- Inferenz laeuft jetzt ueber den persistenten Worker `scripts/dqn_policy_infer_worker.py`
+- Inferenz laeuft jetzt ueber den persistenten Worker `scripts/02-training/inference/dqn_policy_infer_worker.py`
 - Capture ist aktuell standardmaessig deaktiviert (`bot.capture.enabled=false`), damit der Bot wilde und Trainer-Pokemon zunaechst moeglichst schnell besiegt
 - Noch offen bleiben vor allem Observability/Fallback-Zaehler und laengere Live-Validierung
 - Zielbild fuer den naechsten Abschnitt:
@@ -144,7 +144,7 @@ Verbindlicher Schema-Hinweis:
 - der 2-Stufen-Bootstrap wurde bereits einmal produktiv durchlaufen
 - Datensatz 1: `480` Episoden `all random valid`
 - Datensatz 2: `480` Episoden `epsilon_random` mit pretrained-DQN im Exploit-Zweig
-- beide Quellen werden vor dem finalen Training ueber `scripts/merge-rl-jsonl-datasets.mjs` zusammengefuehrt, damit `episode_id` eindeutig bleibt und `meta.dataset_source` gesetzt ist
+- beide Quellen werden vor dem finalen Training ueber `scripts/01-data-generation/dataset/merge-rl-jsonl-datasets.mjs` zusammengefuehrt, damit `episode_id` eindeutig bleibt und `meta.dataset_source` gesetzt ist
 - auf dem kombinierten `960`-Episoden-Datensatz wurde bereits ein finales Checkpoint-Training + Benchmark als `Run 13` ausgefuehrt
 - Hintergrund fuer diesen Bootstrap-Pfad:
 - keine starke Handheuristik im Exploit-Zweig erzwingen
@@ -163,7 +163,7 @@ Verbindlicher Schema-Hinweis:
 - sondern bewusstes Data-Shaping, um spaeter zu pruefen, ob der DQN auf solchen Daten robustere Rival-Policies lernt
 - Technischer Ist-Stand:
 - pretrained Modell wird weder im Collector noch in den Eval-Skripten pro Aktion neu gestartet
-- stattdessen wird in beiden Faellen ein persistenter lokaler Inferenz-Worker (`scripts/dqn_policy_infer_worker.py`) verwendet
+- stattdessen wird in beiden Faellen ein persistenter lokaler Inferenz-Worker (`scripts/02-training/inference/dqn_policy_infer_worker.py`) verwendet
 - Collector-Exploit laeuft ueber `policy.exploit_policy` mit `external_command` + `persistent=true`
 - neu erzeugte Datensaetze schreiben zusaetzlich `meta.action_source`, damit random vs. model sauber auswertbar bleibt
 - neuer geplanter Remote-Pipeline-Ablauf:
@@ -182,7 +182,7 @@ Verbindlicher Schema-Hinweis:
 - fuer die neue iterative Pipeline ist zusaetzlich eine fallende `epsilon`-Strategie innerhalb eines Laufs umgesetzt
 - fuer eingefrorene Benchmark-Sets koennen `random` und `always_move_0` ab dem Baseline-Benchmark wiederverwendet werden, damit spaetere Iterationen nur noch den aktuellen DQN neu evaluieren
 - fuer Laufzeitvergleiche steht jetzt ein eigener Runtime-Report ueber das Pipeline-Manifest bereit:
-  - `node scripts/report-iterative-pipeline-runtime.mjs --manifest <manifest.json>`
+  - `node scripts/01-data-generation/dataset/report-iterative-pipeline-runtime.mjs --manifest <manifest.json>`
 - konservativer Paralleltest ist umgesetzt:
   - Datengenerierung kann zunaechst mit `2` parallelen Collector-Prozessen gefahren werden, um CPU-/RAM-Auswirkung gegen den Single-Worker-Pfad zu vergleichen
 - Remote-Startziel:
@@ -207,10 +207,8 @@ Verbindlicher Schema-Hinweis:
 - `reward_alive_team_member_win_bonus=1.0`
 - `reward_remaining_team_hp_ratio_win_bonus_scale=2.0`
 - `state_variants=all_full, lead_critical_bench_full, lead_critical_plus_random_bench_critical, all_critical, lead_half_bench_full, enemy_half, enemy_critical`
-- Aktive V2-Sammler:
-- breite Regression: `npm run rl:collect:wave-lib:regression`
-- breites/flaches Training: `npm run rl:collect:wave-lib:train:broad-shallow`
-- tiefes Training: `npm run rl:collect:wave-lib:train:deep`
+- Aktiver V2-Sammler:
+- Remote Collection Pipeline: `npm run rl:pipeline:wave-lib:collect -- ./data/rl/wave-library-random-collection-remote-50ep.json`
 
 5. Prod-nahe Wave-Library fuer Offline-Headless-Runs aufbauen
 - Status: V1 ist umgesetzt (10. Maerz 2026)
@@ -264,7 +262,7 @@ Verbindlicher Schema-Hinweis:
 - Neuer Design-Stand:
 - neue Doku: `docs/combat-training-wave-library-v2.md`
 - neuer geplanter Headless-Input-Contract: `docs/rl-schema/combat-scenario-v2.schema.json`
-- Beispiel: `data/rl/scenarios/poc-battle-v2.json`
+- Beispiel: `data/rl/scenarios/example-combat-scenario-v2.json`
 - Aktuelle Einordnung:
 - der alte `seed x wave`-Generatorpfad ist deprecated und aus dem aktiven Tooling entfernt
 - der aktuelle Collector ist jetzt auf `combat-scenario-v2` als einziges aktives Eingabeformat festgelegt
@@ -280,10 +278,10 @@ Verbindlicher Schema-Hinweis:
 - diese Wellen sollen spaeter als `hard`/`benchmark` gezielt uebergewichtbar und separat evaluiert werden
 - Naechster konkreter Schritt:
 - erster Adapter ist jetzt angelegt:
-- `scripts/run-wave-library-scenario-adapter.mjs`
+- `scripts/01-data-generation/scenarios/run-wave-library-scenario-adapter.mjs`
 - Run-Config: `data/rl/wave-library-scenario-adapter-run.json`
 - `npm run rl:gen:scenarios`
-- der Adapter materialisiert echte V1-Snapshots nach `data/rl/scenarios/generated-wave-library-v2/*.json`
+- der Adapter materialisiert echte V1-Snapshots nach `data/rl/scenarios/generated-wave-library-v2-w1-8/*.json`
 - aktuelle Filterung:
 - nur `WILD`/`TRAINER`
 - keine Double Battles
@@ -291,7 +289,7 @@ Verbindlicher Schema-Hinweis:
 - mindestens ein aktives Feld-Pokemon pro Seite
 - Naechster konkreter Schritt:
 - Collector-V2-Pfad ist jetzt angelegt:
-- `scripts/run-pokerogue-experience-collector.mjs` erwartet `combat-scenario-v2` als einziges aktives Eingabeformat
+- `scripts/01-data-generation/collector/run-pokerogue-experience-collector.mjs` erwartet `combat-scenario-v2` als einziges aktives Eingabeformat
 - komplette `player_team`- und `enemy_team`-Initialisierung wird nach `startBattle(...)` auf den Scenario-State gepatcht
 - aktuell noch offene Collector-Luecken:
 - Held-Items

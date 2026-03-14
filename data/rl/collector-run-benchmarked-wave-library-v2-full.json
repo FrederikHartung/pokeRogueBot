@@ -1,5 +1,5 @@
 {
-  "scenario_dir": "./scenarios/generated-wave-library-v2",
+  "scenario_dir": "./scenarios/generated-wave-library-v2-w1-8",
   "output_path": "./combat/train-benchmarked-wave-library-v2-full.jsonl",
   "append_output": false,
   "episodes_per_seed": 1,

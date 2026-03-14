@@ -191,7 +191,7 @@ Der erste Adapter ist jetzt vorgesehen als:
 
 - Reader fuer `data/offline-wave-library/productive-wave-snapshots-v1.jsonl`
 - Filter auf ein erstes trainierbares Subset
-- Materialisierung nach `data/rl/scenarios/generated-wave-library-v2/*.json`
+- Materialisierung nach `data/rl/scenarios/generated-wave-library-v2-w1-8/*.json`
 
 Startpunkt:
 
@@ -200,7 +200,7 @@ Startpunkt:
 
 Aktueller Collector-Stand:
 
-- `scripts/run-pokerogue-experience-collector.mjs` erkennt jetzt `combat-scenario-v2`
+- `scripts/01-data-generation/collector/run-pokerogue-experience-collector.mjs` erkennt jetzt `combat-scenario-v2`
 - der V2-Pfad initialisiert komplette `player_team`- und `enemy_team`-States nach `startBattle(...)`
 - aktuell unterstuetzt und aktiv gepatcht:
   - Species/Form/Level
@@ -289,35 +289,17 @@ Praktische Regel:
 - hohes `x`, moderates `y`: breites, eher flaches Training
 - moderates `x`, hoeheres `y`: tieferes Training auf weniger Startzustaenden
 
-Neue Runner fuer Waves `1-8`:
+Aktiver Datengenerierungspfad fuer Waves `1-8`:
 
-- Regression:
-  - npm script: `npm run rl:collect:wave-lib:regression`
-  - wrapper: `scripts/run-wave-library-regression-collector.mjs`
-  - Profil: `data/rl/wave-library-profile-regression.json`
-  - Zweck: moeglichst breite Funktions-/Regressionspruefung
-  - Profilidee: `max_scenarios_per_wave = 12`, `episodes_per_seed = 1`, `policy = first_valid`
-- Broad but shallow training:
-  - npm script: `npm run rl:collect:wave-lib:train:broad-shallow`
-  - wrapper: `scripts/run-wave-library-broad-shallow-training-collector.mjs`
-  - Profil: `data/rl/wave-library-profile-train-broad-shallow.json`
-  - Zweck: viele verschiedene Wellenzustaende, aber nur wenige Wiederholungen pro Zustand
-  - Profilidee: `max_scenarios_per_wave = 12`, `episodes_per_seed = 2`, `policy = epsilon_random`
-  - aktueller Hinweis:
-    - mit dem derzeit kleinen Wave-1-8-Snapshot-Bestand ist dieses Profil fachlich noch weniger interessant als das tiefe Profil, weil die zusaetzliche Breite aktuell kaum greift
-- Deep training:
-  - npm script: `npm run rl:collect:wave-lib:train:deep`
-  - wrapper: `scripts/run-wave-library-deep-training-collector.mjs`
-  - Profil: `data/rl/wave-library-profile-train-deep.json`
-  - Zweck: weniger unterschiedliche Zustaende, dafuer mehr Wiederholungen pro Zustand
-  - Profilidee: `max_scenarios_per_wave = 4`, `episodes_per_seed = 30`, `policy = epsilon_random`
-  - aktuelle Laufzeit-Kalibrierung:
-    - Messung vom 2026-03-10 mit `episodes_per_seed = 5`: ca. `48.74s` Wall-Clock fuer `75` Episoden
-    - erste Hochrechnung daraus: `episodes_per_seed = 30`
-    - reale Nachmessung vom 2026-03-10 mit `episodes_per_seed = 30`: `450` Episoden, `2906` Transitionen, ca. `243.37s` Wall-Clock
-    - Folgerung fuer den naechsten Lauf:
-      - fuer grob `5` Minuten und etwas mehr Testdaten eher noch etwas hoeher gehen
-      - pragmatischer naechster Zielwert: `episodes_per_seed` im Bereich `35-40`
+- Remote Collection Pipeline:
+  - npm script: `npm run rl:pipeline:wave-lib:collect -- ./data/rl/wave-library-random-collection-remote-50ep.json`
+  - remote helper: `bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start`
+  - Doku: `docs/wave-library-random-collection-remote.md`
+  - Zweck: produktionsnahe Datengenerierung auf dem Remote-Server mit `random` ueber legale Aktionen, Batch-Manifest, Merge, Sanity-Check, Archivierung und Telegram-Benachrichtigung
+  - Zielmodell:
+    - alle materialisierten Szenarien aus `data/rl/scenarios/generated-wave-library-v2-w1-8`
+    - `episodes_per_instance` als zentraler Wiederholungshebel
+    - `batch_size` zur Steuerung der Batchanzahl pro Szenario
 
 ## Naechster fokussierter Trainingslauf (Rival-Focus, Stand `2026-03-12`)
 
@@ -425,20 +407,9 @@ Konsequenz fuer die naechste Collector-Runde:
 
 Technischer Aufbau:
 
-- Alle drei Wrapper nutzen den gemeinsamen Profil-Runner `scripts/run-wave-library-collector-profile.mjs`
-- Der Runner:
-  - liest mehrere V2-Szenario-Ordner
-  - gruppiert nach `wave_index`
-  - waehlt pro Welle bis zu `max_scenarios_per_wave` Szenarien aus
-  - unterstuetzt jetzt neben stabiler Sortierung auch reproduzierbares `random_per_wave`-Sampling ueber `selection_seed`
-  - materialisiert daraus eine temporaere Collector-Run-Config unter `data/rl/generated/*.json`
-  - startet danach den bestehenden Headless-Collector
-
-Nur die Selektion vorbereiten, ohne den Collector zu starten:
-
-- `node scripts/run-wave-library-regression-collector.mjs --prepare-only`
-- `node scripts/run-wave-library-broad-shallow-training-collector.mjs --prepare-only`
-- `node scripts/run-wave-library-deep-training-collector.mjs --prepare-only`
+- Die Remote Collection Pipeline erzeugt pro Szenario und Batch eine konkrete Collector-Run-Config
+- Diese Configs werden direkt mit `scripts/01-data-generation/collector/run-pokerogue-experience-collector.mjs` ausgefuehrt
+- Danach folgen streamender Merge, Datensatz-Sanity-Check und Archivierung des finalen JSONL-Artefakts
 
 Wichtige Einordnung:
 
@@ -478,7 +449,7 @@ Geplante Stufen:
   - kurzer Vergleichslauf als Vorher-Messung fuer den naechsten Schritt
 - DQN-Phase:
   - dieselben Instanzen erneut sammeln, diesmal mit `dqn only`
-  - Inferenz weiterhin ueber `scripts/dqn_policy_infer_worker.py` mit persistentem Worker
+  - Inferenz weiterhin ueber `scripts/02-training/inference/dqn_policy_infer_worker.py` mit persistentem Worker
 - Report 2:
   - dieselben Kennzahlen fuer den DQN-Datensatz
 - finales Training + Benchmark 2:
@@ -509,11 +480,11 @@ Aktualisierte Iterationsrichtung:
 Neue Infrastruktur-Helfer fuer diesen Pfad:
 
 - Iterative Pipeline:
-  - `node scripts/run-wave-library-iterative-pipeline.mjs <config>`
+  - `node scripts/01-data-generation/pipeline/run-wave-library-iterative-pipeline.mjs <config>`
 - Laufzeit-Summary aus dem Manifest:
-  - `node scripts/report-iterative-pipeline-runtime.mjs --manifest <manifest.json>`
+  - `node scripts/01-data-generation/dataset/report-iterative-pipeline-runtime.mjs --manifest <manifest.json>`
   - optional mit JSON-Output:
-    - `node scripts/report-iterative-pipeline-runtime.mjs --manifest <manifest.json> --output <runtime-summary.json>`
+    - `node scripts/01-data-generation/dataset/report-iterative-pipeline-runtime.mjs --manifest <manifest.json> --output <runtime-summary.json>`
 - Zweck der Runtime-Summary:
   - Dauer pro Step
   - Summen pro Kategorie (`collect`, `benchmark`, `train`, ...)
@@ -540,7 +511,7 @@ Wichtige technische Regeln fuer diesen Pfad:
 
 Remote-Server-Bedienung:
 
-- neuer Starthelfer: `scripts/run-wave-library-bootstrap-remote.sh`
+- neuer Starthelfer: `scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh`
 - Aufgaben des Skripts:
   - vor dem Start `node`, `npm`, `python3` und `torch` pruefen
   - pruefen, ob Root- und Submodul-Dependencies installiert sind
@@ -569,7 +540,7 @@ Remote-Server-Bedienung:
   - `2` Collect-Worker
   - `1` Benchmark-Worker
   - Start:
-    - `scripts/run-wave-library-bootstrap-remote.sh start-smoke`
+    - `scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh start-smoke`
 - vorbereiteter Overnight-Lauf:
   - Config: `data/rl/wave-library-iterative-pipeline-remote-10ep.json`
   - voller `w1-8`-Satz
@@ -578,7 +549,7 @@ Remote-Server-Bedienung:
   - `2` Collect-Worker
   - `1` Benchmark-Worker
   - Start:
-    - `scripts/run-wave-library-bootstrap-remote.sh start-overnight`
+    - `scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh start-overnight`
 - Logdateien:
   - Smoke: `data/rl/pipeline-runs/wave-library-iterative-remote-smoke/remote-iterative.log`
   - Overnight: `data/rl/pipeline-runs/wave-library-iterative-remote-10ep/remote-iterative.log`
@@ -666,22 +637,22 @@ Ubuntu-Setup-Kurzpfad fuer spaetere Server:
   - alten Smoke-Zustand loeschen:
     - `rm -rf data/rl/pipeline-runs/wave-library-iterative-remote-smoke`
   - danach Smoke starten:
-    - `bash scripts/run-wave-library-bootstrap-remote.sh start-smoke`
+    - `bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh start-smoke`
 - fuer den groesseren Lauf:
   - alten Overnight-Zustand nur fuer einen wirklich sauberen Neustart loeschen:
     - `rm -rf data/rl/pipeline-runs/wave-library-iterative-remote-10ep`
   - danach Overnight-Lauf starten:
-    - `bash scripts/run-wave-library-bootstrap-remote.sh start-overnight`
+    - `bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh start-overnight`
   - nach einem Code-Fix ist ein Resume ueber denselben Runtime-Ordner ausdruecklich gewollt:
     - bereits abgeschlossene Batches werden wiederverwendet
     - die Pipeline setzt am ersten fehlgeschlagenen oder offenen Schritt fort
   - optional vorher Telegram testen:
-    - `bash scripts/run-wave-library-bootstrap-remote.sh notify-test`
+    - `bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh notify-test`
   - bei aktivierter Telegram-Konfiguration startet der Control-Bot automatisch mit
 - Monitoring:
-  - `bash scripts/run-wave-library-bootstrap-remote.sh status`
-  - `bash scripts/run-wave-library-bootstrap-remote.sh logs`
-  - `bash scripts/run-wave-library-bootstrap-remote.sh issues`
+  - `bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh status`
+  - `bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh logs`
+  - `bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh issues`
   - fuer eine kurze Momentaufnahme statt Dauer-Streaming:
     - `tail -n 50 data/rl/pipeline-runs/wave-library-iterative-remote-smoke/remote-iterative.log`
     - `tail -n 50 data/rl/pipeline-runs/wave-library-iterative-remote-10ep/remote-iterative.log`
@@ -701,9 +672,9 @@ Zielbild nach einem laengeren Remote-Lauf:
 Lokaler Benchmark nach Remote-Training:
 
 - Beispiel:
-  - `python3 scripts/eval_policy_compare.py --collector-config ./data/rl/collector-run-benchmarked-wave-library-v2.json --checkpoint <pfad-zum-heruntergeladenen-oder-lokal-verfuegbaren-modell> --report-path ./data/rl/combat/<neuer-report>.json`
+  - `python3 scripts/03-benchmark/eval/eval_policy_compare.py --collector-config ./data/rl/collector-run-benchmarked-wave-library-v2.json --checkpoint <pfad-zum-heruntergeladenen-oder-lokal-verfuegbaren-modell> --report-path ./data/rl/combat/<neuer-report>.json`
 - Full-Benchmark ueber die gesamte Wave-Library:
-  - `python3 scripts/eval_policy_compare.py --collector-config ./data/rl/collector-run-benchmarked-wave-library-v2-full.json --checkpoint <pfad-zum-heruntergeladenen-oder-lokal-verfuegbaren-modell> --report-path ./data/rl/combat/<neuer-full-report>.json`
+  - `python3 scripts/03-benchmark/eval/eval_policy_compare.py --collector-config ./data/rl/collector-run-benchmarked-wave-library-v2-full.json --checkpoint <pfad-zum-heruntergeladenen-oder-lokal-verfuegbaren-modell> --report-path ./data/rl/combat/<neuer-full-report>.json`
 - danach:
   - die wichtigsten Kennzahlen und Artefaktpfade in `docs/benchmark-history.md` eintragen
 
@@ -778,7 +749,7 @@ Wichtige Einschraenkung des Smoke-Benchmarks:
 
 Definition des Full-Benchmarks:
 
-- es wird immer die gesamte materialisierte Wave-Library unter `data/rl/scenarios/generated-wave-library-v2` verwendet
+- aktiver Zentralpfad fuer die materialisierte Wave-Library ist `data/rl/scenarios/generated-wave-library-v2-w1-8`
 - keine manuell kuratierte Teilmenge
 - ein Eintrag in `docs/benchmark-history.md` sollte kuenftig explizit den `Benchmark-Typ` enthalten
 - fuer ernsthafte Modellvergleiche ist `full` der relevante Referenzwert; `smoke` bleibt ein schneller Vorab-Check

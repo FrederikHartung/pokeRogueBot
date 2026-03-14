@@ -13,6 +13,24 @@ After getting to a Result, the bot calculates which buttons are to press and sen
 - Remote-Telegram-Benachrichtigungen fuer laengere Pipeline-Laeufe:
   - `docs/telegram-notifications.md`
 
+## Script Layout
+
+Die Skripte sind jetzt entlang des groben Offline-RL-Ablaufs geordnet:
+
+- `scripts/01-data-generation/`
+  - Szenario-Materialisierung, Collector, Datensatz-Tools und Remote-Datengenerierungs-Pipelines
+- `scripts/02-training/`
+  - Offline-DQN-Training und Inferenz-Worker
+- `scripts/03-benchmark/`
+  - Evaluations- und Benchmark-Skripte
+- `scripts/04-automation/`
+  - Telegram- und Remote-Automation
+- `scripts/90-dev/`
+  - Entwicklungs- und Hilfstools, die nicht Teil des Hauptablaufs sind
+
+Damit folgt die Ordnerstruktur grob dem praktischen Ablauf:
+`Testdaten generieren -> trainieren -> benchmarken`.
+
 ### How to get started
 1. Clone this repository with submodules: `git clone --recurse-submodules <repo-url>`. If you already cloned without submodules, run `git submodule update --init --recursive`.
 2. Install a Java 21 SDK, Maven (Java Build Tool), Node.js (for building JS bridge files), Intellij Idea (Java IDE) and Chrome (Browser).
@@ -34,7 +52,7 @@ After getting to a Result, the bot calculates which buttons are to press and sen
 Note: The JS bridge files (`src/main/js/*.js`) are generated from TypeScript sources in `src/main/ts/`. Maven automatically rebuilds them during compilation. The TypeScript files import game enums and use `import type` for game classes (Pokemon, BattleScene, Move, etc.) directly from the PokeRogue submodule, so they stay in sync with the game version. For full IDE type support (autocomplete, type checking), install the submodule's dependencies: `cd pokerogue && pnpm install`.
 Current runtime defaults:
 - `bot.combat-policy-mode: dqn`
-- `bot.dqn.infer-script: scripts/dqn_policy_infer_worker.py`
+- `bot.dqn.infer-script: scripts/02-training/inference/dqn_policy_infer_worker.py`
 - `bot.dqn.combat-checkpoint: data/rl/models/dqn-combat-wave-library-bootstrap-combined-960.pt`
 - `bot.capture.enabled: false` so the bot currently prioritizes defeating wild and trainer Pokemon over capture attempts
 Static guardrails for bridge drift are covered by tests:
@@ -48,37 +66,29 @@ Static guardrails for bridge drift are covered by tests:
 
 ## Offline RL Data Generation
 
-There are now two separate paths and both should stay available:
+There are now two active layers:
 
-- Local quick POC path:
-  - use the existing collector commands for short local experiments and small/fast datasets
-  - examples:
-    - `npm run rl:collect:wave-lib:regression`
-    - `npm run rl:collect:wave-lib:train:broad-shallow`
-    - `npm run rl:collect:wave-lib:train:deep`
+- Core collector:
+  - `npm run rl:collect -- <collector-config>`
+  - this is the low-level headless experience collector that executes one collector config and writes JSONL transitions
 - Remote long-run path:
-  - use the iterative 5-iteration pipeline for remote smoke tests and longer data-generation jobs on a remote Linux server
-  - entrypoint:
-    - smoke test: `scripts/run-wave-library-bootstrap-remote.sh start-smoke`
-    - larger overnight run: `scripts/run-wave-library-bootstrap-remote.sh start-overnight`
-  - this path checks dependencies first and then starts the pipeline detached via `nohup`
-  - the run continues even if the SSH session is closed
-  - smoke config:
-    - `data/rl/wave-library-iterative-pipeline-remote-smoke.json`
-    - mini-smoke with exactly `1` scenario from each wave `1-8`, `1` episode per scenario, `2` collect workers and `1` benchmark worker
+  - `npm run rl:pipeline:wave-lib:collect -- ./data/rl/wave-library-random-collection-remote-50ep.json`
+  - helper: `bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start`
+  - this is the preferred path for remote wave-library data generation on the server
+  - it batches scenarios, merges outputs streamingly, runs sanity checks, archives the final dataset, and sends Telegram notifications
   - overnight config:
     - `data/rl/wave-library-iterative-pipeline-remote-10ep.json`
     - full `w1-8` iterative run with `60` episodes per scenario, `batch_size = 60`, `2` collect workers and `1` benchmark worker
   - after the run, use the `artifacts-summary.json` inside the selected runtime directory as the central index for downloading the final model and reports
   - helper commands:
-    - `scripts/run-wave-library-bootstrap-remote.sh status`
-    - `scripts/run-wave-library-bootstrap-remote.sh logs`
-    - `scripts/run-wave-library-bootstrap-remote.sh issues`
-    - `scripts/run-wave-library-bootstrap-remote.sh notify-test`
-    - `scripts/run-wave-library-bootstrap-remote.sh telegram-control-start`
-    - `scripts/run-wave-library-bootstrap-remote.sh telegram-control-status`
-    - `scripts/run-wave-library-bootstrap-remote.sh telegram-control-stop`
-    - `scripts/run-wave-library-bootstrap-remote.sh stop`
+    - `scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh status`
+    - `scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh logs`
+    - `scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh issues`
+    - `scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh notify-test`
+    - `scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh telegram-control-start`
+    - `scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh telegram-control-status`
+    - `scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh telegram-control-stop`
+    - `scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh stop`
   - `status` also reports scenario count, episodes per scenario and total/completed episode counts
   - the iterative pipeline can resume from an existing runtime directory; already completed batches and steps stay reusable after a restart
   - deleting `data/rl/pipeline-runs/...` is only needed for a clean restart, not for every resume after a code fix
@@ -89,6 +99,24 @@ There are now two separate paths and both should stay available:
     - `/status` is formatted as a compact mobile summary instead of raw shell output
     - starts automatically with `start-smoke` or `start-overnight` when Telegram is configured
     - stops automatically again when the pipeline exits, whether successful or failed
+
+  - use the random-collection-only pipeline for remote dataset generation without training
+  - entrypoint:
+    - smoke test: `scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-smoke`
+    - default remote run: `scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start`
+  - default config:
+    - `data/rl/wave-library-random-collection-remote-50ep.json`
+    - full `w1-8` collection run with `68` scenarios, `50` episodes per scenario, `batch_size = 50` and `2` collect workers
+  - output highlights:
+    - merged dataset JSONL
+    - compressed archive for download
+    - `collection-metrics.json` with dataset size, archive size, batches, episodes and `download_path`
+  - helper commands:
+    - `scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh status`
+    - `scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh logs`
+    - `scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh issues`
+    - `scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh notify-test`
+    - `scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh stop`
 
 Large dataset note:
 
@@ -191,20 +219,20 @@ For future remote runs on a fresh Ubuntu server, this is the recommended order.
    - reset stale smoke state if needed:
      - `rm -rf data/rl/pipeline-runs/wave-library-iterative-remote-smoke`
    - start smoke:
-     - `bash scripts/run-wave-library-bootstrap-remote.sh start-smoke`
+     - `bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh start-smoke`
 12. Start the longer iterative overnight run:
    - reset stale overnight state only if you want a completely fresh run:
      - `rm -rf data/rl/pipeline-runs/wave-library-iterative-remote-10ep`
    - start overnight:
-     - `bash scripts/run-wave-library-bootstrap-remote.sh start-overnight`
+     - `bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh start-overnight`
    - after a code fix, a plain restart is usually enough because the pipeline resumes from the recorded manifest state
    - optional Telegram test before a long run:
-     - `bash scripts/run-wave-library-bootstrap-remote.sh notify-test`
+     - `bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh notify-test`
    - if Telegram is configured, the control bot is started automatically together with the run
 13. Monitor or inspect the run:
-   - `bash scripts/run-wave-library-bootstrap-remote.sh status`
-   - `bash scripts/run-wave-library-bootstrap-remote.sh logs`
-   - `bash scripts/run-wave-library-bootstrap-remote.sh issues`
+   - `bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh status`
+   - `bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh logs`
+   - `bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh issues`
    - use `tail -n 50 data/rl/pipeline-runs/wave-library-iterative-remote-smoke/remote-iterative.log` or `tail -n 50 data/rl/pipeline-runs/wave-library-iterative-remote-10ep/remote-iterative.log` for a short snapshot instead of continuous log streaming
 
 After the run finishes, the central download index is:

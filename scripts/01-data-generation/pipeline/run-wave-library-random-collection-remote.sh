@@ -1,0 +1,452 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+DEFAULT_CONFIG="${REPO_ROOT}/data/rl/wave-library-random-collection-remote-50ep.json"
+SMOKE_CONFIG="${REPO_ROOT}/data/rl/wave-library-random-collection-remote-smoke.json"
+CONTROL_DIR="${REPO_ROOT}/data/rl/pipeline-runs/wave-library-random-collection-remote-control"
+PID_FILE="${CONTROL_DIR}/remote-random-collection.pid"
+ACTIVE_CONFIG_FILE="${CONTROL_DIR}/active-config.txt"
+VENV_DIR="${REPO_ROOT}/.venv"
+VENV_PYTHON="${VENV_DIR}/bin/python"
+VENV_BIN_DIR="${VENV_DIR}/bin"
+TELEGRAM_ENV_FILE="${POKEROGUE_NOTIFICATION_ENV_FILE:-${HOME}/.config/pokeroguebot/telegram.env}"
+
+mkdir -p "${CONTROL_DIR}"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start [config_path]
+  scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-smoke
+  scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh status
+  scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh logs
+  scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh last
+  scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh issues
+  scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh notify-test
+  scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh stop
+EOF
+}
+
+assert_command() {
+  local command_name="$1"
+  if ! command -v "${command_name}" >/dev/null 2>&1; then
+    echo "Missing dependency: ${command_name}" >&2
+    exit 1
+  fi
+}
+
+canonicalize_config_path() {
+  local config_path="${1:-${DEFAULT_CONFIG}}"
+  if [[ "${config_path}" != /* ]]; then
+    config_path="${REPO_ROOT}/${config_path}"
+  fi
+  python3 - "${config_path}" <<'PY'
+import os
+import sys
+print(os.path.realpath(sys.argv[1]))
+PY
+}
+
+get_active_config_path() {
+  if [ -f "${ACTIVE_CONFIG_FILE}" ]; then
+    cat "${ACTIVE_CONFIG_FILE}"
+    return 0
+  fi
+  echo "${DEFAULT_CONFIG}"
+}
+
+runtime_dir_for_config() {
+  local config_path
+  config_path="$(canonicalize_config_path "${1:-${DEFAULT_CONFIG}}")"
+  python3 - "${config_path}" "${REPO_ROOT}" <<'PY'
+import json
+import os
+import sys
+
+config_path = os.path.realpath(sys.argv[1])
+repo_root = os.path.realpath(sys.argv[2])
+data_rl_dir = os.path.join(repo_root, "data", "rl")
+config_dir = os.path.dirname(config_path)
+
+with open(config_path, "r", encoding="utf-8") as handle:
+    config = json.load(handle)
+
+value = config.get("output_root", "./pipeline-runs/wave-library-random-collection")
+
+def resolve_path_with_fallbacks(path_value, bases):
+    if os.path.isabs(path_value):
+        return path_value
+    for base in bases:
+        candidate = os.path.realpath(os.path.join(base, path_value))
+        parent = os.path.dirname(candidate)
+        if os.path.isdir(candidate) or os.path.isdir(parent):
+            return candidate
+    return os.path.realpath(os.path.join(bases[0], path_value))
+
+print(resolve_path_with_fallbacks(value, [config_dir, data_rl_dir, repo_root]))
+PY
+}
+
+runtime_path() {
+  local config_path="$1"
+  local file_name="$2"
+  echo "$(runtime_dir_for_config "${config_path}")/${file_name}"
+}
+
+log_file_for_config() {
+  runtime_path "${1}" "remote-random-collection.log"
+}
+
+error_log_file_for_config() {
+  runtime_path "${1}" "remote-random-collection-errors.log"
+}
+
+warning_log_file_for_config() {
+  runtime_path "${1}" "remote-random-collection-warnings.log"
+}
+
+issues_summary_file_for_config() {
+  runtime_path "${1}" "issues-summary.txt"
+}
+
+manifest_file_for_config() {
+  runtime_path "${1}" "manifest.json"
+}
+
+metrics_file_for_config() {
+  runtime_path "${1}" "collection-metrics.json"
+}
+
+artifacts_summary_file_for_config() {
+  runtime_path "${1}" "artifacts-summary.json"
+}
+
+check_dependencies() {
+  echo "Checking dependencies..."
+  assert_command node
+  assert_command npm
+  assert_command python3
+  assert_command tar
+
+  if [ -x "${VENV_PYTHON}" ]; then
+    echo "Using repo virtualenv: ${VENV_DIR}"
+  else
+    echo "Repo virtualenv not found at ${VENV_DIR}" >&2
+    exit 1
+  fi
+
+  if ! "${VENV_PYTHON}" -c 'import torch, numpy' >/dev/null 2>&1; then
+    echo "Missing Python dependency: torch" >&2
+    exit 1
+  fi
+
+  if [ ! -d "${REPO_ROOT}/node_modules" ]; then
+    echo "Missing root node_modules. Run: npm install" >&2
+    exit 1
+  fi
+
+  if [ ! -d "${REPO_ROOT}/pokerogue/node_modules" ]; then
+    echo "Missing pokerogue/node_modules. Run: (cd pokerogue && npm install)" >&2
+    exit 1
+  fi
+
+  if [ ! -d "${REPO_ROOT}/pokerogue/locales/en" ]; then
+    echo "Missing pokerogue/locales/en. The headless collector will not start correctly." >&2
+    exit 1
+  fi
+}
+
+is_running() {
+  if [ ! -f "${PID_FILE}" ]; then
+    return 1
+  fi
+  local pid
+  pid="$(cat "${PID_FILE}")"
+  [ -n "${pid}" ] && kill -0 "${pid}" >/dev/null 2>&1
+}
+
+refresh_issue_logs() {
+  local config_path
+  config_path="$(get_active_config_path)"
+  local log_file
+  log_file="$(log_file_for_config "${config_path}")"
+  local manifest_file
+  manifest_file="$(manifest_file_for_config "${config_path}")"
+  local error_log_file
+  error_log_file="$(error_log_file_for_config "${config_path}")"
+  local warning_log_file
+  warning_log_file="$(warning_log_file_for_config "${config_path}")"
+  local issues_summary_file
+  issues_summary_file="$(issues_summary_file_for_config "${config_path}")"
+
+  python3 - "${log_file}" "${manifest_file}" "${error_log_file}" "${warning_log_file}" "${issues_summary_file}" <<'PY'
+import json
+import re
+import sys
+from pathlib import Path
+
+log_path = Path(sys.argv[1])
+manifest_path = Path(sys.argv[2])
+error_log_path = Path(sys.argv[3])
+warning_log_path = Path(sys.argv[4])
+summary_path = Path(sys.argv[5])
+
+error_pattern = re.compile(r"(error:|exception|traceback|command failed|failed\b|fatal\b)", re.IGNORECASE)
+warning_pattern = re.compile(r"(\bwarn(?:ing)?\b)", re.IGNORECASE)
+
+error_lines = []
+warning_lines = []
+
+if log_path.exists():
+    for raw_line in log_path.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if warning_pattern.search(line):
+            warning_lines.append(line)
+        if error_pattern.search(line):
+            error_lines.append(line)
+
+manifest_errors = []
+if manifest_path.exists():
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    for step_name, step in (manifest.get("steps") or {}).items():
+        if step.get("status") == "failed" or step.get("error"):
+            manifest_errors.append(f"[manifest step:{step_name}] status={step.get('status')} error={step.get('error')}")
+    for batch in manifest.get("batches") or []:
+        if batch.get("status") == "failed" or batch.get("error"):
+            manifest_errors.append(
+                f"[manifest batch:{batch.get('id')}] phase={batch.get('phase')} status={batch.get('status')} error={batch.get('error')}"
+            )
+
+deduped_errors = list(dict.fromkeys(error_lines + manifest_errors))
+deduped_warnings = list(dict.fromkeys(warning_lines))
+
+error_log_path.write_text("".join(f"{line}\n" for line in deduped_errors), encoding="utf-8")
+warning_log_path.write_text("".join(f"{line}\n" for line in deduped_warnings), encoding="utf-8")
+
+summary_lines = [
+    f"Error count: {len(deduped_errors)}",
+    f"Warning count: {len(deduped_warnings)}",
+    f"Log: {log_path}",
+    f"Manifest: {manifest_path}",
+]
+
+if deduped_errors:
+    summary_lines.append("")
+    summary_lines.append("Recent errors:")
+    summary_lines.extend(deduped_errors[-10:])
+
+if deduped_warnings:
+    summary_lines.append("")
+    summary_lines.append("Recent warnings:")
+    summary_lines.extend(deduped_warnings[-10:])
+
+summary_path.write_text("".join(f"{line}\n" for line in summary_lines), encoding="utf-8")
+PY
+}
+
+print_manifest_summary() {
+  local manifest_path="$1"
+  local active_config
+  active_config="$(get_active_config_path)"
+  if [ ! -f "${manifest_path}" ]; then
+    return 0
+  fi
+
+  python3 - "${manifest_path}" "${active_config}" <<'PY'
+import json
+import sys
+
+manifest_path = sys.argv[1]
+config_path = sys.argv[2]
+
+with open(manifest_path, "r", encoding="utf-8") as handle:
+    manifest = json.load(handle)
+with open(config_path, "r", encoding="utf-8") as handle:
+    config = json.load(handle)
+
+batches = manifest.get("batches", [])
+steps = manifest.get("steps", {})
+collect = config.get("collect", {})
+
+total = len(batches)
+completed = sum(1 for batch in batches if batch.get("status") == "completed")
+failed = sum(1 for batch in batches if batch.get("status") == "failed")
+planned_episodes = sum(int(batch.get("episodes", 0) or 0) for batch in batches)
+completed_episodes = sum(int(batch.get("episodes", 0) or 0) for batch in batches if batch.get("status") == "completed")
+scenario_count = len({str(batch.get("scenario_name")) for batch in batches if batch.get("scenario_name") is not None})
+
+current_step = None
+for step_name, step in steps.items():
+    if step.get("status") == "running":
+        current_step = step_name
+        break
+if current_step is None:
+    for step_name, step in steps.items():
+        if step.get("status") != "completed":
+            current_step = step_name
+            break
+
+if any(step.get("status") == "failed" for step in steps.values()) or failed > 0:
+    print("Collection state: failed")
+elif current_step is None and all(step.get("status") == "completed" for step in steps.values()):
+    print("Collection state: completed")
+else:
+    print("Collection state: healthy")
+print(f"Phase: {current_step or 'completed'}")
+print(f"Scenarios: {scenario_count}")
+print(f"Batch size: {collect.get('batch_size')}")
+print(f"Episodes per scenario: {collect.get('episodes_per_instance')}")
+print(f"Batches: {completed}/{total} completed, {failed} failed, {total - completed} remaining")
+print(f"Episodes: {completed_episodes}/{planned_episodes} completed, {planned_episodes - completed_episodes} remaining")
+PY
+}
+
+print_status() {
+  local config_path
+  config_path="$(get_active_config_path)"
+  local runtime_dir
+  runtime_dir="$(runtime_dir_for_config "${config_path}")"
+  refresh_issue_logs >/dev/null 2>&1 || true
+
+  if is_running; then
+    local pid
+    pid="$(cat "${PID_FILE}")"
+    echo "Remote random collection run is running."
+    echo "PID: ${pid}"
+  else
+    echo "Remote random collection run is not running."
+  fi
+
+  echo "Config: ${config_path}"
+  echo "Runtime dir: ${runtime_dir}"
+  echo "Log: $(log_file_for_config "${config_path}")"
+  echo "Warnings: $(warning_log_file_for_config "${config_path}")"
+  echo "Errors: $(error_log_file_for_config "${config_path}")"
+  echo "Issues summary: $(issues_summary_file_for_config "${config_path}")"
+  echo "Manifest: $(manifest_file_for_config "${config_path}")"
+  echo "Artifacts summary: $(artifacts_summary_file_for_config "${config_path}")"
+  echo "Metrics: $(metrics_file_for_config "${config_path}")"
+  print_manifest_summary "$(manifest_file_for_config "${config_path}")"
+}
+
+start_run() {
+  local config_path
+  config_path="$(canonicalize_config_path "${1:-${DEFAULT_CONFIG}}")"
+
+  if [ ! -f "${config_path}" ]; then
+    echo "Config not found: ${config_path}" >&2
+    exit 1
+  fi
+  if is_running; then
+    echo "A remote random collection run is already running."
+    print_status
+    exit 1
+  fi
+
+  rm -f "${PID_FILE}"
+  check_dependencies
+
+  local runtime_dir
+  runtime_dir="$(runtime_dir_for_config "${config_path}")"
+  mkdir -p "${runtime_dir}"
+  echo "${config_path}" > "${ACTIVE_CONFIG_FILE}"
+
+  local log_file
+  log_file="$(log_file_for_config "${config_path}")"
+  : > "$(error_log_file_for_config "${config_path}")"
+  : > "$(warning_log_file_for_config "${config_path}")"
+  : > "$(issues_summary_file_for_config "${config_path}")"
+
+  nohup bash -lc "export PATH='${VENV_BIN_DIR}':\"\$PATH\" && if [ -f '${TELEGRAM_ENV_FILE}' ]; then source '${TELEGRAM_ENV_FILE}'; fi && cd '${REPO_ROOT}' && npm run rl:pipeline:wave-lib:collect -- '${config_path}'" \
+    >"${log_file}" 2>&1 < /dev/null &
+  local pid=$!
+  echo "${pid}" > "${PID_FILE}"
+  sleep 1
+
+  if kill -0 "${pid}" >/dev/null 2>&1; then
+    echo "Started detached random-collection run with PID ${pid}."
+    echo "Log: ${log_file}"
+  else
+    echo "Process exited immediately. Check log: ${log_file}" >&2
+    exit 1
+  fi
+}
+
+stop_run() {
+  if ! is_running; then
+    echo "No running random collection process found."
+    exit 0
+  fi
+  local pid
+  pid="$(cat "${PID_FILE}")"
+  echo "Stopping PID ${pid}..."
+  kill "${pid}"
+  rm -f "${PID_FILE}"
+}
+
+show_logs() {
+  local config_path
+  config_path="$(get_active_config_path)"
+  tail -n 200 -f "$(log_file_for_config "${config_path}")"
+}
+
+show_last_logs() {
+  local config_path
+  config_path="$(get_active_config_path)"
+  tail -n 50 "$(log_file_for_config "${config_path}")"
+}
+
+show_issues() {
+  refresh_issue_logs >/dev/null
+  cat "$(issues_summary_file_for_config "$(get_active_config_path)")"
+}
+
+notify_test() {
+  local config_path
+  config_path="$(get_active_config_path)"
+  if [ -f "${TELEGRAM_ENV_FILE}" ]; then
+    # shellcheck disable=SC1090
+    source "${TELEGRAM_ENV_FILE}"
+  fi
+  node scripts/04-automation/telegram/send-pipeline-notification.mjs \
+    --event test \
+    --runtime-dir "$(runtime_dir_for_config "${config_path}")" \
+    --manifest "$(manifest_file_for_config "${config_path}")" \
+    --phase manual_test \
+    --collection-metrics "$(metrics_file_for_config "${config_path}")"
+}
+
+case "${1:-}" in
+  start)
+    start_run "${2:-${DEFAULT_CONFIG}}"
+    ;;
+  start-smoke)
+    start_run "${SMOKE_CONFIG}"
+    ;;
+  status)
+    print_status
+    ;;
+  logs)
+    show_logs
+    ;;
+  last)
+    show_last_logs
+    ;;
+  issues)
+    show_issues
+    ;;
+  notify-test)
+    notify_test
+    ;;
+  stop)
+    stop_run
+    ;;
+  *)
+    usage
+    exit 1
+    ;;
+esac
