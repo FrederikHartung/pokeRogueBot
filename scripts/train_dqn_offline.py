@@ -304,11 +304,14 @@ def train(config: Dict) -> None:
     target_update = int(config.get("target_update_steps", 50))
     grad_clip = float(config.get("grad_clip_norm", 5.0))
     dataloader_num_workers = int(config.get("dataloader_num_workers", 0))
+    log_every_epochs = int(config.get("log_every_epochs", 2))
 
     if batch_size <= 0:
         raise ValueError("batch_size must be > 0")
     if dataloader_num_workers < 0:
         raise ValueError("dataloader_num_workers must be >= 0")
+    if log_every_epochs <= 0:
+        raise ValueError("log_every_epochs must be > 0")
 
     q_net = QNetwork(input_dim, hidden_dims, output_dim).to(device)
     target_net = QNetwork(input_dim, hidden_dims, output_dim).to(device)
@@ -322,6 +325,15 @@ def train(config: Dict) -> None:
         batch_size=batch_size,
         shuffle=True,
         num_workers=dataloader_num_workers,
+    )
+
+    print(
+        "training_start "
+        f"dataset_rows={dataset_size} "
+        f"input_dim={input_dim} "
+        f"batch_size={batch_size} "
+        f"epochs={epochs} "
+        f"device={device}"
     )
 
     step = 0
@@ -363,8 +375,13 @@ def train(config: Dict) -> None:
                 target_net.load_state_dict(q_net.state_dict())
 
         mean_loss = epoch_loss_sum / max(1, epoch_batches)
-        if epoch == 1 or epoch % 10 == 0 or epoch == epochs:
-            print(f"epoch={epoch} mean_loss={mean_loss:.6f}")
+        if epoch == 1 or epoch % log_every_epochs == 0 or epoch == epochs:
+            print(
+                f"epoch={epoch}/{epochs} "
+                f"mean_loss={mean_loss:.6f} "
+                f"batches={epoch_batches} "
+                f"global_steps={step}"
+            )
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     torch.save(

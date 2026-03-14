@@ -614,6 +614,8 @@ Robustheit fuer groessere Trainingssaetze:
   - `train_dqn_offline.py` laedt das JSONL nicht mehr vollstaendig in Python-Listen und Tensoren vorab
   - stattdessen wird ein JSONL-basiertes PyTorch-`Dataset` mit `DataLoader` verwendet
   - Samples werden pro Mini-Batch gelesen und erst dann aufs Device verschoben
+  - zusaetzlich loggt das Training jetzt beim Start eine kurze Zusammenfassung und danach standardmaessig alle `2` Epochen einen Fortschrittsstand
+  - optional kann die Frequenz ueber `log_every_epochs` im Training-Config-JSON angepasst werden
 - dadurch soll das Risiko sinken, dass laengere iterative Remote-Laeufe beim Training mit `Killed` bzw. OOM abbrechen
 - dadurch sollen Fehler der Form `Invalid string length` oder `ERR_STRING_TOO_LONG` bei grossen lokalen oder Remote-Laeufen vermieden werden
 - verbleibende praktische Regel:

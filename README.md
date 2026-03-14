@@ -101,6 +101,7 @@ Large dataset note:
 - offline DQN training now also avoids loading the full JSONL dataset into RAM at once
 - `train_dqn_offline.py` now uses a JSONL-backed PyTorch `Dataset` plus `DataLoader`, so samples are read and moved to the device batch by batch
 - this reduces peak memory pressure substantially for larger cumulative iterative datasets
+- the trainer now also logs a short `training_start ...` summary plus epoch progress regularly; default is every `2` epochs and can be overridden with `log_every_epochs`
 - the iterative and bootstrap pipelines now prefer the repo virtualenv interpreter from `.venv/bin/python3` or `.venv/bin/python` for Python stages; `POKEROGUE_PYTHON_BIN` can override this explicitly
 - practical implication:
   - prefer larger `batch_size` values for long collection runs when `episodes_per_instance` is high, so fewer long collector batches are created
