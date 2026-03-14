@@ -10,6 +10,9 @@ After getting to a Result, the bot calculates which buttons are to press and sen
 
 ## Documentation
 
+- Remote-Telegram-Benachrichtigungen fuer laengere Pipeline-Laeufe:
+  - `docs/telegram-notifications.md`
+
 ### How to get started
 1. Clone this repository with submodules: `git clone --recurse-submodules <repo-url>`. If you already cloned without submodules, run `git submodule update --init --recursive`.
 2. Install a Java 21 SDK, Maven (Java Build Tool), Node.js (for building JS bridge files), Intellij Idea (Java IDE) and Chrome (Browser).
@@ -71,10 +74,12 @@ There are now two separate paths and both should stay available:
     - `scripts/run-wave-library-bootstrap-remote.sh status`
     - `scripts/run-wave-library-bootstrap-remote.sh logs`
     - `scripts/run-wave-library-bootstrap-remote.sh issues`
+    - `scripts/run-wave-library-bootstrap-remote.sh notify-test`
     - `scripts/run-wave-library-bootstrap-remote.sh stop`
   - `status` also reports scenario count, episodes per scenario and total/completed episode counts
   - the iterative pipeline can resume from an existing runtime directory; already completed batches and steps stay reusable after a restart
   - deleting `data/rl/pipeline-runs/...` is only needed for a clean restart, not for every resume after a code fix
+  - if Telegram env vars are available, the iterative pipeline sends notifications for completed benchmark iterations, failures and full completion
 
 Large dataset note:
 
@@ -179,6 +184,8 @@ For future remote runs on a fresh Ubuntu server, this is the recommended order.
    - start overnight:
      - `bash scripts/run-wave-library-bootstrap-remote.sh start-overnight`
    - after a code fix, a plain restart is usually enough because the pipeline resumes from the recorded manifest state
+   - optional Telegram test before a long run:
+     - `bash scripts/run-wave-library-bootstrap-remote.sh notify-test`
 13. Monitor or inspect the run:
    - `bash scripts/run-wave-library-bootstrap-remote.sh status`
    - `bash scripts/run-wave-library-bootstrap-remote.sh logs`

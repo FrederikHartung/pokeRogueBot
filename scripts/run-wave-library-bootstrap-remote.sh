@@ -12,6 +12,7 @@ ACTIVE_CONFIG_FILE="${CONTROL_DIR}/active-config.txt"
 VENV_DIR="${REPO_ROOT}/.venv"
 VENV_PYTHON="${VENV_DIR}/bin/python"
 VENV_BIN_DIR="${VENV_DIR}/bin"
+TELEGRAM_ENV_FILE="${POKEROGUE_NOTIFICATION_ENV_FILE:-${HOME}/.config/pokeroguebot/telegram.env}"
 
 mkdir -p "${CONTROL_DIR}"
 
@@ -25,14 +26,16 @@ Usage:
   scripts/run-wave-library-bootstrap-remote.sh logs
   scripts/run-wave-library-bootstrap-remote.sh last
   scripts/run-wave-library-bootstrap-remote.sh issues
+  scripts/run-wave-library-bootstrap-remote.sh notify-test
   scripts/run-wave-library-bootstrap-remote.sh stop
 
 Notes:
   - `start` checks required dependencies and then starts the iterative 5-iteration pipeline detached via `nohup`.
   - `start-smoke` uses the prepared 1-episode smoke config.
-  - `start-overnight` uses the prepared larger 10-episodes-per-instance config.
+  - `start-overnight` uses the prepared larger remote config.
   - The process keeps running after the SSH session closes.
   - `issues` refreshes a separate warning/error summary derived from the log and manifest.
+  - If `${TELEGRAM_ENV_FILE}` exists, it is sourced before the detached pipeline starts.
 EOF
 }
 
@@ -523,12 +526,17 @@ start_pipeline() {
   echo "Config: ${config_path}"
   echo "Runtime dir: ${runtime_dir}"
   echo "Log: ${log_file}"
+  if [ -f "${TELEGRAM_ENV_FILE}" ]; then
+    echo "Notification env: ${TELEGRAM_ENV_FILE}"
+  else
+    echo "Notification env: not found (${TELEGRAM_ENV_FILE})"
+  fi
   : > "${error_log_file}"
   : > "${warning_log_file}"
   : > "${issues_summary_file}"
   echo "Python: ${VENV_PYTHON}"
 
-  nohup bash -lc "export PATH='${VENV_BIN_DIR}':\"\$PATH\" && cd '${REPO_ROOT}' && npm run rl:pipeline:wave-lib:iterative -- '${config_path}'" \
+  nohup bash -lc "export PATH='${VENV_BIN_DIR}':\"\$PATH\" && if [ -f '${TELEGRAM_ENV_FILE}' ]; then source '${TELEGRAM_ENV_FILE}'; fi && cd '${REPO_ROOT}' && npm run rl:pipeline:wave-lib:iterative -- '${config_path}'" \
     >"${log_file}" 2>&1 < /dev/null &
   local pid=$!
   echo "${pid}" > "${PID_FILE}"
@@ -543,6 +551,37 @@ start_pipeline() {
     echo "Pipeline process exited immediately. Check log: ${log_file}" >&2
     exit 1
   fi
+}
+
+notify_test() {
+  local config_path
+  config_path="$(get_active_config_path)"
+  local runtime_dir
+  runtime_dir="$(runtime_dir_for_config "${config_path}")"
+  local manifest_file
+  manifest_file="$(manifest_file_for_config "${config_path}")"
+  local artifacts_summary_file
+  artifacts_summary_file="$(artifacts_summary_file_for_config "${config_path}")"
+  local benchmark_summary_file="${runtime_dir}/benchmark-summary.json"
+  local args=(
+    scripts/send-pipeline-notification.mjs
+    --event test
+    --runtime-dir "${runtime_dir}"
+    --manifest "${manifest_file}"
+    --phase manual_test
+    --artifacts-summary "${artifacts_summary_file}"
+  )
+
+  if [ -f "${benchmark_summary_file}" ]; then
+    args+=(--benchmark-summary "${benchmark_summary_file}")
+  fi
+
+  if [ -f "${TELEGRAM_ENV_FILE}" ]; then
+    # shellcheck disable=SC1090
+    source "${TELEGRAM_ENV_FILE}"
+  fi
+
+  node "${args[@]}"
 }
 
 stop_pipeline() {
@@ -627,6 +666,9 @@ main() {
       ;;
     issues)
       show_issues
+      ;;
+    notify-test)
+      notify_test
       ;;
     stop)
       stop_pipeline

@@ -46,6 +46,8 @@ if (scenarios.length === 0) {
 }
 
 const phasePlan = buildPhasePlan(iterations);
+const artifactsSummaryPath = path.join(pipelineRoot, "artifacts-summary.json");
+const benchmarkSummaryPath = path.join(pipelineRoot, "benchmark-summary.json");
 
 let manifest = loadManifest(manifestPath, configPath);
 manifest = syncManifest(manifest, config, scenarios, pipelineRoot, phasePlan);
@@ -111,15 +113,36 @@ async function main() {
       manifest = markStepStatus(manifest, phase, "completed");
       saveManifest(manifestPath, manifest);
       writeArtifactsSummary(manifest);
+      await notifyIfConfigured({
+        event: phase.startsWith("benchmark_iter_") ? "iteration_completed" : null,
+        phase,
+        iteration: phase.startsWith("benchmark_iter_") ? parseIterationFromPhase(phase, "benchmark_iter_") : null,
+      });
     } catch (error) {
       manifest = markStepStatus(manifest, phase, "failed", String(error?.message ?? error));
       saveManifest(manifestPath, manifest);
       writeArtifactsSummary(manifest);
+      await notifyIfConfigured({
+        event: "pipeline_failed",
+        phase,
+        error: String(error?.message ?? error),
+      });
       throw error;
     }
 
     if (cli.stopAfterPhase === phase) {
       break;
+    }
+  }
+
+  if (cli.stopAfterPhase == null) {
+    manifest = loadManifest(manifestPath, configPath);
+    const allCompleted = phasePlan.every(phase => manifest.steps?.[phase]?.status === "completed");
+    if (allCompleted) {
+      await notifyIfConfigured({
+        event: "pipeline_completed",
+        phase: "completed",
+      });
     }
   }
 }
@@ -866,12 +889,12 @@ function runCommand(command, args, cwd) {
   }
 }
 
-function runCommandAsync(command, args, cwd) {
+function runCommandAsync(command, args, cwd, stdio = "inherit") {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd,
       env: process.env,
-      stdio: "inherit",
+      stdio,
     });
 
     child.on("error", reject);
@@ -944,7 +967,7 @@ function saveManifest(filePath, manifest) {
 }
 
 function writeArtifactsSummary(manifest) {
-  const summaryPath = path.join(pipelineRoot, "artifacts-summary.json");
+  const summaryPath = artifactsSummaryPath;
   const latestIteration = findLatestCompletedIteration(manifest);
   const summary = {
     manifest_path: manifestPath,
@@ -977,6 +1000,42 @@ function findLatestCompletedIteration(manifest) {
     }
   }
   return null;
+}
+
+async function notifyIfConfigured({ event, phase, iteration = null, error = null }) {
+  if (typeof event !== "string" || event.length === 0) {
+    return;
+  }
+
+  const args = [
+    "scripts/send-pipeline-notification.mjs",
+    "--event",
+    event,
+    "--manifest",
+    manifestPath,
+    "--runtime-dir",
+    pipelineRoot,
+    "--phase",
+    phase,
+    "--artifacts-summary",
+    artifactsSummaryPath,
+  ];
+
+  if (existsSync(benchmarkSummaryPath)) {
+    args.push("--benchmark-summary", benchmarkSummaryPath);
+  }
+  if (iteration != null) {
+    args.push("--iteration", String(iteration));
+  }
+  if (typeof error === "string" && error.length > 0) {
+    args.push("--error", error);
+  }
+
+  try {
+    await runCommandAsync("node", args, repoRoot, "pipe");
+  } catch (notificationError) {
+    console.warn(`Notification failed for ${event}: ${String(notificationError?.message ?? notificationError)}`);
+  }
 }
 
 function toNumberSet(values) {

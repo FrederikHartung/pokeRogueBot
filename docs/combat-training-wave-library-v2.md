@@ -554,7 +554,10 @@ Remote-Server-Bedienung:
   - `status`
   - `logs`
   - `issues`
+  - `notify-test`
   - `stop`
+- Telegram-Benachrichtigungen fuer Remote-Laeufe:
+  - siehe `docs/telegram-notifications.md`
 - vorbereiteter Mini-Smoke:
   - Config: `data/rl/wave-library-iterative-pipeline-remote-smoke.json`
   - genau `8` Szenarien:
@@ -584,6 +587,10 @@ Remote-Server-Bedienung:
   - Anzahl der Szenarien
   - Episoden pro Szenario
   - bereits erzeugte und insgesamt geplante Episoden
+- bei vorhandener Telegram-Env-Datei sendet die iterative Pipeline Benachrichtigungen fuer:
+  - erfolgreiche `benchmark_iter_n`-Abschluesse
+  - Pipeline-Fehler
+  - vollstaendig abgeschlossene Laeufe
 
 Robustheit fuer groessere Trainingssaetze:
 
@@ -648,6 +655,8 @@ Ubuntu-Setup-Kurzpfad fuer spaetere Server:
   - nach einem Code-Fix ist ein Resume ueber denselben Runtime-Ordner ausdruecklich gewollt:
     - bereits abgeschlossene Batches werden wiederverwendet
     - die Pipeline setzt am ersten fehlgeschlagenen oder offenen Schritt fort
+  - optional vorher Telegram testen:
+    - `bash scripts/run-wave-library-bootstrap-remote.sh notify-test`
 - Monitoring:
   - `bash scripts/run-wave-library-bootstrap-remote.sh status`
   - `bash scripts/run-wave-library-bootstrap-remote.sh logs`
