@@ -84,6 +84,7 @@ Relevante Dateien:
 - `scripts/send-pipeline-notification.mjs`
 - `scripts/run-wave-library-iterative-pipeline.mjs`
 - `scripts/run-wave-library-bootstrap-remote.sh`
+- `scripts/run-telegram-control-bot.mjs`
 
 Aktive Events:
 
@@ -172,3 +173,58 @@ Hinweise:
 - Das Remote-Skript laedt `~/.config/pokeroguebot/telegram.env` automatisch, falls die Datei existiert.
 - Fehlt die Datei oder sind Token/Chat-ID nicht gesetzt, laeuft die Pipeline trotzdem weiter.
 - Ein Fehler beim Senden einer Benachrichtigung stoppt die Pipeline nicht.
+
+## Telegram-Statusabfrage vom iPhone
+
+Zusätzlich zum Push bei Fehlern oder abgeschlossenen Iterationen kann ein kleiner Telegram-Control-Bot den Serverzustand auf Anfrage zurückschicken.
+
+Erlaubte Commands:
+
+- `/status`
+- `/issues`
+- `/last`
+- `/help`
+
+Sicherheitsregel:
+
+- akzeptiert wird nur die in `POKEROGUE_TELEGRAM_CHAT_ID` konfigurierte Chat-ID
+
+Start auf dem Server:
+
+```bash
+bash scripts/run-wave-library-bootstrap-remote.sh telegram-control-start
+```
+
+Status prüfen:
+
+```bash
+bash scripts/run-wave-library-bootstrap-remote.sh telegram-control-status
+```
+
+Stoppen:
+
+```bash
+bash scripts/run-wave-library-bootstrap-remote.sh telegram-control-stop
+```
+
+Polling:
+
+- Standard ist aktuell `600` Sekunden, also `10` Minuten
+- optional konfigurierbar über:
+
+```bash
+export POKEROGUE_TELEGRAM_POLL_INTERVAL_SECONDS='600'
+```
+
+Automatisches Verhalten:
+
+- wenn `telegram.env` vorhanden ist und die Remote-Pipeline über `start-smoke` oder `start-overnight` gestartet wird, wird der Control-Bot automatisch mit gestartet
+- wenn die Pipeline fertig ist oder mit Fehler endet, wird der automatisch gestartete Control-Bot wieder beendet
+- die manuellen Commands bleiben trotzdem verfügbar, falls der Bot separat betrieben werden soll
+
+Beispielablauf:
+
+1. Auf dem iPhone dem Bot `/status` schicken.
+2. Der Poller holt periodisch neue Updates ab.
+3. Er führt serverseitig `status`, `issues` oder `last` über das bestehende Remote-Skript aus.
+4. Die Ausgabe kommt als Telegram-Nachricht zurück.

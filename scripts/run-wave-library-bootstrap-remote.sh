@@ -9,10 +9,13 @@ OVERNIGHT_CONFIG="${REPO_ROOT}/data/rl/wave-library-iterative-pipeline-remote-10
 CONTROL_DIR="${REPO_ROOT}/data/rl/pipeline-runs/wave-library-iterative-remote-control"
 PID_FILE="${CONTROL_DIR}/remote-iterative.pid"
 ACTIVE_CONFIG_FILE="${CONTROL_DIR}/active-config.txt"
+TELEGRAM_CONTROL_PID_FILE="${CONTROL_DIR}/telegram-control.pid"
+TELEGRAM_CONTROL_AUTO_FILE="${CONTROL_DIR}/telegram-control.auto"
 VENV_DIR="${REPO_ROOT}/.venv"
 VENV_PYTHON="${VENV_DIR}/bin/python"
 VENV_BIN_DIR="${VENV_DIR}/bin"
 TELEGRAM_ENV_FILE="${POKEROGUE_NOTIFICATION_ENV_FILE:-${HOME}/.config/pokeroguebot/telegram.env}"
+TELEGRAM_POLL_INTERVAL_SECONDS="${POKEROGUE_TELEGRAM_POLL_INTERVAL_SECONDS:-600}"
 
 mkdir -p "${CONTROL_DIR}"
 
@@ -27,6 +30,9 @@ Usage:
   scripts/run-wave-library-bootstrap-remote.sh last
   scripts/run-wave-library-bootstrap-remote.sh issues
   scripts/run-wave-library-bootstrap-remote.sh notify-test
+  scripts/run-wave-library-bootstrap-remote.sh telegram-control-start
+  scripts/run-wave-library-bootstrap-remote.sh telegram-control-status
+  scripts/run-wave-library-bootstrap-remote.sh telegram-control-stop
   scripts/run-wave-library-bootstrap-remote.sh stop
 
 Notes:
@@ -36,6 +42,8 @@ Notes:
   - The process keeps running after the SSH session closes.
   - `issues` refreshes a separate warning/error summary derived from the log and manifest.
   - If `${TELEGRAM_ENV_FILE}` exists, it is sourced before the detached pipeline starts.
+  - When Telegram is configured, the control bot is started automatically with the remote pipeline and stopped again after the pipeline exits.
+  - The Telegram control bot accepts `/status`, `/issues`, `/last` and `/help` from the configured chat id.
 EOF
 }
 
@@ -180,6 +188,24 @@ is_running() {
 
   local pid
   pid="$(cat "${PID_FILE}")"
+  if [ -z "${pid}" ]; then
+    return 1
+  fi
+
+  if kill -0 "${pid}" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  return 1
+}
+
+is_telegram_control_running() {
+  if [ ! -f "${TELEGRAM_CONTROL_PID_FILE}" ]; then
+    return 1
+  fi
+
+  local pid
+  pid="$(cat "${TELEGRAM_CONTROL_PID_FILE}")"
   if [ -z "${pid}" ]; then
     return 1
   fi
@@ -536,7 +562,23 @@ start_pipeline() {
   : > "${issues_summary_file}"
   echo "Python: ${VENV_PYTHON}"
 
-  nohup bash -lc "export PATH='${VENV_BIN_DIR}':\"\$PATH\" && if [ -f '${TELEGRAM_ENV_FILE}' ]; then source '${TELEGRAM_ENV_FILE}'; fi && cd '${REPO_ROOT}' && npm run rl:pipeline:wave-lib:iterative -- '${config_path}'" \
+  local auto_started_telegram_control=0
+  if [ -f "${TELEGRAM_ENV_FILE}" ]; then
+    if is_telegram_control_running; then
+      echo "Telegram control bot already running."
+      rm -f "${TELEGRAM_CONTROL_AUTO_FILE}"
+    else
+      telegram_control_start_internal
+      auto_started_telegram_control=1
+      echo "1" > "${TELEGRAM_CONTROL_AUTO_FILE}"
+    fi
+  else
+    rm -f "${TELEGRAM_CONTROL_AUTO_FILE}"
+  fi
+
+  local cleanup_command="status=\$?; if [ -f '${TELEGRAM_CONTROL_AUTO_FILE}' ]; then bash scripts/run-wave-library-bootstrap-remote.sh telegram-control-stop >/dev/null 2>&1 || true; rm -f '${TELEGRAM_CONTROL_AUTO_FILE}'; fi; exit \$status"
+
+  nohup bash -lc "export PATH='${VENV_BIN_DIR}':\"\$PATH\" && if [ -f '${TELEGRAM_ENV_FILE}' ]; then source '${TELEGRAM_ENV_FILE}'; fi && cd '${REPO_ROOT}' && npm run rl:pipeline:wave-lib:iterative -- '${config_path}'; ${cleanup_command}" \
     >"${log_file}" 2>&1 < /dev/null &
   local pid=$!
   echo "${pid}" > "${PID_FILE}"
@@ -545,10 +587,17 @@ start_pipeline() {
   if kill -0 "${pid}" >/dev/null 2>&1; then
     echo "Started detached pipeline with PID ${pid}."
     echo "The process will continue after SSH disconnect."
+    if [ "${auto_started_telegram_control}" -eq 1 ]; then
+      echo "Telegram control bot was started automatically."
+    fi
     echo "Follow logs with:"
     echo "  scripts/run-wave-library-bootstrap-remote.sh logs"
   else
     echo "Pipeline process exited immediately. Check log: ${log_file}" >&2
+    if [ -f "${TELEGRAM_CONTROL_AUTO_FILE}" ]; then
+      bash scripts/run-wave-library-bootstrap-remote.sh telegram-control-stop >/dev/null 2>&1 || true
+      rm -f "${TELEGRAM_CONTROL_AUTO_FILE}"
+    fi
     exit 1
   fi
 }
@@ -582,6 +631,78 @@ notify_test() {
   fi
 
   node "${args[@]}"
+}
+
+telegram_control_start_internal() {
+  if is_telegram_control_running; then
+    return 0
+  fi
+
+  local control_log_file="${CONTROL_DIR}/telegram-control.log"
+  source "${TELEGRAM_ENV_FILE}"
+
+  nohup bash -lc "export PATH='${VENV_BIN_DIR}':\"\$PATH\" && source '${TELEGRAM_ENV_FILE}' && cd '${REPO_ROOT}' && node scripts/run-telegram-control-bot.mjs --poll-interval-seconds '${TELEGRAM_POLL_INTERVAL_SECONDS}'" \
+    >"${control_log_file}" 2>&1 < /dev/null &
+  local pid=$!
+  echo "${pid}" > "${TELEGRAM_CONTROL_PID_FILE}"
+  sleep 1
+
+  if kill -0 "${pid}" >/dev/null 2>&1; then
+    return 0
+  else
+    echo "Telegram control bot exited immediately. Check log: ${control_log_file}" >&2
+    exit 1
+  fi
+}
+
+telegram_control_start() {
+  check_dependencies
+
+  if [ ! -f "${TELEGRAM_ENV_FILE}" ]; then
+    echo "Telegram env file not found: ${TELEGRAM_ENV_FILE}" >&2
+    exit 1
+  fi
+
+  if is_telegram_control_running; then
+    echo "Telegram control bot is already running."
+    telegram_control_status
+    exit 1
+  fi
+
+  telegram_control_start_internal
+  echo "Started Telegram control bot with PID $(cat "${TELEGRAM_CONTROL_PID_FILE}")."
+  echo "Poll interval: ${TELEGRAM_POLL_INTERVAL_SECONDS}s"
+  echo "Log: ${CONTROL_DIR}/telegram-control.log"
+}
+
+telegram_control_status() {
+  local control_log_file="${CONTROL_DIR}/telegram-control.log"
+  if is_telegram_control_running; then
+    local pid
+    pid="$(cat "${TELEGRAM_CONTROL_PID_FILE}")"
+    echo "Telegram control bot is running."
+    echo "PID: ${pid}"
+  else
+    echo "Telegram control bot is not running."
+  fi
+  echo "Env: ${TELEGRAM_ENV_FILE}"
+  echo "Poll interval: ${TELEGRAM_POLL_INTERVAL_SECONDS}s"
+  echo "Log: ${control_log_file}"
+}
+
+telegram_control_stop() {
+  if ! is_telegram_control_running; then
+    echo "No running Telegram control bot found."
+    exit 0
+  fi
+
+  local pid
+  pid="$(cat "${TELEGRAM_CONTROL_PID_FILE}")"
+  echo "Stopping Telegram control bot PID ${pid}..."
+  kill "${pid}"
+  rm -f "${TELEGRAM_CONTROL_PID_FILE}"
+  rm -f "${TELEGRAM_CONTROL_AUTO_FILE}"
+  echo "Stop signal sent."
 }
 
 stop_pipeline() {
@@ -669,6 +790,15 @@ main() {
       ;;
     notify-test)
       notify_test
+      ;;
+    telegram-control-start)
+      telegram_control_start
+      ;;
+    telegram-control-status)
+      telegram_control_status
+      ;;
+    telegram-control-stop)
+      telegram_control_stop
       ;;
     stop)
       stop_pipeline

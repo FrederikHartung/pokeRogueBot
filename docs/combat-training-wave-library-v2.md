@@ -555,6 +555,9 @@ Remote-Server-Bedienung:
   - `logs`
   - `issues`
   - `notify-test`
+  - `telegram-control-start`
+  - `telegram-control-status`
+  - `telegram-control-stop`
   - `stop`
 - Telegram-Benachrichtigungen fuer Remote-Laeufe:
   - siehe `docs/telegram-notifications.md`
@@ -591,6 +594,11 @@ Remote-Server-Bedienung:
   - erfolgreiche `benchmark_iter_n`-Abschluesse
   - Pipeline-Fehler
   - vollstaendig abgeschlossene Laeufe
+- optional kann ein separater Telegram-Control-Bot Statusanfragen beantworten:
+  - erlaubte Commands: `/status`, `/issues`, `/last`, `/help`
+  - Standard-Polling: `600s`
+  - wird bei `start-smoke` oder `start-overnight` automatisch mitgestartet, falls Telegram konfiguriert ist
+  - wird nach Pipeline-Ende oder Pipeline-Fehler automatisch wieder gestoppt
 
 Robustheit fuer groessere Trainingssaetze:
 
@@ -657,6 +665,7 @@ Ubuntu-Setup-Kurzpfad fuer spaetere Server:
     - die Pipeline setzt am ersten fehlgeschlagenen oder offenen Schritt fort
   - optional vorher Telegram testen:
     - `bash scripts/run-wave-library-bootstrap-remote.sh notify-test`
+  - bei aktivierter Telegram-Konfiguration startet der Control-Bot automatisch mit
 - Monitoring:
   - `bash scripts/run-wave-library-bootstrap-remote.sh status`
   - `bash scripts/run-wave-library-bootstrap-remote.sh logs`
