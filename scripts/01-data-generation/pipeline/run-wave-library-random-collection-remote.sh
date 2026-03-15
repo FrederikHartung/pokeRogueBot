@@ -111,6 +111,27 @@ issues_summary_file_for_config() {
   runtime_path "${1}" "issues-summary.txt"
 }
 
+format_duration_human() {
+  local total_seconds="${1:-0}"
+  if [ "${total_seconds}" -lt 0 ] 2>/dev/null; then
+    total_seconds=0
+  fi
+  local days=$((total_seconds / 86400))
+  local hours=$(((total_seconds % 86400) / 3600))
+  local minutes=$(((total_seconds % 3600) / 60))
+  local seconds=$((total_seconds % 60))
+
+  if [ "${days}" -gt 0 ]; then
+    printf "%dd %02dh %02dm %02ds" "${days}" "${hours}" "${minutes}" "${seconds}"
+  elif [ "${hours}" -gt 0 ]; then
+    printf "%dh %02dm %02ds" "${hours}" "${minutes}" "${seconds}"
+  elif [ "${minutes}" -gt 0 ]; then
+    printf "%dm %02ds" "${minutes}" "${seconds}"
+  else
+    printf "%ds" "${seconds}"
+  fi
+}
+
 manifest_file_for_config() {
   runtime_path "${1}" "manifest.json"
 }
@@ -278,6 +299,39 @@ failed = sum(1 for batch in batches if batch.get("status") == "failed")
 planned_episodes = sum(int(batch.get("episodes", 0) or 0) for batch in batches)
 completed_episodes = sum(int(batch.get("episodes", 0) or 0) for batch in batches if batch.get("status") == "completed")
 scenario_count = len({str(batch.get("scenario_name")) for batch in batches if batch.get("scenario_name") is not None})
+remaining = total - completed
+remaining_episodes = planned_episodes - completed_episodes
+
+completed_batch_durations_ms = [
+    int(batch.get("duration_ms"))
+    for batch in batches
+    if batch.get("status") == "completed" and isinstance(batch.get("duration_ms"), int)
+]
+avg_batch_duration_ms = int(sum(completed_batch_durations_ms) / len(completed_batch_durations_ms)) if completed_batch_durations_ms else 0
+eta_seconds = int((avg_batch_duration_ms * remaining) / 1000) if avg_batch_duration_ms > 0 and remaining > 0 else None
+running_batch = next((batch for batch in batches if batch.get("status") == "running"), None)
+
+completed_step_durations_ms = [
+    int(step.get("duration_ms"))
+    for step in steps.values()
+    if step.get("status") == "completed" and isinstance(step.get("duration_ms"), int)
+]
+total_step_duration_seconds = int(sum(completed_step_durations_ms) / 1000) if completed_step_durations_ms else None
+
+def fmt_seconds(total_seconds):
+    if total_seconds is None:
+        return "unknown"
+    days = total_seconds // 86400
+    hours = (total_seconds % 86400) // 3600
+    minutes = (total_seconds % 3600) // 60
+    seconds = total_seconds % 60
+    if days > 0:
+        return f"{days}d {hours:02d}h {minutes:02d}m {seconds:02d}s"
+    if hours > 0:
+        return f"{hours}h {minutes:02d}m {seconds:02d}s"
+    if minutes > 0:
+        return f"{minutes}m {seconds:02d}s"
+    return f"{seconds}s"
 
 current_step = None
 for step_name, step in steps.items():
@@ -300,8 +354,19 @@ print(f"Phase: {current_step or 'completed'}")
 print(f"Scenarios: {scenario_count}")
 print(f"Batch size: {collect.get('batch_size')}")
 print(f"Episodes per scenario: {collect.get('episodes_per_instance')}")
-print(f"Batches: {completed}/{total} completed, {failed} failed, {total - completed} remaining")
-print(f"Episodes: {completed_episodes}/{planned_episodes} completed, {planned_episodes - completed_episodes} remaining")
+print(f"Batches: {completed}/{total} completed, {failed} failed, {remaining} remaining")
+print(f"Episodes: {completed_episodes}/{planned_episodes} completed, {remaining_episodes} remaining")
+if completed_batch_durations_ms:
+    print(f"Average batch duration: {fmt_seconds(int(avg_batch_duration_ms / 1000))}")
+if total_step_duration_seconds is not None:
+    print(f"Accumulated step runtime: {fmt_seconds(total_step_duration_seconds)}")
+print(f"ETA: {fmt_seconds(eta_seconds)}")
+if running_batch is not None:
+    print(
+        "Current batch: "
+        f"{running_batch.get('phase')} / wave {running_batch.get('wave_index')} / "
+        f"{running_batch.get('scenario_name')} / batch {int(running_batch.get('batch_index', 0)) + 1}"
+    )
 PY
 }
 
@@ -317,6 +382,11 @@ print_status() {
     pid="$(cat "${PID_FILE}")"
     echo "Remote random collection run is running."
     echo "PID: ${pid}"
+    local elapsed_raw
+    elapsed_raw="$(ps -p "${pid}" -o etimes= 2>/dev/null | tr -d ' ')"
+    if [ -n "${elapsed_raw}" ]; then
+      echo "Elapsed: $(format_duration_human "${elapsed_raw}")"
+    fi
   else
     echo "Remote random collection run is not running."
   fi

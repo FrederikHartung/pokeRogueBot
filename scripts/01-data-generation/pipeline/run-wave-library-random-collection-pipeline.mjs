@@ -504,6 +504,10 @@ function buildCollectionMetrics(manifestInput) {
     archive_size_bytes: archiveOutput.size_bytes ?? null,
     archive_size_mb: toMegabytes(archiveOutput.size_bytes),
     download_path: archiveOutput.download_path ?? archiveOutput.archive_path ?? datasetOutput.dataset_path ?? null,
+    local_import_dir: process.env.POKEROGUE_COLLECTION_LOCAL_IMPORT_DIR ?? "./data/rl/combat/",
+    scp_download_command: buildScpDownloadCommand(
+      archiveOutput.download_path ?? archiveOutput.archive_path ?? datasetOutput.dataset_path ?? null,
+    ),
     scenario_count: new Set(batches.map(batch => batch.scenario_name)).size,
     waves: sortedUnique(batches.map(batch => batch.wave_index).filter(Number.isInteger)),
     episodes_per_instance: Number.isInteger(collectConfig.episodes_per_instance) ? collectConfig.episodes_per_instance : null,
@@ -627,6 +631,21 @@ function toMegabytes(value) {
 
 function sortedUnique(values) {
   return Array.from(new Set(values)).sort((left, right) => left - right);
+}
+
+function buildScpDownloadCommand(downloadPath) {
+  if (typeof downloadPath !== "string" || downloadPath.length === 0) {
+    return null;
+  }
+
+  const sshTarget = process.env.POKEROGUE_REMOTE_SSH_TARGET ?? "SFH-Frederik@152.53.176.72";
+  const sshKeyPath = process.env.POKEROGUE_REMOTE_SSH_KEY ?? "~/.ssh/id_rsa_github_privat";
+  const localImportDir = process.env.POKEROGUE_COLLECTION_LOCAL_IMPORT_DIR ?? "./data/rl/combat/";
+  return `scp -i ${shellQuote(sshKeyPath)} ${shellQuote(`${sshTarget}:${downloadPath}`)} ${shellQuote(localImportDir)}`;
+}
+
+function shellQuote(value) {
+  return `'${String(value).replaceAll("'", `'\\''`)}'`;
 }
 
 function runCommand(command, args, cwd) {

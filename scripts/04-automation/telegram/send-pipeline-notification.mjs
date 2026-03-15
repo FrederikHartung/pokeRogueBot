@@ -203,6 +203,9 @@ function buildMessage({ event, runtimeDir, manifestPath, phase, iteration, error
       if (collectionMetrics.download_path) {
         lines.push(`Download: ${collectionMetrics.download_path}`);
       }
+      if (collectionMetrics.scp_download_command) {
+        lines.push(`SCP: ${collectionMetrics.scp_download_command}`);
+      }
     }
   } else if (event === "collection_failed") {
     lines.push("State: collection failed");
