@@ -1,5 +1,14 @@
 # TODO Next Session
 
+Wichtiger aktueller Befund ganz oben:
+- Der Headless-Collector setzt `meta.outcome` aktuell fuer alle nicht-terminalen Transitionen auf `truncated`, statt nur fuer wirklich abgeschnittene Episoden.
+- Ursache: In `scripts/01-data-generation/collector/run-pokerogue-experience-collector.mjs` wird `meta.outcome` pro Step als `win`/`loss`/`timeout` sonst pauschal `truncated` geschrieben, auch wenn `done=false`.
+- Folge: Datensaetze wie der Remote-Smoke-Run wirken in Outcome-Auswertungen kuenstlich stark `truncated`, obwohl terminale Episoden fachlich sauber in `win` oder `loss` enden.
+- Prioritaet fuer naechsten Fix:
+- `meta.outcome` fuer nicht-terminale Zeilen auf `null` oder `in_progress` setzen
+- `truncated` nur fuer echte Episodenabbrueche durch Max-Steps oder Timeouts verwenden
+- alle Consumer fuer Reports/Eval/Dataset-Inspector auf die neue Semantik pruefen
+
 Prioritaetswechsel fuer die naechste Session:
 - Hauptziel ist jetzt nicht mehr nur `random_move`-Stabilisierung, sondern die produktive Nutzung des aktuell trainierten Combat-/Switch-DQN im Live-Bot.
 - Die JS-Bridge bleibt dabei Voraussetzung und Guardrail, ist aber nicht mehr das alleinige Leitprojekt fuer die naechste Session.

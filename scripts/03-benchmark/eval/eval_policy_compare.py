@@ -154,7 +154,7 @@ def summarize(rows: List[Dict]) -> Dict:
         ordered = sorted(steps, key=lambda item: int(item.get("step_index", 0)))
         total_reward += sum(float(item.get("reward", 0.0)) for item in ordered)
         total_turns += len(ordered)
-        outcome = str((ordered[-1].get("meta") or {}).get("outcome", "truncated"))
+        outcome = classify_outcome(ordered[-1])
         if outcome == "win":
             wins += 1
         elif outcome == "loss":
@@ -174,6 +174,24 @@ def summarize(rows: List[Dict]) -> Dict:
         "avg_turns": (total_turns / episode_count) if episode_count else 0.0,
         "transitions": len(rows),
     }
+
+
+def classify_outcome(last_record: Dict) -> str:
+    meta = last_record.get("meta") if isinstance(last_record.get("meta"), dict) else {}
+    meta_outcome = meta.get("outcome")
+    if isinstance(meta_outcome, str) and meta_outcome:
+        return meta_outcome
+
+    next_state = last_record.get("next_state") if isinstance(last_record.get("next_state"), dict) else {}
+    enemy_hp = float(next_state.get("enemy_hp_ratio", 1.0))
+    player_hp = float(next_state.get("player_hp_ratio", 1.0))
+    if enemy_hp <= 0.0 and player_hp > 0.0:
+        return "win"
+    if player_hp <= 0.0 and enemy_hp > 0.0:
+        return "loss"
+    if enemy_hp <= 0.0 and player_hp <= 0.0:
+        return "draw"
+    return "truncated"
 
 
 def main() -> None:

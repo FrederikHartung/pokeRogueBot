@@ -131,7 +131,7 @@ function groupEpisodes(rows) {
   for (const episode of episodes.values()) {
     episode.rows.sort((left, right) => Number(left.step_index ?? 0) - Number(right.step_index ?? 0));
     const last = episode.rows[episode.rows.length - 1] ?? {};
-    episode.outcome = String(last?.meta?.outcome ?? "unknown");
+    episode.outcome = classifyEpisodeOutcome(last);
     episode.reward = episode.rows.reduce((sum, row) => sum + Number(row.reward ?? 0), 0);
     episode.turns = episode.rows.length;
     episode.switches = episode.rows.filter(row => Number(row.action ?? -1) >= 4).length;
@@ -139,6 +139,29 @@ function groupEpisodes(rows) {
   }
 
   return Array.from(episodes.values());
+}
+
+function classifyEpisodeOutcome(lastRow) {
+  const metaOutcome = lastRow?.meta?.outcome;
+  if (typeof metaOutcome === "string" && metaOutcome.length > 0) {
+    return metaOutcome;
+  }
+
+  const nextState = typeof lastRow?.next_state === "object" && lastRow?.next_state != null
+    ? lastRow.next_state
+    : {};
+  const enemyHp = Number(nextState.enemy_hp_ratio ?? 1);
+  const playerHp = Number(nextState.player_hp_ratio ?? 1);
+  if (enemyHp <= 0 && playerHp > 0) {
+    return "win";
+  }
+  if (playerHp <= 0 && enemyHp > 0) {
+    return "loss";
+  }
+  if (enemyHp <= 0 && playerHp <= 0) {
+    return "draw";
+  }
+  return "truncated";
 }
 
 function isStatusMoveAction(row) {

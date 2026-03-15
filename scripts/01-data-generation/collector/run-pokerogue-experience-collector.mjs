@@ -1987,6 +1987,21 @@ describe("external combat collector", () => {
                 done = true;
               }
 
+              const maxStepsTruncated = !enemyTeamDefeated
+                && !playerTeamDefeated
+                && !timeoutTruncated
+                && done
+                && stepIndex === MAX_STEPS_PER_EPISODE - 1;
+              const terminalOutcome = enemyTeamDefeated
+                ? "win"
+                : playerTeamDefeated
+                ? "loss"
+                : timeoutTruncated
+                ? "timeout"
+                : maxStepsTruncated
+                ? "truncated"
+                : null;
+
               const record = {
                 episode_id: episodeId,
                 step_index: stepIndex,
@@ -2002,7 +2017,7 @@ describe("external combat collector", () => {
                   scenario: scenario.__scenario_name,
                   state_variant: episodeStateVariant,
                   action_source: actionSource,
-                  outcome: enemyTeamDefeated ? "win" : playerTeamDefeated ? "loss" : timeoutTruncated ? "timeout" : "truncated",
+                  outcome: terminalOutcome,
                 },
                 timestamp: Date.now(),
               };
