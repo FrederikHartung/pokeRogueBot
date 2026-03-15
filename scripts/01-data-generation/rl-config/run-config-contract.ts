@@ -200,6 +200,47 @@ function validateArchiveConfig(value, context) {
   return structuredClone(value);
 }
 
+function validateDatasetPoolConfig(value, context) {
+  assertPlainObject(value, context, "dataset pool config");
+  assertAllowedKeys(value, new Set(["root_dir", "combat_version", "usecase", "run_name"]), context, "dataset pool config");
+  if ("root_dir" in value) {
+    assertOptionalString(value.root_dir, context, "root_dir");
+  }
+  assertOptionalString(value.combat_version, context, "combat_version");
+  assertOptionalString(value.usecase, context, "usecase");
+  if ("run_name" in value) {
+    assertOptionalString(value.run_name, context, "run_name");
+  }
+  if (typeof value.combat_version !== "string" || value.combat_version.length === 0) {
+    throw new Error(`Missing required dataset pool field${describeContext(context)}: combat_version`);
+  }
+  if (typeof value.usecase !== "string" || value.usecase.length === 0) {
+    throw new Error(`Missing required dataset pool field${describeContext(context)}: usecase`);
+  }
+  return structuredClone(value);
+}
+
+function validateRuntimeRetentionConfig(value, context) {
+  assertPlainObject(value, context, "runtime retention config");
+  assertAllowedKeys(
+    value,
+    new Set(["archive_debug_on_success", "cleanup_runtime_on_success", "include_batch_configs_in_debug_archive", "include_batch_outputs_in_debug_archive"]),
+    context,
+    "runtime retention config",
+  );
+  for (const key of [
+    "archive_debug_on_success",
+    "cleanup_runtime_on_success",
+    "include_batch_configs_in_debug_archive",
+    "include_batch_outputs_in_debug_archive",
+  ]) {
+    if (key in value) {
+      assertOptionalBoolean(value[key], context, key);
+    }
+  }
+  return structuredClone(value);
+}
+
 function validateIterativeCollectPhase(value, context, allowRandomPolicy) {
   assertPlainObject(value, context, "iterative collect phase");
   assertAllowedKeys(value, new Set(["episodes_per_instance", "batch_size", "parallelism", "enabled", "collector", "policy", "device"]), context, "iterative collect phase");
@@ -365,7 +406,7 @@ export function validateRandomCollectionPipelineConfig(value, options = {}) {
   assertPlainObject(value, context, "random-collection config");
   assertAllowedKeys(
     value,
-    new Set(["scenario_dirs", "scenario_files", "include_waves", "exclude_waves", "output_root", "manifest_path", "collector_defaults", "collect", "archive", "parallelism"]),
+    new Set(["scenario_dirs", "scenario_files", "include_waves", "exclude_waves", "output_root", "manifest_path", "collector_defaults", "collect", "archive", "parallelism", "dataset_pool", "runtime_retention"]),
     context,
     "random-collection config",
   );
@@ -384,6 +425,12 @@ export function validateRandomCollectionPipelineConfig(value, options = {}) {
   normalized.collector_defaults = validateCollectorOverrides(value.collector_defaults ?? {}, `${context}.collector_defaults`);
   normalized.collect = validateRandomCollectionCollectConfig(value.collect ?? {}, `${context}.collect`);
   normalized.archive = validateArchiveConfig(value.archive ?? {}, `${context}.archive`);
+  if ("dataset_pool" in value) {
+    normalized.dataset_pool = validateDatasetPoolConfig(value.dataset_pool, `${context}.dataset_pool`);
+  }
+  if ("runtime_retention" in value) {
+    normalized.runtime_retention = validateRuntimeRetentionConfig(value.runtime_retention, `${context}.runtime_retention`);
+  }
   return normalized;
 }
 

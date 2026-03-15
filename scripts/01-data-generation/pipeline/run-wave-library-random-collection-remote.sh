@@ -6,6 +6,8 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 DEFAULT_CONFIG="${REPO_ROOT}/data/rl/wave-library-random-collection-remote-50ep.json"
 HUNDRED_EP_CONFIG="${REPO_ROOT}/data/rl/wave-library-random-collection-remote-100ep.json"
 SMOKE_CONFIG="${REPO_ROOT}/data/rl/wave-library-random-collection-remote-smoke.json"
+V3_CONFIG="${REPO_ROOT}/data/rl/wave-library-random-collection-remote-v3-50ep.json"
+V3_SMOKE_CONFIG="${REPO_ROOT}/data/rl/wave-library-random-collection-remote-v3-smoke.json"
 CONTROL_DIR="${REPO_ROOT}/data/rl/pipeline-runs/wave-library-random-collection-remote-control"
 PID_FILE="${CONTROL_DIR}/remote-random-collection.pid"
 ACTIVE_CONFIG_FILE="${CONTROL_DIR}/active-config.txt"
@@ -22,6 +24,8 @@ Usage:
   scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start [config_path]
   scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-100
   scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-smoke
+  scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-v3
+  scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-v3-smoke
   scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh status
   scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh logs
   scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh last
@@ -449,7 +453,7 @@ start_run() {
   : > "$(warning_log_file_for_config "${config_path}")"
   : > "$(issues_summary_file_for_config "${config_path}")"
 
-  nohup bash -lc "export PATH='${VENV_BIN_DIR}':\"\$PATH\" && if [ -f '${TELEGRAM_ENV_FILE}' ]; then source '${TELEGRAM_ENV_FILE}'; fi && cd '${REPO_ROOT}' && npm run rl:pipeline:wave-lib:collect -- '${config_path}'" \
+  nohup bash -lc "export PATH='${VENV_BIN_DIR}':\"\$PATH\" && if [ -f '${TELEGRAM_ENV_FILE}' ]; then source '${TELEGRAM_ENV_FILE}'; fi && cd '${REPO_ROOT}' && if npm run rl:pipeline:wave-lib:collect -- '${config_path}'; then node scripts/01-data-generation/pipeline/finalize-wave-library-random-collection-runtime.ts '${config_path}' || true; else exit \$?; fi" \
     >"${log_file}" 2>&1 < /dev/null &
   local pid=$!
   echo "${pid}" > "${PID_FILE}"
@@ -514,6 +518,12 @@ case "${1:-}" in
     ;;
   start-smoke)
     start_run "${SMOKE_CONFIG}"
+    ;;
+  start-v3)
+    start_run "${V3_CONFIG}"
+    ;;
+  start-v3-smoke)
+    start_run "${V3_SMOKE_CONFIG}"
     ;;
   start-100)
     start_run "${HUNDRED_EP_CONFIG}"

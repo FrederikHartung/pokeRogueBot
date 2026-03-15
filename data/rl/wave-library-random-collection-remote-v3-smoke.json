@@ -1,0 +1,37 @@
+{
+  "scenario_files": [
+    "./scenarios/generated-wave-library-v3-w1-24/trainer-w5-10e045f16590.json"
+  ],
+  "include_waves": [5],
+  "output_root": "./pipeline-runs/wave-library-random-collection-remote-v3-smoke",
+  "manifest_path": "./pipeline-runs/wave-library-random-collection-remote-v3-smoke/manifest.json",
+  "collector_defaults": {
+    "append_output": false,
+    "max_steps_per_episode": 300,
+    "test_timeout_ms": 600000,
+    "quiet_game_logs": true
+  },
+  "collect": {
+    "episodes_per_instance": 1,
+    "batch_size": 1,
+    "parallelism": 1,
+    "collector": {},
+    "policy": {
+      "type": "random"
+    }
+  },
+  "archive": {
+    "format": "tar.gz"
+  },
+  "dataset_pool": {
+    "root_dir": "./dataset-pools",
+    "combat_version": "combat-v3",
+    "usecase": "random-only"
+  },
+  "runtime_retention": {
+    "archive_debug_on_success": true,
+    "cleanup_runtime_on_success": true,
+    "include_batch_configs_in_debug_archive": true,
+    "include_batch_outputs_in_debug_archive": false
+  }
+}

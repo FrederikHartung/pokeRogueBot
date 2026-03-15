@@ -1,0 +1,40 @@
+{
+  "scenario_dirs": [
+    "./scenarios/generated-wave-library-v3-w1-24"
+  ],
+  "include_waves": [
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+    13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24
+  ],
+  "output_root": "./pipeline-runs/wave-library-random-collection-remote-v3-50ep",
+  "manifest_path": "./pipeline-runs/wave-library-random-collection-remote-v3-50ep/manifest.json",
+  "collector_defaults": {
+    "append_output": false,
+    "max_steps_per_episode": 300,
+    "test_timeout_ms": 600000,
+    "quiet_game_logs": true
+  },
+  "collect": {
+    "episodes_per_instance": 50,
+    "batch_size": 50,
+    "parallelism": 2,
+    "collector": {},
+    "policy": {
+      "type": "random"
+    }
+  },
+  "archive": {
+    "format": "tar.gz"
+  },
+  "dataset_pool": {
+    "root_dir": "./dataset-pools",
+    "combat_version": "combat-v3",
+    "usecase": "random-only"
+  },
+  "runtime_retention": {
+    "archive_debug_on_success": true,
+    "cleanup_runtime_on_success": true,
+    "include_batch_configs_in_debug_archive": true,
+    "include_batch_outputs_in_debug_archive": false
+  }
+}

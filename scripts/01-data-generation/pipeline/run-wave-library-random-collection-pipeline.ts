@@ -1,4 +1,5 @@
 import {
+  copyFileSync,
   createReadStream,
   createWriteStream,
   existsSync,
@@ -95,11 +96,18 @@ async function main() {
       manifest = markStepStatus(manifest, phaseName, "completed");
       saveManifest(manifestPath, manifest);
       writeArtifactsSummary(manifest);
+      manifest = writeCollectionMetrics(manifest);
+      manifest = syncDatasetPoolArtifacts(manifest);
+      saveManifest(manifestPath, manifest);
+      writeArtifactsSummary(manifest);
     } catch (error) {
       manifest = markStepStatus(manifest, phaseName, "failed", String(error?.message ?? error));
       saveManifest(manifestPath, manifest);
       writeArtifactsSummary(manifest);
       manifest = writeCollectionMetrics(manifest);
+      manifest = syncDatasetPoolArtifacts(manifest);
+      saveManifest(manifestPath, manifest);
+      writeArtifactsSummary(manifest);
       await notifyIfConfigured({
         event: "collection_failed",
         phase: phaseName,
@@ -115,6 +123,8 @@ async function main() {
 
   manifest = loadManifest(manifestPath, configPath);
   manifest = writeCollectionMetrics(manifest);
+  manifest = syncDatasetPoolArtifacts(manifest);
+  saveManifest(manifestPath, manifest);
   writeArtifactsSummary(manifest);
 
   if (cli.stopAfterPhase == null && phases.every(phase => manifest.steps?.[phase]?.status === "completed")) {
@@ -453,6 +463,7 @@ function runArchivePhase(currentManifest, rootConfig, configDirInput) {
     size_bytes: statSync(archivePath).size,
     download_path: archivePath,
   };
+  manifestInput.outputs.dataset_pool = buildDatasetPoolOutput(manifestInput, rootConfig, configDirInput);
   return manifestInput;
 }
 
@@ -476,11 +487,35 @@ function writeCollectionMetrics(currentManifest) {
   return manifestInput;
 }
 
+function syncDatasetPoolArtifacts(currentManifest) {
+  const manifestInput = structuredClone(currentManifest);
+  const datasetPoolOutput = manifestInput.outputs?.dataset_pool;
+  if (!datasetPoolOutput?.run_dir) {
+    return manifestInput;
+  }
+
+  mkdirSync(datasetPoolOutput.run_dir, { recursive: true });
+
+  for (const [sourcePath, targetPath] of [
+    [manifestInput.outputs?.collect_dataset?.dataset_path, datasetPoolOutput.dataset_path],
+    [manifestInput.outputs?.archive_dataset?.archive_path, datasetPoolOutput.archive_path],
+    [configPath, datasetPoolOutput.config_path],
+    [manifestPath, datasetPoolOutput.manifest_path],
+    [metricsPath, datasetPoolOutput.metrics_path],
+    [artifactsSummaryPath, datasetPoolOutput.artifacts_summary_path],
+  ]) {
+    copyArtifactIfPresent(sourcePath, targetPath);
+  }
+
+  return manifestInput;
+}
+
 function buildCollectionMetrics(manifestInput) {
   const batches = Array.isArray(manifestInput.batches) ? manifestInput.batches : [];
   const outputs = manifestInput.outputs ?? {};
   const datasetOutput = outputs.collect_dataset ?? {};
   const archiveOutput = outputs.archive_dataset ?? {};
+  const datasetPoolOutput = outputs.dataset_pool ?? {};
   const completedBatches = batches.filter(batch => batch.status === "completed");
   const batchDurations = completedBatches
     .map(batch => batch.duration_ms)
@@ -507,6 +542,15 @@ function buildCollectionMetrics(manifestInput) {
     archive_size_bytes: archiveOutput.size_bytes ?? null,
     archive_size_mb: toMegabytes(archiveOutput.size_bytes),
     download_path: archiveOutput.download_path ?? archiveOutput.archive_path ?? datasetOutput.dataset_path ?? null,
+    dataset_pool_run_dir: datasetPoolOutput.run_dir ?? null,
+    dataset_pool_dataset_path: datasetPoolOutput.dataset_path ?? null,
+    dataset_pool_archive_path: datasetPoolOutput.archive_path ?? null,
+    dataset_pool_manifest_path: datasetPoolOutput.manifest_path ?? null,
+    dataset_pool_metrics_path: datasetPoolOutput.metrics_path ?? null,
+    dataset_pool_artifacts_summary_path: datasetPoolOutput.artifacts_summary_path ?? null,
+    dataset_pool_usecase: datasetPoolOutput.usecase ?? null,
+    dataset_pool_combat_version: datasetPoolOutput.combat_version ?? null,
+    dataset_pool_run_name: datasetPoolOutput.run_name ?? null,
     local_import_dir: process.env.POKEROGUE_COLLECTION_LOCAL_IMPORT_DIR ?? "/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/rl/combat/",
     scp_download_command: buildScpDownloadCommand(
       archiveOutput.download_path ?? archiveOutput.archive_path ?? datasetOutput.dataset_path ?? null,
@@ -617,6 +661,52 @@ function resolvePathWithFallbacks(pathValue, bases) {
     }
   }
   return path.resolve(bases[0], pathValue);
+}
+
+function buildDatasetPoolOutput(currentManifest, rootConfig, configDirInput) {
+  const datasetPoolConfig = rootConfig.dataset_pool;
+  if (datasetPoolConfig == null) {
+    return null;
+  }
+
+  const datasetPath = currentManifest.outputs?.collect_dataset?.dataset_path;
+  const archivePath = currentManifest.outputs?.archive_dataset?.archive_path;
+  const rootDir = resolvePathWithFallbacks(
+    datasetPoolConfig.root_dir ?? "./dataset-pools",
+    [configDirInput, dataRlDir, repoRoot],
+  );
+  const runName = datasetPoolConfig.run_name ?? `${path.basename(pipelineRoot)}-${formatCompactTimestamp(currentManifest.created_at)}`;
+  const runDir = path.join(rootDir, datasetPoolConfig.combat_version, datasetPoolConfig.usecase, runName);
+
+  return {
+    root_dir: rootDir,
+    combat_version: datasetPoolConfig.combat_version,
+    usecase: datasetPoolConfig.usecase,
+    run_name: runName,
+    run_dir: runDir,
+    dataset_path: datasetPath ? path.join(runDir, path.basename(datasetPath)) : null,
+    archive_path: archivePath ? path.join(runDir, path.basename(archivePath)) : null,
+    config_path: path.join(runDir, path.basename(configPath)),
+    manifest_path: path.join(runDir, "manifest.json"),
+    metrics_path: path.join(runDir, "collection-metrics.json"),
+    artifacts_summary_path: path.join(runDir, "artifacts-summary.json"),
+  };
+}
+
+function copyArtifactIfPresent(sourcePath, targetPath) {
+  if (!sourcePath || !targetPath || !existsSync(sourcePath)) {
+    return;
+  }
+  mkdirSync(path.dirname(targetPath), { recursive: true });
+  if (path.resolve(sourcePath) === path.resolve(targetPath)) {
+    return;
+  }
+  copyFileSync(sourcePath, targetPath);
+}
+
+function formatCompactTimestamp(isoTimestamp) {
+  const fallback = new Date().toISOString();
+  return String(isoTimestamp ?? fallback).replace(/[-:]/g, "").replace(/\..+$/, "").replace("T", "-");
 }
 
 function toNumberSet(values) {

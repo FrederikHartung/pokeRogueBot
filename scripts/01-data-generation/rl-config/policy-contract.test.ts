@@ -59,6 +59,8 @@ test("random-collection configs validate required collect and archive fields", (
     "data/rl/wave-library-random-collection-remote-smoke.json",
     "data/rl/wave-library-random-collection-remote-50ep.json",
     "data/rl/wave-library-random-collection-remote-100ep.json",
+    "data/rl/wave-library-random-collection-remote-v3-smoke.json",
+    "data/rl/wave-library-random-collection-remote-v3-50ep.json",
   ]) {
     const configPath = path.join(repoRoot, relativePath);
     const config = JSON.parse(readFileSync(configPath, "utf8"));

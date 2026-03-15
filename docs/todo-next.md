@@ -1,10 +1,37 @@
 # TODO Next Session
 
+Top-Prioritaet Datensatz-Organisation:
+- Trainingsdaten fuer Offline-RL sollen serverseitig nicht mehr nur als einzelner Run unter `data/rl/pipeline-runs/...` betrachtet werden, sondern als wiederverwendbarer Datenpool.
+- Vorschlag fuer die Zielstruktur:
+- `data/rl/dataset-pools/<combat-version>/<usecase>/<run-name>/...`
+- Beispiel:
+- `data/rl/dataset-pools/combat-v3/random-only/run-2026-03-15-50ep/`
+- `data/rl/dataset-pools/combat-v3/rival/run-2026-03-18-30ep/`
+- `data/rl/dataset-pools/combat-v3/doubles/run-2026-03-22-20ep/`
+- darunter spaeter zusaetzlich ein gemeinsamer Merge-Bereich:
+- `data/rl/dataset-pools/combat-v3/merged/`
+- Die Versionsachse (`combat-v3`, spaeter `combat-v4`) soll den State-/Pipeline-Contract repraesentieren.
+- Die Usecase-Achse (`random-only`, `rival`, `doubles`, spaeter optional `wave8-focus`, `trainer-only`, `wild-only`) soll gezieltes Nachsammeln fuer konkrete Schwachstellen erlauben.
+- Solange sich State-Contract, Action-Semantik und relevante Collector-/Reward-Semantik nicht aendern, muessen bestehende `random-only`-Datensaetze nicht neu erzeugt werden.
+- Wenn sich der Combat-State oder die Sammlungssemantik fachlich aendert, beginnt ein neuer Versionswurzelpfad statt stilles Vermischen alter und neuer Daten.
+- Zielbild:
+- mehrere Datengenerierungen koennen serverseitig gesammelt werden
+- vor einem Training wird ein finaler Merge fuer genau den gewuenschten Datenmix erzeugt
+- nach Benchmark-Befunden koennen gezielt neue Runs fuer problematische Wellen/Situationen hinzugefuegt und mit bestehenden Pools kombiniert werden
+
 Kurzfristig ergaenzen:
 - Wenn ein Player-Pokemon besiegt wurde, soll das DQN entscheiden, welches Pokemon als naechstes eingewechselt wird, statt eines separaten Java-/Kotlin-Switch-Neurons, falls dieses noch aktiv ist.
 - Sobald der Umbau fertig ist und der Live-Pfad fuer diese Entscheidung stabil ueber das DQN laeuft, kann das alte Switch-Neuron entfernt werden.
 
 Prioritaetswechsel fuer die naechste Session:
+- Prio 2: verbleibende `.mjs`-Skripte schrittweise nach TypeScript migrieren, aber nicht mehr als Blocker vor dem ersten produktiven V3-Testlauf behandeln
+- Fokus dabei zuerst auf produktionsnahen RL-/Automation-Skripten:
+- `scripts/01-data-generation/scenarios/run-wave-library-scenario-adapter.mjs`
+- `scripts/01-data-generation/dataset/run-rl-dataset-sanity.mjs`
+- `scripts/01-data-generation/dataset/merge-rl-jsonl-datasets.mjs`
+- `scripts/04-automation/telegram/send-pipeline-notification.mjs`
+- `scripts/04-automation/telegram/run-telegram-control-bot.mjs`
+- der alte `run-wave-library-bootstrap-pipeline.mjs` bleibt relevant, ist aber wegen seines Umfangs eher ein eigener Umbau als ein schneller Cleanup
 - im `data/`-Verzeichnis einen klaren `temp`-Ordner einfuehren fuer lokale, nicht versionierte Zwischenartefakte rund um neue DQN-Trainingslaeufe; dort sollen kurzlebige Reports, Test-Configs, ad-hoc-Downloads und andere schnell veraltende Dateien landen statt die produktiven Datenpfade zu vermuellen
 - Hauptziel ist jetzt nicht mehr nur `random_move`-Stabilisierung, sondern die produktive Nutzung des aktuell trainierten Combat-/Switch-DQN im Live-Bot.
 - Die JS-Bridge bleibt dabei Voraussetzung und Guardrail, ist aber nicht mehr das alleinige Leitprojekt fuer die naechste Session.

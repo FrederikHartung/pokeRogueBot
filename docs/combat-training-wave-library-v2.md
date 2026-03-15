@@ -306,6 +306,36 @@ Aktiver Datengenerierungspfad fuer Waves `1-8`:
     - `episodes_per_instance` als zentraler Wiederholungshebel
     - `batch_size` zur Steuerung der Batchanzahl pro Szenario
 
+Vorbereitete Erweiterung fuer die gewachsene Wave-Library:
+
+- V3-Szenario-Ordner: `data/rl/scenarios/generated-wave-library-v3-w1-24`
+- aktueller Stand: `311` Szenarien fuer Waves `1-24`
+- Remote-V3-Collection:
+  - `50` Episoden pro Szenario: `data/rl/wave-library-random-collection-remote-v3-50ep.json`
+  - sehr kurzer Funktions-Smoketest: `data/rl/wave-library-random-collection-remote-v3-smoke.json`
+  - Remote-Helper:
+    - `bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-v3`
+    - `bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-v3-smoke`
+  - Zielgroesse fuer den vollen V3-50ep-Lauf: `15.550` Episoden
+
+Serverseitige Pool-Ablage fuer wiederverwendbare Trainingsdaten:
+
+- Random-Collection-Runs koennen die finalen Artefakte jetzt zusaetzlich nach `data/rl/dataset-pools/<combat-version>/<usecase>/<run-name>/` kopieren
+- fuer den vorbereiteten V3-Pfad:
+  - `combat_version = combat-v3`
+  - `usecase = random-only`
+- dort landen:
+  - finaler gemergter JSONL-Datensatz
+  - komprimiertes Archiv
+  - verwendete Config
+  - `manifest.json`
+  - `collection-metrics.json`
+  - `artifacts-summary.json`
+- Hintergrund:
+  - mehrere Generierungslaeufe koennen serverseitig gesammelt bleiben
+  - vor einem spaeteren Training koennen alte und neue Runs gezielt gemerged werden
+  - besondere Schwachstellen wie Rivalen, Double Battles oder spaete Waves lassen sich spaeter als eigene Usecases nachpflegen statt den kompletten Datenpool neu zu erzeugen
+
 ## Naechster fokussierter Trainingslauf (Rival-Focus, Stand `2026-03-12`)
 
 Ziel fuer den naechsten lokalen Zwischenlauf:

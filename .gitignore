@@ -58,6 +58,8 @@ data/rl/generated/*.json
 data/rl/generated/test-wave-library-iterative-*/
 data/rl/combat/*.jsonl
 data/rl/combat/*-report.json
+data/rl/dataset-pools/
+data/rl/pipeline-runs/wave-library-random-collection-remote-*/
 data/rl/models/*.pt
 data/rl/pipeline-runs/wave-library-iterative-remote-*/
 
