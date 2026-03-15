@@ -58,6 +58,12 @@ class Brain(
             ?: throw IllegalStateException("No switch decision found")
     }
 
+    fun getForcedSwitchDecision(ignoreFirstPokemon: Boolean): SwitchDecision {
+        waveDto = jsService.getWaveDto()
+        return combatSwitchPolicy.chooseForcedSwitchDecision(waveDto, ignoreFirstPokemon)
+            ?: throw IllegalStateException("No forced switch decision found")
+    }
+
 
     fun getModifierToPick(): MoveToModifierResult? {
         this.waveDto = jsService.getWaveDto()
@@ -246,9 +252,7 @@ class Brain(
     }
 
     fun getBestSwitchDecision(): SwitchDecision {
-        waveDto = jsService.getWaveDto()
-        val switchDecision = combatSwitchPolicy.chooseSwitchDecision(waveDto, false)
-            ?: throw IllegalStateException("No switch decision found")
+        val switchDecision = getForcedSwitchDecision(false)
         log.debug("Switching to pokemon: ${switchDecision.pokeName} on index: ${switchDecision.index}")
         return switchDecision
     }

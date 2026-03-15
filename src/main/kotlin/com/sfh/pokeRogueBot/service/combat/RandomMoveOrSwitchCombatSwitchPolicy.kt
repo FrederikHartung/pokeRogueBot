@@ -46,6 +46,11 @@ class RandomMoveOrSwitchCombatSwitchPolicy(
             ?: heuristicCombatSwitchPolicy.chooseSwitchDecision(waveDto, ignoreFirstPokemon)
     }
 
+    override fun chooseForcedSwitchDecision(waveDto: WaveDto, ignoreFirstPokemon: Boolean): SwitchDecision? {
+        return support.chooseRandomSwitchDecision(waveDto, ignoreFirstPokemon)
+            ?: heuristicCombatSwitchPolicy.chooseForcedSwitchDecision(waveDto, ignoreFirstPokemon)
+    }
+
     override fun shouldSwitchPokemon(waveDto: WaveDto): Boolean {
         if (waveDto.isDoubleFight) {
             return heuristicCombatSwitchPolicy.shouldSwitchPokemon(waveDto)

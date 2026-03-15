@@ -6,6 +6,7 @@ import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
+import java.util.concurrent.atomic.AtomicLong
 
 @Component
 class DqnCombatSwitchPolicy(
@@ -18,6 +19,10 @@ class DqnCombatSwitchPolicy(
 
     companion object {
         private val log = LoggerFactory.getLogger(DqnCombatSwitchPolicy::class.java)
+        private val forcedSwitchModelCounter = AtomicLong(0)
+        private val forcedSwitchFallbackCounter = AtomicLong(0)
+        private val forcedSwitchDoubleBattleFallbackCounter = AtomicLong(0)
+        private val forcedSwitchEnemyPartyEmptyCounter = AtomicLong(0)
     }
 
     override fun chooseCommandAction(waveDto: WaveDto, tryToCatch: Boolean): CombatCommandChoice {
@@ -106,6 +111,54 @@ class DqnCombatSwitchPolicy(
         }
     }
 
+    override fun chooseForcedSwitchDecision(waveDto: WaveDto, ignoreFirstPokemon: Boolean): SwitchDecision? {
+        if (waveDto.isDoubleFight) {
+            logForcedSwitchDoubleBattleFallback(waveDto, "double battle")
+            return heuristicCombatSwitchPolicy.chooseForcedSwitchDecision(waveDto, ignoreFirstPokemon)
+        }
+        if (waveDto.wavePokemon.enemyParty.isEmpty()) {
+            forcedSwitchEnemyPartyEmptyCounter.incrementAndGet()
+            val decision = support.chooseFirstValidSwitchDecision(waveDto, ignoreFirstPokemon)
+            log.info(
+                "forced_switch_enemy_party_empty count={} wave={} ignoreFirstPokemon={} decision={}",
+                forcedSwitchEnemyPartyEmptyCounter.get(),
+                waveDto.waveIndex,
+                ignoreFirstPokemon,
+                decision?.pokeName,
+            )
+            return decision
+        }
+
+        val state = support.buildOfflineCombatState(waveDto)
+            ?: return fallbackForcedSwitchDecision(waveDto, ignoreFirstPokemon, "offline state unavailable")
+        val originalMask = ((state["action_mask"] as? List<*>) ?: emptyList<Any>())
+        val switchOnlyMask = originalMask.mapIndexed { index, value ->
+            if (index in 4..9 && value == 1) 1 else 0
+        }
+        val action = dqnInferenceWorkerClient.inferAction(state, switchOnlyMask)
+            ?: return fallbackForcedSwitchDecision(waveDto, ignoreFirstPokemon, "model inference unavailable")
+        if (action in 4..9) {
+            val decision = support.toSwitchDecision(waveDto, action - 4)
+            if (decision != null) {
+                val counterValue = forcedSwitchModelCounter.incrementAndGet()
+                log.info(
+                    "forced_switch_model count={} wave={} action={} decision={}",
+                    counterValue,
+                    waveDto.waveIndex,
+                    action,
+                    decision.pokeName,
+                )
+                return decision
+            }
+        }
+
+        return fallbackForcedSwitchDecision(
+            waveDto,
+            ignoreFirstPokemon,
+            "model returned invalid forced-switch action=$action",
+        )
+    }
+
     override fun shouldSwitchPokemon(waveDto: WaveDto): Boolean {
         if (waveDto.isDoubleFight) {
             log.debug("Falling back to heuristic shouldSwitch decision for double battle")
@@ -132,5 +185,26 @@ class DqnCombatSwitchPolicy(
     private fun fallbackShouldSwitch(waveDto: WaveDto, reason: String): Boolean {
         log.debug("Falling back to heuristic shouldSwitch policy: reason={} wave={}", reason, waveDto.waveIndex)
         return heuristicCombatSwitchPolicy.shouldSwitchPokemon(waveDto)
+    }
+
+    private fun fallbackForcedSwitchDecision(waveDto: WaveDto, ignoreFirstPokemon: Boolean, reason: String): SwitchDecision? {
+        val counterValue = forcedSwitchFallbackCounter.incrementAndGet()
+        log.info(
+            "forced_switch_fallback count={} wave={} reason={}",
+            counterValue,
+            waveDto.waveIndex,
+            reason,
+        )
+        return heuristicCombatSwitchPolicy.chooseForcedSwitchDecision(waveDto, ignoreFirstPokemon)
+    }
+
+    private fun logForcedSwitchDoubleBattleFallback(waveDto: WaveDto, reason: String) {
+        val counterValue = forcedSwitchDoubleBattleFallbackCounter.incrementAndGet()
+        log.info(
+            "forced_switch_double_battle_fallback count={} wave={} reason={}",
+            counterValue,
+            waveDto.waveIndex,
+            reason,
+        )
     }
 }

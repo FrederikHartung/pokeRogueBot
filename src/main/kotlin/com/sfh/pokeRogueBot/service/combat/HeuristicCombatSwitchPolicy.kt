@@ -35,6 +35,10 @@ class HeuristicCombatSwitchPolicy(
         return switchPokemonNeuron.getBestSwitchDecision(waveDto, ignoreFirstPokemon)
     }
 
+    override fun chooseForcedSwitchDecision(waveDto: WaveDto, ignoreFirstPokemon: Boolean): SwitchDecision? {
+        return switchPokemonNeuron.getBestSwitchDecision(waveDto, ignoreFirstPokemon)
+    }
+
     override fun shouldSwitchPokemon(waveDto: WaveDto): Boolean {
         return switchPokemonNeuron.shouldSwitchPokemon(waveDto)
     }

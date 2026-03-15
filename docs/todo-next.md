@@ -128,6 +128,7 @@ Verbindlicher Schema-Hinweis:
 - Umsetzungsplan Phase 3:
 - DQN-Fallbacks bewusst haerten: bei fehlendem Checkpoint, Worker-Fehler, Schema-Mismatch oder invalider Modellaktion deterministisch auf Heuristik bzw. `random_move` zurueckfallen und den Grund strukturiert loggen
 - explizit mitzaehlen, wie oft Live-Entscheidungen vom Modell, vom Fallback und von UI-Zwangspfaden kamen
+- Forced-Switch nach KO hat jetzt einen eigenen Policy-Pfad; erste strukturierte Logs fuer `forced_switch_model`, `forced_switch_fallback`, `forced_switch_double_battle_fallback` und `forced_switch_enemy_party_empty` sind im DQN-Livepfad vorhanden
 - Umsetzungsplan Phase 4:
 - Live-Sonderfaelle absichern: `tryToCatch`, keine legalen Moves, Forced Switch, leere Gegnerparty, invalide Action-Mask, aktiver Slotwechsel nach KO
 

@@ -20,7 +20,7 @@ class SwitchPhase(
     override fun handleUiMode(uiMode: UiMode) {
         when (uiMode) {
             UiMode.PARTY -> {
-                val switchDecision = brain.getPokemonSwitchDecision(ignoreFirstPokemon) // maybe an own pokemon fainted
+                val switchDecision = brain.getForcedSwitchDecision(ignoreFirstPokemon)
                 ignoreFirstPokemon = false
                 jsUiService.setUiHandlerCursor(uiMode, switchDecision.index)
                 jsUiService.sendActionButton()
