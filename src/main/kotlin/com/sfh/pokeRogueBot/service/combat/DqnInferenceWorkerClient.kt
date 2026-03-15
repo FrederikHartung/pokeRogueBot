@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit
 class DqnInferenceWorkerClient(
     @param:Value("\${bot.dqn.python-command:python3}") private val pythonCommand: String,
     @param:Value("\${bot.dqn.infer-script:scripts/02-training/inference/dqn_policy_infer_worker.py}") private val inferScriptPath: String,
-    @param:Value("\${bot.dqn.combat-checkpoint:data/rl/models/dqn-combat-wave-library-bootstrap-combined-960.pt}") private val checkpointPath: String,
+    @param:Value("\${bot.dqn.combat-checkpoint:data/rl/models/dqn-combat-wave-library-random-valid-action-6800-stable.pt}") private val checkpointPath: String,
     @param:Value("\${bot.dqn.device:cpu}") private val device: String,
     @param:Value("\${bot.dqn.worker-timeout-ms:5000}") private val workerTimeoutMs: Long,
 ) : DisposableBean {

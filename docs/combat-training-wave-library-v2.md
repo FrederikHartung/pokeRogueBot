@@ -718,6 +718,12 @@ Aktuelle Folgerung:
 
 - die V2-Datengenerierung ist nach dieser Runde deutlich passender als zuvor
 - der naechste Engpass liegt primaer im Training bzw. in der Policy-Qualitaet, nicht mehr in der reinen Datensatzabdeckung
+- fuer den lokal heruntergeladenen `6800`-Episoden-`random-valid-action-w1-8`-Datensatz ist aktuell ein konservativerer Offline-DQN-Lauf empfohlen:
+  - Config: `data/rl/train-dqn-offline-wave-library-random-valid-action-3400.json`
+  - Lernrate reduziert auf `0.0003`
+  - `target_update_steps` erhoeht auf `500`
+  - `epochs` reduziert auf `50`
+  - Hintergrund: der aggressivere fruehere Lauf mit `learning_rate=0.001`, `target_update_steps=25` und `epochs=100` wurde ab etwa Epoche `40` deutlich instabil
 
 ## V2-Benchmark
 

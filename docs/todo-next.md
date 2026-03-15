@@ -10,13 +10,14 @@ Wichtiger aktueller Befund ganz oben:
 - alle Consumer fuer Reports/Eval/Dataset-Inspector auf die neue Semantik pruefen
 
 Prioritaetswechsel fuer die naechste Session:
+- im `data/`-Verzeichnis einen klaren `temp`-Ordner einfuehren fuer lokale, nicht versionierte Zwischenartefakte rund um neue DQN-Trainingslaeufe; dort sollen kurzlebige Reports, Test-Configs, ad-hoc-Downloads und andere schnell veraltende Dateien landen statt die produktiven Datenpfade zu vermuellen
 - Hauptziel ist jetzt nicht mehr nur `random_move`-Stabilisierung, sondern die produktive Nutzung des aktuell trainierten Combat-/Switch-DQN im Live-Bot.
 - Die JS-Bridge bleibt dabei Voraussetzung und Guardrail, ist aber nicht mehr das alleinige Leitprojekt fuer die naechste Session.
 - Spring-Boot-Anwendung und lokales Spiel lassen sich aktuell starten, und der Live-Bot kommt bereits wieder durch die fruehen Spielphasen.
 - Der Kotlin-Livepfad hat bereits einen `DQN`-Policy-Modus (`CombatPolicyMode.DQN` + `DqnCombatSwitchPolicy`) sowie den Live-State-Builder fuer den Offline-Combat-Contract.
 - Der vorhandene DQN-Pfad ist jetzt erstmals live verdrahtet:
 - Runtime-Default ist jetzt `dqn`
-- Default-Checkpoint zeigt jetzt auf `data/rl/models/dqn-combat-wave-library-bootstrap-combined-960.pt` aus `Run 13`
+- Default-Checkpoint zeigt jetzt auf `data/rl/models/dqn-combat-wave-library-random-valid-action-6800-stable.pt` aus `Run 18`
 - Inferenz laeuft jetzt ueber den persistenten Worker `scripts/02-training/inference/dqn_policy_infer_worker.py`
 - Capture ist aktuell standardmaessig deaktiviert (`bot.capture.enabled=false`), damit der Bot wilde und Trainer-Pokemon zunaechst moeglichst schnell besiegt
 - Noch offen bleiben vor allem Observability/Fallback-Zaehler und laengere Live-Validierung
@@ -24,6 +25,7 @@ Prioritaetswechsel fuer die naechste Session:
 - DQN-Combat-/Switch-Policy laeuft im echten Bot reproduzierbar fuer fruehe Waves
 - Fallback auf heuristische Policy bleibt vorhanden, aber transparent geloggt und messbar
 - Build-/Schema-Drift zwischen Kotlin-Live-State, Python-Inferenz und Offline-Training wird frueh sichtbar
+- parallel dazu soll die produktive Wave-Library in der Breite wachsen: mehr eindeutige reale Startzustaende sammeln, neu materialisieren und daraus groessere Trainingsdatensaetze fuer den Offline-Pfad bauen
 - Dokumentationsfolge:
 - Nach erfolgreicher DQN-Live-Integration `docs/combat-training-v1.md`, README und diese Datei auf den tatsaechlichen Implementierungsstand angleichen.
 - Aktuell bereits abgesichert:
@@ -88,8 +90,8 @@ Verbindlicher Schema-Hinweis:
 2. Live-DQN im Bot produktiv integrieren
 - Ziel: der Live-Bot soll in `CommandPhase` und bei erzwungenen Switches das aktuell trainierte Offline-DQN statt zufaelliger legaler Aktionen nutzen
 - Fachlicher Startpunkt:
-- bevorzugter erster Live-Checkpoint ist `data/rl/models/dqn-combat-wave-library-bootstrap-combined-960.pt` aus `Run 13`
-- `Run 13` (`data/rl/models/dqn-combat-wave-library-bootstrap-combined-960.pt`) bleibt sinnvolle Vergleichsbasis, falls neuere lokale Trainingslaeufe live unerwartet unruhig spielen
+- bevorzugter erster Live-Checkpoint ist `data/rl/models/dqn-combat-wave-library-random-valid-action-6800-stable.pt` aus `Run 18`
+- `Run 13` (`data/rl/models/dqn-combat-wave-library-bootstrap-combined-960.pt`) bleibt weiter sinnvolle Vergleichsbasis, falls der neue Live-Default in echten Browser-Runs unerwartet unruhig spielt
 - Nicht-Ziel fuer den ersten Integrationsschritt:
 - noch keine Ausweitung auf Double Battles
 - keine Vermischung mit Modifier-RL; `ModifierRLNeuron` bleibt unveraendert
@@ -337,8 +339,8 @@ Verbindlicher Schema-Hinweis:
 - wenn pro `wave_index` mehr Kandidaten vorliegen als `max_scenarios_per_wave`, soll die Auswahl nicht immer deterministisch die ersten Eintraege nehmen
 - statt dessen konfigurierbares zufaelliges Sampling pro Welle einfuehren, idealerweise reproduzierbar ueber einen festen Selection-Seed
 - naechster konkreter Datengenerierungs-Lauf:
-- alle aktuell vorhandenen produktiven Wave-Library-Snapshots fuer Waves `1-8` neu materialisieren
-- danach einen lokalen Rival-Focus-Lauf mit ca. `504` Episoden fahren
+- mehr eindeutige produktive Wave-Library-Snapshots sammeln und danach alle aktuell vorhandenen Snapshots fuer Waves `1-8` neu materialisieren
+- daraus erneut einen groesseren Random-Collection- oder Rival-Focus-Lauf fuer Offline-Training ableiten
 - Zielsplit:
 - Waves `1-7`: `336` Episoden breit ueber alle verfuegbaren Instanzen
 - Wave `8`: `168` Episoden gleichmaessig ueber alle verfuegbaren Rival-Instanzen

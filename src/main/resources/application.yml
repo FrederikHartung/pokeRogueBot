@@ -71,7 +71,7 @@ bot:
   dqn:
     python-command: python3
     infer-script: scripts/02-training/inference/dqn_policy_infer_worker.py
-    combat-checkpoint: data/rl/models/dqn-combat-wave-library-bootstrap-combined-960.pt
+    combat-checkpoint: data/rl/models/dqn-combat-wave-library-random-valid-action-6800-stable.pt
     device: cpu
     worker-timeout-ms: 5000
     avoid-low-value-status-moves: true

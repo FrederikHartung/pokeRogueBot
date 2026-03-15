@@ -504,7 +504,7 @@ function buildCollectionMetrics(manifestInput) {
     archive_size_bytes: archiveOutput.size_bytes ?? null,
     archive_size_mb: toMegabytes(archiveOutput.size_bytes),
     download_path: archiveOutput.download_path ?? archiveOutput.archive_path ?? datasetOutput.dataset_path ?? null,
-    local_import_dir: process.env.POKEROGUE_COLLECTION_LOCAL_IMPORT_DIR ?? "~/Documents/GitRepos/Privat/pokeRogueBot/data/rl/combat/",
+    local_import_dir: process.env.POKEROGUE_COLLECTION_LOCAL_IMPORT_DIR ?? "/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/rl/combat/",
     scp_download_command: buildScpDownloadCommand(
       archiveOutput.download_path ?? archiveOutput.archive_path ?? datasetOutput.dataset_path ?? null,
     ),
@@ -639,8 +639,8 @@ function buildScpDownloadCommand(downloadPath) {
   }
 
   const sshTarget = process.env.POKEROGUE_REMOTE_SSH_TARGET ?? "SFH-Frederik@152.53.176.72";
-  const sshKeyPath = process.env.POKEROGUE_REMOTE_SSH_KEY ?? "~/.ssh/id_rsa_github_privat";
-  const localImportDir = process.env.POKEROGUE_COLLECTION_LOCAL_IMPORT_DIR ?? "~/Documents/GitRepos/Privat/pokeRogueBot/data/rl/combat/";
+  const sshKeyPath = process.env.POKEROGUE_REMOTE_SSH_KEY ?? "/Users/frederikhartung/.ssh/id_rsa_github_privat";
+  const localImportDir = process.env.POKEROGUE_COLLECTION_LOCAL_IMPORT_DIR ?? "/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/rl/combat/";
   return `scp -i ${shellQuote(sshKeyPath)} ${shellQuote(`${sshTarget}:${downloadPath}`)} ${shellQuote(localImportDir)}`;
 }
 

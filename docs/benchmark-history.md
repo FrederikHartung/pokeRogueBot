@@ -503,3 +503,34 @@ Kurzfazit:
 - Das neue DQN ist auf dem vollen `68`-Szenarien-Set die staerkste Policy nach `win_rate` und `avg_reward`.
 - Gleichzeitig bleibt Effizienz die klare Restschwaeche: gegen `always_move_0` braucht das Modell im Mittel deutlich mehr Zuege.
 - `truncated_rate` lag fuer alle drei Policies bei `0.000`, der Full-Benchmark war also stabil und ohne Abbrueche.
+
+## Run 18
+
+- Datum: 2026-03-15
+- Beschreibung: Full-Benchmark ueber alle `68` materialisierten Wave-Library-Szenarien fuer das stabilisierte DQN-Modell auf dem `6800`-Episoden-`random-valid-action`-Datensatz; `random` und `always_move_0` wurden als gecachte Baselines wiederverwendet, nur der DQN-Lauf wurde neu erzeugt
+- Laufnummer: 18
+- Benchmark-Typ: full
+- Trainingsdaten: `60076` Transitionen aus `data/rl/combat/random-valid-action-w1-8.jsonl` (`6800` Episoden)
+- Checkpoint: `data/rl/models/dqn-combat-wave-library-random-valid-action-6800-stable.pt`
+- Benchmark-Report: `data/rl/combat/eval-policy-compare-wave-library-random-valid-action-6800-stable-full-report.json`
+- Benchmark-Modus: `--reuse-baselines`
+
+Ergebnisse:
+
+| Policy | Win Rate | Avg Reward | Avg Turns | Benchmark-Transitions |
+| --- | ---: | ---: | ---: | ---: |
+| `random` | 0.897 | 7.1957 | 9.49 | 645 |
+| `always_move_0` | 0.912 | 8.6192 | 5.46 | 371 |
+| `dqn` | 0.956 | 9.6097 | 9.96 | 677 |
+
+Delta:
+
+- `dqn_vs_random`: win_rate `+0.0588`, avg_reward `+2.4139`, avg_turns `+0.47`
+- `dqn_vs_always_move_0`: win_rate `+0.0441`, avg_reward `+0.9905`, avg_turns `+4.50`
+
+Kurzfazit:
+
+- Das stabilisierte `6800`-Episoden-Modell ist der bisher staerkste Full-Benchmark-Stand in diesem Pfad und verbessert sowohl `win_rate` als auch `avg_reward` gegen beide Baselines.
+- Gegenueber `Run 17` ist besonders positiv, dass der DQN nicht nur staerker, sondern auch deutlich effizienter wurde: `avg_turns` sinken von `14.12` auf `9.96`.
+- `always_move_0` bleibt zwar bei der reinen Effizienz vorne, aber der Abstand ist jetzt deutlich kleiner als im vorherigen Full-Benchmark.
+- `truncated_rate` lag fuer alle drei Policies bei `0.000`, der Benchmark war also stabil und ohne Abbrueche.

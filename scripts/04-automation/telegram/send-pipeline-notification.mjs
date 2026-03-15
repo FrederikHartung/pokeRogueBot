@@ -200,9 +200,15 @@ function buildMessage({ event, runtimeDir, manifestPath, phase, iteration, error
       if (collectionMetrics.total_runtime_ms != null) {
         lines.push(`Total runtime: ${formatDuration(collectionMetrics.total_runtime_ms)}`);
       }
-      if (collectionMetrics.download_path) {
+      if (collectionMetrics.download_path || collectionMetrics.scp_download_command) {
         lines.push("");
+        lines.push("Artifacts:");
+      }
+      if (collectionMetrics.download_path) {
         lines.push(`Download: ${collectionMetrics.download_path}`);
+      }
+      if (collectionMetrics.download_path && collectionMetrics.scp_download_command) {
+        lines.push("");
       }
       if (collectionMetrics.scp_download_command) {
         lines.push(`SCP: ${collectionMetrics.scp_download_command}`);
