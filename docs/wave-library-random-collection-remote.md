@@ -21,6 +21,12 @@ Zentrale Szenarioquelle:
   - `data/rl/scenarios/generated-wave-library-v3-w1-24`
   - aktueller Stand: `311` Szenarien fuer Waves `1-24`
 
+Wichtiger Praxis-Hinweis:
+
+- Die produktive Wave-Library unter `data/offline-wave-library/productive-wave-snapshots-v1.jsonl` ist **nicht versioniert**.
+- Wenn auf dem Server Trainingsdaten fuer neu hinzugekommene lokale Wave-Lib-Eintraege erzeugt werden sollen, muss die aktuelle lokale Wave-Lib daher **vorher per `scp` auf den Server synchronisiert** werden.
+- Ein `git pull` auf dem Server reicht dafuer nicht aus.
+
 ## Einstieg
 
 Package-Script:
@@ -40,6 +46,9 @@ bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remo
 bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh status
 bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh logs
 bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh issues
+bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh telegram-control-start
+bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh telegram-control-status
+bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh telegram-control-stop
 bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh stop
 ```
 
@@ -172,6 +181,14 @@ Die Nachricht enthaelt unter anderem:
 
 Der Telegram-Control-Bot erkennt bei `/status` jetzt auch aktive Random-Collection-Remote-Laeufe und zeigt deren kompakten Fortschritt an.
 
+Fuer den Random-Collection-Remote-Helper gibt es jetzt dieselben Telegram-Control-Kommandos wie beim Bootstrap-/iterativen Pfad:
+
+- `telegram-control-start`
+- `telegram-control-status`
+- `telegram-control-stop`
+
+Wenn `telegram.env` vorhanden ist und ein Lauf ueber `start`, `start-100`, `start-smoke`, `start-v3` oder `start-v3-smoke` gestartet wird, wird der Telegram-Control-Bot automatisch mitgestartet und nach Laufende wieder gestoppt.
+
 Empfohlene Retention-Regel:
 
 - erfolgreiche Remote-Laeufe:
@@ -198,6 +215,14 @@ Der sehr kurze Ende-zu-Ende-Smoke dafuer ist:
 - genau `1` Szenario
 - genau `1` Episode
 - gedacht fuer schnellen lokalen oder serverseitigen Funktionscheck
+
+Vor einem serverseitigen V3-Lauf mit neuen lokalen Wave-Lib-Eintraegen:
+
+```bash
+scp -i '/Users/frederikhartung/.ssh/id_rsa_github_privat' \
+  '/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/offline-wave-library/productive-wave-snapshots-v1.jsonl' \
+  'SFH-Frederik@152.53.176.72:/home/SFH-Frederik/repos/pokeRogueBot/data/offline-wave-library/productive-wave-snapshots-v1.jsonl'
+```
 
 ## Delta-Top-ups fuer neue Szenarien
 

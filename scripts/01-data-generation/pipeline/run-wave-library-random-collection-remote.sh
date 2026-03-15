@@ -11,10 +11,13 @@ V3_SMOKE_CONFIG="${REPO_ROOT}/data/rl/wave-library-random-collection-remote-v3-s
 CONTROL_DIR="${REPO_ROOT}/data/rl/pipeline-runs/wave-library-random-collection-remote-control"
 PID_FILE="${CONTROL_DIR}/remote-random-collection.pid"
 ACTIVE_CONFIG_FILE="${CONTROL_DIR}/active-config.txt"
+TELEGRAM_CONTROL_PID_FILE="${CONTROL_DIR}/telegram-control.pid"
+TELEGRAM_CONTROL_AUTO_FILE="${CONTROL_DIR}/telegram-control.auto"
 VENV_DIR="${REPO_ROOT}/.venv"
 VENV_PYTHON="${VENV_DIR}/bin/python"
 VENV_BIN_DIR="${VENV_DIR}/bin"
 TELEGRAM_ENV_FILE="${POKEROGUE_NOTIFICATION_ENV_FILE:-${HOME}/.config/pokeroguebot/telegram.env}"
+TELEGRAM_POLL_INTERVAL_SECONDS_DEFAULT="600"
 
 mkdir -p "${CONTROL_DIR}"
 
@@ -31,6 +34,9 @@ Usage:
   scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh last
   scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh issues
   scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh notify-test
+  scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh telegram-control-start
+  scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh telegram-control-status
+  scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh telegram-control-stop
   scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh stop
 EOF
 }
@@ -206,6 +212,15 @@ is_running() {
   fi
   local pid
   pid="$(cat "${PID_FILE}")"
+  [ -n "${pid}" ] && kill -0 "${pid}" >/dev/null 2>&1
+}
+
+is_telegram_control_running() {
+  if [ ! -f "${TELEGRAM_CONTROL_PID_FILE}" ]; then
+    return 1
+  fi
+  local pid
+  pid="$(cat "${TELEGRAM_CONTROL_PID_FILE}")"
   [ -n "${pid}" ] && kill -0 "${pid}" >/dev/null 2>&1
 }
 
@@ -453,7 +468,23 @@ start_run() {
   : > "$(warning_log_file_for_config "${config_path}")"
   : > "$(issues_summary_file_for_config "${config_path}")"
 
-  nohup bash -lc "export PATH='${VENV_BIN_DIR}':\"\$PATH\" && if [ -f '${TELEGRAM_ENV_FILE}' ]; then source '${TELEGRAM_ENV_FILE}'; fi && cd '${REPO_ROOT}' && if npm run rl:pipeline:wave-lib:collect -- '${config_path}'; then node scripts/01-data-generation/pipeline/finalize-wave-library-random-collection-runtime.ts '${config_path}' || true; else exit \$?; fi" \
+  local auto_started_telegram_control=0
+  if [ -f "${TELEGRAM_ENV_FILE}" ]; then
+    if is_telegram_control_running; then
+      echo "Telegram control bot already running."
+      rm -f "${TELEGRAM_CONTROL_AUTO_FILE}"
+    else
+      telegram_control_start_internal
+      auto_started_telegram_control=1
+      echo "1" > "${TELEGRAM_CONTROL_AUTO_FILE}"
+    fi
+  else
+    rm -f "${TELEGRAM_CONTROL_AUTO_FILE}"
+  fi
+
+  local cleanup_command="if [ -f '${TELEGRAM_CONTROL_AUTO_FILE}' ]; then bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh telegram-control-stop >/dev/null 2>&1 || true; rm -f '${TELEGRAM_CONTROL_AUTO_FILE}'; fi; exit \$pipeline_status"
+
+  nohup bash -lc "export PATH='${VENV_BIN_DIR}':\"\$PATH\" && if [ -f '${TELEGRAM_ENV_FILE}' ]; then source '${TELEGRAM_ENV_FILE}'; fi && cd '${REPO_ROOT}' && pipeline_status=0 && if npm run rl:pipeline:wave-lib:collect -- '${config_path}'; then node scripts/01-data-generation/pipeline/finalize-wave-library-random-collection-runtime.ts '${config_path}' || true; else pipeline_status=\$?; fi; ${cleanup_command}" \
     >"${log_file}" 2>&1 < /dev/null &
   local pid=$!
   echo "${pid}" > "${PID_FILE}"
@@ -461,9 +492,16 @@ start_run() {
 
   if kill -0 "${pid}" >/dev/null 2>&1; then
     echo "Started detached random-collection run with PID ${pid}."
+    if [ "${auto_started_telegram_control}" -eq 1 ]; then
+      echo "Telegram control bot was started automatically."
+    fi
     echo "Log: ${log_file}"
   else
     echo "Process exited immediately. Check log: ${log_file}" >&2
+    if [ -f "${TELEGRAM_CONTROL_AUTO_FILE}" ]; then
+      bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh telegram-control-stop >/dev/null 2>&1 || true
+      rm -f "${TELEGRAM_CONTROL_AUTO_FILE}"
+    fi
     exit 1
   fi
 }
@@ -512,6 +550,92 @@ notify_test() {
     --collection-metrics "$(metrics_file_for_config "${config_path}")"
 }
 
+resolve_telegram_poll_interval_seconds() {
+  local value="${POKEROGUE_TELEGRAM_POLL_INTERVAL_SECONDS:-${TELEGRAM_POLL_INTERVAL_SECONDS_DEFAULT}}"
+  if [[ "${value}" =~ ^[0-9]+$ ]] && [ "${value}" -gt 0 ]; then
+    echo "${value}"
+    return 0
+  fi
+  echo "${TELEGRAM_POLL_INTERVAL_SECONDS_DEFAULT}"
+}
+
+telegram_control_start_internal() {
+  if is_telegram_control_running; then
+    return 0
+  fi
+
+  local control_log_file="${CONTROL_DIR}/telegram-control.log"
+  local poll_interval_seconds
+  poll_interval_seconds="$(resolve_telegram_poll_interval_seconds)"
+
+  nohup bash -lc "export PATH='${VENV_BIN_DIR}':\"\$PATH\" && source '${TELEGRAM_ENV_FILE}' && cd '${REPO_ROOT}' && node scripts/04-automation/telegram/run-telegram-control-bot.mjs --poll-interval-seconds '${poll_interval_seconds}' --state-dir '${CONTROL_DIR}'" \
+    >"${control_log_file}" 2>&1 < /dev/null &
+  local pid=$!
+  echo "${pid}" > "${TELEGRAM_CONTROL_PID_FILE}"
+  sleep 1
+
+  if kill -0 "${pid}" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  echo "Telegram control bot exited immediately. Check log: ${control_log_file}" >&2
+  exit 1
+}
+
+telegram_control_start() {
+  check_dependencies
+
+  if [ ! -f "${TELEGRAM_ENV_FILE}" ]; then
+    echo "Telegram env file not found: ${TELEGRAM_ENV_FILE}" >&2
+    exit 1
+  fi
+
+  if is_telegram_control_running; then
+    echo "Telegram control bot is already running."
+    telegram_control_status
+    exit 1
+  fi
+
+  telegram_control_start_internal
+  local poll_interval_seconds
+  poll_interval_seconds="$(resolve_telegram_poll_interval_seconds)"
+  echo "Started Telegram control bot with PID $(cat "${TELEGRAM_CONTROL_PID_FILE}")."
+  echo "Poll interval: ${poll_interval_seconds}s"
+  echo "Log: ${CONTROL_DIR}/telegram-control.log"
+}
+
+telegram_control_status() {
+  local control_log_file="${CONTROL_DIR}/telegram-control.log"
+  local poll_interval_seconds
+  poll_interval_seconds="$(resolve_telegram_poll_interval_seconds)"
+  if is_telegram_control_running; then
+    local pid
+    pid="$(cat "${TELEGRAM_CONTROL_PID_FILE}")"
+    echo "Telegram control bot is running."
+    echo "PID: ${pid}"
+  else
+    echo "Telegram control bot is not running."
+  fi
+  echo "Env: ${TELEGRAM_ENV_FILE}"
+  echo "Poll interval: ${poll_interval_seconds}s"
+  echo "Log: ${control_log_file}"
+}
+
+telegram_control_stop() {
+  if ! is_telegram_control_running; then
+    echo "No running Telegram control bot found."
+    exit 0
+  fi
+
+  local pid
+  pid="$(cat "${TELEGRAM_CONTROL_PID_FILE}")"
+  echo "Stopping Telegram control bot PID ${pid}..."
+  kill "${pid}"
+  rm -f "${TELEGRAM_CONTROL_PID_FILE}"
+  rm -f "${TELEGRAM_CONTROL_AUTO_FILE}"
+  echo "Stop signal sent."
+}
+
 case "${1:-}" in
   start)
     start_run "${2:-${DEFAULT_CONFIG}}"
@@ -542,6 +666,15 @@ case "${1:-}" in
     ;;
   notify-test)
     notify_test
+    ;;
+  telegram-control-start)
+    telegram_control_start
+    ;;
+  telegram-control-status)
+    telegram_control_status
+    ;;
+  telegram-control-stop)
+    telegram_control_stop
     ;;
   stop)
     stop_run

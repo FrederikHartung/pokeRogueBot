@@ -336,6 +336,12 @@ Serverseitige Pool-Ablage fuer wiederverwendbare Trainingsdaten:
   - vor einem spaeteren Training koennen alte und neue Runs gezielt gemerged werden
   - besondere Schwachstellen wie Rivalen, Double Battles oder spaete Waves lassen sich spaeter als eigene Usecases nachpflegen statt den kompletten Datenpool neu zu erzeugen
 
+Wichtiger Betriebs-Hinweis fuer serverseitige Datengenerierung:
+
+- `data/offline-wave-library/productive-wave-snapshots-v1.jsonl` ist nicht versioniert.
+- Wenn neue lokale Wave-Lib-Eintraege als V3-Szenarien auf dem Server gesammelt werden sollen, muss die aktuelle Wave-Lib-Datei zuerst per `scp` auf den Server kopiert werden.
+- Ein `git pull` aktualisiert nur den Code, nicht die Wave-Lib-Daten.
+
 Delta-Workflow fuer neue Wave-Lib-Eintraege:
 
 - Wenn der Live-Bot spaeter neue produktive Snapshots erzeugt, muss nicht der komplette V3-Datensatz neu gesammelt werden

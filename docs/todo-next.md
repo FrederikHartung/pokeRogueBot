@@ -130,6 +130,18 @@ Verbindlicher Schema-Hinweis:
 - explizit mitzaehlen, wie oft Live-Entscheidungen vom Modell, vom Fallback und von UI-Zwangspfaden kamen
 - Umsetzungsplan Phase 4:
 - Live-Sonderfaelle absichern: `tryToCatch`, keine legalen Moves, Forced Switch, leere Gegnerparty, invalide Action-Mask, aktiver Slotwechsel nach KO
+
+Späterer Ausbau: Double Battles als eigener RL-Pfad
+- aktuell werden Double Battles bewusst aus der Wave-Lib-Materialisierung gefiltert und im Live-DQN-Pfad hart auf Heuristik zurueckgefallen
+- Grund: der bestehende Combat-RL-Contract ist klar auf Single Battles zugeschnitten
+- Blocker fuer echtes Double-DQN:
+- der aktuelle Transition-Contract erlaubt nur `battle_type = single`
+- `CombatPolicySupport.buildOfflineCombatState(...)` gibt fuer Double Battles aktuell `null` zurueck
+- `DqnCombatSwitchPolicy` faellt bei `isDoubleFight` absichtlich auf Heuristik zurueck
+- fuer Double Battles braucht es voraussichtlich einen separaten State-/Action-Contract mit zwei aktiven eigenen Mons, zwei Gegnern, Zielwahl und potenziell zwei Aktionen pro Turn
+- Empfehlung:
+- nicht als kleinen Filter-Fix behandeln
+- sondern spaeter als eigenen Usecase `doubles` im Dataset-Pool mit separatem Collector-/Training-/Eval-Pfad angehen
 - fuer Double Battles vorerst weiter harter Fallback auf Heuristik
 - Umsetzungsplan Phase 5:
 - Smoke- und Vergleichslauf auf echten fruehen Waves durchfuehren: `random_move`, `random_move_or_switch`, `dqn`

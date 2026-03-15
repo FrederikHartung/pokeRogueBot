@@ -201,6 +201,7 @@ bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh no
 ```bash
 bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh start-smoke
 bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh start-overnight
+bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-v3
 ```
 
 Hinweise:
@@ -279,18 +280,21 @@ Start auf dem Server:
 
 ```bash
 bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh telegram-control-start
+bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh telegram-control-start
 ```
 
 Status prüfen:
 
 ```bash
 bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh telegram-control-status
+bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh telegram-control-status
 ```
 
 Stoppen:
 
 ```bash
 bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh telegram-control-stop
+bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh telegram-control-stop
 ```
 
 Polling:
@@ -304,8 +308,8 @@ export POKEROGUE_TELEGRAM_POLL_INTERVAL_SECONDS='600'
 
 Automatisches Verhalten:
 
-- wenn `telegram.env` vorhanden ist und die Remote-Pipeline über `start-smoke` oder `start-overnight` gestartet wird, wird der Control-Bot automatisch mit gestartet
-- wenn die Pipeline fertig ist oder mit Fehler endet, wird der automatisch gestartete Control-Bot wieder beendet
+- wenn `telegram.env` vorhanden ist und die Remote-Pipeline ueber die Startkommandos der Bootstrap- oder Random-Collection-Helper gestartet wird, wird der Control-Bot automatisch mit gestartet
+- wenn die Pipeline oder Random-Collection fertig ist oder mit Fehler endet, wird der automatisch gestartete Control-Bot wieder beendet
 - die manuellen Commands bleiben trotzdem verfügbar, falls der Bot separat betrieben werden soll
 
 Beispielablauf:
