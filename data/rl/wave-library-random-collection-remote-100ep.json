@@ -1,0 +1,26 @@
+{
+  "scenario_dirs": [
+    "./scenarios/generated-wave-library-v2-w1-8"
+  ],
+  "include_waves": [1, 2, 3, 4, 5, 6, 7, 8],
+  "output_root": "./pipeline-runs/wave-library-random-collection-remote-100ep",
+  "manifest_path": "./pipeline-runs/wave-library-random-collection-remote-100ep/manifest.json",
+  "collector_defaults": {
+    "append_output": false,
+    "max_steps_per_episode": 300,
+    "test_timeout_ms": 600000,
+    "quiet_game_logs": true
+  },
+  "collect": {
+    "episodes_per_instance": 100,
+    "batch_size": 100,
+    "parallelism": 2,
+    "collector": {},
+    "policy": {
+      "type": "random"
+    }
+  },
+  "archive": {
+    "format": "tar.gz"
+  }
+}
