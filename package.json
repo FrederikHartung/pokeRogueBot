@@ -8,6 +8,7 @@
     "rl:collect": "node scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts",
     "rl:gen:scenarios": "node scripts/01-data-generation/scenarios/run-wave-library-scenario-adapter.mjs",
     "rl:gen:scenarios:wave-lib": "node scripts/01-data-generation/scenarios/run-wave-library-scenario-adapter.mjs",
+    "rl:gen:scenarios:delta": "node scripts/01-data-generation/scenarios/build-wave-library-delta-config.ts",
     "rl:collect:wave-lib:smoke": "node scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts ./data/rl/collector-run-wave-library-v2-smoke.json",
     "rl:collect:bench": "node scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts ./data/rl/collector-run-benchmarked-wave-library-v2.json",
     "rl:collect:bench:wave-lib:v2": "node scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts ./data/rl/collector-run-benchmarked-wave-library-v2.json",

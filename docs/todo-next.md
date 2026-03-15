@@ -18,6 +18,10 @@ Top-Prioritaet Datensatz-Organisation:
 - mehrere Datengenerierungen koennen serverseitig gesammelt werden
 - vor einem Training wird ein finaler Merge fuer genau den gewuenschten Datenmix erzeugt
 - nach Benchmark-Befunden koennen gezielt neue Runs fuer problematische Wellen/Situationen hinzugefuegt und mit bestehenden Pools kombiniert werden
+- neue Wave-Lib-Eintraege sollen kuenftig nicht mehr automatisch einen Voll-Run erzwingen:
+- nach dem Rematerialisieren soll ein Delta-Workflow nur die neu hinzugekommenen Szenario-Dateien erkennen
+- fuer genau diese Delta-Szenarien soll eine kleine Top-up-Collection-Config erzeugt werden
+- der bisherige Datenpool bleibt erhalten und wird vor dem Training nur um die neuen Top-up-Runs erweitert
 
 Kurzfristig ergaenzen:
 - Wenn ein Player-Pokemon besiegt wurde, soll das DQN entscheiden, welches Pokemon als naechstes eingewechselt wird, statt eines separaten Java-/Kotlin-Switch-Neurons, falls dieses noch aktiv ist.

@@ -199,6 +199,44 @@ Der sehr kurze Ende-zu-Ende-Smoke dafuer ist:
 - genau `1` Episode
 - gedacht fuer schnellen lokalen oder serverseitigen Funktionscheck
 
+## Delta-Top-ups fuer neue Szenarien
+
+Wenn spaeter neue produktive Wave-Lib-Eintraege dazukommen, muss nicht jedes Mal der komplette V3-Datensatz neu gesammelt werden.
+
+Vorgehen:
+
+1. Szenarien neu materialisieren
+2. aktuellen Szenario-Ordner gegen einen bekannten Baseline-Index diffen
+3. daraus eine Collection-Config nur fuer die neuen `scenario_files` erzeugen
+4. diesen Top-up-Run normal ueber die Random-Collection-Pipeline einsammeln
+5. den Datenpool spaeter vor dem Training mit alten und neuen Runs mergen
+
+Hilfsskript:
+
+```bash
+npm run rl:gen:scenarios:delta -- \
+  --scenario-dir data/rl/scenarios/generated-wave-library-v3-w1-24 \
+  --baseline-index data/temp/scenario-indexes/generated-wave-library-v3-w1-24.latest.json \
+  --template-config data/rl/wave-library-random-collection-remote-v3-50ep.json \
+  --output-config data/temp/wave-library-random-collection-remote-v3-topup.json \
+  --run-suffix combat-v3-random-only-topup-YYYYMMDD
+```
+
+Nur den Baseline-Index aktualisieren:
+
+```bash
+npm run rl:gen:scenarios:delta -- \
+  --scenario-dir data/rl/scenarios/generated-wave-library-v3-w1-24 \
+  --baseline-index data/temp/scenario-indexes/generated-wave-library-v3-w1-24.latest.json \
+  --write-baseline-only
+```
+
+Empfehlung:
+
+- den Baseline-Index bewusst unter `data/temp/` halten
+- nach einem erfolgreichen Voll-Run oder bewusstem Top-up den Index aktualisieren
+- Top-up-Configs ebenfalls unter `data/temp/` ablegen, wenn sie nur einmalig operational gebraucht werden
+
 ## Skalierung
 
 Der Pfad ist fuer kleine und grosse Laeufe ausgelegt:

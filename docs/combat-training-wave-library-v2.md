@@ -336,6 +336,24 @@ Serverseitige Pool-Ablage fuer wiederverwendbare Trainingsdaten:
   - vor einem spaeteren Training koennen alte und neue Runs gezielt gemerged werden
   - besondere Schwachstellen wie Rivalen, Double Battles oder spaete Waves lassen sich spaeter als eigene Usecases nachpflegen statt den kompletten Datenpool neu zu erzeugen
 
+Delta-Workflow fuer neue Wave-Lib-Eintraege:
+
+- Wenn der Live-Bot spaeter neue produktive Snapshots erzeugt, muss nicht der komplette V3-Datensatz neu gesammelt werden
+- Stattdessen:
+  - Wave-Lib neu materialisieren
+  - aktuellen Szenario-Stand gegen einen bekannten Index diffen
+  - daraus eine kleine Collection-Config nur fuer die neuen Szenario-Dateien erzeugen
+- Hilfsskript:
+  - `npm run rl:gen:scenarios:delta -- --scenario-dir <generated-dir> --baseline-index <index.json> --template-config <base-config.json> --output-config <delta-config.json> --run-suffix <name>`
+- Baseline-Index initial anlegen oder nach einem Voll-Run aktualisieren:
+  - `npm run rl:gen:scenarios:delta -- --scenario-dir data/rl/scenarios/generated-wave-library-v3-w1-24 --baseline-index data/temp/scenario-indexes/generated-wave-library-v3-w1-24.latest.json --write-baseline-only`
+- typischer Top-up-Lauf:
+  - `npm run rl:gen:scenarios:delta -- --scenario-dir data/rl/scenarios/generated-wave-library-v3-w1-24 --baseline-index data/temp/scenario-indexes/generated-wave-library-v3-w1-24.latest.json --template-config data/rl/wave-library-random-collection-remote-v3-50ep.json --output-config data/temp/wave-library-random-collection-remote-v3-topup.json --run-suffix combat-v3-random-only-topup-20260315`
+- Ergebnis:
+  - der bestehende `random-only`-Pool bleibt nutzbar
+  - nur neue Szenarien werden als Top-up nachgesammelt
+  - vor dem Training koennen alter Pool und neue Delta-Runs zusammen gemerged werden
+
 ## Naechster fokussierter Trainingslauf (Rival-Focus, Stand `2026-03-12`)
 
 Ziel fuer den naechsten lokalen Zwischenlauf:
