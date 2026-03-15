@@ -9,6 +9,11 @@
 - Verbindliche Regel fuer neue Chats: Vor Implementierungsarbeit zuerst diese beiden Dateien einlesen, sofern der Task nicht rein trivial ist (z. B. reine Ein-Zeilen-Antwort ohne Projektbezug).
 - Danach bei Bedarf in Detaildocs verzweigen (z. B. `docs/combat-training-v1.md`, `docs/todo-next.md`).
 
+## Remote Server Zugriff
+
+- Fuer Zugriffe auf den Remote-Server per `ssh` oder `scp` ist folgende Verbindung zu verwenden:
+  - `ssh -i ~/.ssh/id_rsa_github_privat SFH-Frederik@152.53.176.72`
+
 **Maven Commands:**
 
 - Build project: `mvn clean compile` (automatically triggers JS bridge build via exec-maven-plugin)

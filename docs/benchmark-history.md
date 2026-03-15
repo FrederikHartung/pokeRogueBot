@@ -11,8 +11,8 @@
 - Datum: 2026-03-08
 - Beschreibung: Frueher Vergleichslauf mit kleinem Trainingsdatensatz und altem POC-Checkpoint
 - Trainingsdaten: kleiner Datensatz vor dem 5k-Bootstrap-Ausbau
-- Checkpoint: `data/rl/models/dqn-combat-poc.pt`
-- Benchmark-Report: `data/rl/combat/eval-policy-compare-report.json`
+- Checkpoint: bereinigtes Altcheckpoint-Artefakt, Datei nicht mehr im Repo behalten
+- Benchmark-Report: bereinigtes Altartefakt, Datei nicht mehr im Repo behalten
 
 Ergebnisse:
 
@@ -32,9 +32,9 @@ Delta:
 - Datum: 2026-03-10
 - Beschreibung: Offline-DQN nach Training auf dem neuen 5k-Bootstrap-Datensatz; anschliessend Benchmark auf dem gemischten Benchmark-Set
 - Laufnummer: 2
-- Trainingsdaten: `5000` Transitions aus `data/rl/combat/train-5k-bootstrap.jsonl`
-- Checkpoint: `data/rl/models/dqn-combat-5k-bootstrap.pt`
-- Benchmark-Report: `data/rl/combat/eval-policy-compare-5k-bootstrap-report.json`
+- Trainingsdaten: bereinigter Alt-Datensatz, Datei nicht mehr im Repo behalten
+- Checkpoint: bereinigtes Altcheckpoint-Artefakt, Datei nicht mehr im Repo behalten
+- Benchmark-Report: bereinigtes Altartefakt, Datei nicht mehr im Repo behalten
 
 Ergebnisse:
 
@@ -60,9 +60,9 @@ Kurzfazit:
 - Datum: 2026-03-10
 - Beschreibung: Offline-DQN nach erneutem 5k-Training auf dem erweiterten Datensatz mit HP-/State-Varianten fuer Switch-Entscheidungen; anschliessend Benchmark auf dem gemischten Benchmark-Set
 - Laufnummer: 3
-- Trainingsdaten: `5000` Transitions aus `data/rl/combat/train-5k-bootstrap.jsonl`
-- Checkpoint: `data/rl/models/dqn-combat-5k-state-variants.pt`
-- Benchmark-Report: `data/rl/combat/eval-policy-compare-5k-state-variants-report.json`
+- Trainingsdaten: bereinigter Alt-Datensatz, Datei nicht mehr im Repo behalten
+- Checkpoint: bereinigtes Altcheckpoint-Artefakt, Datei nicht mehr im Repo behalten
+- Benchmark-Report: bereinigtes Altartefakt, Datei nicht mehr im Repo behalten
 
 Ergebnisse:
 
@@ -88,9 +88,9 @@ Kurzfazit:
 - Datum: 2026-03-10
 - Beschreibung: Isolierter Switch-Experimentlauf nur fuer `lead_1hp_bench_full` nach Team-HP-Reward-Fix; Training auf gebatchtem Datensatz, anschliessend Benchmark auf demselben Spezialfall-Set
 - Laufnummer: 4
-- Trainingsdaten: `29849` Transitions aus `data/rl/combat/train-5k-lead-1hp.jsonl`
-- Checkpoint: `data/rl/models/dqn-combat-5k-lead-1hp.pt`
-- Benchmark-Report: `data/rl/combat/eval-policy-compare-5k-lead-1hp-report.json`
+- Trainingsdaten: bereinigter Alt-Datensatz, Datei nicht mehr im Repo behalten
+- Checkpoint: bereinigtes Altcheckpoint-Artefakt, Datei nicht mehr im Repo behalten
+- Benchmark-Report: bereinigtes Altartefakt, Datei nicht mehr im Repo behalten
 
 Ergebnisse:
 
@@ -116,9 +116,9 @@ Kurzfazit:
 - Datum: 2026-03-10
 - Beschreibung: Kurzer Prototyping-Lauf fuer `lead_1hp_bench_full` mit neuem terminal-orientierten Reward-Mechanismus und reduziertem Datensatz
 - Laufnummer: 5
-- Trainingsdaten: `3228` Transitions aus `data/rl/combat/train-5k-lead-1hp.jsonl`
-- Checkpoint: `data/rl/models/dqn-combat-5k-lead-1hp.pt`
-- Benchmark-Report: `data/rl/combat/eval-policy-compare-5k-lead-1hp-report.json`
+- Trainingsdaten: bereinigter Alt-Datensatz, Datei nicht mehr im Repo behalten
+- Checkpoint: bereinigtes Altcheckpoint-Artefakt, Datei nicht mehr im Repo behalten
+- Benchmark-Report: bereinigtes Altartefakt, Datei nicht mehr im Repo behalten
 
 Ergebnisse:
 
@@ -144,9 +144,9 @@ Kurzfazit:
 - Datum: 2026-03-10
 - Beschreibung: Neuer `lead_1hp_bench_full`-Lauf nach Fix fuer erweitertes State-Encoding im Offline-Trainer und robusterer `is_trainer_battle`-Ableitung im Collector
 - Laufnummer: 6
-- Trainingsdaten: `3218` Transitions aus `data/rl/combat/train-5k-lead-1hp.jsonl`
-- Checkpoint: `data/rl/models/dqn-combat-5k-lead-1hp.pt`
-- Benchmark-Report: `data/rl/combat/eval-policy-compare-5k-lead-1hp-report.json`
+- Trainingsdaten: bereinigter Alt-Datensatz, Datei nicht mehr im Repo behalten
+- Checkpoint: bereinigtes Altcheckpoint-Artefakt, Datei nicht mehr im Repo behalten
+- Benchmark-Report: bereinigtes Altartefakt, Datei nicht mehr im Repo behalten
 
 Ergebnisse:
 
@@ -172,9 +172,9 @@ Kurzfazit:
 - Datum: 2026-03-10
 - Beschreibung: Neuer `lead_1hp_bench_full`-Lauf nach Reward-Shaping fuer Switches sowie gehaertetem und normalisiertem Offline-Training (`action_mask` im State, Schema-Checks, Feature-Normalisierung)
 - Laufnummer: 7
-- Trainingsdaten: `3225` Transitions aus `data/rl/combat/train-5k-lead-1hp.jsonl`
-- Checkpoint: `data/rl/models/dqn-combat-5k-lead-1hp.pt`
-- Benchmark-Report: `data/rl/combat/eval-policy-compare-5k-lead-1hp-report.json`
+- Trainingsdaten: bereinigter Alt-Datensatz, Datei nicht mehr im Repo behalten
+- Checkpoint: bereinigtes Altcheckpoint-Artefakt, Datei nicht mehr im Repo behalten
+- Benchmark-Report: bereinigtes Altartefakt, Datei nicht mehr im Repo behalten
 
 Ergebnisse:
 
@@ -200,9 +200,9 @@ Kurzfazit:
 - Datum: 2026-03-10
 - Beschreibung: Neuer `lead_1hp_bench_full`-Lauf nach Reward-Umbau auf Step-Cost sowie Team-HP-Deltas statt lokaler Switch-Boni
 - Laufnummer: 8
-- Trainingsdaten: `3231` Transitions aus `data/rl/combat/train-5k-lead-1hp.jsonl`
-- Checkpoint: `data/rl/models/dqn-combat-5k-lead-1hp.pt`
-- Benchmark-Report: `data/rl/combat/eval-policy-compare-5k-lead-1hp-report.json`
+- Trainingsdaten: bereinigter Alt-Datensatz, Datei nicht mehr im Repo behalten
+- Checkpoint: bereinigtes Altcheckpoint-Artefakt, Datei nicht mehr im Repo behalten
+- Benchmark-Report: bereinigtes Altartefakt, Datei nicht mehr im Repo behalten
 
 Ergebnisse:
 
@@ -229,8 +229,8 @@ Kurzfazit:
 - Beschreibung: Erster echter Wave-Library-V2-Lauf mit neuem Deep-Datensatz und neuem V2-Benchmark-Set fuer Waves 1-8
 - Laufnummer: 9
 - Trainingsdaten: `2906` Transitions aus `data/rl/combat/train-wave-library-deep-w1-8.jsonl`
-- Checkpoint: `data/rl/models/dqn-combat-wave-library-v2-deep.pt`
-- Benchmark-Report: `data/rl/combat/eval-policy-compare-wave-library-v2-deep-report.json`
+- Checkpoint: bereinigtes Altcheckpoint-Artefakt, Datei nicht mehr im Repo behalten
+- Benchmark-Report: bereinigtes Altartefakt, Datei nicht mehr im Repo behalten
 
 Ergebnisse:
 
@@ -257,8 +257,8 @@ Kurzfazit:
 - Beschreibung: Zweiter Wave-Library-V2-Lauf nach Haertung der Datengenerierung mit relativer Epsilon-Steuerung, reproduzierbarem per-wave Sampling und deutlich hoeherer Switch-Exploration
 - Laufnummer: 10
 - Trainingsdaten: `3050` Transitions aus `data/rl/combat/train-wave-library-deep-w1-8.jsonl`
-- Checkpoint: `data/rl/models/dqn-combat-wave-library-v2-deep.pt`
-- Benchmark-Report: `data/rl/combat/eval-policy-compare-wave-library-v2-deep-report.json`
+- Checkpoint: bereinigtes Altcheckpoint-Artefakt, Datei nicht mehr im Repo behalten
+- Benchmark-Report: bereinigtes Altartefakt, Datei nicht mehr im Repo behalten
 
 Ergebnisse:
 
@@ -285,8 +285,8 @@ Kurzfazit:
 - Beschreibung: Wave-Library-V2-Lauf mit neuem Schema-4-State (zusaetzliche Switch-Flags) und neu auf 500 V2-Episoden trainiertem DQN
 - Laufnummer: 11
 - Trainingsdaten: `3506` Transitions aus `data/rl/combat/train-wave-library-v2-500-episodes-flags.jsonl`
-- Checkpoint: `data/rl/models/dqn-combat-wave-library-v2-500-flags.pt`
-- Benchmark-Report: `data/rl/combat/eval-policy-compare-wave-library-v2-500-flags-report.json`
+- Checkpoint: bereinigtes Altcheckpoint-Artefakt, Datei nicht mehr im Repo behalten
+- Benchmark-Report: bereinigtes Altartefakt, Datei nicht mehr im Repo behalten
 
 Ergebnisse:
 
@@ -313,8 +313,8 @@ Kurzfazit:
 - Beschreibung: Wave-Library-V2-Lauf mit damaligem Schema-5-State fuer Turn-Order-Features (`speed_order_advantage`, bekannte Priority-Bedrohung, per-Move First-Strike-/KO-Bits); Datengenerierung damals in 4 Batches mit 6-Minuten-Timeout-Ziel und insgesamt 500 Episoden
 - Laufnummer: 12
 - Trainingsdaten: `3356` Transitions aus `data/rl/combat/train-wave-library-v2-turn-order-500-clean.jsonl`
-- Checkpoint: `data/rl/models/dqn-combat-wave-library-v2-turn-order-500-clean.pt`
-- Benchmark-Report: `data/rl/combat/eval-policy-compare-wave-library-v2-turn-order-500-clean-report.json`
+- Checkpoint: bereinigtes Altcheckpoint-Artefakt, Datei nicht mehr im Repo behalten
+- Benchmark-Report: bereinigtes Altartefakt, Datei nicht mehr im Repo behalten
 - Nachtraeglicher Hinweis: Dieser Lauf ist nur eingeschraenkt belastbar, weil die damals verwendete Batchverarbeitung einen Bug hatte. `epsilon`-Decay, `episode_id`-Fortschritt und `state_variant`-Rotation wurden pro Batch neu gestartet statt global fortgefuehrt; dadurch waren die Trainingsdaten rueckblickend nicht optimal verteilt.
 
 Ergebnisse:
@@ -406,9 +406,9 @@ Kurzfazit:
   - Baseline `D0`: `155` Transitionen
   - kumulativ bis Iteration `5`: `794` Transitionen
 - Checkpoints:
-  - Baseline: `data/rl/generated/test-wave-library-iterative-smoke/artifacts/dqn-combat-wave-library-iter-baseline.pt`
-  - final: `data/rl/generated/test-wave-library-iterative-smoke/artifacts/dqn-combat-wave-library-iter-5.pt`
-- Benchmark-Summary: `data/rl/generated/test-wave-library-iterative-smoke/benchmark-summary.json`
+  - Baseline: bereinigtes Altartefakt, Datei nicht mehr im Repo behalten
+  - final: bereinigtes Altartefakt, Datei nicht mehr im Repo behalten
+- Benchmark-Summary: bereinigtes Altartefakt, Datei nicht mehr im Repo behalten
 
 Ergebnisse fuer die DQN-Policy pro Iteration:
 
@@ -445,10 +445,10 @@ Kurzfazit:
   - Baseline `D0`: kleiner Smoke-Datensatz mit `1` Episode pro Instanz
   - kumulativ bis Iteration `5`: weiterhin Smoke-Niveau; Fokus dieses Laufs lag primaer auf Laufzeitvergleich und Pipeline-Verhalten
 - Checkpoints:
-  - Baseline: `data/rl/generated/test-wave-library-iterative-smoke-optimized-v2/artifacts/dqn-combat-wave-library-iter-baseline.pt`
-  - final: `data/rl/generated/test-wave-library-iterative-smoke-optimized-v2/artifacts/dqn-combat-wave-library-iter-5.pt`
-- Benchmark-Summary: `data/rl/generated/test-wave-library-iterative-smoke-optimized-v2/benchmark-summary.json`
-- Runtime-Summary: `data/rl/generated/test-wave-library-iterative-smoke-optimized-v2/runtime-summary.json`
+  - Baseline: bereinigtes Altartefakt, Datei nicht mehr im Repo behalten
+  - final: bereinigtes Altartefakt, Datei nicht mehr im Repo behalten
+- Benchmark-Summary: bereinigtes Altartefakt, Datei nicht mehr im Repo behalten
+- Runtime-Summary: bereinigtes Altartefakt, Datei nicht mehr im Repo behalten
 
 Ergebnisse fuer die DQN-Policy pro Iteration:
 

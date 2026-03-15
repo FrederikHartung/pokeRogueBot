@@ -228,7 +228,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate DQN checkpoint on benchmarked combat scenarios")
     parser.add_argument(
         "--checkpoint",
-        default="./data/rl/models/dqn-combat-wave-library-v2-deep.pt",
+        default="./data/rl/models/dqn-combat-wave-library-bootstrap-combined-960.pt",
         help="Path to DQN checkpoint",
     )
     parser.add_argument(

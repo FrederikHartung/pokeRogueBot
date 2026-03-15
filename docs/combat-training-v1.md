@@ -328,11 +328,11 @@ Day 5:
 - Dataset sanity check:
   - command: `npm run rl:check:dataset -- ./data/rl/combat/train-benchmarked-mixed.jsonl`
   - validates JSON, `action_mask`, action validity, `next_state`, `reward`, `done`
-- Offline DQN POC trainer (PyTorch):
+- Offline DQN trainer (PyTorch):
   - requirements: `python3 -m pip install -r data/rl/requirements-pytorch.txt`
-  - config: `data/rl/train-dqn-offline-poc.json`
-  - command: `npm run rl:train:dqn:poc`
-  - output checkpoint: `data/rl/models/dqn-combat-poc.pt`
+  - config: `data/rl/train-dqn-offline-wave-library-bootstrap-combined-960.json`
+  - command: `npm run rl:train:dqn:wave-lib:v2`
+  - output checkpoint: `data/rl/models/dqn-combat-wave-library-bootstrap-combined-960.pt`
 - Offline eval + reporting pipeline:
   - command: `npm run rl:eval:dqn:poc`
   - metrics: win rate, avg reward, avg turns

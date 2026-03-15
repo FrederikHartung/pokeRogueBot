@@ -494,7 +494,7 @@ Neue Infrastruktur-Helfer fuer diesen Pfad:
 Aktueller optimierter Smoke-Referenzlauf:
 
 - Config:
-  - `data/rl/test-wave-library-iterative-pipeline-smoke-optimized.json`
+  - bereinigtes Altartefakt, Referenzdatei nicht mehr im Repo behalten
 - Eigenschaften:
   - `5` Iterationen
   - `1` Episode pro Instanz

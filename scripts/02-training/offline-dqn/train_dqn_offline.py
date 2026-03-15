@@ -283,7 +283,7 @@ def parse_transition_row(line: str, line_no: int) -> Dict[str, torch.Tensor]:
 
 def train(config: Dict) -> None:
     dataset_path = config["dataset_path"]
-    output_path = config.get("output_path", "./data/rl/models/dqn-combat-poc.pt")
+    output_path = config.get("output_path", "./data/rl/models/dqn-combat-wave-library-bootstrap-combined-960.pt")
     device = config.get("device", "cpu")
     seed = int(config.get("seed", 42))
 
@@ -404,7 +404,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Offline DQN training (POC) for PokeRogue combat JSONL datasets")
     parser.add_argument(
         "--config",
-        default="./data/rl/train-dqn-offline-poc.json",
+        default="./data/rl/train-dqn-offline-wave-library-bootstrap-combined-960.json",
         help="Path to JSON config",
     )
     args = parser.parse_args()

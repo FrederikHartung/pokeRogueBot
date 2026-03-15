@@ -80,7 +80,7 @@ Verbindlicher Schema-Hinweis:
 - Ziel: der Live-Bot soll in `CommandPhase` und bei erzwungenen Switches das aktuell trainierte Offline-DQN statt zufaelliger legaler Aktionen nutzen
 - Fachlicher Startpunkt:
 - bevorzugter erster Live-Checkpoint ist `data/rl/models/dqn-combat-wave-library-bootstrap-combined-960.pt` aus `Run 13`
-- `Run 11` (`data/rl/models/dqn-combat-wave-library-v2-500-flags.pt`) bleibt sinnvolle Vergleichsbasis, falls `Run 13` live unerwartet unruhig spielt
+- `Run 13` (`data/rl/models/dqn-combat-wave-library-bootstrap-combined-960.pt`) bleibt sinnvolle Vergleichsbasis, falls neuere lokale Trainingslaeufe live unerwartet unruhig spielen
 - Nicht-Ziel fuer den ersten Integrationsschritt:
 - noch keine Ausweitung auf Double Battles
 - keine Vermischung mit Modifier-RL; `ModifierRLNeuron` bleibt unveraendert
@@ -209,6 +209,10 @@ Verbindlicher Schema-Hinweis:
 - `state_variants=all_full, lead_critical_bench_full, lead_critical_plus_random_bench_critical, all_critical, lead_half_bench_full, enemy_half, enemy_critical`
 - Aktiver V2-Sammler:
 - Remote Collection Pipeline: `npm run rl:pipeline:wave-lib:collect -- ./data/rl/wave-library-random-collection-remote-50ep.json`
+- Verbindlicher Abschluss fuer Remote-Testdatengenerierung:
+- Am Ende des Remote-Laufs soll die finale Exportdatei fuer den Download immer zusaetzlich per `tar` komprimiert werden.
+- Hardening naechster Schritt:
+- Collector-/Pipeline-Skripte fuer RL-Datengenerierung gezielt auf TypeScript + gemeinsame Policy-/Config-Typen umstellen und Configs beim Laden strikt validieren, damit Namensdrift wie `epsilon_start` vs. `start_epsilon` nicht mehr still auf Fallback-Logik faellt
 
 5. Prod-nahe Wave-Library fuer Offline-Headless-Runs aufbauen
 - Status: V1 ist umgesetzt (10. Maerz 2026)

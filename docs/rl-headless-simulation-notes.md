@@ -215,8 +215,8 @@ Current generated artifacts:
 - Scenario materialization example: `data/rl/scenarios/generated-wave-library-v2-w1-8/*.json`
 - Batch transition output example: `data/rl/combat/train-wave-library-v2-default.jsonl`
 - Deep training dataset example: `data/rl/combat/train-wave-library-deep-w1-8.jsonl`
-- Deep-trained checkpoint example: `data/rl/models/dqn-combat-wave-library-v2-deep.pt`
-- latest compare report: `data/rl/combat/eval-policy-compare-wave-library-v2-deep-report.json`
+- Active bootstrap-combined checkpoint example: `data/rl/models/dqn-combat-wave-library-bootstrap-combined-960.pt`
+- latest compare report: `data/rl/combat/eval-policy-compare-wave-library-rival-focus-504-report.json`
 
 Known behavior:
 
