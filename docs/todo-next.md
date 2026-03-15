@@ -36,6 +36,11 @@ Prioritaetswechsel fuer die naechste Session:
 - `scripts/04-automation/telegram/send-pipeline-notification.mjs`
 - `scripts/04-automation/telegram/run-telegram-control-bot.mjs`
 - der alte `run-wave-library-bootstrap-pipeline.mjs` bleibt relevant, ist aber wegen seines Umfangs eher ein eigener Umbau als ein schneller Cleanup
+- Mittelfristig sinnvoll:
+- DTO-first statt Klassen-Spiegelung weiter staerken:
+- JS-Bridge soll moeglichst die stabile Uebersetzungsschicht zum Submodul bleiben
+- Kotlin soll bevorzugt gegen bewusst definierte DTO-Contracts statt gegen 1:1 nachgepflegte PokeRogue-Modellspiegel arbeiten
+- fuer kleine driftanfaellige Enum-/Konstantenflaechen spaeter gezielte Guardrails oder Codegen pruefen, statt immer mehr Submodul-Strukturen manuell in Kotlin zu spiegeln
 - im `data/`-Verzeichnis einen klaren `temp`-Ordner einfuehren fuer lokale, nicht versionierte Zwischenartefakte rund um neue DQN-Trainingslaeufe; dort sollen kurzlebige Reports, Test-Configs, ad-hoc-Downloads und andere schnell veraltende Dateien landen statt die produktiven Datenpfade zu vermuellen
 - Hauptziel ist jetzt nicht mehr nur `random_move`-Stabilisierung, sondern die produktive Nutzung des aktuell trainierten Combat-/Switch-DQN im Live-Bot.
 - Die JS-Bridge bleibt dabei Voraussetzung und Guardrail, ist aber nicht mehr das alleinige Leitprojekt fuer die naechste Session.
