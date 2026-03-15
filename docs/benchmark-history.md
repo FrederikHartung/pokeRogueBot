@@ -473,3 +473,33 @@ Kurzfazit:
 - Die Benchmark-Cache-Logik und die parallele Datengenerierung funktionieren fachlich sauber; die Pipeline lief nach Collector-Tempfile-Fix wieder vollstaendig durch.
 - Inhaltlich ist dieser Lauf nicht als reiner Qualitaetsgewinn zu lesen: durch fallendes `epsilon`, parallele Datengenerierung und wiederverwendete Benchmark-Baselines wurde die Infrastruktur schneller, aber die finale Policy war im Smoke diesmal schlechter als in `Run 15`.
 - Fuer kuenftige Vergleiche ist damit jetzt beides vorhanden: eine langsamere Referenzpipeline und eine deutlich schnellere optimierte Variante, deren Dateneffekt wir nun gezielt weiter untersuchen koennen.
+
+## Run 17
+
+- Datum: 2026-03-15
+- Beschreibung: Full-Benchmark ueber alle `68` materialisierten Wave-Library-Szenarien fuer das auf dem Remote-Random-Collection-Datensatz (`3400` Episoden) trainierte DQN-Modell
+- Laufnummer: 17
+- Benchmark-Typ: full
+- Trainingsdaten: `29640` Transitionen aus `data/rl/combat/random-valid-action-w1-8.jsonl` (`3400` Episoden)
+- Checkpoint: `data/rl/models/dqn-combat-wave-library-random-valid-action-3400.pt`
+- Benchmark-Report: `data/rl/combat/eval-policy-compare-wave-library-random-valid-action-3400-full-report.json`
+- Laufdauer Benchmark: `2m 48s`
+
+Ergebnisse:
+
+| Policy | Win Rate | Avg Reward | Avg Turns | Benchmark-Transitions |
+| --- | ---: | ---: | ---: | ---: |
+| `random` | 0.897 | 7.1957 | 9.49 | 645 |
+| `always_move_0` | 0.912 | 8.6192 | 5.46 | 371 |
+| `dqn` | 0.941 | 9.0753 | 14.12 | 960 |
+
+Delta:
+
+- `dqn_vs_random`: win_rate `+0.044`, avg_reward `+1.8795`, avg_turns `+4.63`
+- `dqn_vs_always_move_0`: win_rate `+0.029`, avg_reward `+0.4560`, avg_turns `+8.66`
+
+Kurzfazit:
+
+- Das neue DQN ist auf dem vollen `68`-Szenarien-Set die staerkste Policy nach `win_rate` und `avg_reward`.
+- Gleichzeitig bleibt Effizienz die klare Restschwaeche: gegen `always_move_0` braucht das Modell im Mittel deutlich mehr Zuege.
+- `truncated_rate` lag fuer alle drei Policies bei `0.000`, der Full-Benchmark war also stabil und ohne Abbrueche.

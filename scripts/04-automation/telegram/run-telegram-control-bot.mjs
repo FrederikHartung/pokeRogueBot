@@ -7,6 +7,8 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, "../../..");
+const iterativeControlDir = path.join(repoRoot, "data", "rl", "pipeline-runs", "wave-library-iterative-remote-control");
+const randomCollectionControlDir = path.join(repoRoot, "data", "rl", "pipeline-runs", "wave-library-random-collection-remote-control");
 
 const cli = parseCli(process.argv.slice(2));
 const token = process.env.POKEROGUE_TELEGRAM_BOT_TOKEN ?? "";
@@ -21,7 +23,7 @@ if (!token || !allowedChatId) {
   throw new Error("Missing POKEROGUE_TELEGRAM_BOT_TOKEN or POKEROGUE_TELEGRAM_CHAT_ID");
 }
 
-const stateDir = cli.stateDir ?? path.join(repoRoot, "data", "rl", "pipeline-runs", "wave-library-iterative-remote-control");
+const stateDir = cli.stateDir ?? iterativeControlDir;
 const offsetPath = path.join(stateDir, "telegram-control-offset.txt");
 const activeConfigPathFile = path.join(stateDir, "active-config.txt");
 const defaultConfigPath = path.join(repoRoot, "data", "rl", "wave-library-iterative-pipeline-remote-10ep.json");
@@ -159,19 +161,154 @@ function runRemoteHelper(command) {
 }
 
 function buildCompactStatusReply() {
+  const statusBlocks = listManagedRuns()
+    .map(buildStatusBlock)
+    .filter(Boolean);
+
+  if (statusBlocks.length === 0) {
+    return "No managed remote pipeline state found yet.";
+  }
+  return truncate(statusBlocks.join("\n\n"), 3500);
+}
+
+function buildBenchmarksReply() {
   const configPath = loadActiveConfigPath();
   const runtimeDir = runtimeDirForConfig(configPath);
-  const manifestPath = path.join(runtimeDir, "manifest.json");
+  const benchmarkSummaryPath = path.join(runtimeDir, "benchmark-summary.json");
   const runName = path.basename(runtimeDir);
 
-  if (!existsSync(manifestPath)) {
-    return [`Run: ${runName}`, "State: not started"].join("\n");
+  if (!existsSync(benchmarkSummaryPath)) {
+    return [`Run: ${runName}`, "Benchmarks: not available yet"].join("\n");
   }
 
-  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-  const lines = [`Run: ${runName}`];
+  const summary = JSON.parse(readFileSync(benchmarkSummaryPath, "utf8"));
+  const rows = Array.isArray(summary?.benchmarks) ? summary.benchmarks : [];
+  if (rows.length === 0) {
+    return [`Run: ${runName}`, "Benchmarks: not available yet"].join("\n");
+  }
+
+  const lines = [`Run: ${runName}`, "Benchmarks:"];
+  for (const row of rows) {
+    const label = Number(row.iteration) === 0 ? "baseline" : `iter ${row.iteration}`;
+    lines.push(
+      `${label}: wr=${formatNumber(row.win_rate)} reward=${formatNumber(row.avg_reward)} turns=${formatNumber(row.avg_turns)}`,
+    );
+  }
+  return truncate(lines.join("\n"), 3500);
+}
+
+function loadActiveConfigPath() {
+  if (existsSync(activeConfigPathFile)) {
+    return readFileSync(activeConfigPathFile, "utf8").trim();
+  }
+  return defaultConfigPath;
+}
+
+function loadActiveConfigPathForControlDir(controlDir, fallbackConfigPath) {
+  const filePath = path.join(controlDir, "active-config.txt");
+  if (existsSync(filePath)) {
+    return readFileSync(filePath, "utf8").trim();
+  }
+  return fallbackConfigPath;
+}
+
+function listManagedRuns() {
+  const runs = [
+    {
+      kind: "iterative",
+      controlDir: iterativeControlDir,
+      fallbackConfigPath: path.join(repoRoot, "data", "rl", "wave-library-iterative-pipeline-remote-10ep.json"),
+    },
+    {
+      kind: "random_collection",
+      controlDir: randomCollectionControlDir,
+      fallbackConfigPath: path.join(repoRoot, "data", "rl", "wave-library-random-collection-remote-50ep.json"),
+    },
+  ].map(describeManagedRun);
+
+  const priority = { running: 0, failed: 1, completed: 2, not_started: 3 };
+  return runs
+    .filter(run => run.hasManifest || run.isRunning || run.hasActiveConfig)
+    .sort((left, right) => {
+      const leftPriority = priority[left.state] ?? 99;
+      const rightPriority = priority[right.state] ?? 99;
+      if (leftPriority !== rightPriority) {
+        return leftPriority - rightPriority;
+      }
+      return left.runName.localeCompare(right.runName);
+    });
+}
+
+function describeManagedRun({ kind, controlDir, fallbackConfigPath }) {
+  const configPath = loadActiveConfigPathForControlDir(controlDir, fallbackConfigPath);
+  const runtimeDir = runtimeDirForConfig(configPath);
+  const manifestPath = path.join(runtimeDir, "manifest.json");
+  const pidFile = path.join(controlDir, kind === "iterative" ? "remote-pipeline.pid" : "remote-random-collection.pid");
+  const hasActiveConfig = existsSync(path.join(controlDir, "active-config.txt"));
+  const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, "utf8")) : null;
+  const isRunning = readRunningPid(pidFile) != null;
+  const state = inferManagedRunState({ manifest, isRunning });
+
+  return {
+    kind,
+    configPath,
+    runtimeDir,
+    manifestPath,
+    manifest,
+    isRunning,
+    state,
+    hasManifest: manifest != null,
+    hasActiveConfig,
+    runName: path.basename(runtimeDir),
+  };
+}
+
+function readRunningPid(pidFilePath) {
+  if (!existsSync(pidFilePath)) {
+    return null;
+  }
+  const raw = readFileSync(pidFilePath, "utf8").trim();
+  const pid = Number(raw);
+  if (!Number.isInteger(pid) || pid <= 0) {
+    return null;
+  }
+  const result = spawnSync("kill", ["-0", String(pid)], {
+    encoding: "utf8",
+  });
+  return (result.status ?? 1) === 0 ? pid : null;
+}
+
+function inferManagedRunState({ manifest, isRunning }) {
+  if (isRunning) {
+    return "running";
+  }
+  if (!manifest) {
+    return "not_started";
+  }
+  return inferPipelineState(manifest);
+}
+
+function buildStatusBlock(run) {
+  if (!run.hasManifest && !run.isRunning) {
+    return null;
+  }
+
+  if (run.kind === "random_collection") {
+    return buildRandomCollectionStatusBlock(run);
+  }
+  return buildIterativeStatusBlock(run);
+}
+
+function buildIterativeStatusBlock(run) {
+  const manifest = run.manifest;
+  const lines = [`Run: ${run.runName}`];
+  if (!manifest) {
+    lines.push(`State: ${run.state}`);
+    return lines.join("\n");
+  }
+
   const progress = summarizeProgress(manifest);
-  const state = inferPipelineState(manifest);
+  const state = run.state;
   const phase = inferCurrentPhase(manifest);
   const iteration = inferIterationFromPhase(phase);
   const totalIterations = inferIterationCount(manifest);
@@ -206,37 +343,46 @@ function buildCompactStatusReply() {
   return lines.join("\n");
 }
 
-function buildBenchmarksReply() {
-  const configPath = loadActiveConfigPath();
-  const runtimeDir = runtimeDirForConfig(configPath);
-  const benchmarkSummaryPath = path.join(runtimeDir, "benchmark-summary.json");
-  const runName = path.basename(runtimeDir);
-
-  if (!existsSync(benchmarkSummaryPath)) {
-    return [`Run: ${runName}`, "Benchmarks: not available yet"].join("\n");
+function buildRandomCollectionStatusBlock(run) {
+  const manifest = run.manifest;
+  const lines = [`Run: ${run.runName}`];
+  if (!manifest) {
+    lines.push(`State: ${run.state}`);
+    return lines.join("\n");
   }
 
-  const summary = JSON.parse(readFileSync(benchmarkSummaryPath, "utf8"));
-  const rows = Array.isArray(summary?.benchmarks) ? summary.benchmarks : [];
-  if (rows.length === 0) {
-    return [`Run: ${runName}`, "Benchmarks: not available yet"].join("\n");
+  const progress = summarizeProgress(manifest);
+  const state = run.state;
+  const phase = inferCurrentPhase(manifest);
+
+  lines.push(`State: ${state === "completed" ? "collection completed" : state}`);
+  lines.push(`Phase: ${phase ?? "unknown"}`);
+  if (progress) {
+    lines.push(`Batches: ${progress.completedBatches}/${progress.totalBatches}`);
+    lines.push(`Episodes: ${progress.completedEpisodes}/${progress.totalEpisodes}`);
   }
 
-  const lines = [`Run: ${runName}`, "Benchmarks:"];
-  for (const row of rows) {
-    const label = Number(row.iteration) === 0 ? "baseline" : `iter ${row.iteration}`;
-    lines.push(
-      `${label}: wr=${formatNumber(row.win_rate)} reward=${formatNumber(row.avg_reward)} turns=${formatNumber(row.avg_turns)}`,
-    );
+  const scenarioCount = summarizeScenarioCount(manifest);
+  if (scenarioCount != null) {
+    lines.push(`Scenarios: ${scenarioCount}`);
   }
-  return truncate(lines.join("\n"), 3500);
-}
 
-function loadActiveConfigPath() {
-  if (existsSync(activeConfigPathFile)) {
-    return readFileSync(activeConfigPathFile, "utf8").trim();
+  if (state === "running") {
+    const eta = summarizeEta(manifest);
+    if (eta != null) {
+      lines.push(`ETA: ${formatDuration(eta)}`);
+    }
   }
-  return defaultConfigPath;
+
+  if (state === "failed") {
+    const failedStep = inferFailedStep(manifest);
+    if (failedStep) {
+      lines.push(`Failed step: ${failedStep.name}`);
+      lines.push(`Error: ${truncate(failedStep.error ?? "unknown error", 220)}`);
+    }
+  }
+
+  return lines.join("\n");
 }
 
 function runtimeDirForConfig(configPath) {
@@ -273,6 +419,17 @@ function summarizeProgress(manifest) {
       .filter(batch => batch.status === "completed")
       .reduce((sum, batch) => sum + Number(batch.episodes ?? 0), 0),
   };
+}
+
+function summarizeScenarioCount(manifest) {
+  if (!manifest || !Array.isArray(manifest.batches)) {
+    return null;
+  }
+  return new Set(
+    manifest.batches
+      .map(batch => batch?.scenario_name)
+      .filter(value => typeof value === "string" && value.length > 0),
+  ).size;
 }
 
 function inferPipelineState(manifest) {

@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List
 
 
-REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 
 def load_json(path: str) -> Dict:
@@ -139,6 +139,10 @@ def load_records(path: str) -> List[Dict]:
     return rows
 
 
+def output_path_for_label(label: str) -> str:
+    return os.path.abspath(os.path.join(REPO_ROOT, f"data/rl/combat/eval-{label}-benchmarked.jsonl"))
+
+
 def summarize(rows: List[Dict]) -> Dict:
     episodes: Dict[str, List[Dict]] = {}
     for row in rows:
@@ -203,11 +207,18 @@ def main() -> None:
     parser.add_argument("--max-steps-per-episode", type=int, default=400)
     parser.add_argument("--max-truncated-rate", type=float, default=0.10)
     parser.add_argument("--parallelism", type=int, default=1)
+    parser.add_argument(
+        "--reuse-baselines",
+        action="store_true",
+        help="Reuse existing random/always_move_0 benchmark JSONLs instead of regenerating them",
+    )
     args = parser.parse_args()
 
     collector_config_path = os.path.abspath(os.path.join(REPO_ROOT, args.collector_config))
     checkpoint_path = os.path.abspath(os.path.join(REPO_ROOT, args.checkpoint))
-    infer_script = os.path.abspath(os.path.join(REPO_ROOT, "scripts", "dqn_policy_infer_worker.py"))
+    infer_script = os.path.abspath(
+        os.path.join(REPO_ROOT, "scripts", "02-training", "inference", "dqn_policy_infer_worker.py")
+    )
     report_path = os.path.abspath(os.path.join(REPO_ROOT, args.report_path))
 
     base = absolutize_collector_paths(load_json(collector_config_path), collector_config_path)
@@ -238,9 +249,10 @@ def main() -> None:
     }
 
     results: Dict[str, Dict] = {}
+    run_sources: Dict[str, str] = {}
 
     for label, policy in runs.items():
-        output_path = os.path.abspath(os.path.join(REPO_ROOT, f"data/rl/combat/eval-{label}-benchmarked.jsonl"))
+        output_path = output_path_for_label(label)
         cfg = dict(base)
         cfg["output_path"] = output_path
         cfg["append_output"] = False
@@ -248,7 +260,18 @@ def main() -> None:
         cfg["test_timeout_ms"] = 600000
         cfg["policy"] = policy
 
-        run_collector_parallel(cfg, max(1, args.parallelism))
+        should_reuse = args.reuse_baselines and label in {"random", "always_move_0"}
+        if should_reuse:
+            if not os.path.exists(output_path):
+                raise FileNotFoundError(
+                    f"Cannot reuse baseline '{label}' because benchmark file does not exist: {output_path}"
+                )
+            print(f"Reusing baseline '{label}' from {output_path}")
+            run_sources[label] = "reused"
+        else:
+            run_collector_parallel(cfg, max(1, args.parallelism))
+            run_sources[label] = "generated"
+
         rows = load_records(output_path)
         results[label] = summarize(rows)
 
@@ -286,6 +309,8 @@ def main() -> None:
     report = {
         "collector_config": collector_config_path,
         "checkpoint": checkpoint_path,
+        "reuse_baselines": args.reuse_baselines,
+        "run_sources": run_sources,
         "results": results,
         "comparison": comparison,
         "quality_gates": quality_gates,

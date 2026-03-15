@@ -254,7 +254,9 @@ def main() -> None:
     collector_config_path = os.path.abspath(os.path.join(REPO_ROOT, args.collector_config))
     output_path = os.path.abspath(os.path.join(REPO_ROOT, args.output_path))
     report_path = os.path.abspath(os.path.join(REPO_ROOT, args.report_path))
-    infer_script_path = os.path.abspath(os.path.join(REPO_ROOT, "scripts", "dqn_policy_infer_worker.py"))
+    infer_script_path = os.path.abspath(
+        os.path.join(REPO_ROOT, "scripts", "02-training", "inference", "dqn_policy_infer_worker.py")
+    )
 
     base_config = load_json(collector_config_path)
     eval_config = absolutize_collector_paths(base_config, collector_config_path)

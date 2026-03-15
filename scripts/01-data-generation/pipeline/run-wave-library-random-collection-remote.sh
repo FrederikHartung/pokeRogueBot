@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 DEFAULT_CONFIG="${REPO_ROOT}/data/rl/wave-library-random-collection-remote-50ep.json"
+HUNDRED_EP_CONFIG="${REPO_ROOT}/data/rl/wave-library-random-collection-remote-100ep.json"
 SMOKE_CONFIG="${REPO_ROOT}/data/rl/wave-library-random-collection-remote-smoke.json"
 CONTROL_DIR="${REPO_ROOT}/data/rl/pipeline-runs/wave-library-random-collection-remote-control"
 PID_FILE="${CONTROL_DIR}/remote-random-collection.pid"
@@ -19,6 +20,7 @@ usage() {
   cat <<'EOF'
 Usage:
   scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start [config_path]
+  scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-100
   scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-smoke
   scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh status
   scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh logs
@@ -496,6 +498,9 @@ case "${1:-}" in
     ;;
   start-smoke)
     start_run "${SMOKE_CONFIG}"
+    ;;
+  start-100)
+    start_run "${HUNDRED_EP_CONFIG}"
     ;;
   status)
     print_status

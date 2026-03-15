@@ -29,6 +29,7 @@ Remote-Helper:
 
 ```bash
 bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start
+bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-100
 bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-smoke
 bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh status
 bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh logs
@@ -40,6 +41,7 @@ Vorbereitete Configs:
 
 - Smoke: `data/rl/wave-library-random-collection-remote-smoke.json`
 - Remote `50` Episoden pro Szenario: `data/rl/wave-library-random-collection-remote-50ep.json`
+- Remote `100` Episoden pro Szenario: `data/rl/wave-library-random-collection-remote-100ep.json`
 
 ## Konfigurationsmodell
 
@@ -104,6 +106,8 @@ Enthalten sind mindestens:
 
 `download_path` zeigt auf das komprimierte Download-Artefakt.
 
+Der vorbereitete `scp`-Befehl in `collection-metrics.json` und in der Telegram-Abschlussmeldung zielt standardmaessig direkt auf `~/Documents/GitRepos/Privat/pokeRogueBot/data/rl/combat/`, sodass der Download auch aus `~` ohne vorheriges `cd` ins Repo funktioniert. Bei Bedarf kann das Ziel weiter ueber `POKEROGUE_COLLECTION_LOCAL_IMPORT_DIR` ueberschrieben werden.
+
 ## Telegram
 
 Unterstuetzte Events:
@@ -119,6 +123,8 @@ Die Nachricht enthaelt unter anderem:
 - Datensatz- und Archivgroesse
 - Gesamtlaufzeit
 - `download_path`
+
+Der Telegram-Control-Bot erkennt bei `/status` jetzt auch aktive Random-Collection-Remote-Laeufe und zeigt deren kompakten Fortschritt an.
 
 ## Skalierung
 

@@ -233,6 +233,18 @@ Episodes: 8160/24480
 ETA: 5h 42m
 ```
 
+Wenn statt der iterativen Pipeline gerade ein Random-Collection-Remote-Lauf aktiv ist, zeigt `/status` denselben kompakten Stil fuer diesen Run:
+
+```text
+Run: wave-library-random-collection-remote-100ep
+State: running
+Phase: collect_dataset
+Batches: 12/68
+Episodes: 1200/6800
+Scenarios: 68
+ETA: 21m 40s
+```
+
 Format von `/status` bei Fehler:
 
 ```text

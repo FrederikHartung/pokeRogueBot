@@ -294,6 +294,8 @@ Aktiver Datengenerierungspfad fuer Waves `1-8`:
 - Remote Collection Pipeline:
   - npm script: `npm run rl:pipeline:wave-lib:collect -- ./data/rl/wave-library-random-collection-remote-50ep.json`
   - remote helper: `bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start`
+  - `100`-Episoden-Variante: `bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-100`
+  - alternative Config: `data/rl/wave-library-random-collection-remote-100ep.json`
   - Doku: `docs/wave-library-random-collection-remote.md`
   - Zweck: produktionsnahe Datengenerierung auf dem Remote-Server mit `random` ueber legale Aktionen, Batch-Manifest, Merge, Sanity-Check, Archivierung und Telegram-Benachrichtigung
   - Zielmodell:
@@ -475,6 +477,7 @@ Aktualisierte Iterationsrichtung:
 - der fachlich wichtigste Vergleich ist immer `Benchmark_i` gegen `Benchmark_0`, damit schnell sichtbar wird, ob spaetere Trainingsiterationen echten Mehrwert liefern oder regressiv werden
 - der Pfad soll bewusst mit denselben Konfigurationshebeln fuer kurze Smoke- und spaetere Langlaeufe nutzbar bleiben
 - falls das Benchmark-Set eingefroren bleibt, sollen `random` und `always_move_0` nur einmal in `Benchmark_0` laufen; spaetere Iterationen benchmarken dann nur noch den neuen DQN-Checkpoint und kombinieren ihn mit den gecachten Baseline-Referenzen
+- fuer diesen Fall unterstuetzt `scripts/03-benchmark/eval/eval_policy_compare.py` jetzt explizit `--reuse-baselines`; damit werden die bestehenden Referenzartefakte `data/rl/combat/eval-random-benchmarked.jsonl` und `data/rl/combat/eval-always_move_0-benchmarked.jsonl` wiederverwendet und nur der DQN-Lauf neu erzeugt
 - fuer kuerzere Wall-Clock-Zeiten kann die Datengenerierung vorsichtig batch-parallel gefahren werden, z. B. zuerst mit `2` Collector-Prozessen, um CPU- und RAM-Auswirkung kontrolliert zu beobachten
 
 Neue Infrastruktur-Helfer fuer diesen Pfad:
@@ -673,8 +676,12 @@ Lokaler Benchmark nach Remote-Training:
 
 - Beispiel:
   - `python3 scripts/03-benchmark/eval/eval_policy_compare.py --collector-config ./data/rl/collector-run-benchmarked-wave-library-v2.json --checkpoint <pfad-zum-heruntergeladenen-oder-lokal-verfuegbaren-modell> --report-path ./data/rl/combat/<neuer-report>.json`
+- wenn die Benchmark-Szenarien unveraendert bleiben und die Referenzartefakte schon vorliegen:
+  - `python3 scripts/03-benchmark/eval/eval_policy_compare.py --collector-config ./data/rl/collector-run-benchmarked-wave-library-v2.json --checkpoint <pfad-zum-heruntergeladenen-oder-lokal-verfuegbaren-modell> --report-path ./data/rl/combat/<neuer-report>.json --reuse-baselines`
 - Full-Benchmark ueber die gesamte Wave-Library:
   - `python3 scripts/03-benchmark/eval/eval_policy_compare.py --collector-config ./data/rl/collector-run-benchmarked-wave-library-v2-full.json --checkpoint <pfad-zum-heruntergeladenen-oder-lokal-verfuegbaren-modell> --report-path ./data/rl/combat/<neuer-full-report>.json`
+- Full-Benchmark nur mit neuem DQN und gecachten Baselines:
+  - `python3 scripts/03-benchmark/eval/eval_policy_compare.py --collector-config ./data/rl/collector-run-benchmarked-wave-library-v2-full.json --checkpoint <pfad-zum-heruntergeladenen-oder-lokal-verfuegbaren-modell> --report-path ./data/rl/combat/<neuer-full-report>.json --reuse-baselines`
 - danach:
   - die wichtigsten Kennzahlen und Artefaktpfade in `docs/benchmark-history.md` eintragen
 

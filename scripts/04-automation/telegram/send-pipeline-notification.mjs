@@ -201,6 +201,7 @@ function buildMessage({ event, runtimeDir, manifestPath, phase, iteration, error
         lines.push(`Total runtime: ${formatDuration(collectionMetrics.total_runtime_ms)}`);
       }
       if (collectionMetrics.download_path) {
+        lines.push("");
         lines.push(`Download: ${collectionMetrics.download_path}`);
       }
       if (collectionMetrics.scp_download_command) {

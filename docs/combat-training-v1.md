@@ -237,6 +237,7 @@ Current iterative wave-library direction:
 - Each iteration `i` adds a new dataset shard `Di`; training uses the cumulative dataset `D0 + D1 + ... + Di`
 - After every training stage a full benchmark over the same wave-library instance set should be executed
 - `random` and `always_move_0` do not need to be recomputed on every iteration if the benchmark scenario set stays frozen; they can be benchmarked once in `B0` and reused as cached reference policies for later DQN-only benchmark passes
+- `scripts/03-benchmark/eval/eval_policy_compare.py` now supports this directly via `--reuse-baselines`; with that flag the script reuses `data/rl/combat/eval-random-benchmarked.jsonl` and `data/rl/combat/eval-always_move_0-benchmarked.jsonl` and only regenerates the DQN benchmark run
 - The primary comparison target is the baseline benchmark `B0`, with secondary comparison against the direct previous iteration to spot regressions
 - Collector batches can also be processed with a small configurable worker pool to reduce wall-clock time without changing the scenario set or the benchmark contract
 - All major runtime knobs such as iteration count, episodes per instance, batch size, epsilon schedule, collect parallelism and benchmark config should stay configurable so the same pipeline can be reused for smoke tests and longer runs
