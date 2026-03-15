@@ -31,10 +31,15 @@ Die Skripte sind jetzt entlang des groben Offline-RL-Ablaufs geordnet:
 Damit folgt die Ordnerstruktur grob dem praktischen Ablauf:
 `Testdaten generieren -> trainieren -> benchmarken`.
 
+Hinweis:
+- Neue Skripte im Hauptrepo werden bevorzugt in TypeScript gepflegt.
+- Die zentralen RL-Skripte fuer Collector und Pipelines laufen inzwischen direkt als `.ts`-Entrypoints ueber Node.
+
 ### How to get started
 1. Clone this repository with submodules: `git clone --recurse-submodules <repo-url>`. If you already cloned without submodules, run `git submodule update --init --recursive`.
 2. Install a Java 21 SDK, Maven (Java Build Tool), Node.js (for building JS bridge files), Intellij Idea (Java IDE) and Chrome (Browser).
 3. Run `npm install` in the project root to install the esbuild dependency (used to compile the TypeScript JS bridge files).
+   - this also installs the Node type definitions used by the TypeScript RL/pipeline scripts
 4. Start the local PokeRogue game from the `pokerogue/` submodule:
    - `cd pokerogue`
    - `npm install`

@@ -12,6 +12,8 @@ import path from "node:path";
 import readline from "node:readline";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { validatePolicyConfig } from "../rl-config/policy-contract.ts";
+import { validateRandomCollectionPipelineConfig } from "../rl-config/run-config-contract.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,7 +27,9 @@ if (!existsSync(configPath)) {
   throw new Error(`Collection config not found: ${configPath}`);
 }
 
-const config = JSON.parse(readFileSync(configPath, "utf8"));
+const config = validateRandomCollectionPipelineConfig(JSON.parse(readFileSync(configPath, "utf8")), {
+  context: configPath,
+});
 const configDir = path.dirname(configPath);
 const dataRlDir = path.join(repoRoot, "data", "rl");
 const pipelineRoot = resolvePathWithFallbacks(
@@ -308,7 +312,7 @@ async function runCollectPhase(currentManifest, rootConfig, configDirInput, loca
 
     const startedAt = Date.now();
     try {
-      await runCommandAsync("node", ["scripts/01-data-generation/collector/run-pokerogue-experience-collector.mjs", batch.run_config_path], repoRoot);
+      await runCommandAsync("node", ["scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts", batch.run_config_path], repoRoot);
       batchRef.status = "completed";
       batchRef.completed_at = new Date().toISOString();
       batchRef.duration_ms = Date.now() - startedAt;
@@ -353,11 +357,10 @@ function buildCollectorConfig({ rootConfig, configDir: configDirInput, dataRlDir
 }
 
 function resolveCollectionPolicy(policyConfig) {
-  const type = String(policyConfig?.type ?? "random");
-  if (type !== "random") {
-    throw new Error(`This collection pipeline only supports random valid actions. Invalid policy type: ${type}`);
-  }
-  return { type: "random" };
+  return validatePolicyConfig(policyConfig ?? { type: "random" }, {
+    context: "wave_library_random_collection.collect.policy",
+    allowTypes: ["random"],
+  });
 }
 
 function normalizeConfigPaths(collectorConfig, configDirInput, localDataRlDir) {

@@ -181,6 +181,21 @@ check_dependencies() {
   fi
 }
 
+run_preflight_checks() {
+  local config_path="$1"
+  echo "Running RL policy contract tests..."
+  (
+    cd "${REPO_ROOT}"
+    npm run rl:test:policy-contract
+  )
+
+  echo "Running pipeline prepare-only validation..."
+  (
+    cd "${REPO_ROOT}"
+    node scripts/01-data-generation/pipeline/run-wave-library-random-collection-pipeline.ts "${config_path}" --prepare-only
+  )
+}
+
 is_running() {
   if [ ! -f "${PID_FILE}" ]; then
     return 1
@@ -421,6 +436,7 @@ start_run() {
 
   rm -f "${PID_FILE}"
   check_dependencies
+  run_preflight_checks "${config_path}"
 
   local runtime_dir
   runtime_dir="$(runtime_dir_for_config "${config_path}")"

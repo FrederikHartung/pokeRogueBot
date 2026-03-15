@@ -197,10 +197,13 @@ Startpunkt:
 
 - `npm run rl:gen:scenarios:wave-lib`
 - Konfiguration: `data/rl/wave-library-scenario-adapter-run.json`
+- vorbereitete Erweiterung fuer die gewachsene Wave-Lib: `data/rl/wave-library-scenario-adapter-run-v3-w1-24.json`
+  - materialisiert nach `data/rl/scenarios/generated-wave-library-v3-w1-24`
+  - deckt aktuell Wellen `1-24` ab
 
 Aktueller Collector-Stand:
 
-- `scripts/01-data-generation/collector/run-pokerogue-experience-collector.mjs` erkennt jetzt `combat-scenario-v2`
+- `scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts` erkennt jetzt `combat-scenario-v2`
 - der V2-Pfad initialisiert komplette `player_team`- und `enemy_team`-States nach `startBattle(...)`
 - aktuell unterstuetzt und aktiv gepatcht:
   - Species/Form/Level
@@ -410,7 +413,7 @@ Konsequenz fuer die naechste Collector-Runde:
 Technischer Aufbau:
 
 - Die Remote Collection Pipeline erzeugt pro Szenario und Batch eine konkrete Collector-Run-Config
-- Diese Configs werden direkt mit `scripts/01-data-generation/collector/run-pokerogue-experience-collector.mjs` ausgefuehrt
+- Diese Configs werden direkt mit `scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts` ausgefuehrt
 - Danach folgen streamender Merge, Datensatz-Sanity-Check und Archivierung des finalen JSONL-Artefakts
 
 Wichtige Einordnung:
@@ -483,7 +486,7 @@ Aktualisierte Iterationsrichtung:
 Neue Infrastruktur-Helfer fuer diesen Pfad:
 
 - Iterative Pipeline:
-  - `node scripts/01-data-generation/pipeline/run-wave-library-iterative-pipeline.mjs <config>`
+  - `node scripts/01-data-generation/pipeline/run-wave-library-iterative-pipeline.ts <config>`
 - Laufzeit-Summary aus dem Manifest:
   - `node scripts/01-data-generation/dataset/report-iterative-pipeline-runtime.mjs --manifest <manifest.json>`
   - optional mit JSON-Output:
@@ -519,6 +522,10 @@ Remote-Server-Bedienung:
   - vor dem Start `node`, `npm`, `python3` und `torch` pruefen
   - pruefen, ob Root- und Submodul-Dependencies installiert sind
   - pruefen, ob `pokerogue/locales/en` vorhanden ist
+  - vor dem detached Start ein kleines Preflight-Gate ausfuehren:
+    - `npm run rl:test:policy-contract`
+    - passendes Pipeline-Skript mit `--prepare-only`
+  - wenn einer dieser Checks fehlschlaegt, startet der Remote-Lauf nicht
   - den Pipeline-Lauf detached via `nohup` starten
   - dadurch laeuft die Datengenerierung weiter, auch wenn die SSH-Session beendet wird
 - Unterkommandos:

@@ -36,8 +36,8 @@
     "collector": {},
     "policy": {
       "type": "epsilon_random",
-      "epsilon_start": 0.3333333333,
-      "epsilon_end": 0.10,
+      "start_epsilon": 0.3333333333,
+      "end_epsilon": 0.10,
       "exploit_policy": {
         "type": "external_command",
         "timeout_ms": 15000,

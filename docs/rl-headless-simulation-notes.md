@@ -197,9 +197,9 @@ Combat-/Switch-State-Contract:
 
 Implemented in main repo:
 
-- `scripts/01-data-generation/collector/run-pokerogue-experience-collector.mjs`
+- `scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts`
 - `scripts/01-data-generation/scenarios/run-wave-library-scenario-adapter.mjs`
-- `scripts/01-data-generation/pipeline/run-wave-library-random-collection-pipeline.mjs`
+- `scripts/01-data-generation/pipeline/run-wave-library-random-collection-pipeline.ts`
 - `scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh`
 - `scripts/90-dev/tools/dump-pokerogue-starter-defaults.mjs`
 

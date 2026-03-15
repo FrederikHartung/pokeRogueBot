@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2023"],
+    "types": ["node", "vitest"],
+    "strict": false,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "#app/*": ["pokerogue/src/*.ts"],
+      "#data/*": ["pokerogue/src/data/*.ts", "pokerogue/src/data/pokemon/*.ts", "pokerogue/src/data/pokemon-forms/*.ts"],
+      "#enums/*": ["pokerogue/src/enums/*.ts"],
+      "#field/*": ["pokerogue/src/field/*.ts"],
+      "#phases/*": ["pokerogue/src/phases/*.ts"],
+      "#test/*": ["pokerogue/test/*.ts"],
+      "#ui/*": ["pokerogue/src/ui/*.ts", "pokerogue/src/ui/handlers/*.ts", "pokerogue/src/ui/utils/*.ts"],
+      "#utils/*": ["pokerogue/src/utils/*.ts"]
+    }
+  },
+  "include": [
+    "scripts/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "pokerogue",
+    "src/main/ts"
+  ]
+}

@@ -84,8 +84,8 @@ Die Benachrichtigung ist jetzt in der iterativen Wave-Library-Pipeline und im Ra
 Relevante Dateien:
 
 - `scripts/04-automation/telegram/send-pipeline-notification.mjs`
-- `scripts/01-data-generation/pipeline/run-wave-library-iterative-pipeline.mjs`
-- `scripts/01-data-generation/pipeline/run-wave-library-random-collection-pipeline.mjs`
+- `scripts/01-data-generation/pipeline/run-wave-library-iterative-pipeline.ts`
+- `scripts/01-data-generation/pipeline/run-wave-library-random-collection-pipeline.ts`
 - `scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh`
 - `scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh`
 - `scripts/04-automation/telegram/run-telegram-control-bot.mjs`

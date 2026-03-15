@@ -9,6 +9,7 @@ import {
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { validateIterativePipelineConfig } from "../rl-config/run-config-contract.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,7 +24,9 @@ if (!existsSync(configPath)) {
   throw new Error(`Pipeline config not found: ${configPath}`);
 }
 
-const config = JSON.parse(readFileSync(configPath, "utf8"));
+const config = validateIterativePipelineConfig(JSON.parse(readFileSync(configPath, "utf8")), {
+  context: configPath,
+});
 const configDir = path.dirname(configPath);
 const dataRlDir = path.join(repoRoot, "data", "rl");
 const iterations = Number(config.iterations ?? 5);
@@ -418,7 +421,7 @@ async function runCollectPhase(currentManifest, rootConfig, configDirInput, loca
 
     const startedAt = Date.now();
     try {
-      await runCommandAsync("node", ["scripts/01-data-generation/collector/run-pokerogue-experience-collector.mjs", batch.run_config_path], repoRoot);
+      await runCommandAsync("node", ["scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts", batch.run_config_path], repoRoot);
       batchRef.status = "completed";
       batchRef.completed_at = new Date().toISOString();
       batchRef.duration_ms = Date.now() - startedAt;
@@ -539,12 +542,12 @@ function resolveEpsilonForIteration(policy, iteration) {
     }
   }
 
-  if (typeof policy.epsilon_start === "number" && typeof policy.epsilon_end === "number" && Number.isFinite(policy.epsilon_start) && Number.isFinite(policy.epsilon_end)) {
+  if (typeof policy.start_epsilon === "number" && typeof policy.end_epsilon === "number" && Number.isFinite(policy.start_epsilon) && Number.isFinite(policy.end_epsilon)) {
     if (iterations <= 1) {
-      return policy.epsilon_end;
+      return policy.end_epsilon;
     }
     const progress = (iteration - 1) / Math.max(1, iterations - 1);
-    return policy.epsilon_start + ((policy.epsilon_end - policy.epsilon_start) * progress);
+    return policy.start_epsilon + ((policy.end_epsilon - policy.start_epsilon) * progress);
   }
 
   return typeof policy.epsilon === "number" && Number.isFinite(policy.epsilon) ? policy.epsilon : null;

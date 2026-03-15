@@ -79,7 +79,7 @@ def chunk_list(values: List[str], parts: int) -> List[List[str]]:
 
 
 def run_collector(config_path: str) -> int:
-    command = ["node", "scripts/01-data-generation/collector/run-pokerogue-experience-collector.mjs", config_path]
+    command = ["node", "scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts", config_path]
     process = subprocess.run(command, cwd=REPO_ROOT, check=False)
     return process.returncode
 

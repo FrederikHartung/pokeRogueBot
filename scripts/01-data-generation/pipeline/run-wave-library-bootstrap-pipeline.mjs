@@ -303,7 +303,7 @@ function runCollectPhase(currentManifest, rootConfig, configDir, phaseName) {
 
     const startedAt = Date.now();
     try {
-      runCommand("node", ["scripts/01-data-generation/collector/run-pokerogue-experience-collector.mjs", batch.run_config_path], repoRoot);
+      runCommand("node", ["scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts", batch.run_config_path], repoRoot);
       batchRef.status = "completed";
       batchRef.completed_at = new Date().toISOString();
       batchRef.duration_ms = Date.now() - startedAt;

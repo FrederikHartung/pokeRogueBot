@@ -37,6 +37,13 @@ bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remo
 bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh stop
 ```
 
+Vor dem detached Start fuehrt der Helper jetzt zwei schnelle Preflight-Checks aus:
+
+- `npm run rl:test:policy-contract`
+- `node scripts/01-data-generation/pipeline/run-wave-library-random-collection-pipeline.ts <config> --prepare-only`
+
+Wenn einer davon fehlschlaegt, startet der Remote-Lauf gar nicht erst. Das ersetzt fuer diesen Pfad ein kleines CI-Gate direkt beim manuellen Start.
+
 Vorbereitete Configs:
 
 - Smoke: `data/rl/wave-library-random-collection-remote-smoke.json`
@@ -62,6 +69,7 @@ Interpretation:
 - `episodes_per_instance`: wie oft jedes Szenario simuliert wird
 - `batch_size`: wie viele Episoden pro Collector-Batch erzeugt werden
 - Anzahl Batches pro Szenario: `ceil(episodes_per_instance / batch_size)`
+- Policy- und Kern-Config-Felder werden beim Start jetzt strikt validiert; falsch benannte oder unbekannte Felder brechen den Lauf vor dem Detached-Start ab
 
 ## Laufartefakte
 

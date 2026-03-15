@@ -1,13 +1,8 @@
 # TODO Next Session
 
-Wichtiger aktueller Befund ganz oben:
-- Der Headless-Collector setzt `meta.outcome` aktuell fuer alle nicht-terminalen Transitionen auf `truncated`, statt nur fuer wirklich abgeschnittene Episoden.
-- Ursache: In `scripts/01-data-generation/collector/run-pokerogue-experience-collector.mjs` wird `meta.outcome` pro Step als `win`/`loss`/`timeout` sonst pauschal `truncated` geschrieben, auch wenn `done=false`.
-- Folge: Datensaetze wie der Remote-Smoke-Run wirken in Outcome-Auswertungen kuenstlich stark `truncated`, obwohl terminale Episoden fachlich sauber in `win` oder `loss` enden.
-- Prioritaet fuer naechsten Fix:
-- `meta.outcome` fuer nicht-terminale Zeilen auf `null` oder `in_progress` setzen
-- `truncated` nur fuer echte Episodenabbrueche durch Max-Steps oder Timeouts verwenden
-- alle Consumer fuer Reports/Eval/Dataset-Inspector auf die neue Semantik pruefen
+Kurzfristig ergaenzen:
+- Wenn ein Player-Pokemon besiegt wurde, soll das DQN entscheiden, welches Pokemon als naechstes eingewechselt wird, statt eines separaten Java-/Kotlin-Switch-Neurons, falls dieses noch aktiv ist.
+- Sobald der Umbau fertig ist und der Live-Pfad fuer diese Entscheidung stabil ueber das DQN laeuft, kann das alte Switch-Neuron entfernt werden.
 
 Prioritaetswechsel fuer die naechste Session:
 - im `data/`-Verzeichnis einen klaren `temp`-Ordner einfuehren fuer lokale, nicht versionierte Zwischenartefakte rund um neue DQN-Trainingslaeufe; dort sollen kurzlebige Reports, Test-Configs, ad-hoc-Downloads und andere schnell veraltende Dateien landen statt die produktiven Datenpfade zu vermuellen
@@ -222,8 +217,6 @@ Verbindlicher Schema-Hinweis:
 - Remote Collection Pipeline: `npm run rl:pipeline:wave-lib:collect -- ./data/rl/wave-library-random-collection-remote-50ep.json`
 - Verbindlicher Abschluss fuer Remote-Testdatengenerierung:
 - Am Ende des Remote-Laufs soll die finale Exportdatei fuer den Download immer zusaetzlich per `tar` komprimiert werden.
-- Hardening naechster Schritt:
-- Collector-/Pipeline-Skripte fuer RL-Datengenerierung gezielt auf TypeScript + gemeinsame Policy-/Config-Typen umstellen und Configs beim Laden strikt validieren, damit Namensdrift wie `epsilon_start` vs. `start_epsilon` nicht mehr still auf Fallback-Logik faellt
 
 5. Prod-nahe Wave-Library fuer Offline-Headless-Runs aufbauen
 - Status: V1 ist umgesetzt (10. Maerz 2026)
@@ -304,7 +297,7 @@ Verbindlicher Schema-Hinweis:
 - mindestens ein aktives Feld-Pokemon pro Seite
 - Naechster konkreter Schritt:
 - Collector-V2-Pfad ist jetzt angelegt:
-- `scripts/01-data-generation/collector/run-pokerogue-experience-collector.mjs` erwartet `combat-scenario-v2` als einziges aktives Eingabeformat
+- `scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts` erwartet `combat-scenario-v2` als einziges aktives Eingabeformat
 - komplette `player_team`- und `enemy_team`-Initialisierung wird nach `startBattle(...)` auf den Scenario-State gepatcht
 - aktuell noch offene Collector-Luecken:
 - Held-Items

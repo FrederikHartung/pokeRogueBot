@@ -1,23 +1,25 @@
 {
   "private": true,
+  "type": "module",
   "scripts": {
     "typecheck:js-bridge": "node scripts/90-dev/js-bridge/typecheck-js-bridge.mjs",
     "build:js": "npm run typecheck:js-bridge && node build-js.mjs",
     "rl:dump:starters": "node scripts/90-dev/tools/dump-pokerogue-starter-defaults.mjs",
-    "rl:collect": "node scripts/01-data-generation/collector/run-pokerogue-experience-collector.mjs",
+    "rl:collect": "node scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts",
     "rl:gen:scenarios": "node scripts/01-data-generation/scenarios/run-wave-library-scenario-adapter.mjs",
     "rl:gen:scenarios:wave-lib": "node scripts/01-data-generation/scenarios/run-wave-library-scenario-adapter.mjs",
-    "rl:collect:wave-lib:smoke": "node scripts/01-data-generation/collector/run-pokerogue-experience-collector.mjs ./data/rl/collector-run-wave-library-v2-smoke.json",
-    "rl:collect:bench": "node scripts/01-data-generation/collector/run-pokerogue-experience-collector.mjs ./data/rl/collector-run-benchmarked-wave-library-v2.json",
-    "rl:collect:bench:wave-lib:v2": "node scripts/01-data-generation/collector/run-pokerogue-experience-collector.mjs ./data/rl/collector-run-benchmarked-wave-library-v2.json",
-    "rl:collect:bench:wave-lib:v2:full": "node scripts/01-data-generation/collector/run-pokerogue-experience-collector.mjs ./data/rl/collector-run-benchmarked-wave-library-v2-full.json",
+    "rl:collect:wave-lib:smoke": "node scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts ./data/rl/collector-run-wave-library-v2-smoke.json",
+    "rl:collect:bench": "node scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts ./data/rl/collector-run-benchmarked-wave-library-v2.json",
+    "rl:collect:bench:wave-lib:v2": "node scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts ./data/rl/collector-run-benchmarked-wave-library-v2.json",
+    "rl:collect:bench:wave-lib:v2:full": "node scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts ./data/rl/collector-run-benchmarked-wave-library-v2-full.json",
     "rl:check:dataset": "node scripts/01-data-generation/dataset/run-rl-dataset-sanity.mjs",
     "rl:merge:datasets": "node scripts/01-data-generation/dataset/merge-rl-jsonl-datasets.mjs",
     "rl:report:dataset": "node scripts/01-data-generation/dataset/report-rl-dataset.mjs",
     "rl:report:iterative-runtime": "node scripts/01-data-generation/dataset/report-iterative-pipeline-runtime.mjs",
+    "rl:test:policy-contract": "node --test scripts/01-data-generation/rl-config/*.test.ts",
     "rl:pipeline:wave-lib:bootstrap": "node scripts/01-data-generation/pipeline/run-wave-library-bootstrap-pipeline.mjs",
-    "rl:pipeline:wave-lib:iterative": "node scripts/01-data-generation/pipeline/run-wave-library-iterative-pipeline.mjs",
-    "rl:pipeline:wave-lib:collect": "node scripts/01-data-generation/pipeline/run-wave-library-random-collection-pipeline.mjs",
+    "rl:pipeline:wave-lib:iterative": "node scripts/01-data-generation/pipeline/run-wave-library-iterative-pipeline.ts",
+    "rl:pipeline:wave-lib:collect": "node scripts/01-data-generation/pipeline/run-wave-library-random-collection-pipeline.ts",
     "rl:train:dqn:wave-lib:v2": "python3 scripts/02-training/offline-dqn/train_dqn_offline.py --config ./data/rl/train-dqn-offline-wave-library-bootstrap-combined-960.json",
     "rl:train:dqn:wave-lib:rival-focus": "python3 scripts/02-training/offline-dqn/train_dqn_offline.py --config ./data/rl/train-dqn-offline-wave-library-rival-focus-504.json",
     "rl:eval:dqn:poc": "python3 scripts/03-benchmark/eval/eval_dqn_policy.py",
@@ -28,7 +30,9 @@
     "rl:inspect:dataset": "python3 -m streamlit run scripts/90-dev/inspect/streamlit_rl_dataset_inspector.py"
   },
   "devDependencies": {
+    "@types/node": "^24.5.2",
     "esbuild": "^0.25.0",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vitest": "^4.0.15"
   }
 }

@@ -14,6 +14,51 @@
 - Fuer Zugriffe auf den Remote-Server per `ssh` oder `scp` ist folgende Verbindung zu verwenden:
   - `ssh -i ~/.ssh/id_rsa_github_privat SFH-Frederik@152.53.176.72`
 
+## Preferred Collaboration Style
+
+- Wenn der User auf Deutsch schreibt, antworte standardmaessig auf Deutsch. Englische Fachbegriffe nur dort verwenden, wo sie technisch deutlich ueblicher oder praeziser sind.
+- Bei Logs, Trainingslaeufen, Benchmarks, Remote-Runs und Live-Bot-Verhalten zuerst den Ist-Zustand lokal verifizieren und erst danach bewerten oder Schlussfolgerungen ziehen.
+- Wenn der User nach einem Vorgehen fragt, moeglichst direkt den konkreten Befehl, Pfad oder einen kurzen Copy/Paste-Block liefern statt nur abstrakt zu erklaeren.
+- Wenn neue Defaults, Checkpoints, Startbefehle oder Arbeitsablaeufe eingefuehrt werden, relevante Doku im selben Arbeitsschritt mitziehen.
+- Antworten sollen eher kurz, klar und operativ sein: zuerst Ergebnis oder Fazit, dann knappe Einordnung.
+- Bei Unsicherheit sauber trennen zwischen:
+  - direkt belegten Befunden aus Code, Logs oder Dateien
+  - plausiblen technischen Vermutungen oder Hypothesen
+
+## RL / Benchmark Workflow Norms
+
+- `loss` oder andere Trainingsmetriken niemals isoliert als Qualitaetsbeweis darstellen.
+- Immer sauber unterscheiden zwischen:
+  - Trainingsstabilitaet
+  - Offline-Benchmark
+  - Live-Verhalten des Bots
+- Wenn ein Trainingslauf instabil wirkt, zunaechst konservative Hyperparameter-Anpassungen bevorzugen statt grosse Architekturwechsel.
+- Wenn ein Benchmark ausgefuehrt wird, muss der Lauf in `docs/benchmark-history.md` dokumentiert werden.
+- Bei neuen Checkpoints oder neuem Live-Default auch `docs/todo-next.md` und thematisch passende RL-/Pipeline-Doku auf Aktualitaet pruefen.
+
+## Remote / Live-Run Support Norms
+
+- Bei Remote-Datengenerierung, Training oder Benchmarking moeglichst end-to-end unterstuetzen:
+  - Startbefehl
+  - Status/Log-Hinweise
+  - Artefaktpfade
+  - Download-/`scp`-Befehl
+  - kurze Validierung oder fachliche Einordnung des Ergebnisses
+- Bei heruntergeladenen Artefakten nach Moeglichkeit kurz pruefen:
+  - Datei vorhanden / entpackt
+  - grobe Konsistenz
+  - wichtige Metriken oder Auffaelligkeiten
+- Bei Live-Bot-Problemen UI-/Browser-Verhalten und Logs gemeinsam interpretieren; nicht vorschnell nur aus Logmustern auf die Ursache schliessen.
+- Wenn der Bug sehr wahrscheinlich im `pokerogue/`-Submodul liegt:
+  - Ursache zuerst klar eingrenzen und benennen
+  - erst danach einen moeglichst kleinen Fix im Submodul vorschlagen oder umsetzen
+
+## Data Hygiene
+
+- Bei Wave-Library-, Dataset- und Pipeline-Artefakten aktiv auf semantische Duplikate, Bug-induzierte Eintraege und veraltete lokale Outputs achten.
+- Kurzlebige, lokal nuetzliche, aber schnell veraltende Dateien sollen bevorzugt in einen klaren Temp-/nicht versionierten Datenbereich wandern statt produktive Datenpfade zu vermuellen.
+- Bereinigungen an produktiven Datensaetzen oder Wave-Lib-Eintraegen nur gezielt und nachvollziehbar vornehmen; nach Aenderungen die betroffenen Dateien kurz validieren.
+
 **Maven Commands:**
 
 - Build project: `mvn clean compile` (automatically triggers JS bridge build via exec-maven-plugin)
@@ -38,6 +83,7 @@
 
 - Main class: `com.sfh.pokeRogueBot.Application` (Kotlin)
 - Spring Boot application - runs via `mvn spring-boot:run` or by running the Application class in IDE
+- Local PokeRogue frontend - start from the `pokerogue/` submodule via `npm run start:dev` (expects `http://localhost:8000/`)
 
 ## Project Architecture
 
@@ -133,6 +179,13 @@ This is a Spring Boot application (version 3.5.3) written in mixed Java/Kotlin t
 
 - Es sollen keine Dateien versioniert oder committed werden, die nicht auf GitHub bzw. nicht ins Repository muessen.
 - Generierte Artefakte, lokale Laufzeitdaten, temporäre Outputs, Logs und andere nur lokal oder serverseitig relevante Dateien sollen konsequent ueber `.gitignore` aus Git herausgehalten werden.
+- Fuer neue Skripte im Hauptrepo, besonders im RL-/Pipeline-Bereich unter `scripts/`, soll TypeScript bevorzugt werden.
+- Wenn bestehende kritische RL-/Pipeline-Skripte groesser angefasst werden, ist eine Migration nach TypeScript gegenueber weiterem Ausbau in plain JavaScript zu bevorzugen.
+- Wenn neue TypeScript-Dateien oder neue TS-Imports eingefuehrt werden, muss aktiv geprueft werden, ob die benoetigten Alias-Pfade, Typdefinitionen und das passende `tsconfig`-Setup bereits existieren.
+- Falls neue Alias-Imports verwendet werden (z. B. `#test/*`, `#app/*` oder vergleichbare Submodul-Pfade), soll im selben Arbeitsschritt geprueft und bei Bedarf ergaenzt werden:
+  - passender `paths`-Eintrag im zustaendigen `tsconfig`
+  - benoetigte Typ-Dependencies wie Node-/Vitest-Typen
+  - kurze Verifikation, dass VS Code bzw. `tsc` die neuen Imports wirklich aufloesen kann
 
 **Language Usage:**
 

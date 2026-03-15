@@ -76,7 +76,7 @@ def run_collector(config: Dict) -> None:
     write_json(temp_config, config)
     try:
         result = subprocess.run(
-            ["node", "scripts/01-data-generation/collector/run-pokerogue-experience-collector.mjs", temp_config],
+            ["node", "scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts", temp_config],
             cwd=REPO_ROOT,
             check=False,
         )

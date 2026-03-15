@@ -30,7 +30,7 @@ class ChromeBrowserClient(
     @Value("\${browser.waitTimeForRenderAfterNavigation:5000}") private val waitTimeForRenderAfterNavigation: Int,
     @Value("\${browser.pathChromeUserDir}") private val pathChromeUserDir: String?,
     @Value("\${browser.chromeProfile}") private val chromeProfile: String?,
-) : DisposableBean, BrowserClient, ImageService, JsClient {
+) : DisposableBean, BrowserClient, ImageClient, JsClient {
 
     companion object {
         private val log = LoggerFactory.getLogger(ChromeBrowserClient::class.java)
