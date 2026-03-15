@@ -52,6 +52,11 @@
 - Wenn der Bug sehr wahrscheinlich im `pokerogue/`-Submodul liegt:
   - Ursache zuerst klar eingrenzen und benennen
   - erst danach einen moeglichst kleinen Fix im Submodul vorschlagen oder umsetzen
+- Wenn fuer einen Remote-Pfad ein Telegram-Control-Bot vorgesehen ist, sollen neue oder groesser ueberarbeitete Pipeline-Helper moeglichst dieselben drei Kommandos anbieten:
+  - `telegram-control-start`
+  - `telegram-control-status`
+  - `telegram-control-stop`
+- Bei neuen Pipeline-Versionen aktiv pruefen, ob diese Telegram-Control-Kommandos weiterhin vorhanden sind oder nachgezogen werden muessen, damit der Remote-Betrieb konsistent bleibt.
 
 ## Data Hygiene
 

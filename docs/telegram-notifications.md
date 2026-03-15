@@ -297,6 +297,24 @@ bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh te
 bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh telegram-control-stop
 ```
 
+Alle laufenden Telegram-Control-Bot-Prozesse auf dem Server finden:
+
+```bash
+ps -ef | grep 'run-telegram-control-bot.mjs' | grep -v grep
+```
+
+Nur die PIDs der laufenden Telegram-Control-Bots:
+
+```bash
+pgrep -af 'run-telegram-control-bot.mjs'
+```
+
+Wenn unklar ist, welcher Control-Ordner zu welcher Instanz gehoert, hilft oft diese Ansicht:
+
+```bash
+pgrep -af 'run-telegram-control-bot.mjs|wave-library-.*-remote-control'
+```
+
 Polling:
 
 - Standard ist aktuell `600` Sekunden, also `10` Minuten
