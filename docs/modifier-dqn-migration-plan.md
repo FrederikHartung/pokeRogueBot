@@ -520,6 +520,17 @@ Aktuelle bewusste Einschraenkungen des Collectors:
     - Ergebnis:
       - `POTION` ist nur fuer `Bulbasaur` legal
       - `REVIVE` ist nur fuer `Charmander` legal
+  - zusaetzlich gibt es jetzt eine groessere deterministische Item-Suite:
+    - `scripts/90-dev/rl/run-pokerogue-modifier-item-suite-test.ts`
+    - aktuell verifizierte konkrete Items:
+      - `POTION`, `SUPER_POTION`, `HYPER_POTION`, `MAX_POTION`, `FULL_RESTORE`
+      - `REVIVE`, `MAX_REVIVE`
+      - `FULL_HEAL`
+      - `ELIXIR`, `MAX_ELIXIR`
+      - `ETHER`, `MAX_ETHER`
+      - `PP_UP`, `PP_MAX`
+      - `RARE_CANDY`
+    - die Suite prueft je nach Item entweder Party-Zielmaskierung oder Move-Zielmaskierung in einem kontrollierten Starter-Setup
 - Typische zielgebundene Modifier-Klassen im Submodul:
   - `PokemonModifierType`
     - Obertyp fuer Modifier, die eine Party-Zielauswahl brauchen

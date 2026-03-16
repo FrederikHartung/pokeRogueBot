@@ -33,6 +33,7 @@
     "rl:smoke:modifier:fixed-seed": "node scripts/90-dev/rl/run-pokerogue-modifier-fixed-seed-collector.ts /tmp/modifier-fixed-seed-smoke.json modifier-fixed-seed 1 30 random_executable",
     "rl:test:modifier:target-mask": "node scripts/90-dev/rl/run-pokerogue-modifier-target-mask-test.ts",
     "rl:test:modifier:shop-target-mask": "node scripts/90-dev/rl/run-pokerogue-modifier-shop-target-mask-test.ts",
+    "rl:test:modifier:item-suite": "node scripts/90-dev/rl/run-pokerogue-modifier-item-suite-test.ts",
     "rl:collect:modifier:fixed-seed": "node scripts/90-dev/rl/run-pokerogue-modifier-fixed-seed-collector.ts",
     "rl:inspect:dataset": "python3 -m streamlit run scripts/90-dev/inspect/streamlit_rl_dataset_inspector.py"
   },

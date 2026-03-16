@@ -47,13 +47,16 @@ Kurzfristig ergaenzen:
     - zielgebundenes Action-Masking fuer Modifier weiter ausbauen:
       - pro Party-Slot statt nur globaler `available`-Flag ist jetzt im Collector angelegt
       - der Berry-Stack-Sonderfall ist jetzt mit einem deterministischen `SITRUS`-Target-Mask-Test verifiziert
-      - als naechstes denselben Zielansatz fuer kaufbare `PokemonModifierType`-Items wie `Potion` und `Revive` erweitern
+      - `Potion`/`Revive` sowie weitere konsumierbare Item-Familien sind jetzt mit einer groesseren deterministischen Item-Suite abgedeckt
+      - naechste offene Zielkandidaten: `MINT`, `MEMORY_MUSHROOM`, `TM_*`, `TERA_SHARD`, `EVOLUTION_ITEM`, `FORM_CHANGE_ITEM`, `FUSE`
     - fuer neue RL-Collector-/Pipeline-Logik Tests in zwei Schichten aufbauen:
       - kleine deterministische External-RL-Integrationstests fuer echte Spiel-/UI-Pfade
       - schlanke Node-/Unit-Tests fuer reine Runner-, Config-, Reward- und Auswertelogik im Hauptrepo
     - diese Teststrategie kuenftig konsequent fuer neue Collector-/Pipeline-Bausteine anwenden:
       - External-RL-Integrationstests fuer `SelectModifierPhase`, `LearnMovePhase`, Combat-Phasen und aehnliche echte Spiel-/UI-Pfade
       - kleine Unit-/Node-Tests fuer Hauptrepo-Logik wie Runner, Config-Aufloesung, Reward-Berechnung, Summary-/Report-Auswertung
+    - Uebersichtsdoku fuer getestete und noch fehlende `PokemonModifierType`-Faelle:
+      - `docs/pokemon-modifier-type-test-matrix.md`
 - Zielbild:
 - aktuelles Kotlin-/DL4J-/RL4J-Modifier-RL schrittweise auf denselben Python/PyTorch-Ansatz wie Combat umstellen
 - Tactical- und Strategic-Training ausdruecklich parallel denken:
