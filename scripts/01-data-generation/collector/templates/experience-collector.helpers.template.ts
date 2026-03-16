@@ -722,29 +722,23 @@ export function buildObservation(game: GameManager, scenario: any) {
   const bestKnownEnemyPriority = getBestKnownEnemyPriority(enemy);
   const activeBestMoveEffectiveness = moveSet.reduce((best, move) => {
     const moveData = move.getMove();
-    const ppMax = move.getMovePp();
-    const ppUsed = Number.isFinite(move.ppUsed) ? move.ppUsed : 0;
-    const ppLeft = Math.max(0, ppMax - ppUsed);
-    if (ppLeft <= 0) return best;
+    const [usable] = move.isUsable(player, false, true);
+    if (!usable) return best;
     const effectiveness = enemy.getMoveEffectiveness(player, moveData, false, true);
     return Math.max(best, Number.isFinite(effectiveness) ? effectiveness : 1);
   }, 0);
   const activeBestDamageRatio = moveSet.reduce((best, move) => {
     const moveData = move.getMove();
-    const ppMax = move.getMovePp();
-    const ppUsed = Number.isFinite(move.ppUsed) ? move.ppUsed : 0;
-    const ppLeft = Math.max(0, ppMax - ppUsed);
-    if (ppLeft <= 0) return best;
+    const [usable] = move.isUsable(player, false, true);
+    if (!usable) return best;
     const effectiveness = enemy.getMoveEffectiveness(player, moveData, false, true);
     const stab = playerTypes.includes(moveData.type) ? 1 : 0;
     return Math.max(best, estimateDamageRatio(player, enemy, moveData, effectiveness, stab));
   }, 0);
   const enemyBestDamageIntoActive = enemy.getMoveset().slice(0, 4).reduce((best, move) => {
     const moveData = move.getMove();
-    const ppMax = move.getMovePp();
-    const ppUsed = Number.isFinite(move.ppUsed) ? move.ppUsed : 0;
-    const ppLeft = Math.max(0, ppMax - ppUsed);
-    if (ppLeft <= 0) return best;
+    const [usable] = move.isUsable(enemy, false, true);
+    if (!usable) return best;
     const effectiveness = player.getMoveEffectiveness(enemy, moveData, false, true);
     const enemyStab = enemyTypes.includes(moveData.type) ? 1 : 0;
     return Math.max(best, estimateDamageRatio(enemy, player, moveData, effectiveness, enemyStab));
@@ -758,7 +752,8 @@ export function buildObservation(game: GameManager, scenario: any) {
     const effectiveness = enemy.getMoveEffectiveness(player, moveData, false, true);
     const moveType = moveData.type;
     const stab = playerTypes.includes(moveType) ? 1 : 0;
-    const available = ppLeft > 0 ? 1 : 0;
+    const [usable] = move.isUsable(player, false, true);
+    const available = usable ? 1 : 0;
     const actsFirst = available === 1 && actsFirstIfUsed(player, enemy, moveData, bestKnownEnemyPriority);
     const estimatedDamageRatio = estimateDamageRatio(player, enemy, moveData, effectiveness, stab);
     return {
@@ -823,10 +818,8 @@ export function buildObservation(game: GameManager, scenario: any) {
       .slice(0, 4)
       .reduce((best, move) => {
         const moveData = move.getMove();
-        const ppMax = move.getMovePp();
-        const ppUsed = Number.isFinite(move.ppUsed) ? move.ppUsed : 0;
-        const ppLeft = Math.max(0, ppMax - ppUsed);
-        if (ppLeft <= 0) return best;
+        const [usable] = move.isUsable(member, false, true);
+        if (!usable) return best;
         const effectiveness = enemy.getMoveEffectiveness(member, moveData, false, true);
         const memberTypes = member.getTypes(true, true)
           .filter(type => Number.isInteger(type) && type >= 0)
@@ -838,10 +831,8 @@ export function buildObservation(game: GameManager, scenario: any) {
       .slice(0, 4)
       .reduce((best, move) => {
         const moveData = move.getMove();
-        const ppMax = move.getMovePp();
-        const ppUsed = Number.isFinite(move.ppUsed) ? move.ppUsed : 0;
-        const ppLeft = Math.max(0, ppMax - ppUsed);
-        if (ppLeft <= 0) return best;
+        const [usable] = move.isUsable(enemy, false, true);
+        if (!usable) return best;
         const effectiveness = member.getMoveEffectiveness(enemy, moveData, false, true);
         const stab = enemyTypes.includes(moveData.type) ? 1 : 0;
         return Math.max(best, estimateDamageRatio(enemy, member, moveData, effectiveness, stab));
@@ -855,10 +846,8 @@ export function buildObservation(game: GameManager, scenario: any) {
         .slice(0, 4)
         .reduce((best, move) => {
           const moveData = move.getMove();
-          const ppMax = move.getMovePp();
-          const ppUsed = Number.isFinite(move.ppUsed) ? move.ppUsed : 0;
-          const ppLeft = Math.max(0, ppMax - ppUsed);
-          if (ppLeft <= 0) return best;
+          const [usable] = move.isUsable(member, false, true);
+          if (!usable) return best;
           const effectiveness = enemy.getMoveEffectiveness(member, moveData, false, true);
           return Math.max(best, Number.isFinite(effectiveness) ? effectiveness : 1);
         }, 0);
