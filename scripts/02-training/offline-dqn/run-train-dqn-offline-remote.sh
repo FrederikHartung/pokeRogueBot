@@ -516,6 +516,7 @@ PY
 set -euo pipefail
 
 export PATH='${VENV_BIN_DIR}':"\$PATH"
+export PYTHONUNBUFFERED='1'
 if [ -f '${TELEGRAM_ENV_FILE}' ]; then
   source '${TELEGRAM_ENV_FILE}'
 fi
@@ -528,7 +529,7 @@ if [ -n "${merge_command}" ]; then
   eval "${merge_command}"
 fi
 
-if '${VENV_PYTHON}' scripts/02-training/offline-dqn/train_dqn_offline.py --config '${generated_config_path}'; then
+if '${VENV_PYTHON}' -u scripts/02-training/offline-dqn/train_dqn_offline.py --config '${generated_config_path}'; then
   python3 - '${state_path}' '${summary_path}' <<'PY'
 import json
 import sys

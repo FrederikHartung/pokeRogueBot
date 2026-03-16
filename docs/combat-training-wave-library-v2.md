@@ -671,6 +671,7 @@ Remote-Training fuer den neuen V3-Datensatz:
   - validiert die Trainingsconfig
   - kann vor dem Training mehrere JSONL-Quellen ueber `dataset_merge.inputs` zu einem finalen `dataset_path` zusammenfuehren
   - startet das Offline-DQN-Training detached via `nohup`
+  - startet Python unbuffered, damit `training_start` und `epoch=... mean_loss=...` direkt im Log erscheinen
   - schreibt `training-summary.json` mit Laufzeit und Mean-Loss pro Epoche
   - sendet Telegram-Benachrichtigungen fuer Erfolg oder Fehler
   - bietet dieselben drei Telegram-Control-Kommandos:
@@ -683,6 +684,14 @@ Remote-Training fuer den neuen V3-Datensatz:
     - `data/rl/dataset-pools/combat-v3/merged/random-valid-action-w1-24-main.jsonl`
   - und kann spaeter einfach um weitere Quellen erweitert werden:
     - `dataset_merge.inputs`
+  - aktueller konservativer Startwert fuer den naechsten Retrain auf dem groesseren `w1-24`-Datensatz:
+    - `learning_rate = 0.0001`
+    - `epochs = 20`
+    - `batch_size = 64`
+    - `target_update_steps = 1000`
+  - Hintergrund:
+    - der erste `50`-Epochen-Lauf auf dem `149505`-Zeilen-Datensatz lernte anfangs gut, driftete spaeter aber deutlich weg
+    - der bisher beste Loss lag ungefaehr im Bereich `Epoch 18-25`, daher ist fuer den naechsten Versuch ein kuerzerer und etwas ruhigerer Lauf bevorzugt
 - Start auf dem Server:
   - `bash scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh start`
 - Status:

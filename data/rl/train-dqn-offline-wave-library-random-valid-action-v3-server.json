@@ -12,10 +12,10 @@
   "seed": 42,
   "hidden_dims": [128, 128],
   "gamma": 0.99,
-  "learning_rate": 0.0003,
-  "epochs": 50,
-  "batch_size": 32,
-  "target_update_steps": 500,
+  "learning_rate": 0.0001,
+  "epochs": 20,
+  "batch_size": 64,
+  "target_update_steps": 1000,
   "grad_clip_norm": 5.0,
   "log_every_epochs": 1
 }
