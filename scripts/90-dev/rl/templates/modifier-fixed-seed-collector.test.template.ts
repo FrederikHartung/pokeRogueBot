@@ -17,6 +17,7 @@ import { Stat } from "#enums/stat";
 import { UiMode } from "#enums/ui-mode";
 import type { CommandPhase } from "#phases/command-phase";
 import { ModifierSelectUiHandler } from "#ui/modifier-select-ui-handler";
+import { PartyUiMode } from "#ui/party-ui-handler";
 import { GameManager } from "#test/test-utils/game-manager";
 import Phaser from "phaser";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -54,6 +55,7 @@ interface ModifierActionSnapshot {
   action_index: number;
   action_type: "take_reward" | "buy_shop_item" | "skip";
   reward_index?: number;
+  target_party_index?: number;
   shop_row_index?: number;
   shop_column_index?: number;
   modifier_type_id?: string;
@@ -100,6 +102,7 @@ interface SelectedModifierActionDebugSnapshot {
   action_type: string;
   modifier_type_id?: string;
   reward_index?: number;
+  target_party_index?: number;
   shop_row_index?: number;
   shop_column_index?: number;
   cost: number;
@@ -119,6 +122,9 @@ interface TimeoutDebugSnapshot {
   shop_option_ids: string[][];
   party_ui_mode: string | null;
   party_cursor: number | null;
+  party_options_mode: boolean | null;
+  party_options_cursor: number | null;
+  party_options: string[];
   recent_messages: string[];
   selected_modifier_action?: SelectedModifierActionDebugSnapshot;
   party: PartyMemberDebugSnapshot[];
@@ -848,10 +854,21 @@ function getActionAvailability(game: GameManager, option: any): { available: boo
   return { available: true };
 }
 
-function getActionExecutability(actionType: "take_reward" | "buy_shop_item", modifierTypeId: string): { executable: boolean; reason?: string } {
+function getActionExecutability(
+  actionType: "take_reward" | "buy_shop_item",
+  option: any,
+): { executable: boolean; reason?: string; requiresPartyTarget?: boolean } {
+  const modifierTypeId = getModifierTypeId(option);
+  const modifierType = option?.modifierTypeOption?.type;
   if (actionType === "take_reward") {
     if (modifierTypeId.startsWith("TM")) {
       return { executable: false, reason: "tm_selection_todo" };
+    }
+    if (typeof modifierType?.moveSelectFilter === "function") {
+      return { executable: false, reason: "requires_move_selection" };
+    }
+    if (typeof modifierType?.selectFilter === "function") {
+      return { executable: true, requiresPartyTarget: true };
     }
     if (SAFE_REWARD_ACTION_IDS.has(modifierTypeId)) {
       return { executable: true };
@@ -862,30 +879,93 @@ function getActionExecutability(actionType: "take_reward" | "buy_shop_item", mod
   return { executable: false, reason: "shop_item_execution_not_implemented" };
 }
 
+function getFirstValidPartyTargetIndex(game: GameManager): number {
+  const partyHandler = game.scene.ui.getHandler() as any;
+  const selectFilter = partyHandler?.selectFilter;
+  const party = game.scene.getPlayerParty();
+
+  for (let index = 0; index < party.length; index += 1) {
+    const pokemon = party[index];
+    if (!pokemon) {
+      continue;
+    }
+    if (typeof selectFilter === "function") {
+      const filterResult = selectFilter(pokemon);
+      if (filterResult !== null && filterResult !== undefined) {
+        continue;
+      }
+    }
+    return index;
+  }
+
+  return -1;
+}
+
+function getRewardTargetAvailability(game: GameManager, option: any, targetIndex: number): { available: boolean; reason?: string } {
+  const modifierType = option?.modifierTypeOption?.type;
+  const selectFilter = modifierType?.selectFilter;
+  const party = game.scene.getPlayerParty();
+  const pokemon = party[targetIndex];
+
+  if (!pokemon) {
+    return { available: false, reason: "missing_party_target" };
+  }
+  if (typeof selectFilter !== "function") {
+    return { available: true };
+  }
+
+  const filterResult = selectFilter(pokemon);
+  if (filterResult === null || filterResult === undefined) {
+    return { available: true };
+  }
+
+  return { available: false, reason: String(filterResult) };
+}
+
 function buildModifierDecisionSnapshot(game: GameManager): ModifierDecisionSnapshot {
   const handler = getModifierHandler(game);
   const actions: ModifierActionSnapshot[] = [];
   const actionMask: number[] = [];
 
   handler.options.forEach((option, index) => {
-    const executability = getActionExecutability("take_reward", getModifierTypeId(option));
-    actions.push({
-      action_index: actions.length,
-      action_type: "take_reward",
-      reward_index: index,
-      modifier_type_id: getModifierTypeId(option),
-      cost: option.modifierTypeOption?.cost ?? 0,
-      available: true,
-      executable: executability.executable,
-      non_executable_reason: executability.reason,
-    });
-    actionMask.push(executability.executable ? 1 : 0);
+    const executability = getActionExecutability("take_reward", option);
+    if (executability.requiresPartyTarget) {
+      game.scene.getPlayerParty().forEach((_pokemon: any, partyIndex: number) => {
+        const availability = getRewardTargetAvailability(game, option, partyIndex);
+        const available = availability.available && executability.executable;
+        actions.push({
+          action_index: actions.length,
+          action_type: "take_reward",
+          reward_index: index,
+          target_party_index: partyIndex,
+          modifier_type_id: getModifierTypeId(option),
+          cost: option.modifierTypeOption?.cost ?? 0,
+          available,
+          executable: executability.executable,
+          unavailable_reason: availability.reason,
+          non_executable_reason: executability.reason,
+        });
+        actionMask.push(available ? 1 : 0);
+      });
+    } else {
+      actions.push({
+        action_index: actions.length,
+        action_type: "take_reward",
+        reward_index: index,
+        modifier_type_id: getModifierTypeId(option),
+        cost: option.modifierTypeOption?.cost ?? 0,
+        available: true,
+        executable: executability.executable,
+        non_executable_reason: executability.reason,
+      });
+      actionMask.push(executability.executable ? 1 : 0);
+    }
   });
 
   handler.shopOptionsRows.forEach((row, rowIndex) => {
     row.forEach((option, columnIndex) => {
       const availability = getActionAvailability(game, option);
-      const executability = getActionExecutability("buy_shop_item", getModifierTypeId(option));
+      const executability = getActionExecutability("buy_shop_item", option);
       const available = availability.available && executability.executable;
       actions.push({
         action_index: actions.length,
@@ -918,6 +998,38 @@ function buildModifierDecisionSnapshot(game: GameManager): ModifierDecisionSnaps
     shop_rows: handler.shopOptionsRows.map(row => row.map((option, index) => toModifierOptionSnapshot(option, index))),
     actions,
     action_mask: actionMask,
+  };
+}
+
+function getPartyOptionNames(handler: any): string[] {
+  const rawOptions = Array.isArray(handler?.options) ? handler.options : [];
+  return rawOptions.map((option: any) => {
+    if (typeof option === "string") {
+      return option;
+    }
+    if (typeof option === "number") {
+      return String(option);
+    }
+    if (option?.label != null) {
+      return String(option.label);
+    }
+    if (option?.name != null) {
+      return String(option.name);
+    }
+    return String(option);
+  });
+}
+
+function buildModifierPhaseLogSnapshot(game: GameManager): Record<string, unknown> {
+  const decision = buildModifierDecisionSnapshot(game);
+  return {
+    wave_index: decision.wave_index,
+    money: game.scene.money,
+    reward_options: decision.reward_options,
+    shop_rows: decision.shop_rows,
+    actions: decision.actions,
+    action_mask: decision.action_mask,
+    party: game.scene.getPlayerParty().map((pokemon: any) => buildPartyMemberDebugSnapshot(pokemon)),
   };
 }
 
@@ -962,6 +1074,9 @@ function buildTimeoutDebugSnapshot(game: GameManager): TimeoutDebugSnapshot {
     shop_option_ids: shopOptionIds,
     party_ui_mode: partyUiMode,
     party_cursor: partyCursor,
+    party_options_mode: typeof currentHandler?.optionsMode === "boolean" ? currentHandler.optionsMode : null,
+    party_options_cursor: Number.isInteger(currentHandler?.optionsCursor) ? currentHandler.optionsCursor : null,
+    party_options: getPartyOptionNames(currentHandler),
     recent_messages: Array.isArray(game.textInterceptor?.logs) ? game.textInterceptor.logs.slice(-8) : [],
     party: game.scene.getPlayerParty().map((pokemon: any) => buildPartyMemberDebugSnapshot(pokemon)),
   };
@@ -1436,6 +1551,21 @@ async function waitForUiMode(game: GameManager, mode: UiMode, timeoutMs = 5000):
   throw new Error(`Timed out waiting for UI mode ${UiMode[mode] ?? mode}`);
 }
 
+async function waitForModifierRewardFollowupMode(
+  game: GameManager,
+  timeoutMs = 2000,
+): Promise<UiMode> {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    const mode = game.scene.ui.getMode();
+    if (mode !== UiMode.MODIFIER_SELECT) {
+      return mode;
+    }
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
+  return game.scene.ui.getMode();
+}
+
 async function executeSkipAction(game: GameManager): Promise<void> {
   await waitForModifierInputReady(game);
   const handler = getModifierHandler(game);
@@ -1453,12 +1583,78 @@ function toRewardRowCursor(): number {
   return ShopCursorTarget.REWARDS;
 }
 
-async function executeTakeRewardAction(game: GameManager, rewardIndex: number): Promise<void> {
+async function executeTakeRewardAction(game: GameManager, rewardIndex: number, targetPartyIndex?: number): Promise<void> {
   await waitForModifierInputReady(game);
   const handler = getModifierHandler(game);
   handler.setRowCursor(toRewardRowCursor());
   handler.setCursor(rewardIndex);
   handler.processInput(Button.ACTION);
+
+  const followupMode = await waitForModifierRewardFollowupMode(game);
+  console.error(
+    `[modifier-fixed-seed-reward] after_select wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} ui=${UiMode[followupMode] ?? followupMode} reward_index=${rewardIndex}`,
+  );
+
+  if (followupMode === UiMode.PARTY) {
+    await waitForUiMode(game, UiMode.PARTY);
+    const partyHandler = game.scene.ui.getHandler() as any;
+    const partyUiMode = partyHandler?.partyUiMode;
+
+    if (partyUiMode === PartyUiMode.MODIFIER) {
+      const targetIndex = targetPartyIndex ?? getFirstValidPartyTargetIndex(game);
+      if (targetIndex < 0) {
+        throw new Error("No valid party target for modifier reward");
+      }
+
+      if (typeof partyHandler?.setCursor !== "function" || typeof partyHandler?.processInput !== "function") {
+        throw new Error("Party handler does not support cursor/action flow for modifier reward");
+      }
+
+      partyHandler.setCursor(targetIndex);
+      console.error(
+        JSON.stringify({
+          event: "modifier_fixed_seed_party_before_apply",
+          wave_index: game.scene.currentBattle?.waveIndex ?? null,
+          target_index: targetIndex,
+          party_ui_mode: partyHandler?.partyUiMode ?? null,
+          cursor: partyHandler?.cursor ?? null,
+          options_mode: partyHandler?.optionsMode ?? null,
+          options_cursor: partyHandler?.optionsCursor ?? null,
+          options: getPartyOptionNames(partyHandler),
+        }),
+      );
+      const firstActionResult = partyHandler.processInput(Button.ACTION);
+      console.error(
+        JSON.stringify({
+          event: "modifier_fixed_seed_party_after_first_action",
+          wave_index: game.scene.currentBattle?.waveIndex ?? null,
+          target_index: targetIndex,
+          result: firstActionResult,
+          cursor: partyHandler?.cursor ?? null,
+          options_mode: partyHandler?.optionsMode ?? null,
+          options_cursor: partyHandler?.optionsCursor ?? null,
+          options: getPartyOptionNames(partyHandler),
+        }),
+      );
+      const secondActionResult = partyHandler.processInput(Button.ACTION);
+      console.error(
+        JSON.stringify({
+          event: "modifier_fixed_seed_party_after_second_action",
+          wave_index: game.scene.currentBattle?.waveIndex ?? null,
+          target_index: targetIndex,
+          result: secondActionResult,
+          cursor: partyHandler?.cursor ?? null,
+          options_mode: partyHandler?.optionsMode ?? null,
+          options_cursor: partyHandler?.optionsCursor ?? null,
+          options: getPartyOptionNames(partyHandler),
+          ui_mode: UiMode[game.scene.ui.getMode()] ?? game.scene.ui.getMode(),
+        }),
+      );
+    } else {
+      throw new Error(`Unsupported party ui mode for reward execution: ${String(partyUiMode)}`);
+    }
+  }
+
   await game.phaseInterceptor.to("CommandPhase");
 }
 
@@ -1471,7 +1667,7 @@ async function executeModifierAction(game: GameManager, action: ModifierActionSn
       if (action.reward_index == null) {
         throw new Error("Reward action missing reward_index");
       }
-      await executeTakeRewardAction(game, action.reward_index);
+      await executeTakeRewardAction(game, action.reward_index, action.target_party_index);
       return;
     case "buy_shop_item":
       throw new Error("Shop item execution not implemented yet");
@@ -1672,6 +1868,10 @@ describe("modifier fixed seed collector", () => {
             break;
           }
 
+          console.error(
+            `[modifier-fixed-seed-shop] run=${runIndex} wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} ${JSON.stringify(buildModifierPhaseLogSnapshot(game))}`,
+          );
+
           const modifierDecision = buildModifierDecisionSnapshot(game);
           expect(MODIFIER_POLICY).toBe("random_executable");
           const selectedAction = pickRandomExecutableAction(modifierDecision, random);
@@ -1705,6 +1905,7 @@ describe("modifier fixed seed collector", () => {
               action_type: selectedModifierActionForDebug.action_type,
               modifier_type_id: selectedModifierActionForDebug.modifier_type_id,
               reward_index: selectedModifierActionForDebug.reward_index,
+              target_party_index: selectedModifierActionForDebug.target_party_index,
               shop_row_index: selectedModifierActionForDebug.shop_row_index,
               shop_column_index: selectedModifierActionForDebug.shop_column_index,
               cost: selectedModifierActionForDebug.cost,

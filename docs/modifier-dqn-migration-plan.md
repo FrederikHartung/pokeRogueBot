@@ -94,6 +94,23 @@ Spaeteres Zielbild:
 - derselbe Ablauf wird serverseitig ueber viele Seeds wiederholt
 - der lokale Fixed-Seed-Modus bleibt als reproduzierbarer Debug-/Benchmark-Modus erhalten
 
+## Begriffe und Benennung
+
+Feste Begriffe fuer den weiteren Ausbau:
+
+- **Strategic Fixed-Seed Run Collector**
+  - allgemeines Verfahren fuer strategische, runbasierte Simulation mit festem Seed, fixer Startkonfiguration und wiederholten kompletten Runs
+  - dient als generischer Baustein fuer spaetere Strategic-Trainingspfade
+  - weitere Varianten koennen spaeter u. a. entstehen fuer:
+    - Combat-Entscheidungen
+    - Capture-/Pokeball-Entscheidungen
+    - Learn-Move-Entscheidungen
+    - Team-Replacement nach Capture
+- **Modifier Fixed-Seed Collector**
+  - aktuelle konkrete Variante des Strategic Fixed-Seed Run Collectors
+  - Fokus liegt auf `SelectModifierPhase`-/Shop-Entscheidungen bei fixer Combat-DQN-Version
+  - erste Strategic-Trainingsvariante fuer das geplante Modifier-DQN
+
 Wichtige State-Features fuer den Strategic-Modus:
 
 - `wave_index`
@@ -397,7 +414,7 @@ Aktueller MVP-Startpunkt:
     - `no_fainted_pokemon`
     - `no_missing_pp`
 
-Aktueller lokaler Fixed-Seed-Collector:
+Aktueller lokaler Modifier Fixed-Seed Collector:
 
 - Runner:
   - `scripts/90-dev/rl/run-pokerogue-modifier-fixed-seed-collector.ts`
@@ -422,6 +439,9 @@ Aktueller lokaler Fixed-Seed-Collector:
     - `Squirtle`: Level `5`, Nature `HARDY`, Ability `Torrent`, IVs `15`, Moves `Tackle/Tail Whip/Water Gun`
   - konstante Combat-DQN-Policy ueber einen persistenten Python-Worker
   - variable Modifier-Policy
+- Einordnung:
+  - dies ist die erste konkrete Implementierung des allgemeineren **Strategic Fixed-Seed Run Collector**-Ansatzes
+  - weitere Usecase-spezifische Collector-Varianten sollen spaeter auf demselben Grundmuster aufbauen
 - pro Episode:
     - Laufzeit `runtime_ms`
     - Combat-Turns mit DQN-State, `selected_action` und `action_source`
@@ -466,6 +486,59 @@ Aktuelle bewusste Einschraenkungen des Collectors:
   - `party_ui_mode`
   - `party_cursor`
   - damit ist bei `SelectModifierPhase`-Timeouts im `UiMode.PARTY` direkt sichtbar, welches Reward-/Item-Target zuletzt ausgewaehlt wurde und in welchem Party-Untermodus die UI haengt
+- Neuer konkreter Befund fuer den aktuellen `BERRY`-Timeout:
+  - `BERRY` laeuft im Submodul nicht als direkter Sofort-Apply, sondern ueber `SelectModifierPhase -> UiMode.PARTY -> PartyUiMode.MODIFIER`
+  - nach der Wahl des Party-Slots ist noch ein zusaetzlicher `APPLY`-Schritt im Party-Menue noetig
+  - der vorhandene Test-/Helper-Stack deutet darauf hin, dass fuer diesen Pfad praktisch "Slot waehlen + zweimal ACTION" benoetigt wird
+  - der bisherige Timeout wirkt daher eher wie ein unvollstaendig bedienter UI-Pfad als wie ein tieferer Berry-spezifischer Engine-Bug
+- Wichtige Action-Masking-Folge fuer zielgebundene Modifier:
+  - bei zielgebundenen Reward-/Shop-Aktionen reicht eine globale `available/unavailable`-Kennzeichnung nicht
+  - fuer spaetere Strategic-Datensaetze brauchen wir ein zielgenaues Masking pro Party-Slot bzw. spaeter ggf. pro Move-Slot
+  - Beispiel `BERRY`:
+    - wenn Pokemon A bereits den Max-Stack des aktuellen Berry-Typs haelt, darf das DQN die Beere nicht fuer Pokemon A waehlen
+    - das gilt pro Berry-Typ getrennt, nicht nur allgemein fuer "zu viele Beeren"
+  - bestaetigte Berry-Stack-Limits pro Pokemon und Berry-Typ:
+    - `LUM`, `LEPPA`, `SITRUS`, `ENIGMA` -> max `2`
+    - andere Beeren -> max `3`
+  - aktueller Stand im Modifier Fixed-Seed Collector:
+    - einfache zielgebundene Reward-Modifier mit Party-Ziel ohne zusaetzliche Move-Auswahl werden jetzt als eigene Actions pro `target_party_index` materialisiert
+    - damit entstehen fuer `BERRY` und einfache `PokemonModifierType`-Rewards wie `RARE_CANDY` mehrere zielgebundene Action-Eintraege statt nur ein globaler Reward-Eintrag
+    - Move-gebundene Faelle wie `PP_UP` bleiben weiter separat gesperrt (`requires_move_selection`)
+  - das Target-Masking ist jetzt auch mit einem gezielten deterministischen External-RL-Test verifiziert:
+    - `scripts/90-dev/rl/run-pokerogue-modifier-target-mask-test.ts`
+    - der Test erzeugt eine `SelectModifierPhase` mit garantiertem `SITRUS`-Berry-Reward
+    - `Bulbasaur` startet bereits mit vollem `SITRUS`-Stack (`2/2`)
+    - Ergebnis:
+      - `target_party_index=0` wird korrekt als `available=false` maskiert
+      - `Charmander` und `Squirtle` bleiben `available=true`
+  - fuer kaufbare zielgebundene Shop-Items gibt es jetzt einen zweiten deterministischen Test:
+    - `scripts/90-dev/rl/run-pokerogue-modifier-shop-target-mask-test.ts`
+    - Testzustand:
+      - `Bulbasaur` verletzt
+      - `Charmander` fainted
+      - `Squirtle` voll geheilt
+    - Ergebnis:
+      - `POTION` ist nur fuer `Bulbasaur` legal
+      - `REVIVE` ist nur fuer `Charmander` legal
+- Typische zielgebundene Modifier-Klassen im Submodul:
+  - `PokemonModifierType`
+    - Obertyp fuer Modifier, die eine Party-Zielauswahl brauchen
+  - `PokemonHeldItemModifierType`
+    - fuer held items wie Beeren; bringt bereits ein zielbezogenes Filter-/Stack-Feedback mit
+  - `PokemonMoveModifierType`
+    - fuer Modifier mit zusaetzlicher Move-Auswahl
+  - in `SelectModifierPhase` wird daraus der Party-UI-Modus abgeleitet:
+    - `PartyUiMode.MODIFIER`
+    - `PartyUiMode.MOVE_MODIFIER`
+    - `PartyUiMode.TM_MODIFIER`
+    - `PartyUiMode.REMEMBER_MOVE_MODIFIER`
+- Hilfreiche bestehende Submodul-Vorbilder:
+  - `GameManager.doSelectPartyPokemon(...)` zeigt bereits den generischen Stil "Party-Slot waehlen + zweimal ACTION"
+  - `pokerogue/test/ui/item-manage-button.test.ts` und verwandte UI-Tests demonstrieren direkte Bedienung von `SelectModifierPhase` und `UiMode.PARTY`
+  - der Berry-Timeout im Harness war letztlich kein Submodul-Bug, sondern ein Timing-Problem im External-RL-Pfad:
+    - direkt nach dem Reward-Klick blieb der UI-Modus kurzfristig noch auf `MODIFIER_SELECT`
+    - erst danach wechselte die UI asynchron nach `PARTY`
+    - der Harness wartet jetzt explizit auf diesen Folge-Modus, bevor der Party-Handler bedient wird
 - `LearnMovePhase` wird im External-RL-Harness jetzt aktiv behandelt statt nur auf Timeouts zu warten:
   - `UiMode.CONFIRM` -> bestaetigen
   - `UiMode.SUMMARY` -> Move-Slot nach einer kleinen Portierung der bestehenden Kotlin-/Java-`LearnMoveNeuron`-Heuristik waehlen

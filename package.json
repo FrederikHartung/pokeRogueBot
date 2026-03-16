@@ -31,6 +31,8 @@
     "rl:eval:compare:wave-lib:v2:bootstrap": "python3 scripts/03-benchmark/eval/eval_policy_compare.py --collector-config ./data/rl/collector-run-benchmarked-wave-library-v2.json --checkpoint ./data/rl/models/dqn-combat-wave-library-bootstrap-combined-960.pt --report-path ./data/rl/combat/eval-policy-compare-wave-library-bootstrap-combined-960-report.json",
     "rl:smoke:tactical-harness": "node scripts/90-dev/rl/run-pokerogue-tactical-rl-sim-smoke.ts",
     "rl:smoke:modifier:fixed-seed": "node scripts/90-dev/rl/run-pokerogue-modifier-fixed-seed-collector.ts /tmp/modifier-fixed-seed-smoke.json modifier-fixed-seed 1 30 random_executable",
+    "rl:test:modifier:target-mask": "node scripts/90-dev/rl/run-pokerogue-modifier-target-mask-test.ts",
+    "rl:test:modifier:shop-target-mask": "node scripts/90-dev/rl/run-pokerogue-modifier-shop-target-mask-test.ts",
     "rl:collect:modifier:fixed-seed": "node scripts/90-dev/rl/run-pokerogue-modifier-fixed-seed-collector.ts",
     "rl:inspect:dataset": "python3 -m streamlit run scripts/90-dev/inspect/streamlit_rl_dataset_inspector.py"
   },

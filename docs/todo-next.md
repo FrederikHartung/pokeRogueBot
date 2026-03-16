@@ -28,6 +28,9 @@ Kurzfristig ergaenzen:
 - Sobald der Umbau fertig ist und der Live-Pfad fuer diese Entscheidung stabil ueber das DQN laeuft, kann das alte Switch-Neuron entfernt werden.
 - Modifier-DQN-Migration vorbereiten:
 - Plan ist jetzt in `docs/modifier-dqn-migration-plan.md` dokumentiert
+- Begriffe festgezogen:
+  - allgemeines Verfahren: `Strategic Fixed-Seed Run Collector`
+  - aktuelle Modifier-Variante: `Modifier Fixed-Seed Collector`
 - erster Umsetzungsschnitt soll ohne permanente `pokerogue/`-Submodul-Aenderungen auskommen
 - bevorzugter Start ist ein Tactical-External-RL-Smoke-Harness im Hauptrepo, das temporaer unter `pokerogue/test/.external-rl/...` laeuft und Combat- sowie Modifier-Decision-Points sammelt
 - naechster Modifier-Strategic-Schritt:
@@ -41,6 +44,16 @@ Kurzfristig ergaenzen:
     - `battle_end_to_select_modifier_phase`
     - `execute_modifier_action` im `UiMode.PARTY` mit den neuen Timeout-Logs fuer `selected_modifier_action`, `party_ui_mode` und `party_cursor`
     - Boss-Wellen `10/20/30/...` separat behandeln, da dort bewusst keine normale `SelectModifierPhase` kommt
+    - zielgebundenes Action-Masking fuer Modifier weiter ausbauen:
+      - pro Party-Slot statt nur globaler `available`-Flag ist jetzt im Collector angelegt
+      - der Berry-Stack-Sonderfall ist jetzt mit einem deterministischen `SITRUS`-Target-Mask-Test verifiziert
+      - als naechstes denselben Zielansatz fuer kaufbare `PokemonModifierType`-Items wie `Potion` und `Revive` erweitern
+    - fuer neue RL-Collector-/Pipeline-Logik Tests in zwei Schichten aufbauen:
+      - kleine deterministische External-RL-Integrationstests fuer echte Spiel-/UI-Pfade
+      - schlanke Node-/Unit-Tests fuer reine Runner-, Config-, Reward- und Auswertelogik im Hauptrepo
+    - diese Teststrategie kuenftig konsequent fuer neue Collector-/Pipeline-Bausteine anwenden:
+      - External-RL-Integrationstests fuer `SelectModifierPhase`, `LearnMovePhase`, Combat-Phasen und aehnliche echte Spiel-/UI-Pfade
+      - kleine Unit-/Node-Tests fuer Hauptrepo-Logik wie Runner, Config-Aufloesung, Reward-Berechnung, Summary-/Report-Auswertung
 - Zielbild:
 - aktuelles Kotlin-/DL4J-/RL4J-Modifier-RL schrittweise auf denselben Python/PyTorch-Ansatz wie Combat umstellen
 - Tactical- und Strategic-Training ausdruecklich parallel denken:
