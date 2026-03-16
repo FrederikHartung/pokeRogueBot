@@ -437,6 +437,9 @@ start_run() {
 
   local log_file
   log_file="$(log_file_for_config "${config_path}")"
+  rm -f "$(summary_file_for_config "${config_path}")"
+  rm -f "$(progress_file_for_config "${config_path}")"
+  rm -f "$(runner_script_for_config "${config_path}")"
   : > "${log_file}"
   : > "$(error_log_file_for_config "${config_path}")"
   : > "$(warning_log_file_for_config "${config_path}")"
