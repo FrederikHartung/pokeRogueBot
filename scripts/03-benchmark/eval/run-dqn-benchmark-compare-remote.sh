@@ -497,8 +497,10 @@ max_truncated_rate = float(config.get("max_truncated_rate", 0.1))
 reuse_baselines = config.get("reuse_baselines", True) is True
 benchmarks = config.get("benchmarks") or []
 
-baseline_random_path = os.path.join(repo_root, "data", "rl", "combat", "eval-random-benchmarked.jsonl")
-baseline_always_path = os.path.join(repo_root, "data", "rl", "combat", "eval-always_move_0-benchmarked.jsonl")
+policy_output_dir = os.path.join(os.path.dirname(summary_path), "policy-jsonl")
+baseline_random_path = os.path.join(policy_output_dir, "eval-random-benchmarked.jsonl")
+baseline_always_path = os.path.join(policy_output_dir, "eval-always_move_0-benchmarked.jsonl")
+os.makedirs(policy_output_dir, exist_ok=True)
 
 def resolve_path(value):
     if os.path.isabs(value):
@@ -586,6 +588,8 @@ for index, benchmark in enumerate(benchmarks, start=1):
         device,
         "--report-path",
         report_path,
+        "--output-dir",
+        policy_output_dir,
         "--max-steps-per-episode",
         str(max_steps_per_episode),
         "--max-truncated-rate",

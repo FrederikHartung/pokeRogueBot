@@ -1,5 +1,5 @@
 {
-  "collector_config_path": "./data/rl/collector-run-benchmarked-wave-library-v2.json",
+  "collector_config_path": "./data/rl/collector-run-benchmarked-wave-library-v3-full.json",
   "remote_runtime_dir": "./data/rl/benchmark-runs/dqn-wave-library-v3-compare",
   "device": "cpu",
   "parallelism": 1,

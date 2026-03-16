@@ -718,7 +718,7 @@ Remote-Training fuer den neuen V3-Datensatz:
   - Default-Config:
     - `data/rl/benchmark-dqn-wave-library-v3-compare.json`
   - Default-Szenario-Set:
-    - `data/rl/collector-run-benchmarked-wave-library-v2.json`
+    - `data/rl/collector-run-benchmarked-wave-library-v3-full.json`
   - vorbereitete Vergleichskandidaten:
     - `main`
     - `conservative`
@@ -741,8 +741,10 @@ Remote-Training fuer den neuen V3-Datensatz:
     - der Helper startet bei vorhandenem `telegram.env` den Control-Bot automatisch mit
     - bei Erfolg oder Fehler wird zuerst die Ergebnis-Nachricht gesendet und danach der auto-gestartete Bot wieder beendet
   - wichtige Einschraenkung:
-    - `reuse_baselines` ist nur dann korrekt, wenn die gecachten Baselines unter `data/rl/combat/eval-random-benchmarked.jsonl` und `data/rl/combat/eval-always_move_0-benchmarked.jsonl` zum verwendeten Benchmark-Set passen
-    - der aktuelle Default nutzt deshalb bewusst die bestehende V2-Benchmark-Config statt des Full-Benchmark-Sets
+    - der Helper schreibt fuer diesen Vergleich eigene Baseline-JSONLs unter `data/rl/benchmark-runs/dqn-wave-library-v3-compare/policy-jsonl`
+    - dadurch werden alte Baselines aus kleineren Benchmark-Sets nicht versehentlich wiederverwendet
+  - aktueller Umfang:
+    - lokal sind aktuell `311` materialisierte V3-Szenarien unter `data/rl/scenarios/generated-wave-library-v3-w1-24` vorhanden
 
 Pragmatische Empfehlung fuer kuenftige Trainingsdaten aus mehreren Quellen:
 

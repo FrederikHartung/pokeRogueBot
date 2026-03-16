@@ -313,7 +313,7 @@ Wenn gerade ein Remote-Checkpoint-Benchmark laeuft, zeigt `/status` den Fortschr
 ```text
 Run: dqn-wave-library-v3-compare
 State: running
-Collector: collector-run-benchmarked-wave-library-v2.json
+Collector: collector-run-benchmarked-wave-library-v3-full.json
 Benchmarks: 1/3
 Current benchmark: conservative
 ```

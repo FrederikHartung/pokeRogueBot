@@ -139,8 +139,8 @@ def load_records(path: str) -> List[Dict]:
     return rows
 
 
-def output_path_for_label(label: str) -> str:
-    return os.path.abspath(os.path.join(REPO_ROOT, f"data/rl/combat/eval-{label}-benchmarked.jsonl"))
+def output_path_for_label(label: str, output_dir: str) -> str:
+    return os.path.abspath(os.path.join(output_dir, f"eval-{label}-benchmarked.jsonl"))
 
 
 def summarize(rows: List[Dict]) -> Dict:
@@ -204,6 +204,7 @@ def main() -> None:
     parser.add_argument("--checkpoint", default="./data/rl/models/dqn-combat-wave-library-bootstrap-combined-960.pt")
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--report-path", default="./data/rl/combat/eval-policy-compare-wave-library-v2-report.json")
+    parser.add_argument("--output-dir", default="./data/rl/combat")
     parser.add_argument("--max-steps-per-episode", type=int, default=400)
     parser.add_argument("--max-truncated-rate", type=float, default=0.10)
     parser.add_argument("--parallelism", type=int, default=1)
@@ -220,6 +221,8 @@ def main() -> None:
         os.path.join(REPO_ROOT, "scripts", "02-training", "inference", "dqn_policy_infer_worker.py")
     )
     report_path = os.path.abspath(os.path.join(REPO_ROOT, args.report_path))
+    output_dir = os.path.abspath(os.path.join(REPO_ROOT, args.output_dir))
+    os.makedirs(output_dir, exist_ok=True)
 
     base = absolutize_collector_paths(load_json(collector_config_path), collector_config_path)
 
@@ -252,7 +255,7 @@ def main() -> None:
     run_sources: Dict[str, str] = {}
 
     for label, policy in runs.items():
-        output_path = output_path_for_label(label)
+        output_path = output_path_for_label(label, output_dir)
         cfg = dict(base)
         cfg["output_path"] = output_path
         cfg["append_output"] = False
