@@ -487,25 +487,29 @@ PY
   state_path="$(state_file_for_config "${config_path}")"
   local summary_path
   summary_path="$(summary_file_for_config "${config_path}")"
-
-  nohup bash -lc "export PATH='${VENV_BIN_DIR}':\"\$PATH\" && if [ -f '${TELEGRAM_ENV_FILE}' ]; then source '${TELEGRAM_ENV_FILE}'; fi && cd '${REPO_ROOT}' && training_status=0 && \
-python3 - '${generated_config_path}' <<'PY'
+  local merge_command
+  merge_command="$(python3 - "${generated_config_path}" <<'PY'
 import json
 import shlex
 import sys
+
 config_path = sys.argv[1]
-with open(config_path, 'r', encoding='utf-8') as handle:
+with open(config_path, "r", encoding="utf-8") as handle:
     config = json.load(handle)
-merge = config.get('dataset_merge') or {}
-inputs = merge.get('inputs') or []
-dataset_path = config.get('dataset_path')
+
+merge = config.get("dataset_merge") or {}
+inputs = merge.get("inputs") or []
+dataset_path = config.get("dataset_path")
 if inputs:
-    args = ['node', 'scripts/01-data-generation/dataset/merge-rl-jsonl-datasets.mjs', '--output', dataset_path]
+    args = ["node", "scripts/01-data-generation/dataset/merge-rl-jsonl-datasets.mjs", "--output", dataset_path]
     for value in inputs:
-        args.extend(['--input', value])
-    print(' '.join(shlex.quote(item) for item in args))
+        args.extend(["--input", value])
+    print(" ".join(shlex.quote(item) for item in args))
 PY
-  | while IFS= read -r merge_cmd; do if [ -n \"\$merge_cmd\" ]; then echo \"Preparing merged dataset...\"; eval \"\$merge_cmd\"; fi; done && \
+)"
+
+  nohup bash -lc "export PATH='${VENV_BIN_DIR}':\"\$PATH\" && if [ -f '${TELEGRAM_ENV_FILE}' ]; then source '${TELEGRAM_ENV_FILE}'; fi && cd '${REPO_ROOT}' && training_status=0 && \
+if [ -n \"${merge_command}\" ]; then echo \"Preparing merged dataset...\"; eval \"${merge_command}\"; fi && \
 if '${VENV_PYTHON}' scripts/02-training/offline-dqn/train_dqn_offline.py --config '${generated_config_path}'; then \
   python3 - '${state_path}' '${summary_path}' <<'PY'
 import json
@@ -551,6 +555,21 @@ fi; ${cleanup_command}" \
     echo "Log: ${log_file}"
   else
     echo "Process exited immediately. Check log: ${log_file}" >&2
+    rm -f "${PID_FILE}"
+    python3 - "${state_path}" <<'PY'
+import json
+import sys
+from datetime import datetime, timezone
+
+state_path = sys.argv[1]
+with open(state_path, "r", encoding="utf-8") as handle:
+    state = json.load(handle)
+state["status"] = "failed"
+state["completed_at"] = datetime.now(timezone.utc).isoformat()
+state["error"] = "training process exited immediately; inspect offline-dqn-training.log"
+with open(state_path, "w", encoding="utf-8") as handle:
+    json.dump(state, handle, indent=2)
+PY
     if [ -f "${TELEGRAM_CONTROL_AUTO_FILE}" ]; then
       bash scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh telegram-control-stop >/dev/null 2>&1 || true
       rm -f "${TELEGRAM_CONTROL_AUTO_FILE}"
