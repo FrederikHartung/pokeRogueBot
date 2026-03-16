@@ -104,6 +104,7 @@ summary_file_for_config() { runtime_path "${1}" "training-summary.json"; }
 progress_file_for_config() { runtime_path "${1}" "training-progress.json"; }
 state_file_for_config() { runtime_path "${1}" "training-state.json"; }
 generated_config_file_for_config() { runtime_path "${1}" "generated-train-config.json"; }
+runner_script_for_config() { runtime_path "${1}" "run-training.sh"; }
 
 format_duration_human() {
   local total_seconds="${1:-0}"
@@ -487,6 +488,8 @@ PY
   state_path="$(state_file_for_config "${config_path}")"
   local summary_path
   summary_path="$(summary_file_for_config "${config_path}")"
+  local runner_script_path
+  runner_script_path="$(runner_script_for_config "${config_path}")"
   local merge_command
   merge_command="$(python3 - "${generated_config_path}" <<'PY'
 import json
@@ -508,9 +511,24 @@ if inputs:
 PY
 )"
 
-  nohup bash -lc "export PATH='${VENV_BIN_DIR}':\"\$PATH\" && if [ -f '${TELEGRAM_ENV_FILE}' ]; then source '${TELEGRAM_ENV_FILE}'; fi && cd '${REPO_ROOT}' && training_status=0 && \
-if [ -n \"${merge_command}\" ]; then echo \"Preparing merged dataset...\"; eval \"${merge_command}\"; fi && \
-if '${VENV_PYTHON}' scripts/02-training/offline-dqn/train_dqn_offline.py --config '${generated_config_path}'; then \
+  cat > "${runner_script_path}" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+
+export PATH='${VENV_BIN_DIR}':"\$PATH"
+if [ -f '${TELEGRAM_ENV_FILE}' ]; then
+  source '${TELEGRAM_ENV_FILE}'
+fi
+cd '${REPO_ROOT}'
+
+training_status=0
+
+if [ -n "${merge_command}" ]; then
+  echo "Preparing merged dataset..."
+  eval "${merge_command}"
+fi
+
+if '${VENV_PYTHON}' scripts/02-training/offline-dqn/train_dqn_offline.py --config '${generated_config_path}'; then
   python3 - '${state_path}' '${summary_path}' <<'PY'
 import json
 import sys
@@ -524,9 +542,9 @@ state['summary_path'] = summary_path
 with open(state_path, 'w', encoding='utf-8') as handle:
     json.dump(state, handle, indent=2)
 PY
-  && node scripts/04-automation/telegram/send-pipeline-notification.mjs --event training_completed --runtime-dir '${runtime_dir}' --training-summary '${summary_path}'; \
-else \
-  training_status=\$?; \
+  node scripts/04-automation/telegram/send-pipeline-notification.mjs --event training_completed --runtime-dir '${runtime_dir}' --training-summary '${summary_path}'
+else
+  training_status=\$?
   python3 - '${state_path}' <<'PY'
 import json
 import sys
@@ -540,8 +558,14 @@ state['error'] = 'offline DQN training failed; inspect training log and issues s
 with open(state_path, 'w', encoding='utf-8') as handle:
     json.dump(state, handle, indent=2)
 PY
-  && node scripts/04-automation/telegram/send-pipeline-notification.mjs --event training_failed --runtime-dir '${runtime_dir}' --training-summary '${summary_path}' --error 'offline DQN training failed; inspect training log and issues summary'; \
-fi; ${cleanup_command}" \
+  node scripts/04-automation/telegram/send-pipeline-notification.mjs --event training_failed --runtime-dir '${runtime_dir}' --training-summary '${summary_path}' --error 'offline DQN training failed; inspect training log and issues summary'
+fi
+
+${cleanup_command}
+EOF
+  chmod +x "${runner_script_path}"
+
+  nohup bash "${runner_script_path}" \
     >"${log_file}" 2>&1 < /dev/null &
   local pid=$!
   echo "${pid}" > "${PID_FILE}"
