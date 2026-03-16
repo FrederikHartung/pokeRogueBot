@@ -229,11 +229,9 @@ def main() -> None:
     runs = {
         "random": {
             "type": "random",
-            "step_timeout_ms": 15000,
         },
         "always_move_0": {
             "type": "first_valid",
-            "step_timeout_ms": 15000,
         },
         "dqn": {
             "type": "external_command",
