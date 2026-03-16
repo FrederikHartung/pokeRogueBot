@@ -714,6 +714,35 @@ Remote-Training fuer den neuen V3-Datensatz:
 - alternativer Start mit Vergleichs-Configs:
   - `bash scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh start data/rl/train-dqn-offline-wave-library-random-valid-action-v3-server-conservative.json`
   - `bash scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh start data/rl/train-dqn-offline-wave-library-random-valid-action-v3-server-longer.json`
+- Remote-Benchmark fuer alle drei V3-Checkpoints:
+  - Default-Config:
+    - `data/rl/benchmark-dqn-wave-library-v3-compare.json`
+  - Default-Szenario-Set:
+    - `data/rl/collector-run-benchmarked-wave-library-v2.json`
+  - vorbereitete Vergleichskandidaten:
+    - `main`
+    - `conservative`
+    - `longer`
+  - Runtime-Ordner:
+    - `data/rl/benchmark-runs/dqn-wave-library-v3-compare`
+  - Remote-Helper:
+    - `scripts/03-benchmark/eval/run-dqn-benchmark-compare-remote.sh`
+  - Start:
+    - `bash scripts/03-benchmark/eval/run-dqn-benchmark-compare-remote.sh start`
+  - Status:
+    - `bash scripts/03-benchmark/eval/run-dqn-benchmark-compare-remote.sh status`
+  - Logs:
+    - `bash scripts/03-benchmark/eval/run-dqn-benchmark-compare-remote.sh logs`
+  - kurze Momentaufnahme:
+    - `bash scripts/03-benchmark/eval/run-dqn-benchmark-compare-remote.sh last`
+  - Issues:
+    - `bash scripts/03-benchmark/eval/run-dqn-benchmark-compare-remote.sh issues`
+  - Telegram:
+    - der Helper startet bei vorhandenem `telegram.env` den Control-Bot automatisch mit
+    - bei Erfolg oder Fehler wird zuerst die Ergebnis-Nachricht gesendet und danach der auto-gestartete Bot wieder beendet
+  - wichtige Einschraenkung:
+    - `reuse_baselines` ist nur dann korrekt, wenn die gecachten Baselines unter `data/rl/combat/eval-random-benchmarked.jsonl` und `data/rl/combat/eval-always_move_0-benchmarked.jsonl` zum verwendeten Benchmark-Set passen
+    - der aktuelle Default nutzt deshalb bewusst die bestehende V2-Benchmark-Config statt des Full-Benchmark-Sets
 
 Pragmatische Empfehlung fuer kuenftige Trainingsdaten aus mehreren Quellen:
 

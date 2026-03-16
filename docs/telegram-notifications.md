@@ -90,6 +90,7 @@ Relevante Dateien:
 - `scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh`
 - `scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh`
 - `scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh`
+- `scripts/03-benchmark/eval/run-dqn-benchmark-compare-remote.sh`
 - `scripts/04-automation/telegram/run-telegram-control-bot.mjs`
 
 Aktive Events:
@@ -101,6 +102,8 @@ Aktive Events:
 - `collection_completed`
 - `training_failed`
 - `training_completed`
+- `benchmark_failed`
+- `benchmark_completed`
 
 Mitgesendete Nutzdaten:
 
@@ -120,6 +123,10 @@ Mitgesendete Nutzdaten:
   - Laufzeit
   - Checkpoint-Pfad
   - Mean-Loss-Verlauf pro Epoche
+- fuer Remote-Benchmark-Vergleiche zusaetzlich:
+  - Anzahl fertig benchmarkter Checkpoints
+  - Vergleichswerte je Checkpoint
+  - Gesamtlaufzeit
 
 ## Beispiel-Nachrichten
 
@@ -191,6 +198,20 @@ e1=0.418221, e2=0.361115, e3=0.325908, e4=0.301221, e5=0.284552, e6=0.259411, e7
 ...
 ```
 
+Remote-DQN-Benchmark abgeschlossen:
+
+```text
+Run: dqn-wave-library-v3-compare
+State: benchmark completed
+Benchmarks: 3
+Total runtime: 47m 12s
+
+Results:
+main: wr=0.886 reward=2.878 turns=13.714 trunc=0.000
+conservative: wr=0.857 reward=2.101 turns=15.429 trunc=0.000
+longer: wr=0.914 reward=3.442 turns=12.857 trunc=0.000
+```
+
 ## Sicherheitsregeln
 
 - echte Tokens niemals committen
@@ -228,6 +249,7 @@ bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh st
 bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh start-overnight
 bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-v3
 bash scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh start
+bash scripts/03-benchmark/eval/run-dqn-benchmark-compare-remote.sh start
 ```
 
 Hinweise:
@@ -286,6 +308,16 @@ Latest mean loss: 0.244117
 Recent losses: e3=0.325908, e4=0.301221, e5=0.284552, e6=0.259411, e7=0.244117
 ```
 
+Wenn gerade ein Remote-Checkpoint-Benchmark laeuft, zeigt `/status` den Fortschritt ueber die vorbereiteten Benchmark-Kandidaten:
+
+```text
+Run: dqn-wave-library-v3-compare
+State: running
+Collector: collector-run-benchmarked-wave-library-v2.json
+Benchmarks: 1/3
+Current benchmark: conservative
+```
+
 Format von `/loss` waehrend des Trainings:
 
 ```text
@@ -322,6 +354,16 @@ iter 4: wr=0.829 reward=0.275 turns=37.000
 iter 5: wr=0.886 reward=2.878 turns=13.714
 ```
 
+Format von `/benchmarks` fuer den Remote-Checkpoint-Vergleich:
+
+```text
+Run: dqn-wave-library-v3-compare
+Benchmarks:
+main: wr=0.886 reward=2.878 turns=13.714 trunc=0.000
+conservative: wr=0.857 reward=2.101 turns=15.429 trunc=0.000
+longer: wr=0.914 reward=3.442 turns=12.857 trunc=0.000
+```
+
 Sicherheitsregel:
 
 - akzeptiert wird nur die in `POKEROGUE_TELEGRAM_CHAT_ID` konfigurierte Chat-ID
@@ -332,6 +374,7 @@ Start auf dem Server:
 bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh telegram-control-start
 bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh telegram-control-start
 bash scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh telegram-control-start
+bash scripts/03-benchmark/eval/run-dqn-benchmark-compare-remote.sh telegram-control-start
 ```
 
 Status prüfen:
@@ -340,6 +383,7 @@ Status prüfen:
 bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh telegram-control-status
 bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh telegram-control-status
 bash scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh telegram-control-status
+bash scripts/03-benchmark/eval/run-dqn-benchmark-compare-remote.sh telegram-control-status
 ```
 
 Stoppen:
@@ -348,6 +392,7 @@ Stoppen:
 bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh telegram-control-stop
 bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh telegram-control-stop
 bash scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh telegram-control-stop
+bash scripts/03-benchmark/eval/run-dqn-benchmark-compare-remote.sh telegram-control-stop
 ```
 
 Alle laufenden Telegram-Control-Bot-Prozesse auf dem Server finden:
@@ -379,8 +424,8 @@ export POKEROGUE_TELEGRAM_POLL_INTERVAL_SECONDS='600'
 
 Automatisches Verhalten:
 
-- wenn `telegram.env` vorhanden ist und die Remote-Pipeline ueber die Startkommandos der Bootstrap- oder Random-Collection-Helper gestartet wird, wird der Control-Bot automatisch mit gestartet
-- wenn die Pipeline oder Random-Collection fertig ist oder mit Fehler endet, wird der automatisch gestartete Control-Bot wieder beendet
+- wenn `telegram.env` vorhanden ist und die Remote-Helper fuer Bootstrap, Random-Collection, Offline-DQN-Training oder den DQN-Benchmark-Vergleich ueber ihre Startkommandos gestartet werden, wird der Control-Bot automatisch mit gestartet
+- wenn der jeweilige Run fertig ist oder mit Fehler endet, wird der automatisch gestartete Control-Bot wieder beendet
 - die manuellen Commands bleiben trotzdem verfügbar, falls der Bot separat betrieben werden soll
 
 Beispielablauf:

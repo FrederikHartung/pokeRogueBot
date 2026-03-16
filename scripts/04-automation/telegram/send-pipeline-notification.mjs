@@ -283,6 +283,36 @@ function buildMessage({
       }
     }
     lines.push(`Error: ${truncate(error ?? "unknown error", 220)}`);
+  } else if (event === "benchmark_completed") {
+    lines.push("State: benchmark completed");
+    const rows = Array.isArray(benchmarkSummary?.benchmarks) ? benchmarkSummary.benchmarks : [];
+    lines.push(`Benchmarks: ${rows.length}`);
+    if (typeof benchmarkSummary?.total_runtime_ms === "number") {
+      lines.push(`Total runtime: ${formatDuration(benchmarkSummary.total_runtime_ms)}`);
+    }
+    if (rows.length > 0) {
+      lines.push("");
+      lines.push("Results:");
+      for (const row of rows) {
+        lines.push(
+          `${row.label}: wr=${formatNumber(row.win_rate)} reward=${formatNumber(row.avg_reward)} turns=${formatNumber(row.avg_turns)} trunc=${formatNumber(row.truncated_rate)}`,
+        );
+      }
+    }
+  } else if (event === "benchmark_failed") {
+    lines.push("State: benchmark failed");
+    const rows = Array.isArray(benchmarkSummary?.benchmarks) ? benchmarkSummary.benchmarks : [];
+    lines.push(`Completed benchmarks: ${rows.length}`);
+    if (rows.length > 0) {
+      lines.push("");
+      lines.push("Completed results:");
+      for (const row of rows.slice(-3)) {
+        lines.push(
+          `${row.label}: wr=${formatNumber(row.win_rate)} reward=${formatNumber(row.avg_reward)} turns=${formatNumber(row.avg_turns)}`,
+        );
+      }
+    }
+    lines.push(`Error: ${truncate(error ?? "unknown error", 220)}`);
   } else {
     lines.push(`State: ${event}`);
     if (phase) {

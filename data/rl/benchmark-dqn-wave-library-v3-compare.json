@@ -1,0 +1,26 @@
+{
+  "collector_config_path": "./data/rl/collector-run-benchmarked-wave-library-v2.json",
+  "remote_runtime_dir": "./data/rl/benchmark-runs/dqn-wave-library-v3-compare",
+  "device": "cpu",
+  "parallelism": 1,
+  "max_steps_per_episode": 400,
+  "max_truncated_rate": 0.1,
+  "reuse_baselines": true,
+  "benchmarks": [
+    {
+      "label": "main",
+      "checkpoint": "./data/rl/models/dqn-combat-wave-library-random-valid-action-v3-w1-24-50ep.pt",
+      "report_path": "./data/rl/benchmark-runs/dqn-wave-library-v3-compare/reports/main-report.json"
+    },
+    {
+      "label": "conservative",
+      "checkpoint": "./data/rl/models/dqn-combat-wave-library-random-valid-action-v3-w1-24-conservative.pt",
+      "report_path": "./data/rl/benchmark-runs/dqn-wave-library-v3-compare/reports/conservative-report.json"
+    },
+    {
+      "label": "longer",
+      "checkpoint": "./data/rl/models/dqn-combat-wave-library-random-valid-action-v3-w1-24-longer.pt",
+      "report_path": "./data/rl/benchmark-runs/dqn-wave-library-v3-compare/reports/longer-report.json"
+    }
+  ]
+}

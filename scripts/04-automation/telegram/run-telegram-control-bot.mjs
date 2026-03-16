@@ -10,6 +10,7 @@ const repoRoot = path.resolve(__dirname, "../../..");
 const iterativeControlDir = path.join(repoRoot, "data", "rl", "pipeline-runs", "wave-library-iterative-remote-control");
 const randomCollectionControlDir = path.join(repoRoot, "data", "rl", "pipeline-runs", "wave-library-random-collection-remote-control");
 const trainingControlDir = path.join(repoRoot, "data", "rl", "training-runs", "offline-dqn-remote-control");
+const benchmarkControlDir = path.join(repoRoot, "data", "rl", "benchmark-runs", "dqn-compare-remote-control");
 
 const cli = parseCli(process.argv.slice(2));
 const token = process.env.POKEROGUE_TELEGRAM_BOT_TOKEN ?? "";
@@ -152,6 +153,8 @@ function runRemoteHelper(command) {
     ? "scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh"
     : stateDir === trainingControlDir
       ? "scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh"
+      : stateDir === benchmarkControlDir
+        ? "scripts/03-benchmark/eval/run-dqn-benchmark-compare-remote.sh"
       : "scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh";
 
   const result = spawnSync("bash", [helperScript, command], {
@@ -202,10 +205,16 @@ function buildBenchmarksReply() {
 
   const lines = [`Run: ${runName}`, "Benchmarks:"];
   for (const row of rows) {
-    const label = Number(row.iteration) === 0 ? "baseline" : `iter ${row.iteration}`;
-    lines.push(
-      `${label}: wr=${formatNumber(row.win_rate)} reward=${formatNumber(row.avg_reward)} turns=${formatNumber(row.avg_turns)}`,
-    );
+    if (stateDir === benchmarkControlDir) {
+      lines.push(
+        `${row.label}: wr=${formatNumber(row.win_rate)} reward=${formatNumber(row.avg_reward)} turns=${formatNumber(row.avg_turns)} trunc=${formatNumber(row.truncated_rate)}`,
+      );
+    } else {
+      const label = Number(row.iteration) === 0 ? "baseline" : `iter ${row.iteration}`;
+      lines.push(
+        `${label}: wr=${formatNumber(row.win_rate)} reward=${formatNumber(row.avg_reward)} turns=${formatNumber(row.avg_turns)}`,
+      );
+    }
   }
   return truncate(lines.join("\n"), 3500);
 }
@@ -269,6 +278,11 @@ function listManagedRuns() {
       controlDir: trainingControlDir,
       fallbackConfigPath: path.join(repoRoot, "data", "rl", "train-dqn-offline-wave-library-random-valid-action-v3-server.json"),
     },
+    {
+      kind: "checkpoint_benchmark",
+      controlDir: benchmarkControlDir,
+      fallbackConfigPath: path.join(repoRoot, "data", "rl", "benchmark-dqn-wave-library-v3-compare.json"),
+    },
   ].map(describeManagedRun);
 
   const priority = { running: 0, failed: 1, completed: 2, not_started: 3 };
@@ -288,14 +302,23 @@ function describeManagedRun({ kind, controlDir, fallbackConfigPath }) {
   const configPath = loadActiveConfigPathForControlDir(controlDir, fallbackConfigPath);
   const runtimeDir = runtimeDirForConfig(configPath);
   const manifestPath = path.join(runtimeDir, "manifest.json");
-  const statePath = path.join(runtimeDir, "training-state.json");
+  const statePath = path.join(
+    runtimeDir,
+    kind === "offline_dqn_training"
+      ? "training-state.json"
+      : kind === "checkpoint_benchmark"
+        ? "benchmark-state.json"
+        : "training-state.json",
+  );
   const pidFile = path.join(
     controlDir,
     kind === "iterative"
       ? "remote-pipeline.pid"
       : kind === "random_collection"
         ? "remote-random-collection.pid"
-        : "remote-offline-dqn-training.pid",
+        : kind === "offline_dqn_training"
+          ? "remote-offline-dqn-training.pid"
+          : "remote-dqn-benchmark.pid",
   );
   const hasActiveConfig = existsSync(path.join(controlDir, "active-config.txt"));
   const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, "utf8")) : null;
@@ -337,7 +360,7 @@ function inferManagedRunState({ kind, manifest, trainingState, isRunning }) {
   if (isRunning) {
     return "running";
   }
-  if (kind === "offline_dqn_training") {
+  if (kind === "offline_dqn_training" || kind === "checkpoint_benchmark") {
     if (!trainingState) {
       return "not_started";
     }
@@ -359,6 +382,9 @@ function buildStatusBlock(run) {
   }
   if (run.kind === "offline_dqn_training") {
     return buildTrainingStatusBlock(run);
+  }
+  if (run.kind === "checkpoint_benchmark") {
+    return buildCheckpointBenchmarkStatusBlock(run);
   }
   return buildIterativeStatusBlock(run);
 }
@@ -493,6 +519,45 @@ function buildTrainingStatusBlock(run) {
     lines.push(`Error: ${truncate(trainingState.error, 220)}`);
   }
 
+  return lines.join("\n");
+}
+
+function buildCheckpointBenchmarkStatusBlock(run) {
+  const lines = [`Run: ${run.runName}`];
+  const state = run.state;
+  lines.push(`State: ${state === "completed" ? "benchmark completed" : state}`);
+
+  const benchmarkState = run.trainingState ?? {};
+  if (benchmarkState.collector_config_path) {
+    lines.push(`Collector: ${path.basename(benchmarkState.collector_config_path)}`);
+  }
+
+  const summaryPath = path.join(run.runtimeDir, "benchmark-summary.json");
+  if (existsSync(summaryPath)) {
+    const summary = JSON.parse(readFileSync(summaryPath, "utf8"));
+    const rows = Array.isArray(summary?.benchmarks) ? summary.benchmarks : [];
+    lines.push(`Benchmarks: ${rows.length}/${benchmarkState.benchmarks_total ?? "?"}`);
+    if (rows.length > 0) {
+      const latest = rows[rows.length - 1];
+      lines.push(`Latest: ${latest.label}`);
+      lines.push(`Latest win rate: ${formatNumber(latest.win_rate)}`);
+      lines.push(`Latest avg reward: ${formatNumber(latest.avg_reward)}`);
+    }
+    if (typeof summary.total_runtime_ms === "number") {
+      lines.push(`Total runtime: ${formatDuration(summary.total_runtime_ms)}`);
+    }
+    return lines.join("\n");
+  }
+
+  if (benchmarkState.benchmarks_total != null) {
+    lines.push(`Benchmarks: ${benchmarkState.completed_benchmarks ?? 0}/${benchmarkState.benchmarks_total}`);
+  }
+  if (benchmarkState.current_label) {
+    lines.push(`Current benchmark: ${benchmarkState.current_label}`);
+  }
+  if (state === "failed" && benchmarkState.error) {
+    lines.push(`Error: ${truncate(benchmarkState.error, 220)}`);
+  }
   return lines.join("\n");
 }
 
