@@ -26,6 +26,14 @@ Top-Prioritaet Datensatz-Organisation:
 Kurzfristig ergaenzen:
 - Wenn ein Player-Pokemon besiegt wurde, soll das DQN entscheiden, welches Pokemon als naechstes eingewechselt wird, statt eines separaten Java-/Kotlin-Switch-Neurons, falls dieses noch aktiv ist.
 - Sobald der Umbau fertig ist und der Live-Pfad fuer diese Entscheidung stabil ueber das DQN laeuft, kann das alte Switch-Neuron entfernt werden.
+- Modifier-DQN-Migration vorbereiten:
+- Plan ist jetzt in `docs/modifier-dqn-migration-plan.md` dokumentiert
+- Zielbild:
+- aktuelles Kotlin-/DL4J-/RL4J-Modifier-RL schrittweise auf denselben Python/PyTorch-Ansatz wie Combat umstellen
+- Tactical- und Strategic-Training ausdruecklich parallel denken:
+- `tactical` fuer gezielte Einzelkaempfe/Einzelsituationen und Top-up-Daten
+- `strategic` fuer mehrere Wellen oder ganze Runs mit Langfristwirkung von Modifiern, Learn-Move- und Team-Entscheidungen
+- Maven-DQN-Abhaengigkeiten erst entfernen, wenn der neue Python-Modifier-Pfad live, eval- und benchmark-seitig stabil ist
 
 Prioritaetswechsel fuer die naechste Session:
 - Prio 2: verbleibende `.mjs`-Skripte schrittweise nach TypeScript migrieren, aber nicht mehr als Blocker vor dem ersten produktiven V3-Testlauf behandeln
