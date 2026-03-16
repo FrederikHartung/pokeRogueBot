@@ -235,6 +235,7 @@ Hinweise:
 - Das Remote-Skript laedt `~/.config/pokeroguebot/telegram.env` automatisch, falls die Datei existiert.
 - Fehlt die Datei oder sind Token/Chat-ID nicht gesetzt, laeuft die Pipeline trotzdem weiter.
 - Ein Fehler beim Senden einer Benachrichtigung stoppt die Pipeline nicht.
+- `POKEROGUE_TELEGRAM_POLL_INTERVAL_SECONDS` wird von den Remote-Helpern jetzt auch dann direkt aus `telegram.env` gelesen, wenn die aktuelle Shell die Datei nicht vorher manuell mit `source` geladen hat.
 
 ## Telegram-Statusabfrage vom iPhone
 

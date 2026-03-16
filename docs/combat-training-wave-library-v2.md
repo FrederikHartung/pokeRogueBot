@@ -692,6 +692,15 @@ Remote-Training fuer den neuen V3-Datensatz:
   - Hintergrund:
     - der erste `50`-Epochen-Lauf auf dem `149505`-Zeilen-Datensatz lernte anfangs gut, driftete spaeter aber deutlich weg
     - der bisher beste Loss lag ungefaehr im Bereich `Epoch 18-25`, daher ist fuer den naechsten Versuch ein kuerzerer und etwas ruhigerer Lauf bevorzugt
+- vorbereitete Vergleichs-Configs fuer den naechsten Hyperparameter-Vergleich:
+  - konservativer:
+    - `data/rl/train-dqn-offline-wave-library-random-valid-action-v3-server-conservative.json`
+    - `learning_rate = 0.00005`
+    - `epochs = 20`
+  - laenger, aber weiter kontrolliert:
+    - `data/rl/train-dqn-offline-wave-library-random-valid-action-v3-server-longer.json`
+    - `learning_rate = 0.0001`
+    - `epochs = 30`
 - Start auf dem Server:
   - `bash scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh start`
 - Status:
@@ -702,6 +711,9 @@ Remote-Training fuer den neuen V3-Datensatz:
   - `bash scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh last`
 - Issues:
   - `bash scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh issues`
+- alternativer Start mit Vergleichs-Configs:
+  - `bash scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh start data/rl/train-dqn-offline-wave-library-random-valid-action-v3-server-conservative.json`
+  - `bash scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh start data/rl/train-dqn-offline-wave-library-random-valid-action-v3-server-longer.json`
 
 Pragmatische Empfehlung fuer kuenftige Trainingsdaten aus mehreren Quellen:
 

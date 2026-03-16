@@ -551,7 +551,10 @@ notify_test() {
 }
 
 resolve_telegram_poll_interval_seconds() {
-  local value="${POKEROGUE_TELEGRAM_POLL_INTERVAL_SECONDS:-${TELEGRAM_POLL_INTERVAL_SECONDS_DEFAULT}}"
+  local value="${POKEROGUE_TELEGRAM_POLL_INTERVAL_SECONDS:-}"
+  if [ -z "${value}" ] && [ -f "${TELEGRAM_ENV_FILE}" ]; then
+    value="$(bash -lc "source '${TELEGRAM_ENV_FILE}' >/dev/null 2>&1 && printf '%s' \"\${POKEROGUE_TELEGRAM_POLL_INTERVAL_SECONDS:-}\"")"
+  fi
   if [[ "${value}" =~ ^[0-9]+$ ]] && [ "${value}" -gt 0 ]; then
     echo "${value}"
     return 0

@@ -1,0 +1,21 @@
+{
+  "dataset_path": "./data/rl/dataset-pools/combat-v3/merged/random-valid-action-w1-24-main.jsonl",
+  "dataset_merge": {
+    "output_path": "./data/rl/dataset-pools/combat-v3/merged/random-valid-action-w1-24-main.jsonl",
+    "inputs": [
+      "./data/rl/dataset-pools/combat-v3/random-only/wave-library-random-collection-remote-v3-50ep-20260315-222102/random-valid-action-w1-24.jsonl:combat-v3-random-only-20260315"
+    ]
+  },
+  "output_path": "./data/rl/models/dqn-combat-wave-library-random-valid-action-v3-w1-24-conservative.pt",
+  "remote_runtime_dir": "./data/rl/training-runs/dqn-combat-wave-library-random-valid-action-v3-w1-24-conservative",
+  "device": "cpu",
+  "seed": 42,
+  "hidden_dims": [128, 128],
+  "gamma": 0.99,
+  "learning_rate": 0.00005,
+  "epochs": 20,
+  "batch_size": 64,
+  "target_update_steps": 1000,
+  "grad_clip_norm": 5.0,
+  "log_every_epochs": 1
+}
