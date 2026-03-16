@@ -81,6 +81,19 @@ Vorteile:
 - echtes Langfrist-Reward-Signal
 - Entscheidungen koennen vor kommenden Meilensteinen anders bewertet werden
 
+Strategic Phase 1 soll bewusst kontrolliert starten:
+
+- zunaechst fester Seed
+- feste Starter
+- feste Combat-DQN-Version
+- variable Shop-/Modifier-Policy
+- Ziel ist zuerst nicht Generalisierung ueber Seeds, sondern ein sauber reproduzierbarer lokaler Nachweis, dass Shop-Entscheidungen messbar den Run-Fortschritt beeinflussen
+
+Spaeteres Zielbild:
+
+- derselbe Ablauf wird serverseitig ueber viele Seeds wiederholt
+- der lokale Fixed-Seed-Modus bleibt als reproduzierbarer Debug-/Benchmark-Modus erhalten
+
 Wichtige State-Features fuer den Strategic-Modus:
 
 - `wave_index`
@@ -90,6 +103,21 @@ Wichtige State-Features fuer den Strategic-Modus:
 - `is_biome_reset_or_heal_wave`
 - Geld-/Ressourcenlage
 - Team-Zustand ueber mehrere Wellen
+
+## Submodul-Leitplanken
+
+Fuer den weiteren Umbau gelten fuer das `pokerogue/`-Submodul bewusst enge Leitplanken:
+
+- bestehende Spiel- und Phasenlogik soll nicht umgebaut werden
+- permanente Submodul-Aenderungen sind nur nach vorheriger User-Freigabe erlaubt
+- zuerst ist zu pruefen, ob ein Schritt ohne permanente Submodul-Aenderung moeglich ist
+- konkrete Hinweise auf fundamentale Submodul-Bugs muessen aus reproduzierbaren Tests, Logs oder klar eingegrenzten Laufzeitfehlern kommen
+
+Bevorzugtes Vorgehen:
+
+- Erweiterung ueber ergaenzende Harness-/Testschichten statt Eingriff in Kernlogik
+- RL-spezifische Runner, Templates und Collector-Orchestrierung im Hauptrepo
+- permanente Submodul-Erweiterungen erst spaeter und moeglichst additiv, falls der External-RL-Ansatz an klare Grenzen stoesst
 
 ## Zielarchitektur fuer Modifier
 
@@ -165,6 +193,35 @@ Ergebnis:
 
 - erster reproduzierbarer Modifier-Datensatz fuer PyTorch
 
+Reward-Orientierung aus dem bisherigen Kotlin-Pfad:
+
+- der alte `ModifierRewardCalculator` bestraft bereits `SKIP`, wenn kostenlose sinnvolle Heil-/Revive-Optionen vorhanden sind
+- konkret bestaetigt im Altpfad:
+  - `-2.0`, wenn verletzte Pokemon existieren und eine freie Potion verfuegbar ist
+  - `-5.0` fuer freie Revive-Option bei fainted Pokemon
+  - `-10.0` fuer freie Max-Revive-Option
+  - `-15.0` fuer `Sacred Ash`
+  - `+1.0` fuer Potion-Nutzung bei niedrigem HP (`lowestHp <= 0.5`)
+
+Abgeleitete Richtung fuer den neuen Strategic-Reward:
+
+- lokales Shaping bleibt bewusst klein und einfach
+- der Haupt-Terminal-Reward fuer Phase 1 wird primaer aus der erreichten Wave abgeleitet
+- `team_alive_count`, `remaining_team_hp_ratio` und Restgeld sind fuer den fruehen Modifier-Strategic-Start zunaechst nachrangig
+- Grund:
+  - Runs enden in der Praxis anfangs fast immer per Team-Wipe
+  - dadurch sind Alive-Count und Rest-HP am Ende oft trivial `0`
+  - Restgeld ist ohne tieferen Kontext oft schwer fair zu interpretieren
+
+Geplantes Reward-Schema fuer Strategic Phase 1:
+
+- kleiner lokaler Malus fuer klar unkluge Skip-Entscheidungen:
+  - `skip` obwohl nicht-fainted Teammitglieder verletzt sind
+  - `skip` obwohl kostenlose Reward-Optionen vorhanden sind
+- kleiner lokaler Bonus fuer klar sinnvolle Heilentscheidungen
+- gestaffelter terminaler Reward nach erreichter Wave
+- Runs werden lokal zunaechst ueber denselben Seed mehrfach wiederholt und spaeter serverseitig ueber viele Seeds skaliert
+
 ### Phase 3: Python-Training und Inferenz fuer Modifier
 
 Ziel:
@@ -238,6 +295,211 @@ Erwartete Vorteile:
 Ergebnis:
 
 - zweite Trainingswelt neben dem Tactical-Modus
+
+Technische Vorbilder im `pokerogue`-Submodul:
+
+- vorhandene Battle-Tests mit Uebergang zur naechsten Wave:
+  - `pokerogue/test/battle/battle.test.ts`
+- vorhandene Modifier-/Shop-Phasen-Tests:
+  - `pokerogue/test/phases/select-modifier-phase.test.ts`
+- wichtige Hilfen fuer mehrphasige Testablaeufe:
+  - `pokerogue/test/test-utils/game-manager.ts`
+  - `pokerogue/test/test-utils/helpers/classic-mode-helper.ts`
+  - `pokerogue/test/test-utils/helpers/move-helper.ts`
+  - `pokerogue/test/test-utils/helpers/modifiers-helper.ts`
+  - `pokerogue/test/test-utils/helpers/field-helper.ts`
+  - `pokerogue/test/test-utils/phase-interceptor.ts`
+
+Erste konkrete Beobachtung:
+
+- es gibt bereits Tests, die nicht nur einen isolierten Kampfzustand pruefen, sondern ueber `BattleEndPhase`, `SelectModifierPhase`, `NextEncounterPhase` und `toNextWave()` mehrere Phasen am Stueck durchlaufen
+- ein fertiger generischer Multi-Wave-RL-Harness existiert noch nicht
+- der bestehende `GameManager` wirkt aber wie der naheliegende Ausgangspunkt fuer einen spaeteren Tactical-/Strategic-Simulator im Submodul-Teststil
+
+Rollen der wichtigsten Test-Helfer:
+
+- `pokerogue/test/test-utils/game-manager.ts`
+  - zentraler Orchestrator ueber `BattleScene`, `PhaseInterceptor`, Text-/Error-Intercepts und Mode-Helper
+  - bietet bereits praktische Startpunkte wie `runToTitle()`, `runToFinalBossEncounter(...)`, `runToMysteryEncounter(...)`
+  - ist damit der naheliegendste Ausgangspunkt fuer einen spaeteren RL-Simulations-Harness
+- `pokerogue/test/test-utils/helpers/classic-mode-helper.ts`
+  - kapselt den Start in einen echten Classic-Run
+  - `startBattle(...)` fuehrt reproduzierbar bis `CommandPhase`
+  - `startBattleWithSwitch(...)` zeigt bereits, wie Vorab-Inputs fuer Kampfbeginn eingehakt werden koennen
+- `pokerogue/test/test-utils/helpers/move-helper.ts`
+  - mappt Testaktionen auf echte Kampfentscheidungen in `CommandPhase`
+  - bildet damit sehr gut ab, wie ein spaeterer Tactical-/Strategic-Harness Modellaktionen in echte Kampfinputs uebersetzen koennte
+- `pokerogue/test/test-utils/helpers/modifiers-helper.ts`
+  - ist aktuell noch relativ leichtgewichtig
+  - nuetzlich vor allem zum Beobachten/Pruefen der Modifier-Pools in `SelectModifierPhase`
+  - fuer einen spaeteren RL-Harness vermutlich eher Ausgangspunkt als bereits fertige Aktionsschicht
+- `pokerogue/test/test-utils/helpers/field-helper.ts`
+  - liefert sicheren Zugriff auf Party-, Feld- und Gegnerzustand
+  - besonders hilfreich fuer State-Extraktion in einem spaeteren Simulator
+- `pokerogue/test/test-utils/phase-interceptor.ts`
+  - ist der wichtigste technische Baustein fuer mehrphasige Ablaufe
+  - erlaubt deterministisches Warten auf konkrete Phasen wie `CommandPhase`, `BattleEndPhase`, `SelectModifierPhase`, `NextEncounterPhase`
+  - wirkt damit wie das Rueckgrat fuer einen spaeteren `battle -> modifier -> next wave`-Harness
+
+Abgeleitete Einschraenkung:
+
+- die vorhandenen Utilities sind aktuell testzentriert und nicht direkt als produktiver RL-Simulator gedacht
+- fuer den spaeteren Strategic-Pfad ist daher eher ein eigener duenner Harness auf Basis dieser Utilities sinnvoll als eine direkte Wiederverwendung der Testfaelle selbst
+
+Alternative ohne dauerhafte Submodul-Aenderungen:
+
+- der bestehende Combat-Collector zeigt bereits ein funktionierendes Muster fuer temporaere Erweiterungen des `pokerogue`-Submoduls:
+  - `scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts`
+  - erzeugt zur Laufzeit temporaere Dateien unter:
+    - `pokerogue/test/.external-rl/<run-id>/experience-collector.test.ts`
+    - `pokerogue/test/.external-rl/<run-id>/experience-collector.helpers.ts`
+- diese Dateien werden aus Templates im Hauptrepo erzeugt:
+  - `scripts/01-data-generation/collector/templates/experience-collector.helpers.template.ts`
+- der Collector nutzt danach den vorhandenen `GameManager`-/Vitest-/Headless-Test-Stack des Submoduls, ohne den versionierten Submodul-Code dauerhaft anzufassen
+- es existieren im Repo bereits auch Prototype-Notizen in dieselbe Richtung:
+  - `docs/rl-headless-simulation-notes.md`
+  - `docs/rl-prototypes/combat-env-prototype.ts`
+  - `docs/rl-prototypes/combat-env-smoke-prototype.test.ts`
+
+Bewertung dieser Variante:
+
+- fuer einen ersten Tactical-/Strategic-Harness ist dieser Ansatz sehr attraktiv
+- Vorteile:
+  - keine persistenten Commits im Submodul noetig
+  - deutlich geringeres Konfliktrisiko bei spaeteren Submodul-Updates
+  - Nutzung derselben testnahen Headless-Infrastruktur wie beim bestehenden Collector
+- Nachteile:
+  - etwas mehr Komplexitaet in der Template-/Codegenerierung
+  - staerkere Kopplung an temporar erzeugte Testdateien und deren Cleanup
+
+Aktuelle Praeferenz:
+
+- zuerst pruefen, ob der neue RL-Harness als temporaer erzeugte `pokerogue/test/.external-rl/...`-Datei aus dem Hauptrepo heraus laufen kann
+- erster MVP ist daher bewusst ein Tactical-Smoke-Harness im Hauptrepo, das Combat- und Modifier-Decision-Points sammelt und danach wieder aufraeumt
+
+Aktueller MVP-Startpunkt:
+
+- Runner:
+  - `scripts/90-dev/rl/run-pokerogue-tactical-rl-sim-smoke.ts`
+- NPM-Shortcut:
+  - `npm run rl:smoke:tactical-harness`
+- Standard-Output:
+  - `data/temp/rl/tactical-rl-sim-smoke.json`
+- aktueller Trace-Stand:
+  - `modifier_select` enthaelt bereits eine explizite `actions[]`-Liste plus `action_mask`
+  - aktuell abgedeckte Action-Typen:
+    - `take_reward`
+    - `buy_shop_item`
+    - `skip`
+  - erste `unavailable_reason`-Faelle:
+    - `insufficient_money`
+    - `no_injured_pokemon`
+    - `no_fainted_pokemon`
+    - `no_missing_pp`
+
+Aktueller lokaler Fixed-Seed-Collector:
+
+- Runner:
+  - `scripts/90-dev/rl/run-pokerogue-modifier-fixed-seed-collector.ts`
+- NPM-Shortcut:
+  - `npm run rl:smoke:modifier:fixed-seed`
+  - `npm run rl:collect:modifier:fixed-seed`
+- Beispiel:
+  - Smoke mit genau `1` Run:
+    - `npm run rl:smoke:modifier:fixed-seed`
+  - `node scripts/90-dev/rl/run-pokerogue-modifier-fixed-seed-collector.ts /tmp/modifier-fixed-seed-collector.json modifier-fixed-seed 10 10 random_executable`
+  - optional mit explizitem Step-Timeout in Millisekunden:
+    - `node scripts/90-dev/rl/run-pokerogue-modifier-fixed-seed-collector.ts /tmp/modifier-fixed-seed-collector.json modifier-fixed-seed 5 30 random_executable <checkpoint> cpu <python> 60000`
+- aktueller Scope:
+  - identischer Seed ueber viele Runs
+  - Wave-Lib-Welle-1-Starter:
+    - `Bulbasaur`
+    - `Charmander`
+    - `Squirtle`
+  - die drei Starter werden nach `startBattle()` explizit auf den in allen `36` Wave-Lib-W1-Instanzen identischen Zustand gesetzt:
+    - `Bulbasaur`: Level `5`, Nature `DOCILE`, Ability `Overgrow`, IVs `15`, Moves `Tackle/Growl/Vine Whip`
+    - `Charmander`: Level `5`, Nature `QUIRKY`, Ability `Blaze`, IVs `15`, Moves `Scratch/Growl/Ember`
+    - `Squirtle`: Level `5`, Nature `HARDY`, Ability `Torrent`, IVs `15`, Moves `Tackle/Tail Whip/Water Gun`
+  - konstante Combat-DQN-Policy ueber einen persistenten Python-Worker
+  - variable Modifier-Policy
+- pro Episode:
+    - Laufzeit `runtime_ms`
+    - Combat-Turns mit DQN-State, `selected_action` und `action_source`
+    - ausgewaehlte Modifier-Aktionen
+    - lokaler Shaping-Reward
+    - erreichte Wave
+    - terminaler Wave-Reward
+- aktueller erster Modifier-Policy-Modus:
+  - `random_executable`
+
+Aktuelle bewusste Einschraenkungen des Collectors:
+
+- Combat verwendet jetzt denselben persistenten Worker-Stil wie der Experience-Collector:
+  - pro Collector-Lauf wird genau ein Python-Worker gestartet
+  - pro Combat-Entscheidung wird nur ein JSON-Request ueber `stdin` gesendet
+  - es wird nicht pro Turn eine neue Python-Instanz gestartet
+- Standardmaessig versucht der Runner lokal zuerst diese Checkpoints zu finden:
+  - `dqn-combat-wave-library-random-valid-action-v3-w1-24-50ep.pt`
+  - `dqn-combat-wave-library-random-valid-action-v3-w1-24-longer.pt`
+  - `dqn-combat-wave-library-random-valid-action-v3-w1-24-conservative.pt`
+  - danach als lokaler Fallback die vorhandenen aelteren Checkpoints wie `dqn-combat-wave-library-random-valid-action-6800-stable.pt`
+- der Checkpoint kann explizit uebergeben werden:
+  - `node scripts/90-dev/rl/run-pokerogue-modifier-fixed-seed-collector.ts <output> <seed> <runs> <maxWaves> <modifierPolicy> <checkpoint>`
+- Modifier-Aktionen werden aktuell nur dann von der Random-Policy gezogen, wenn sie im Harness bereits sicher ausfuehrbar sind
+- derzeit sicher ausfuehrbar:
+  - `skip`
+  - freie Rewards ohne weitere Folgeauswahl, z. B. Pokeballs, Berries, Temp-Stat-Booster, Lures, Geld-Rewards
+- noch nicht im Collector automatisiert ausfuehrbar:
+  - Shop-Items mit Zielauswahl
+  - Rewards mit weiterer Party-/Move-Auswahl wie TMs
+- TMs sind im Collector aktuell bewusst als `tm_selection_todo` markiert und werden nicht von der Random-Policy ausgewaehlt
+- Fuer laengere lokale Serienlaeufe wie `10` Runs wurde das Vitest-Timeout des External-RL-Collectors auf `300000ms` erhoeht, damit die Serie nicht kuenstlich am Testtimeout endet
+- Das fruehere kuenstliche Combat-Surrogat `Fissure/Splash`, `No Guard`, Level `200` wird im Fixed-Seed-Collector nicht mehr verwendet
+- PP der Starter-Moves werden nach Kaempfen nicht mehr automatisch wieder aufgefuellt; der Collector laeuft mit dem echten PP-Stand des Wave-Lib-W1-Loadouts
+- der Collector geht jetzt nicht mehr implizit von "eine Aktion = ein kompletter Kampf" aus:
+  - der Combat-DQN-Worker spielt einen Kampf bis zur naechsten `SelectModifierPhase`, bis zum Team-Wipe oder bis zu einem technischen Timeout
+- Zusaetzlich verwendet der Fixed-Seed-Collector jetzt standardmaessig einen Wave-Step-Timeout von `15000ms`, damit einzelne spaete Problemzustaende die gesamte lokale Serie nicht blockieren, sondern als `termination_reason` im Ergebnis auftauchen
+- dieser Step-Timeout ist weiterhin konfigurierbar und kann fuer lokale Debug-Runs testweise hoeher gesetzt werden, z. B. `60000ms`
+- Bei solchen Step-Timeouts schreibt der Collector jetzt zusaetzlich einen `timeout_debug`-Snapshot in die Episode und loggt Phase, UI-Modus, Wave, Geld, Reward-/Shop-Optionen und Partyzustand fuer die spaetere Fehleranalyse
+- Der `timeout_debug`-Snapshot wurde fuer Modifier-Zielauswahl inzwischen erweitert um:
+  - `selected_modifier_action`
+  - `party_ui_mode`
+  - `party_cursor`
+  - damit ist bei `SelectModifierPhase`-Timeouts im `UiMode.PARTY` direkt sichtbar, welches Reward-/Item-Target zuletzt ausgewaehlt wurde und in welchem Party-Untermodus die UI haengt
+- `LearnMovePhase` wird im External-RL-Harness jetzt aktiv behandelt statt nur auf Timeouts zu warten:
+  - `UiMode.CONFIRM` -> bestaetigen
+  - `UiMode.SUMMARY` -> Move-Slot nach einer kleinen Portierung der bestehenden Kotlin-/Java-`LearnMoveNeuron`-Heuristik waehlen
+  - dadurch verschwand der bisherige haeufige Timeout `step_timeout:advance_combat_after_action:*` in `LearnMovePhase`
+- Neuer aktueller technischer Blocker nach dem Learn-Move-Fix:
+  - einzelne Runs haengen spaeter noch bei `battle_end_to_select_modifier_phase`
+  - zusaetzlich gibt es weiterhin einen separaten Modifier-Zielauswahl-Haenger bei `execute_modifier_action` im `UiMode.PARTY`
+  - wichtiger Fachbefund dazu:
+    - Wave-`10`/`20`/`30`-Boss-Siege verhalten sich absichtlich anders als normale Wellen
+    - im `VictoryPhase` wird fuer `currentWaveIndex % 10 == 0` **kein** `SelectModifierPhase` gepusht
+    - stattdessen folgt der Sonderpfad ueber `ModifierRewardPhase` / `SelectBiomePhase` / `PartyHealPhase` / `NewBattlePhase`
+    - der Harness darf daher nach Boss-Wellen nicht blind immer `BattleEndPhase -> SelectModifierPhase` erwarten
+    - aktueller Stand im Harness:
+      - normale Wellen warten weiterhin aktiv auf `SelectModifierPhase`
+      - Boss-Wellen warten stattdessen aktiv auf die naechste `CommandPhase`
+
+Naechster lokaler Ausbaupfad:
+
+- aus dem mehrwelligen Smoke-Harness wird ein kleiner Fixed-Seed-Run-Collector
+- derselbe Seed wird zunaechst viele Male mit derselben Combat-DQN-Version durchgespielt
+- nur die Shop-/Modifier-Policy variiert
+- pro Run werden mindestens geloggt:
+  - Seed
+  - Starter
+  - Combat-DQN-Version
+  - Shop-Aktionen
+  - lokale Shaping-Rewards
+  - erreichte Wave
+  - terminaler Reward
+- erste Behavior-Policy:
+  - `random`
+- erster Vergleich:
+  - trainiertes Modifier-DQN gegen aktuelle Kotlin-Variante auf identischem Seed-Set
+- dauerhafte Aenderungen im Submodul nur dann, wenn sich zeigt, dass zentrale fehlende Utilities anders nicht sauber kapselbar sind
 
 ### Phase 6: Live-Umschaltung und Altlastenabbau
 

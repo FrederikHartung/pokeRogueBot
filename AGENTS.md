@@ -202,6 +202,9 @@ This is a Spring Boot application (version 3.5.3) written in mixed Java/Kotlin t
 
 - PokeRogue game is included as a git submodule in `pokerogue/` (pinned to v1.11.6, last stable release)
 - Code im `pokerogue/`-Submodul darf nicht ohne vorherige Rueckfrage und explizite Zustimmung angepasst werden
+- Aenderungen im `pokerogue/`-Submodul sind nur erlaubt, wenn sie vorher vom User freigegeben wurden und bestehende Spiel- und Phasenlogik nicht umbauen, ausser dies ist technisch zwingend notwendig
+- Bei Architektur- oder RL-Erweiterungen ist zunaechst zu pruefen, ob eine Loesung ohne permanente Submodul-Aenderung moeglich ist, z. B. ueber temporaere External-RL-Tests oder einen ergaenzenden Harness ausserhalb der Kernlogik
+- Es ist nicht von grundlegenden Bugs im `pokerogue/`-Submodul auszugehen, solange nicht konkrete Belege aus Tests, Logs oder reproduzierbaren Laufzeitfehlern dafuer vorliegen
 - The submodule is used at build time: JS bridge TypeScript files import enum definitions from `pokerogue/src/enums/` and use `import type` for game classes (Pokemon, BattleScene, Move, etc.) from the submodule source
 - For full type resolution in the bridge files, install the pokerogue submodule's dependencies: `cd pokerogue && pnpm install` (resolves transitive types like Phaser)
 - Requires local PokeRogue instance at `http://localhost:8000/`

@@ -28,6 +28,19 @@ Kurzfristig ergaenzen:
 - Sobald der Umbau fertig ist und der Live-Pfad fuer diese Entscheidung stabil ueber das DQN laeuft, kann das alte Switch-Neuron entfernt werden.
 - Modifier-DQN-Migration vorbereiten:
 - Plan ist jetzt in `docs/modifier-dqn-migration-plan.md` dokumentiert
+- erster Umsetzungsschnitt soll ohne permanente `pokerogue/`-Submodul-Aenderungen auskommen
+- bevorzugter Start ist ein Tactical-External-RL-Smoke-Harness im Hauptrepo, das temporaer unter `pokerogue/test/.external-rl/...` laeuft und Combat- sowie Modifier-Decision-Points sammelt
+- naechster Modifier-Strategic-Schritt:
+  - lokaler Fixed-Seed-Run-Collector mit fester Combat-DQN-Version und variabler Shop-Policy
+  - Combat im Fixed-Seed-Collector laeuft jetzt bereits ueber einen persistenten DQN-Inferenz-Worker statt ueber eine lokale Surrogat-Heuristik
+  - terminaler Reward fuer Phase 1 primaer ueber erreichte Wave
+  - kleines lokales Shaping fuer unkluge `skip`-Entscheidungen beibehalten
+  - standardmaessiger Wave-Step-Timeout aktuell wieder `15000ms`; hoehere Werte nur noch fuer gezielte Debug-Laeufe
+  - `LearnMovePhase` wird im Harness jetzt aktiv ueber eine kleine Portierung der bestehenden Kotlin-/Java-Logik bedient; der fruehere Learn-Move-Timeout ist damit nicht mehr der Hauptblocker
+  - aktueller Fokus fuer den naechsten Debug-Schritt:
+    - `battle_end_to_select_modifier_phase`
+    - `execute_modifier_action` im `UiMode.PARTY` mit den neuen Timeout-Logs fuer `selected_modifier_action`, `party_ui_mode` und `party_cursor`
+    - Boss-Wellen `10/20/30/...` separat behandeln, da dort bewusst keine normale `SelectModifierPhase` kommt
 - Zielbild:
 - aktuelles Kotlin-/DL4J-/RL4J-Modifier-RL schrittweise auf denselben Python/PyTorch-Ansatz wie Combat umstellen
 - Tactical- und Strategic-Training ausdruecklich parallel denken:
