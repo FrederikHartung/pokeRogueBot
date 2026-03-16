@@ -80,6 +80,7 @@ source ~/.config/pokeroguebot/telegram.env
 ## Implementierte Integration
 
 Die Benachrichtigung ist jetzt in der iterativen Wave-Library-Pipeline und im Random-Collection-Only-Pfad umgesetzt.
+Zusätzlich ist jetzt auch ein eigener Remote-Pfad fuer Offline-DQN-Training angebunden.
 
 Relevante Dateien:
 
@@ -88,6 +89,7 @@ Relevante Dateien:
 - `scripts/01-data-generation/pipeline/run-wave-library-random-collection-pipeline.ts`
 - `scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh`
 - `scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh`
+- `scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh`
 - `scripts/04-automation/telegram/run-telegram-control-bot.mjs`
 
 Aktive Events:
@@ -97,6 +99,8 @@ Aktive Events:
 - `pipeline_completed`
 - `collection_failed`
 - `collection_completed`
+- `training_failed`
+- `training_completed`
 
 Mitgesendete Nutzdaten:
 
@@ -111,6 +115,11 @@ Mitgesendete Nutzdaten:
   - Anzahl Transitionen
   - Datensatz- und Archivgroesse
   - `download_path` zum komprimierten Trainingsdatensatz
+- fuer Offline-DQN-Training zusaetzlich:
+  - Datensatzgroesse in Zeilen
+  - Laufzeit
+  - Checkpoint-Pfad
+  - Mean-Loss-Verlauf pro Epoche
 
 ## Beispiel-Nachrichten
 
@@ -163,7 +172,23 @@ Transitions: 123456
 Dataset size: 850.42 MB
 Archive size: 121.08 MB
 Total runtime: 1h 34m
-Download: /home/SFH-Frederik/repos/pokeRogueBot/data/rl/pipeline-runs/.../artifacts/random-valid-action-w1-8.tar.gz
+Download: /home/SFH-Frederik/repos/pokeRogueBot/data/rl/pipeline-runs/.../artifacts/random-valid-action-w1-24.tar.gz
+```
+
+Offline-DQN-Training abgeschlossen:
+
+```text
+Run: dqn-combat-wave-library-random-valid-action-v3-w1-24-50ep
+State: training completed
+Dataset rows: 271234
+Epochs: 50/50
+Total runtime: 2h 14m
+Checkpoint: /home/SFH-Frederik/repos/pokeRogueBot/data/rl/models/dqn-combat-wave-library-random-valid-action-v3-w1-24-50ep.pt
+Mean loss: start=0.418221 end=0.097331 best=0.092441
+
+Epoch losses:
+e1=0.418221, e2=0.361115, e3=0.325908, e4=0.301221, e5=0.284552, e6=0.259411, e7=0.244117, e8=0.231009
+...
 ```
 
 ## Sicherheitsregeln
@@ -202,6 +227,7 @@ bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh no
 bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh start-smoke
 bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh start-overnight
 bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-v3
+bash scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh start
 ```
 
 Hinweise:
@@ -217,6 +243,7 @@ Zusätzlich zum Push bei Fehlern oder abgeschlossenen Iterationen kann ein klein
 Erlaubte Commands:
 
 - `/status`
+- `/loss`
 - `/benchmarks`
 - `/issues`
 - `/last`
@@ -244,6 +271,28 @@ Batches: 12/68
 Episodes: 1200/6800
 Scenarios: 68
 ETA: 21m 40s
+```
+
+Wenn gerade ein Offline-DQN-Training laeuft, zeigt `/status` jetzt den letzten bekannten Loss-Stand und die letzten Loss-Werte:
+
+```text
+Run: dqn-combat-wave-library-random-valid-action-v3-w1-24-50ep
+State: running
+Dataset: random-valid-action-w1-24-main.jsonl
+Checkpoint: dqn-combat-wave-library-random-valid-action-v3-w1-24-50ep.pt
+Epochs: 7/50
+Latest mean loss: 0.244117
+Recent losses: e3=0.325908, e4=0.301221, e5=0.284552, e6=0.259411, e7=0.244117
+```
+
+Format von `/loss` waehrend des Trainings:
+
+```text
+Run: dqn-combat-wave-library-random-valid-action-v3-w1-24-50ep
+State: running
+Epoch losses:
+e1=0.418221, e2=0.361115, e3=0.325908, e4=0.301221, e5=0.284552, e6=0.259411, e7=0.244117, e8=0.231009
+...
 ```
 
 Format von `/status` bei Fehler:
@@ -281,6 +330,7 @@ Start auf dem Server:
 ```bash
 bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh telegram-control-start
 bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh telegram-control-start
+bash scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh telegram-control-start
 ```
 
 Status prüfen:
@@ -288,6 +338,7 @@ Status prüfen:
 ```bash
 bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh telegram-control-status
 bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh telegram-control-status
+bash scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh telegram-control-status
 ```
 
 Stoppen:
@@ -295,6 +346,7 @@ Stoppen:
 ```bash
 bash scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh telegram-control-stop
 bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh telegram-control-stop
+bash scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh telegram-control-stop
 ```
 
 Alle laufenden Telegram-Control-Bot-Prozesse auf dem Server finden:

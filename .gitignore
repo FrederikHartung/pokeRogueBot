@@ -62,6 +62,7 @@ data/rl/dataset-pools/
 data/rl/pipeline-runs/wave-library-random-collection-remote-*/
 data/rl/models/*.pt
 data/rl/pipeline-runs/wave-library-iterative-remote-*/
+data/rl/training-runs/
 
 # Productive wave library runtime artifacts
 data/offline-wave-library/

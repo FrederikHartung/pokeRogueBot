@@ -27,6 +27,7 @@ if (!token || !chatId) {
 const manifest = loadOptionalJson(cli.manifestPath);
 const benchmarkSummary = loadOptionalJson(cli.benchmarkSummaryPath);
 const collectionMetrics = loadOptionalJson(cli.collectionMetricsPath);
+const trainingSummary = loadOptionalJson(cli.trainingSummaryPath);
 
 const message = buildMessage({
   event: cli.event,
@@ -38,6 +39,7 @@ const message = buildMessage({
   manifest,
   benchmarkSummary,
   collectionMetrics,
+  trainingSummary,
 });
 
 await sendTelegramMessageWithRetry({
@@ -60,6 +62,7 @@ function parseCli(args) {
     errorText: null,
     benchmarkSummaryPath: null,
     collectionMetricsPath: null,
+    trainingSummaryPath: null,
   };
 
   for (let index = 0; index < args.length; index += 1) {
@@ -103,6 +106,11 @@ function parseCli(args) {
     if (arg === "--collection-metrics") {
       state.collectionMetricsPath = resolveOptionalPath(args[index + 1] ?? null);
       index += 1;
+      continue;
+    }
+    if (arg === "--training-summary") {
+      state.trainingSummaryPath = resolveOptionalPath(args[index + 1] ?? null);
+      index += 1;
     }
   }
 
@@ -135,7 +143,18 @@ function loadOptionalJson(filePath) {
   return JSON.parse(readFileSync(filePath, "utf8"));
 }
 
-function buildMessage({ event, runtimeDir, manifestPath, phase, iteration, error, manifest, benchmarkSummary, collectionMetrics }) {
+function buildMessage({
+  event,
+  runtimeDir,
+  manifestPath,
+  phase,
+  iteration,
+  error,
+  manifest,
+  benchmarkSummary,
+  collectionMetrics,
+  trainingSummary,
+}) {
   const runName = runtimeDir ? path.basename(runtimeDir) : "unknown-run";
   const progress = summarizeProgress(manifest);
   const lines = [`Run: ${runName}`];
@@ -226,6 +245,44 @@ function buildMessage({ event, runtimeDir, manifestPath, phase, iteration, error
       lines.push(`Episodes: ${progress.completedEpisodes}/${progress.totalEpisodes}`);
     }
     lines.push(`Error: ${truncate(error ?? inferFailedStep(manifest)?.error ?? "unknown error", 220)}`);
+  } else if (event === "training_completed") {
+    lines.push("State: training completed");
+    if (trainingSummary) {
+      lines.push(`Dataset rows: ${trainingSummary.dataset_rows ?? "?"}`);
+      lines.push(`Epochs: ${countEpochs(trainingSummary)}`);
+      if (trainingSummary.total_runtime_ms != null) {
+        lines.push(`Total runtime: ${formatDuration(trainingSummary.total_runtime_ms)}`);
+      }
+      if (trainingSummary.output_path) {
+        lines.push(`Checkpoint: ${trainingSummary.output_path}`);
+      }
+      const lossSummary = summarizeLossTraining(trainingSummary);
+      if (lossSummary) {
+        lines.push(`Mean loss: start=${lossSummary.first} end=${lossSummary.last} best=${lossSummary.best}`);
+      }
+      const lossSeries = formatEpochLossSeries(trainingSummary);
+      if (lossSeries.length > 0) {
+        lines.push("");
+        lines.push("Epoch losses:");
+        lines.push(...lossSeries);
+      }
+    }
+  } else if (event === "training_failed") {
+    lines.push("State: training failed");
+    if (trainingSummary) {
+      lines.push(`Dataset rows: ${trainingSummary.dataset_rows ?? "?"}`);
+      lines.push(`Epochs: ${countEpochs(trainingSummary)}`);
+      if (trainingSummary.total_runtime_ms != null) {
+        lines.push(`Elapsed runtime: ${formatDuration(trainingSummary.total_runtime_ms)}`);
+      }
+      const lossSeries = formatEpochLossSeries(trainingSummary);
+      if (lossSeries.length > 0) {
+        lines.push("");
+        lines.push("Completed epoch losses:");
+        lines.push(...lossSeries.slice(-3));
+      }
+    }
+    lines.push(`Error: ${truncate(error ?? "unknown error", 220)}`);
   } else {
     lines.push(`State: ${event}`);
     if (phase) {
@@ -241,6 +298,45 @@ function buildMessage({ event, runtimeDir, manifestPath, phase, iteration, error
     lines.push(`Host: ${host}`);
   }
   return lines.join("\n");
+}
+
+function countEpochs(trainingSummary) {
+  const metrics = Array.isArray(trainingSummary?.epoch_metrics) ? trainingSummary.epoch_metrics : [];
+  const expected = Number(trainingSummary?.epochs);
+  const completed = metrics.length;
+  if (Number.isInteger(expected) && expected > 0) {
+    return `${completed}/${expected}`;
+  }
+  return `${completed}`;
+}
+
+function summarizeLossTraining(trainingSummary) {
+  const metrics = Array.isArray(trainingSummary?.epoch_metrics) ? trainingSummary.epoch_metrics : [];
+  const losses = metrics
+    .map(metric => Number(metric?.mean_loss))
+    .filter(value => Number.isFinite(value));
+  if (losses.length === 0) {
+    return null;
+  }
+  return {
+    first: losses[0].toFixed(6),
+    last: losses[losses.length - 1].toFixed(6),
+    best: Math.min(...losses).toFixed(6),
+  };
+}
+
+function formatEpochLossSeries(trainingSummary) {
+  const metrics = Array.isArray(trainingSummary?.epoch_metrics) ? trainingSummary.epoch_metrics : [];
+  if (metrics.length === 0) {
+    return [];
+  }
+
+  const chunks = [];
+  const entries = metrics.map(metric => `e${metric.epoch}=${formatNumber(metric.mean_loss, 6)}`);
+  for (let index = 0; index < entries.length; index += 8) {
+    chunks.push(entries.slice(index, index + 8).join(", "));
+  }
+  return chunks;
 }
 
 function formatWaves(values) {
@@ -370,8 +466,8 @@ function inferFailedStep(manifest) {
   return { name, error: typeof step?.error === "string" ? step.error : null };
 }
 
-function formatNumber(value) {
-  return typeof value === "number" && Number.isFinite(value) ? value.toFixed(3) : "n/a";
+function formatNumber(value, digits = 3) {
+  return typeof value === "number" && Number.isFinite(value) ? value.toFixed(digits) : "n/a";
 }
 
 function formatDuration(durationMs) {

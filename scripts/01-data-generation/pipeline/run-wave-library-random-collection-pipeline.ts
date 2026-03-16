@@ -51,6 +51,7 @@ const scenarios = resolveScenarios(config, configDir, dataRlDir);
 if (scenarios.length === 0) {
   throw new Error(`No scenarios resolved for collection config: ${configPath}`);
 }
+const datasetArtifactBaseName = buildDatasetArtifactBaseName(config, scenarios);
 
 let manifest = loadManifest(manifestPath, configPath);
 manifest = syncManifest(manifest, config, scenarios, pipelineRoot);
@@ -385,7 +386,7 @@ async function mergeCollectedBatches(currentManifest) {
   const manifestInput = structuredClone(currentManifest);
   const mergedDir = path.join(pipelineRoot, "merged");
   mkdirSync(mergedDir, { recursive: true });
-  const datasetPath = path.join(mergedDir, "random-valid-action-w1-8.jsonl");
+  const datasetPath = path.join(mergedDir, `${datasetArtifactBaseName}.jsonl`);
   const writer = createWriteStream(datasetPath, { encoding: "utf8" });
 
   let rowCount = 0;
@@ -472,7 +473,7 @@ function resolveArchivePath(archiveConfig, archiveFormat, archiveDir, configDirI
     return resolvePathWithFallbacks(archiveConfig.output_path, [configDirInput, dataRlDir, repoRoot]);
   }
   const suffix = archiveFormat === "zip" ? ".zip" : ".tar.gz";
-  return path.join(archiveDir, `random-valid-action-w1-8${suffix}`);
+  return path.join(archiveDir, `${datasetArtifactBaseName}${suffix}`);
 }
 
 function writeCollectionMetrics(currentManifest) {
@@ -724,6 +725,36 @@ function toMegabytes(value) {
 
 function sortedUnique(values) {
   return Array.from(new Set(values)).sort((left, right) => left - right);
+}
+
+function buildDatasetArtifactBaseName(rootConfig, scenariosInput) {
+  const configuredWaves = sortedUnique(Array.from(toNumberSet(rootConfig.include_waves)));
+  const scenarioWaves = sortedUnique(
+    scenariosInput.map(scenario => scenario.wave_index).filter(Number.isInteger),
+  );
+  const waves = configuredWaves.length > 0 ? configuredWaves : scenarioWaves;
+  return `random-valid-action-${formatWaveLabel(waves)}`;
+}
+
+function formatWaveLabel(waves) {
+  if (!Array.isArray(waves) || waves.length === 0) {
+    return "waves-unknown";
+  }
+
+  const normalizedWaves = sortedUnique(waves.filter(Number.isInteger));
+  const minWave = normalizedWaves[0];
+  const maxWave = normalizedWaves[normalizedWaves.length - 1];
+  const isContiguous = normalizedWaves.every((wave, index) => index === 0 || wave === normalizedWaves[index - 1] + 1);
+
+  if (isContiguous) {
+    return minWave === maxWave ? `w${minWave}` : `w${minWave}-${maxWave}`;
+  }
+
+  if (normalizedWaves.length <= 6) {
+    return `w${normalizedWaves.join("-")}`;
+  }
+
+  return `w${minWave}-${maxWave}-mixed`;
 }
 
 function buildScpDownloadCommand(downloadPath) {

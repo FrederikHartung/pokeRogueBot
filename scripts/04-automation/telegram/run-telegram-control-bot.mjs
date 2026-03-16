@@ -9,6 +9,7 @@ const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, "../../..");
 const iterativeControlDir = path.join(repoRoot, "data", "rl", "pipeline-runs", "wave-library-iterative-remote-control");
 const randomCollectionControlDir = path.join(repoRoot, "data", "rl", "pipeline-runs", "wave-library-random-collection-remote-control");
+const trainingControlDir = path.join(repoRoot, "data", "rl", "training-runs", "offline-dqn-remote-control");
 
 const cli = parseCli(process.argv.slice(2));
 const token = process.env.POKEROGUE_TELEGRAM_BOT_TOKEN ?? "";
@@ -58,12 +59,12 @@ async function handleUpdate(update) {
   }
 
   const command = normalizeCommand(text);
-  const allowedCommands = new Set(["status", "issues", "last", "benchmarks", "help"]);
+  const allowedCommands = new Set(["status", "issues", "last", "benchmarks", "loss", "help"]);
   if (!allowedCommands.has(command)) {
     await sendMessage({
       token,
       chatId,
-      text: ["Unknown command.", "Allowed commands:", "/status", "/benchmarks", "/issues", "/last", "/help"].join("\n"),
+      text: ["Unknown command.", "Allowed commands:", "/status", "/loss", "/benchmarks", "/issues", "/last", "/help"].join("\n"),
     });
     return;
   }
@@ -72,7 +73,7 @@ async function handleUpdate(update) {
     await sendMessage({
       token,
       chatId,
-      text: ["Available commands:", "/status", "/benchmarks", "/issues", "/last"].join("\n"),
+      text: ["Available commands:", "/status", "/loss", "/benchmarks", "/issues", "/last"].join("\n"),
     });
     return;
   }
@@ -80,6 +81,8 @@ async function handleUpdate(update) {
   try {
     const reply = command === "status"
       ? buildCompactStatusReply()
+      : command === "loss"
+        ? buildLossReply()
       : command === "benchmarks"
         ? buildBenchmarksReply()
         : runRemoteHelper(command);
@@ -145,7 +148,13 @@ function normalizeCommand(text) {
 }
 
 function runRemoteHelper(command) {
-  const result = spawnSync("bash", ["scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh", command], {
+  const helperScript = stateDir === randomCollectionControlDir
+    ? "scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh"
+    : stateDir === trainingControlDir
+      ? "scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh"
+      : "scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh";
+
+  const result = spawnSync("bash", [helperScript, command], {
     cwd: repoRoot,
     env: process.env,
     encoding: "utf8",
@@ -172,6 +181,10 @@ function buildCompactStatusReply() {
 }
 
 function buildBenchmarksReply() {
+  if (stateDir === trainingControlDir) {
+    return "Benchmarks are not available for offline DQN training runs.";
+  }
+
   const configPath = loadActiveConfigPath();
   const runtimeDir = runtimeDirForConfig(configPath);
   const benchmarkSummaryPath = path.join(runtimeDir, "benchmark-summary.json");
@@ -193,6 +206,33 @@ function buildBenchmarksReply() {
     lines.push(
       `${label}: wr=${formatNumber(row.win_rate)} reward=${formatNumber(row.avg_reward)} turns=${formatNumber(row.avg_turns)}`,
     );
+  }
+  return truncate(lines.join("\n"), 3500);
+}
+
+function buildLossReply() {
+  const runs = listManagedRuns().filter(run => run.kind === "offline_dqn_training");
+  if (runs.length === 0) {
+    return "No managed offline DQN training run found.";
+  }
+
+  const run = runs[0];
+  const progressPath = path.join(run.runtimeDir, "training-progress.json");
+  const summaryPath = path.join(run.runtimeDir, "training-summary.json");
+  const sourcePath = existsSync(progressPath) ? progressPath : summaryPath;
+  if (!existsSync(sourcePath)) {
+    return [`Run: ${run.runName}`, "Losses: not available yet"].join("\n");
+  }
+
+  const payload = JSON.parse(readFileSync(sourcePath, "utf8"));
+  const metrics = Array.isArray(payload?.epoch_metrics) ? payload.epoch_metrics : [];
+  if (metrics.length === 0) {
+    return [`Run: ${run.runName}`, "Losses: not available yet"].join("\n");
+  }
+
+  const lines = [`Run: ${run.runName}`, `State: ${run.state}`, "Epoch losses:"];
+  for (const chunk of chunkEpochLosses(metrics, 8)) {
+    lines.push(chunk);
   }
   return truncate(lines.join("\n"), 3500);
 }
@@ -224,6 +264,11 @@ function listManagedRuns() {
       controlDir: randomCollectionControlDir,
       fallbackConfigPath: path.join(repoRoot, "data", "rl", "wave-library-random-collection-remote-50ep.json"),
     },
+    {
+      kind: "offline_dqn_training",
+      controlDir: trainingControlDir,
+      fallbackConfigPath: path.join(repoRoot, "data", "rl", "train-dqn-offline-wave-library-random-valid-action-v3-server.json"),
+    },
   ].map(describeManagedRun);
 
   const priority = { running: 0, failed: 1, completed: 2, not_started: 3 };
@@ -243,11 +288,20 @@ function describeManagedRun({ kind, controlDir, fallbackConfigPath }) {
   const configPath = loadActiveConfigPathForControlDir(controlDir, fallbackConfigPath);
   const runtimeDir = runtimeDirForConfig(configPath);
   const manifestPath = path.join(runtimeDir, "manifest.json");
-  const pidFile = path.join(controlDir, kind === "iterative" ? "remote-pipeline.pid" : "remote-random-collection.pid");
+  const statePath = path.join(runtimeDir, "training-state.json");
+  const pidFile = path.join(
+    controlDir,
+    kind === "iterative"
+      ? "remote-pipeline.pid"
+      : kind === "random_collection"
+        ? "remote-random-collection.pid"
+        : "remote-offline-dqn-training.pid",
+  );
   const hasActiveConfig = existsSync(path.join(controlDir, "active-config.txt"));
   const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, "utf8")) : null;
+  const trainingState = existsSync(statePath) ? JSON.parse(readFileSync(statePath, "utf8")) : null;
   const isRunning = readRunningPid(pidFile) != null;
-  const state = inferManagedRunState({ manifest, isRunning });
+  const state = inferManagedRunState({ kind, manifest, trainingState, isRunning });
 
   return {
     kind,
@@ -255,9 +309,10 @@ function describeManagedRun({ kind, controlDir, fallbackConfigPath }) {
     runtimeDir,
     manifestPath,
     manifest,
+    trainingState,
     isRunning,
     state,
-    hasManifest: manifest != null,
+    hasManifest: manifest != null || trainingState != null,
     hasActiveConfig,
     runName: path.basename(runtimeDir),
   };
@@ -278,9 +333,15 @@ function readRunningPid(pidFilePath) {
   return (result.status ?? 1) === 0 ? pid : null;
 }
 
-function inferManagedRunState({ manifest, isRunning }) {
+function inferManagedRunState({ kind, manifest, trainingState, isRunning }) {
   if (isRunning) {
     return "running";
+  }
+  if (kind === "offline_dqn_training") {
+    if (!trainingState) {
+      return "not_started";
+    }
+    return trainingState.status ?? "not_started";
   }
   if (!manifest) {
     return "not_started";
@@ -295,6 +356,9 @@ function buildStatusBlock(run) {
 
   if (run.kind === "random_collection") {
     return buildRandomCollectionStatusBlock(run);
+  }
+  if (run.kind === "offline_dqn_training") {
+    return buildTrainingStatusBlock(run);
   }
   return buildIterativeStatusBlock(run);
 }
@@ -385,13 +449,71 @@ function buildRandomCollectionStatusBlock(run) {
   return lines.join("\n");
 }
 
+function buildTrainingStatusBlock(run) {
+  const lines = [`Run: ${run.runName}`];
+  const state = run.state;
+  lines.push(`State: ${state}`);
+
+  const trainingState = run.trainingState ?? {};
+  if (trainingState.dataset_path) {
+    lines.push(`Dataset: ${path.basename(trainingState.dataset_path)}`);
+  }
+  if (trainingState.output_path) {
+    lines.push(`Checkpoint: ${path.basename(trainingState.output_path)}`);
+  }
+
+  const progressPath = path.join(run.runtimeDir, "training-progress.json");
+  const summaryPath = path.join(run.runtimeDir, "training-summary.json");
+  const metricSourcePath = existsSync(progressPath) ? progressPath : summaryPath;
+  if (existsSync(metricSourcePath)) {
+    const summary = JSON.parse(readFileSync(metricSourcePath, "utf8"));
+    const metrics = Array.isArray(summary?.epoch_metrics) ? summary.epoch_metrics : [];
+    lines.push(`Epochs: ${metrics.length}/${summary.epochs ?? "?"}`);
+    if (metrics.length > 0) {
+      const latest = metrics[metrics.length - 1];
+      lines.push(`Latest mean loss: ${formatNumber(latest.mean_loss, 6)}`);
+      const recentLosses = chunkEpochLosses(metrics.slice(-5), 5);
+      if (recentLosses.length > 0) {
+        lines.push(`Recent losses: ${recentLosses[0]}`);
+      }
+    }
+    if (typeof summary.total_runtime_ms === "number") {
+      lines.push(`Total runtime: ${formatDuration(summary.total_runtime_ms)}`);
+    }
+    return lines.join("\n");
+  }
+
+  const progress = summarizeTrainingProgress(path.join(run.runtimeDir, "offline-dqn-training.log"));
+  if (progress) {
+    lines.push(`Epochs: ${progress.currentEpoch}/${progress.totalEpochs}`);
+    lines.push(`Latest mean loss: ${formatNumber(progress.meanLoss, 6)}`);
+  }
+
+  if (state === "failed" && trainingState.error) {
+    lines.push(`Error: ${truncate(trainingState.error, 220)}`);
+  }
+
+  return lines.join("\n");
+}
+
 function runtimeDirForConfig(configPath) {
   const absoluteConfigPath = path.resolve(configPath);
-  const configDir = path.dirname(absoluteConfigPath);
-  const dataRlDir = path.join(repoRoot, "data", "rl");
   const config = JSON.parse(readFileSync(absoluteConfigPath, "utf8"));
-  const value = config.output_root ?? "./pipeline-runs/wave-library-iterative";
-  return resolvePathWithFallbacks(value, [configDir, dataRlDir, repoRoot]);
+
+  if (typeof config.remote_runtime_dir === "string" && config.remote_runtime_dir.length > 0) {
+    return resolvePathWithFallbacks(config.remote_runtime_dir, [repoRoot, path.dirname(absoluteConfigPath)]);
+  }
+
+  if (typeof config.output_root === "string" && config.output_root.length > 0) {
+    return resolvePathWithFallbacks(config.output_root, [path.dirname(absoluteConfigPath), path.join(repoRoot, "data", "rl"), repoRoot]);
+  }
+
+  if (typeof config.output_path === "string" && config.output_path.length > 0) {
+    const checkpointBase = path.basename(config.output_path).replace(/\.[^.]+$/, "");
+    return path.join(repoRoot, "data", "rl", "training-runs", checkpointBase);
+  }
+
+  return path.join(repoRoot, "data", "rl", "pipeline-runs", "wave-library-iterative");
 }
 
 function resolvePathWithFallbacks(value, baseDirs) {
@@ -505,6 +627,35 @@ function summarizeEta(manifest) {
   return averageDurationMs * remaining;
 }
 
+function summarizeTrainingProgress(logPath) {
+  if (!existsSync(logPath)) {
+    return null;
+  }
+  const pattern = /epoch=(\d+)\/(\d+)\s+mean_loss=([0-9.]+)/;
+  let latest = null;
+  for (const line of readFileSync(logPath, "utf8").split(/\r?\n/)) {
+    const match = pattern.exec(line);
+    if (!match) {
+      continue;
+    }
+    latest = {
+      currentEpoch: Number(match[1]),
+      totalEpochs: Number(match[2]),
+      meanLoss: Number(match[3]),
+    };
+  }
+  return latest;
+}
+
+function chunkEpochLosses(metrics, chunkSize) {
+  const entries = metrics.map(metric => `e${metric.epoch}=${formatNumber(metric.mean_loss, 6)}`);
+  const chunks = [];
+  for (let index = 0; index < entries.length; index += chunkSize) {
+    chunks.push(entries.slice(index, index + chunkSize).join(", "));
+  }
+  return chunks;
+}
+
 function formatDuration(durationMs) {
   const totalSeconds = Math.max(0, Math.round(durationMs / 1000));
   const hours = Math.floor(totalSeconds / 3600);
@@ -519,8 +670,8 @@ function formatDuration(durationMs) {
   return `${seconds}s`;
 }
 
-function formatNumber(value) {
-  return typeof value === "number" && Number.isFinite(value) ? value.toFixed(3) : "n/a";
+function formatNumber(value, digits = 3) {
+  return typeof value === "number" && Number.isFinite(value) ? value.toFixed(digits) : "n/a";
 }
 
 function truncate(value, maxLength) {

@@ -661,6 +661,47 @@ Robustheit fuer groessere Trainingssaetze:
   - bevorzugt wird die Repo-venv unter `.venv/bin/python3` bzw. `.venv/bin/python`
   - optional kann `POKEROGUE_PYTHON_BIN` gesetzt werden, falls ein anderer Interpreter erzwungen werden soll
 
+Remote-Training fuer den neuen V3-Datensatz:
+
+- neuer Starthelfer:
+  - `scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh`
+- Aufgaben des Skripts:
+  - prueft `node`, `npm`, `python3`, Repo-venv und `torch`
+  - fuehrt vor dem detached Start `npm run rl:test:policy-contract` aus
+  - validiert die Trainingsconfig
+  - kann vor dem Training mehrere JSONL-Quellen ueber `dataset_merge.inputs` zu einem finalen `dataset_path` zusammenfuehren
+  - startet das Offline-DQN-Training detached via `nohup`
+  - schreibt `training-summary.json` mit Laufzeit und Mean-Loss pro Epoche
+  - sendet Telegram-Benachrichtigungen fuer Erfolg oder Fehler
+  - bietet dieselben drei Telegram-Control-Kommandos:
+    - `telegram-control-start`
+    - `telegram-control-status`
+    - `telegram-control-stop`
+- vorbereitete V3-Trainingsconfig:
+  - `data/rl/train-dqn-offline-wave-library-random-valid-action-v3-server.json`
+  - sie nutzt einen stabilen Merge-Zielpfad:
+    - `data/rl/dataset-pools/combat-v3/merged/random-valid-action-w1-24-main.jsonl`
+  - und kann spaeter einfach um weitere Quellen erweitert werden:
+    - `dataset_merge.inputs`
+- Start auf dem Server:
+  - `bash scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh start`
+- Status:
+  - `bash scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh status`
+- Logs:
+  - `bash scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh logs`
+- kurze Momentaufnahme:
+  - `bash scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh last`
+- Issues:
+  - `bash scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh issues`
+
+Pragmatische Empfehlung fuer kuenftige Trainingsdaten aus mehreren Quellen:
+
+- der Python-Trainer selbst bleibt bei genau einem finalen `dataset_path`
+- mehrere Quellen werden bewusst **vor dem Training** zusammengefuehrt
+- dadurch bleibt jeder Trainingslauf reproduzierbar ueber einen klar benannten finalen Merge-Datensatz
+- fuer `combat-v3` ist der bevorzugte Sammelpunkt:
+  - `data/rl/dataset-pools/combat-v3/merged/`
+
 Ubuntu-Setup-Kurzpfad fuer spaetere Server:
 
 - GitHub-SSH fuer den Server-User vorbereiten und testen:

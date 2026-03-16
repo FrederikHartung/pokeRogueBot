@@ -4,6 +4,7 @@ import json
 import math
 import os
 import random
+import time
 from typing import Dict, List, Tuple
 
 try:
@@ -284,6 +285,8 @@ def parse_transition_row(line: str, line_no: int) -> Dict[str, torch.Tensor]:
 def train(config: Dict) -> None:
     dataset_path = config["dataset_path"]
     output_path = config.get("output_path", "./data/rl/models/dqn-combat-wave-library-bootstrap-combined-960.pt")
+    summary_output_path = config.get("summary_output_path")
+    progress_output_path = config.get("progress_output_path")
     device = config.get("device", "cpu")
     seed = int(config.get("seed", 42))
 
@@ -336,7 +339,25 @@ def train(config: Dict) -> None:
         f"device={device}"
     )
 
+    training_started_at = time.time()
     step = 0
+    epoch_metrics = []
+    if progress_output_path:
+        write_training_progress(
+            progress_output_path,
+            {
+                "status": "running",
+                "dataset_path": dataset_path,
+                "output_path": output_path,
+                "dataset_rows": dataset_size,
+                "epochs": epochs,
+                "batch_size": batch_size,
+                "device": device,
+                "started_at_epoch_seconds": training_started_at,
+                "epoch_metrics": [],
+            },
+        )
+
     for epoch in range(1, epochs + 1):
         epoch_loss_sum = 0.0
         epoch_batches = 0
@@ -375,6 +396,30 @@ def train(config: Dict) -> None:
                 target_net.load_state_dict(q_net.state_dict())
 
         mean_loss = epoch_loss_sum / max(1, epoch_batches)
+        epoch_metrics.append(
+            {
+                "epoch": epoch,
+                "mean_loss": mean_loss,
+                "batches": epoch_batches,
+                "global_steps": step,
+            }
+        )
+        if progress_output_path:
+            write_training_progress(
+                progress_output_path,
+                {
+                    "status": "running",
+                    "dataset_path": dataset_path,
+                    "output_path": output_path,
+                    "dataset_rows": dataset_size,
+                    "epochs": epochs,
+                    "batch_size": batch_size,
+                    "device": device,
+                    "started_at_epoch_seconds": training_started_at,
+                    "total_runtime_ms": int((time.time() - training_started_at) * 1000),
+                    "epoch_metrics": epoch_metrics,
+                },
+            )
         if epoch == 1 or epoch % log_every_epochs == 0 or epoch == epochs:
             print(
                 f"epoch={epoch}/{epochs} "
@@ -398,6 +443,46 @@ def train(config: Dict) -> None:
         output_path,
     )
     print(f"Saved checkpoint: {output_path}")
+
+    if summary_output_path:
+        total_runtime_ms = int((time.time() - training_started_at) * 1000)
+        os.makedirs(os.path.dirname(summary_output_path), exist_ok=True)
+        summary_payload = {
+            "dataset_path": dataset_path,
+            "output_path": output_path,
+            "dataset_rows": dataset_size,
+            "input_dim": input_dim,
+            "output_dim": output_dim,
+            "device": device,
+            "seed": seed,
+            "epochs": epochs,
+            "batch_size": batch_size,
+            "hidden_dims": hidden_dims,
+            "gamma": gamma,
+            "learning_rate": lr,
+            "target_update_steps": target_update,
+            "grad_clip_norm": grad_clip,
+            "feature_schema_version": FEATURE_SCHEMA_VERSION,
+            "total_runtime_ms": total_runtime_ms,
+            "epoch_metrics": epoch_metrics,
+        }
+        with open(summary_output_path, "w", encoding="utf-8") as handle:
+            json.dump(summary_payload, handle, indent=2)
+        print(f"Saved training summary: {summary_output_path}")
+        if progress_output_path:
+            write_training_progress(
+                progress_output_path,
+                {
+                    **summary_payload,
+                    "status": "completed",
+                },
+            )
+
+
+def write_training_progress(path: str, payload: Dict) -> None:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2)
 
 
 def main() -> None:

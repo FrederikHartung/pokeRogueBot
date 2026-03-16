@@ -105,8 +105,8 @@ Im Runtime-Ordner entstehen insbesondere:
 - `manifest.json`
 - `artifacts-summary.json`
 - `collection-metrics.json`
-- `merged/random-valid-action-w1-8.jsonl`
-- `artifacts/random-valid-action-w1-8.tar.gz` oder `.zip`
+- `merged/random-valid-action-w1-24.jsonl`
+- `artifacts/random-valid-action-w1-24.tar.gz` oder `.zip`
 
 Wenn `runtime_retention.cleanup_runtime_on_success = true` aktiv ist und der Lauf erfolgreich ueber den Remote-Helper beendet wird, bleibt dieser Runtime-Ordner nicht dauerhaft liegen. Stattdessen wandern die relevanten Debug-Dateien in den Dataset-Pool.
 
