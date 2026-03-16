@@ -639,6 +639,18 @@ write_json(state_path, state)
 summary_payload = load_json(summary_path)
 summary_payload["total_runtime_ms"] = int((time.time() - start_time) * 1000)
 write_json(summary_path, summary_payload)
+
+rows = summary_payload.get("benchmarks") if isinstance(summary_payload.get("benchmarks"), list) else []
+if rows:
+    print("Benchmark comparison summary")
+    for row in rows:
+        print(
+            f"{row.get('label')} "
+            f"win_rate={float(row.get('win_rate') or 0.0):.6f} "
+            f"avg_reward={float(row.get('avg_reward') or 0.0):.4f} "
+            f"avg_turns={float(row.get('avg_turns') or 0.0):.2f} "
+            f"truncated_rate={float(row.get('truncated_rate') or 0.0):.6f}"
+        )
 PY
 then
   node scripts/04-automation/telegram/send-pipeline-notification.mjs --event benchmark_completed --runtime-dir '${runtime_dir}' --benchmark-summary '${summary_path}'

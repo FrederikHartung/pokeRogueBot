@@ -735,6 +735,7 @@ Remote-Training fuer den neuen V3-Datensatz:
     - `bash scripts/03-benchmark/eval/run-dqn-benchmark-compare-remote.sh logs`
   - kurze Momentaufnahme:
     - `bash scripts/03-benchmark/eval/run-dqn-benchmark-compare-remote.sh last`
+    - nach erfolgreichem Abschluss stehen dort jetzt automatisch auch die kompakten Endergebnisse aller verglichenen Checkpoints
   - Issues:
     - `bash scripts/03-benchmark/eval/run-dqn-benchmark-compare-remote.sh issues`
   - Telegram:
