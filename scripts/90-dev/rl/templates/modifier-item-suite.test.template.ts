@@ -1,11 +1,13 @@
 import type { BattleScene } from "#app/battle-scene";
 import { modifierTypes } from "#data/data-lists";
 import { MoveId } from "#enums/move-id";
+import { Nature } from "#enums/nature";
 import { StatusEffect } from "#enums/status-effect";
 import { SpeciesId } from "#enums/species-id";
 import type { PlayerPokemon } from "#field/pokemon";
 import { Status } from "#data/status-effect";
 import { ModifierTypeOption } from "#modifiers/modifier-type";
+import { generateModifierType } from "#mystery-encounters/encounter-phase-utils";
 import { GameManager } from "#test/test-utils/game-manager";
 import { initSceneWithoutEncounterPhase } from "#test/test-utils/game-manager-utils";
 import Phaser from "phaser";
@@ -184,6 +186,34 @@ it("validates party target mask for RARE_CANDY", () => {
   recordValidatedItem("RARE_CANDY", "party", "alle Party-Slots sind grundsaetzlich legale Ziele");
 });
 
+it("validates party target mask for MINT", () => {
+  const party = initStarterScene();
+  const bulbasaur = party[0];
+  const charmander = party[1];
+  const squirtle = party[2];
+  if (!bulbasaur || !charmander || !squirtle) {
+    throw new Error("Expected starter trio");
+  }
+
+  bulbasaur.setCustomNature(Nature.ADAMANT);
+  charmander.setCustomNature(Nature.HARDY);
+  squirtle.setCustomNature(Nature.MODEST);
+
+  const adamantMint = generateModifierType(modifierTypes.MINT, [Nature.ADAMANT]);
+  if (!adamantMint) {
+    throw new Error("Failed to generate deterministic ADAMANT mint");
+  }
+
+  const targets = party.map((pokemon, targetPartyIndex) =>
+    buildPartyTargetSnapshot(new ModifierTypeOption(adamantMint, 0, 0), pokemon, targetPartyIndex),
+  );
+
+  expect(targets[0]?.available).toBe(false);
+  expect(targets[1]?.available).toBe(true);
+  expect(targets[2]?.available).toBe(true);
+  recordValidatedItem("MINT", "party", "nur Pokemon mit abweichender Ziel-Nature duerfen gewaehlt werden");
+});
+
 const elixirCases = [
   { itemId: "ELIXIR", option: () => new ModifierTypeOption(modifierTypes.ELIXIR(), 0, 100) },
   { itemId: "MAX_ELIXIR", option: () => new ModifierTypeOption(modifierTypes.MAX_ELIXIR(), 0, 100) },
@@ -263,12 +293,11 @@ it("writes validated item summary", () => {
   expect(validatedItems.length).toBeGreaterThan(0);
 });
 
-it.skip("TODO: validate target handling for MINT after deterministic nature setup is added", () => {});
 it.skip("TODO: validate target handling for MEMORY_MUSHROOM after deterministic relearn setup is added", () => {});
 it.skip("TODO: validate target and move replacement flow for TM_COMMON", () => {});
 it.skip("TODO: validate target and move replacement flow for TM_GREAT", () => {});
 it.skip("TODO: validate target and move replacement flow for TM_ULTRA", () => {});
-it.skip("TODO: validate target handling for TERA_SHARD with excluded species coverage", () => {});
+it.skip("Covered by dedicated rl:test:modifier:tera-shard-mask; excluded-species target coverage remains open", () => {});
 it.skip("TODO: validate target handling for EVOLUTION_ITEM with guaranteed species/item matchup", () => {});
 it.skip("TODO: validate target handling for RARE_EVOLUTION_ITEM with guaranteed species/item matchup", () => {});
 it.skip("TODO: validate target handling for FORM_CHANGE_ITEM with guaranteed species/form setup", () => {});

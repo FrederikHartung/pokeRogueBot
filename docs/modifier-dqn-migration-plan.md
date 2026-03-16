@@ -531,6 +531,20 @@ Aktuelle bewusste Einschraenkungen des Collectors:
       - `PP_UP`, `PP_MAX`
       - `RARE_CANDY`
     - die Suite prueft je nach Item entweder Party-Zielmaskierung oder Move-Zielmaskierung in einem kontrollierten Starter-Setup
+  - `MEMORY_MUSHROOM` wird aktuell bewusst nicht als erlaubte Aktion materialisiert:
+    - der Modifier ist fachlich wie `TM_*` ein spaeterer Follow-up-Fall mit weiterer Auswahl
+    - aktueller Blockiergrund im Action-Masking: `remember_move_todo`
+    - eigener Nachweistest:
+      - `scripts/90-dev/rl/run-pokerogue-modifier-memory-mushroom-mask-test.ts`
+  - `TERA_SHARD` wird aktuell ebenfalls bewusst nicht als erlaubte Aktion materialisiert:
+    - der Modifier ist fuer den ersten Modifier-DQN fachlich nachrangig
+    - aktueller Blockiergrund im Action-Masking: `tera_shard_todo`
+    - eigener Nachweistest:
+      - `scripts/90-dev/rl/run-pokerogue-modifier-tera-shard-mask-test.ts`
+  - itembasierte Evolutionen sind jetzt dediziert abgesichert:
+    - eigener Nachweistest:
+      - `scripts/90-dev/rl/run-pokerogue-modifier-evolution-item-mask-test.ts`
+    - der Test validiert fuer jedes aktuell verwendete konkrete `EvolutionItem` mindestens ein legales Ziel und mehrere klare Nicht-Ziele
 - Typische zielgebundene Modifier-Klassen im Submodul:
   - `PokemonModifierType`
     - Obertyp fuer Modifier, die eine Party-Zielauswahl brauchen

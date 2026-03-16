@@ -122,6 +122,33 @@ Wir unterscheiden zwei Ebenen:
 - Ergebnis:
   - alle Party-Slots sind grundsaetzlich legale Ziele
 
+### PokemonNatureChangeModifierType
+
+- Suite:
+  - `scripts/90-dev/rl/run-pokerogue-modifier-item-suite-test.ts`
+- konkret getestet:
+  - `MINT`
+- Verhalten:
+  - setzt die Nature eines einzelnen Pokemon auf eine neue Ziel-Nature
+  - beim Anwenden wird die Nature zusaetzlich in den Gamedaten fuer die Spezies freigeschaltet
+- Ergebnis:
+  - ein Pokemon mit bereits identischer Ziel-Nature wird korrekt maskiert
+  - Pokemon mit anderer Nature bleiben legal
+
+### EvolutionItemModifierType
+
+- Test:
+  - `scripts/90-dev/rl/run-pokerogue-modifier-evolution-item-mask-test.ts`
+- konkret getestet:
+  - alle aktuell im Spiel verwendeten konkreten `EvolutionItem`-Werte ausser `NONE`
+- Verhalten:
+  - itembasierte Evolution eines einzelnen Pokemon
+  - zusaetzliche Bedingungen koennen je nach Art Time-of-Day, Form oder andere Evolutionsbedingungen sein
+- Ergebnis:
+  - fuer jedes konkrete Evolutionsitem wurde mindestens ein passendes Pokemon als `available=true` validiert
+  - unpassende Vergleichs-Pokemon werden korrekt als `available=false` maskiert
+  - `EvolutionItem.NONE` bleibt bewusst nur interner Platzhalter fuer nicht itembasierte Evolutionen
+
 ## Bereits indirekt im Harness beobachtet, aber noch ohne eigene dedizierte Testdatei
 
 - `BERRY`-Apply-Pfad:
@@ -133,23 +160,22 @@ Wir unterscheiden zwei Ebenen:
 
 ## Noch offen oder groessere Umbauten noetig
 
-### PokemonNatureChangeModifierType
-
-- konkrete Items:
-  - Mints
-- was sie tun:
-  - aendern die Nature eines einzelnen Pokemon
-- offener Punkt:
-  - sinnvoller Test sollte unterschiedliche Nature-Konstellationen gezielt vorbereiten
-
 ### RememberMoveModifierType
 
 - konkretes Item:
   - `MEMORY_MUSHROOM`
 - was es tut:
   - laesst ein Pokemon einen frueher lernbaren Move erinnern
-- offener Punkt:
-  - braucht deterministischen Testzustand mit bekannten `learnableLevelMoves`
+- aktueller Stand:
+  - im Collector/Action-Masking bewusst **komplett geblockt**
+  - Grund:
+    - fachlich derselbe spaetere Folge-Flow wie bei `TM_*`
+    - braucht Party-Ziel plus anschliessende Move-Auswahl
+- Nachweis:
+  - `scripts/90-dev/rl/run-pokerogue-modifier-memory-mushroom-mask-test.ts`
+  - Ergebnis:
+    - `non_executable_reason = remember_move_todo`
+    - `action_mask = [0]`
 
 ### TmModifierType
 
@@ -168,18 +194,16 @@ Wir unterscheiden zwei Ebenen:
   - `TERA_SHARD`
 - was es tut:
   - weist einem Pokemon einen Tera-Typ zu
-- offener Punkt:
-  - sinnvoller Test sollte auch Ausschlussfaelle wie `TERAPAGOS`, `OGERPON`, `SHEDINJA` abdecken
-
-### EvolutionItemModifierType
-
-- konkrete Items:
-  - `EVOLUTION_ITEM`
-  - `RARE_EVOLUTION_ITEM`
-- was sie tun:
-  - loesen passende Item-Evolutionen aus
-- offener Punkt:
-  - braucht artenspezifische Test-Party mit garantiertem passenden Evolutionsitem
+- aktueller Stand:
+  - im Collector/Action-Masking bewusst **komplett geblockt**
+  - Grund:
+    - fuer das Modifier-DQN aktuell niedrige Prioritaet
+    - eigener Party-Ziel-Flow und fachlicher Mehrwert folgen erst spaeter
+- Nachweis:
+  - `scripts/90-dev/rl/run-pokerogue-modifier-tera-shard-mask-test.ts`
+  - Ergebnis:
+    - `non_executable_reason = tera_shard_todo`
+    - `action_mask = [0]`
 
 ### FormChangeItemModifierType
 
@@ -237,5 +261,4 @@ Offener Punkt fuer diese Gruppe:
 1. `MINT`
 2. `MEMORY_MUSHROOM`
 3. `TM_COMMON` / `TM_GREAT` / `TM_ULTRA`
-4. `TERA_SHARD`
-5. Held-Item-Stack-Suite fuer weitere `PokemonHeldItemModifierType`-Unterklassen
+4. Held-Item-Stack-Suite fuer weitere `PokemonHeldItemModifierType`-Unterklassen

@@ -861,6 +861,12 @@ function getActionExecutability(
   const modifierTypeId = getModifierTypeId(option);
   const modifierType = option?.modifierTypeOption?.type;
   if (actionType === "take_reward") {
+    if (modifierTypeId === "MEMORY_MUSHROOM" || modifierType?.constructor?.name === "RememberMoveModifierType") {
+      return { executable: false, reason: "remember_move_todo" };
+    }
+    if (modifierTypeId === "TERA_SHARD" || modifierType?.constructor?.name === "TerastallizeModifierType") {
+      return { executable: false, reason: "tera_shard_todo" };
+    }
     if (modifierTypeId.startsWith("TM")) {
       return { executable: false, reason: "tm_selection_todo" };
     }
