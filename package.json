@@ -41,6 +41,7 @@
     "rl:test:modifier:form-change-item:group1-mask": "node scripts/90-dev/rl/run-pokerogue-modifier-form-change-item-group1-mask-test.ts",
     "rl:test:modifier:form-change-item:group2-mask": "node scripts/90-dev/rl/run-pokerogue-modifier-form-change-item-group2-mask-test.ts",
     "rl:test:modifier:attack-type-booster-mask": "node scripts/90-dev/rl/run-pokerogue-modifier-attack-type-booster-mask-test.ts",
+    "rl:test:modifier:species-stat-booster-mask": "node scripts/90-dev/rl/run-pokerogue-modifier-species-stat-booster-mask-test.ts",
     "rl:test:modifier:item-suite": "node scripts/90-dev/rl/run-pokerogue-modifier-item-suite-test.ts",
     "rl:collect:modifier:fixed-seed": "node scripts/90-dev/rl/run-pokerogue-modifier-fixed-seed-collector.ts",
     "rl:inspect:dataset": "python3 -m streamlit run scripts/90-dev/inspect/streamlit_rl_dataset_inspector.py"

@@ -305,6 +305,27 @@ Wir unterscheiden zwei Ebenen:
     - Slot 1: passender Move ohne STAB -> illegal
     - Slot 2: passender Typ ohne passenden Angriffs-Move -> illegal
 
+### SpeciesStatBoosterModifierType
+
+- Test:
+  - `scripts/90-dev/rl/run-pokerogue-modifier-species-stat-booster-mask-test.ts`
+- konkret getestet:
+  - `LIGHT_BALL`
+  - `THICK_CLUB`
+  - `METAL_POWDER`
+  - `QUICK_POWDER`
+  - `DEEP_SEA_SCALE`
+  - `DEEP_SEA_TOOTH`
+- Verhalten:
+  - species-spezifische Helditems mit starkem Stat-Boost fuer genau bestimmte Pokemon
+- aktueller Support-Stand im Collector:
+  - wird jetzt bewusst **unterstuetzt**
+  - ein Ziel ist nur legal, wenn die Species des Ziel-Pokemon zu der fuer das Item vorgesehenen Species-Menge gehoert
+- Ergebnis:
+  - fuer jedes Item ist der Zielschnitt jetzt deterministisch als `[1, 0, 0]` abgesichert:
+    - Slot 0: passendes Pokemon der vorgesehenen Species
+    - Slot 1 und 2: unpassende Species -> illegal
+
 ### FusePokemonModifierType
 
 - konkretes Item:
@@ -324,10 +345,6 @@ Wir unterscheiden zwei Ebenen:
 
 ### Weitere Held-Item-Unterklassen mit noch fehlender dedizierter Suite
 
-- `AttackTypeBoosterModifierType`
-  - boostet Attacken eines bestimmten Typs
-- `SpeciesStatBoosterModifierType`
-  - boosts fuer bestimmte Spezies
 - `BaseStatBoosterModifierType`
   - permanente Stat-Boosts
 - `PokemonBaseStatTotalModifierType`

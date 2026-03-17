@@ -246,6 +246,14 @@ const BLOCKED_GROUP2_FORM_CHANGE_ITEM_IDS = new Set([
   "FAIRY_MEMORY",
   "NORMAL_MEMORY",
 ]);
+const SPECIES_STAT_BOOSTER_ELIGIBLE_SPECIES: Record<string, SpeciesId[]> = {
+  LIGHT_BALL: [SpeciesId.PIKACHU],
+  THICK_CLUB: [SpeciesId.CUBONE, SpeciesId.MAROWAK, SpeciesId.ALOLA_MAROWAK],
+  METAL_POWDER: [SpeciesId.DITTO],
+  QUICK_POWDER: [SpeciesId.DITTO],
+  DEEP_SEA_SCALE: [SpeciesId.CLAMPERL],
+  DEEP_SEA_TOOTH: [SpeciesId.CLAMPERL],
+};
 
 interface PersistentCombatDqnWorker {
   child: ReturnType<typeof spawn>;
@@ -965,6 +973,7 @@ function getFirstValidPartyTargetIndex(game: GameManager): number {
 
 function getRewardTargetAvailability(game: GameManager, option: any, targetIndex: number): { available: boolean; reason?: string } {
   const modifierType = option?.modifierTypeOption?.type;
+  const modifierTypeId = getModifierTypeId(option);
   const selectFilter = modifierType?.selectFilter;
   const party = game.scene.getPlayerParty();
   const pokemon = party[targetIndex];
@@ -989,6 +998,19 @@ function getRewardTargetAvailability(game: GameManager, option: any, targetIndex
 
       if (!hasMatchingStabAttackMove) {
         return { available: false, reason: "no_stab_attack_move_for_booster" };
+      }
+    }
+
+    if (modifierType?.constructor?.name === "SpeciesStatBoosterModifierType") {
+      const eligibleSpecies = SPECIES_STAT_BOOSTER_ELIGIBLE_SPECIES[String(modifierTypeId)] ?? [];
+      const speciesId = pokemon.getSpeciesForm(true).speciesId as SpeciesId;
+      const fusionSpeciesId = pokemon.isFusion() ? (pokemon.getFusionSpeciesForm(true).speciesId as SpeciesId) : null;
+      const matchesEligibleSpecies =
+        eligibleSpecies.includes(speciesId)
+        || (fusionSpeciesId !== null && eligibleSpecies.includes(fusionSpeciesId));
+
+      if (!matchesEligibleSpecies) {
+        return { available: false, reason: "wrong_species_for_species_booster" };
       }
     }
 

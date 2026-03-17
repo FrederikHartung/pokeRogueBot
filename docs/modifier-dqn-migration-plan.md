@@ -539,6 +539,13 @@ Aktuelle bewusste Einschraenkungen des Collectors:
       - passender Move ohne STAB ist illegal
       - passender Typ ohne passenden Angriffs-Move ist illegal
     - damit ist z. B. `CHARCOAL` auf `Charmander` mit Feuerattacke legal, auf `Squirtle` mit Feuer-Move aber bewusst illegal
+  - `SpeciesStatBoosterModifierType` wird jetzt ebenfalls gezielt unterstuetzt:
+    - eigener Nachweistest:
+      - `scripts/90-dev/rl/run-pokerogue-modifier-species-stat-booster-mask-test.ts`
+    - der Target-Schnitt ist absichtlich streng:
+      - Item nur auf die dafuer vorgesehene Species
+      - unpassende Species werden illegal maskiert, auch wenn das Spiel den Helditem-Pfad technisch grundsaetzlich oeffnen koennte
+    - damit ist z. B. `LIGHT_BALL` auf `Pikachu` legal, auf `Eevee` oder `Charmander` aber bewusst illegal
     - die Suite prueft je nach Item entweder Party-Zielmaskierung oder Move-Zielmaskierung in einem kontrollierten Starter-Setup
   - `MEMORY_MUSHROOM` wird aktuell bewusst nicht als erlaubte Aktion materialisiert:
     - der Modifier ist fachlich wie `TM_*` ein spaeterer Follow-up-Fall mit weiterer Auswahl

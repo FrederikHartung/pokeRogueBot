@@ -50,6 +50,7 @@ Kurzfristig ergaenzen:
       - `Potion`/`Revive` sowie weitere konsumierbare Item-Familien sind jetzt mit einer groesseren deterministischen Item-Suite abgedeckt
       - `MINT`, `MEMORY_MUSHROOM`, `TERA_SHARD`, `EVOLUTION_ITEM` und `FORM_CHANGE_ITEM` Group 1 sind inzwischen dediziert abgesichert
       - `AttackTypeBoosterModifierType` ist jetzt mit strengem STAB-Masking dediziert abgesichert und wird bewusst unterstuetzt
+      - `SpeciesStatBoosterModifierType` ist jetzt mit strengem Species-Masking dediziert abgesichert und wird bewusst unterstuetzt
       - `TM_*` ist jetzt bewusst als spaeterer Learn-Move-/Move-Replacement-Block mit `tm_selection_todo` dokumentiert und abgesichert
       - `FUSE` ist jetzt bewusst als spaeterer Zwei-Ziel-Fusions-Block mit `fuse_todo` dokumentiert und abgesichert
       - seltene `FORM_CHANGE_ITEM`-Spezialfaelle sind jetzt ebenfalls bewusst geblockt und ueber eine Group-2-Suite abgesichert
