@@ -71,8 +71,8 @@ Kurzfristig ergaenzen:
     - diese Teststrategie kuenftig konsequent fuer neue Collector-/Pipeline-Bausteine anwenden:
       - External-RL-Integrationstests fuer `SelectModifierPhase`, `LearnMovePhase`, Combat-Phasen und aehnliche echte Spiel-/UI-Pfade
       - kleine Unit-/Node-Tests fuer Hauptrepo-Logik wie Runner, Config-Aufloesung, Reward-Berechnung, Summary-/Report-Auswertung
-    - Uebersichtsdoku fuer getestete und noch fehlende `PokemonModifierType`-Faelle:
-      - `docs/pokemon-modifier-type-test-matrix.md`
+    - zentrale Uebersicht fuer kostenlose und kaufpflichtige `SelectModifierPhase`-Items:
+      - `docs/select-modifier-shop-item-matrix.md`
 - Zielbild:
 - aktuelles Kotlin-/DL4J-/RL4J-Modifier-RL schrittweise auf denselben Python/PyTorch-Ansatz wie Combat umstellen
 - Tactical- und Strategic-Training ausdruecklich parallel denken:
