@@ -50,6 +50,9 @@
     "rl:test:modifier:pokemon-multi-hit-mask": "node scripts/90-dev/rl/run-pokerogue-modifier-pokemon-multi-hit-mask-test.ts",
     "rl:test:modifier:contact-held-item-transfer-mask": "node scripts/90-dev/rl/run-pokerogue-modifier-contact-held-item-transfer-mask-test.ts",
     "rl:test:modifier:turn-held-item-transfer-mask": "node scripts/90-dev/rl/run-pokerogue-modifier-turn-held-item-transfer-mask-test.ts",
+    "rl:test:modifier:reviver-seed-mask": "node scripts/90-dev/rl/run-pokerogue-modifier-reviver-seed-mask-test.ts",
+    "rl:test:modifier:white-herb-mask": "node scripts/90-dev/rl/run-pokerogue-modifier-white-herb-mask-test.ts",
+    "rl:test:modifier:mystical-rock-mask": "node scripts/90-dev/rl/run-pokerogue-modifier-mystical-rock-mask-test.ts",
     "rl:test:modifier:item-suite": "node scripts/90-dev/rl/run-pokerogue-modifier-item-suite-test.ts",
     "rl:collect:modifier:fixed-seed": "node scripts/90-dev/rl/run-pokerogue-modifier-fixed-seed-collector.ts",
     "rl:inspect:dataset": "python3 -m streamlit run scripts/90-dev/inspect/streamlit_rl_dataset_inspector.py"

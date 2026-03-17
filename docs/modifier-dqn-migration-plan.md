@@ -603,6 +603,27 @@ Aktuelle bewusste Einschraenkungen des Collectors:
     - nur Targets am echten Stack-Cap werden illegal maskiert
     - aktuell abgesichert fuer:
       - `MINI_BLACK_HOLE`
+  - `REVIVER_SEED` wird jetzt ebenfalls im selben Stil technisch-konservativ behandelt:
+    - eigener Nachweistest:
+      - `scripts/90-dev/rl/run-pokerogue-modifier-reviver-seed-mask-test.ts`
+    - aktuell keine harte fachliche Heuristik im Action-Masking
+    - nur Targets am echten Stack-Cap werden illegal maskiert
+    - aktuell abgesichert fuer:
+      - `REVIVER_SEED`
+  - `WHITE_HERB` wird jetzt ebenfalls im selben Stil technisch-konservativ behandelt:
+    - eigener Nachweistest:
+      - `scripts/90-dev/rl/run-pokerogue-modifier-white-herb-mask-test.ts`
+    - aktuell keine harte fachliche Heuristik im Action-Masking
+    - nur Targets am echten Stack-Cap werden illegal maskiert
+    - aktuell abgesichert fuer:
+      - `WHITE_HERB`
+  - `MYSTICAL_ROCK` ist jetzt dediziert ueber Shop-Heuristik und Zielmaskierung abgesichert:
+    - eigener Nachweistest:
+      - `scripts/90-dev/rl/run-pokerogue-modifier-mystical-rock-mask-test.ts`
+    - im Shop/Pool taucht der Modifier nur auf, wenn ein nicht gecapptes Party-Pokemon Wetter- oder Terrain-Setup ueber Move oder Ability unterstuetzt
+    - sobald der Modifier angeboten wird, gilt im Action-Masking weiterhin nur der echte Stack-Cap
+    - aktuell abgesichert fuer:
+      - `MYSTICAL_ROCK`
   - `MEMORY_MUSHROOM` wird aktuell bewusst nicht als erlaubte Aktion materialisiert:
     - der Modifier ist fachlich wie `TM_*` ein spaeterer Follow-up-Fall mit weiterer Auswahl
     - aktueller Blockiergrund im Action-Masking: `remember_move_todo`
@@ -618,6 +639,10 @@ Aktuelle bewusste Einschraenkungen des Collectors:
     - aktueller Blockiergrund im Action-Masking: `fuse_todo`
     - eigener Nachweistest:
       - `scripts/90-dev/rl/run-pokerogue-modifier-fuse-mask-test.ts`
+  - `EVOLUTION_TRACKER_GIMMIGHOUL` wird aktuell bewusst nicht als erlaubte Aktion materialisiert:
+    - der Modifier taucht nach aktuellem PokeRogue-Code nicht im normalen `SelectModifier`-Shop-Pool auf
+    - er wird stattdessen intern/automatisch fuer `GIMMIGHOUL`-Treasure-Fortschritt erzeugt
+    - daher aktuell kein geplanter expliziter Shop-Support-Fall fuer den Collector
   - `TERA_SHARD` wird aktuell ebenfalls bewusst nicht als erlaubte Aktion materialisiert:
     - der Modifier ist fuer den ersten Modifier-DQN fachlich nachrangig
     - aktueller Blockiergrund im Action-Masking: `tera_shard_todo`

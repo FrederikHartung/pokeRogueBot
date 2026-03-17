@@ -495,31 +495,82 @@ Wir unterscheiden zwei Ebenen:
     - `non_executable_reason = fuse_todo`
     - `action_mask = [0]`
 
-### Weitere Held-Item-Unterklassen mit noch fehlender dedizierter Suite
+### EVOLUTION_TRACKER_GIMMIGHOUL
 
-- `BaseStatBoosterModifierType`
-  - permanente Stat-Boosts
-- `PokemonBaseStatTotalModifierType`
-  - Mystery-Encounter-Statgesamtwert-Modifikator
-- `PokemonExpBoosterModifierType`
-  - Pokemon-spezifischer EXP-Boost
-- `PokemonFriendshipBoosterModifierType`
-  - Pokemon-spezifischer Freundschafts-Boost
-- `PokemonMoveAccuracyBoosterModifierType`
-  - Genauigkeits-Boost fuer das Pokemon
-- `PokemonMultiHitModifierType`
-  - erhoeht Multi-Hit-Verhalten
-- `ContactHeldItemTransferChanceModifierType`
-  - uebertraegt Held-Items bei Kontakt mit Chance
-- `EVOLUTION_TRACKER_GIMMIGHOUL`
-- `REVIVER_SEED`
-- `WHITE_HERB`
-- `MYSTICAL_ROCK`
+- aktueller Stand:
+  - wird bewusst **nicht supportet**
+- Grund:
+  - taucht nach aktuellem PokeRogue-Code nicht im normalen `SelectModifier`-Shop auf
+  - wird stattdessen intern als Fortschrittszaehler fuer `GIMMIGHOUL` erzeugt
+- Konsequenz:
+  - aktuell kein dedizierter Shop-/Action-Masking-Test vorgesehen
 
-Offener Punkt fuer diese Gruppe:
+### REVIVER_SEED
 
-- viele teilen dieselbe `PokemonHeldItemModifierType`-Grundlogik
-- fachlich sinnvoll ist hier wahrscheinlich eine tabellarische dedizierte Held-Item-Stack-Suite statt viele komplett getrennte Sondertests
+- Test:
+  - `scripts/90-dev/rl/run-pokerogue-modifier-reviver-seed-mask-test.ts`
+- konkret getestet:
+  - `REVIVER_SEED`
+- Verhalten:
+  - pokemon-spezifisches Helditem fuer Sofort-Wiederbelebung bei direktem K.o.
+  - maximale Stack-Anzahl ist technisch `1`
+- aktueller Support-Stand im Collector:
+  - wird jetzt bewusst **unterstuetzt**
+  - aktuell keine harte fachliche Heuristik im Action-Masking
+  - ein Ziel wird nur dann illegal, wenn der Stack-Cap bereits erreicht ist
+- Ergebnis:
+  - `REVIVER_SEED` ist deterministisch als `[0, 1, 1]` abgesichert:
+    - Slot 0: bereits auf Max-Stack -> illegal
+    - Slot 1 und 2: noch ohne Item und damit legal
+
+### WHITE_HERB
+
+- Test:
+  - `scripts/90-dev/rl/run-pokerogue-modifier-white-herb-mask-test.ts`
+- konkret getestet:
+  - `WHITE_HERB`
+- Verhalten:
+  - pokemon-spezifisches Helditem zum Zuruecksetzen negativer Stat-Stufen
+  - maximale Stack-Anzahl ist technisch `2`
+- aktueller Support-Stand im Collector:
+  - wird jetzt bewusst **unterstuetzt**
+  - aktuell keine harte fachliche Heuristik im Action-Masking
+  - ein Ziel wird nur dann illegal, wenn der Stack-Cap bereits erreicht ist
+- Ergebnis:
+  - `WHITE_HERB` ist deterministisch als `[0, 1, 1]` abgesichert:
+    - Slot 0: bereits auf Max-Stack -> illegal
+    - Slot 1 und 2: noch ohne Item und damit legal
+
+### MYSTICAL_ROCK
+
+- Test:
+  - `scripts/90-dev/rl/run-pokerogue-modifier-mystical-rock-mask-test.ts`
+- konkret getestet:
+  - `MYSTICAL_ROCK`
+- Verhalten:
+  - verlaengert Wetter- und Terrain-Effekte des Traegers um `+2` Runden pro Stack
+  - maximale Stack-Anzahl ist technisch `2`
+- aktueller Support-Stand im Collector:
+  - wird jetzt bewusst **unterstuetzt**
+  - die fachliche Heuristik liegt hier beim Shop-/Pool-Auftauchen, nicht im Ziel-Masking
+  - im Shop taucht das Item nur auf, wenn ein nicht gecapptes Party-Ziel Wetter/Terrain ueber Move oder Ability sinnvoll unterstuetzt
+  - sobald das Item angeboten wird, wird im Ziel-Masking nur noch der echte Stack-Cap erzwungen
+- Ergebnis:
+  - Shop-/Pool-Heuristik ist fuer den Kontrollfall deterministisch abgesichert:
+    - ohne passenden Wetter-/Terrain-Setup-Traeger: Gewicht `0`
+    - mit passendem nicht gecapptem Traeger: Gewicht `10`
+    - mit nur gecapptem passendem Traeger: Gewicht `0`
+  - Ziel-Masking ist danach deterministisch als `[1, 1, 0]` abgesichert:
+    - legaler Setup-Traeger unter Cap bleibt waehlbar
+    - fachlich unpassendes Pokemon ohne Setup bleibt dennoch waehlbar, sobald das Item schon angeboten wird
+    - nur das gecappte Ziel wird illegal maskiert
+
+### Status dieser Held-Item-Gruppe
+
+- die aktuell relevanten `PokemonHeldItemModifierType`-Unterklassen sind damit entweder dediziert abgesichert oder bewusst als Nicht-Shop-/Nicht-Support-Fall dokumentiert
+- offener Sonderfall in dieser Gruppe bleibt aktuell nur:
+  - `EVOLUTION_TRACKER_GIMMIGHOUL`
+    - bewusst nicht supportet, da kein normaler `SelectModifier`-Shop-Fall
 
 ## Geplante naechste Schritte
 
