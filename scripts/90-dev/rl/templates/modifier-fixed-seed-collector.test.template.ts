@@ -11,6 +11,7 @@ import { MoveId } from "#enums/move-id";
 import { MoveCategory } from "#enums/move-category";
 import { MoveUseMode } from "#enums/move-use-mode";
 import { Nature } from "#enums/nature";
+import { PokemonType } from "#enums/pokemon-type";
 import { ShopCursorTarget } from "#enums/shop-cursor-target";
 import { SpeciesId } from "#enums/species-id";
 import { Stat } from "#enums/stat";
@@ -198,6 +199,52 @@ const SAFE_REWARD_ACTION_IDS = new Set([
   "TEMP_STAT_STAGE_BOOSTER",
   "NUGGET",
   "BIG_NUGGET",
+]);
+const BLOCKED_GROUP2_FORM_CHANGE_ITEM_IDS = new Set([
+  "DARK_STONE",
+  "LIGHT_STONE",
+  "N_SOLARIZER",
+  "N_LUNARIZER",
+  "ULTRANECROZIUM_Z",
+  "ICY_REINS_OF_UNITY",
+  "SHADOW_REINS_OF_UNITY",
+  "FIST_PLATE",
+  "SKY_PLATE",
+  "TOXIC_PLATE",
+  "EARTH_PLATE",
+  "STONE_PLATE",
+  "INSECT_PLATE",
+  "SPOOKY_PLATE",
+  "IRON_PLATE",
+  "FLAME_PLATE",
+  "SPLASH_PLATE",
+  "MEADOW_PLATE",
+  "ZAP_PLATE",
+  "MIND_PLATE",
+  "ICICLE_PLATE",
+  "DRACO_PLATE",
+  "DREAD_PLATE",
+  "PIXIE_PLATE",
+  "BLANK_PLATE",
+  "LEGEND_PLATE",
+  "FIGHTING_MEMORY",
+  "FLYING_MEMORY",
+  "POISON_MEMORY",
+  "GROUND_MEMORY",
+  "ROCK_MEMORY",
+  "BUG_MEMORY",
+  "GHOST_MEMORY",
+  "STEEL_MEMORY",
+  "FIRE_MEMORY",
+  "WATER_MEMORY",
+  "GRASS_MEMORY",
+  "ELECTRIC_MEMORY",
+  "PSYCHIC_MEMORY",
+  "ICE_MEMORY",
+  "DRAGON_MEMORY",
+  "DARK_MEMORY",
+  "FAIRY_MEMORY",
+  "NORMAL_MEMORY",
 ]);
 
 interface PersistentCombatDqnWorker {
@@ -867,6 +914,15 @@ function getActionExecutability(
     if (modifierTypeId === "TERA_SHARD" || modifierType?.constructor?.name === "TerastallizeModifierType") {
       return { executable: false, reason: "tera_shard_todo" };
     }
+    if (modifierTypeId === "DNA_SPLICERS" || modifierType?.constructor?.name === "FusePokemonModifierType") {
+      return { executable: false, reason: "fuse_todo" };
+    }
+    if (
+      modifierType?.constructor?.name === "FormChangeItemModifierType"
+      && BLOCKED_GROUP2_FORM_CHANGE_ITEM_IDS.has(String(modifierTypeId))
+    ) {
+      return { executable: false, reason: "form_change_group2_todo" };
+    }
     if (modifierTypeId.startsWith("TM")) {
       return { executable: false, reason: "tm_selection_todo" };
     }
@@ -922,6 +978,20 @@ function getRewardTargetAvailability(game: GameManager, option: any, targetIndex
 
   const filterResult = selectFilter(pokemon);
   if (filterResult === null || filterResult === undefined) {
+    if (modifierType?.constructor?.name === "AttackTypeBoosterModifierType") {
+      const moveType = modifierType.moveType as PokemonType | undefined;
+      const hasMatchingStabAttackMove =
+        typeof moveType === "number"
+        && pokemon.isOfType(moveType, false)
+        && pokemon
+          .getMoveset(true)
+          .some((pokemonMove: any) => pokemonMove?.getMove?.()?.is?.("AttackMove") && pokemonMove.getMove().type === moveType);
+
+      if (!hasMatchingStabAttackMove) {
+        return { available: false, reason: "no_stab_attack_move_for_booster" };
+      }
+    }
+
     return { available: true };
   }
 

@@ -473,6 +473,7 @@ Aktuelle bewusste Einschraenkungen des Collectors:
   - Shop-Items mit Zielauswahl
   - Rewards mit weiterer Party-/Move-Auswahl wie TMs
 - TMs sind im Collector aktuell bewusst als `tm_selection_todo` markiert und werden nicht von der Random-Policy ausgewaehlt
+- dieser Blocker ist absichtlich und bleibt bestehen, bis spaeter gezielt Support fuer Move-Lernen / Move-Replacement aufgebaut wird
 - Fuer laengere lokale Serienlaeufe wie `10` Runs wurde das Vitest-Timeout des External-RL-Collectors auf `300000ms` erhoeht, damit die Serie nicht kuenstlich am Testtimeout endet
 - Das fruehere kuenstliche Combat-Surrogat `Fissure/Splash`, `No Guard`, Level `200` wird im Fixed-Seed-Collector nicht mehr verwendet
 - PP der Starter-Moves werden nach Kaempfen nicht mehr automatisch wieder aufgefuellt; der Collector laeuft mit dem echten PP-Stand des Wave-Lib-W1-Loadouts
@@ -530,12 +531,30 @@ Aktuelle bewusste Einschraenkungen des Collectors:
       - `ETHER`, `MAX_ETHER`
       - `PP_UP`, `PP_MAX`
       - `RARE_CANDY`
+  - `AttackTypeBoosterModifierType` wird jetzt ebenfalls gezielt unterstuetzt:
+    - eigener Nachweistest:
+      - `scripts/90-dev/rl/run-pokerogue-modifier-attack-type-booster-mask-test.ts`
+    - der Target-Schnitt ist absichtlich streng:
+      - Item nur auf Pokemon mit passendem STAB-Angriffs-Move
+      - passender Move ohne STAB ist illegal
+      - passender Typ ohne passenden Angriffs-Move ist illegal
+    - damit ist z. B. `CHARCOAL` auf `Charmander` mit Feuerattacke legal, auf `Squirtle` mit Feuer-Move aber bewusst illegal
     - die Suite prueft je nach Item entweder Party-Zielmaskierung oder Move-Zielmaskierung in einem kontrollierten Starter-Setup
   - `MEMORY_MUSHROOM` wird aktuell bewusst nicht als erlaubte Aktion materialisiert:
     - der Modifier ist fachlich wie `TM_*` ein spaeterer Follow-up-Fall mit weiterer Auswahl
     - aktueller Blockiergrund im Action-Masking: `remember_move_todo`
     - eigener Nachweistest:
       - `scripts/90-dev/rl/run-pokerogue-modifier-memory-mushroom-mask-test.ts`
+  - `TM_COMMON`, `TM_GREAT`, `TM_ULTRA` werden aktuell ebenfalls bewusst nicht als erlaubte Aktion materialisiert:
+    - geplanter spaeterer Support erst zusammen mit dem Learn-Move-/Move-Replacement-Block
+    - aktueller Blockiergrund im Action-Masking: `tm_selection_todo`
+    - eigener Nachweistest:
+      - `scripts/90-dev/rl/run-pokerogue-modifier-tm-mask-test.ts`
+  - `DNA_SPLICERS` wird aktuell ebenfalls bewusst nicht als erlaubte Aktion materialisiert:
+    - der Modifier braucht einen echten Zwei-Ziel-Fusions-Flow
+    - aktueller Blockiergrund im Action-Masking: `fuse_todo`
+    - eigener Nachweistest:
+      - `scripts/90-dev/rl/run-pokerogue-modifier-fuse-mask-test.ts`
   - `TERA_SHARD` wird aktuell ebenfalls bewusst nicht als erlaubte Aktion materialisiert:
     - der Modifier ist fuer den ersten Modifier-DQN fachlich nachrangig
     - aktueller Blockiergrund im Action-Masking: `tera_shard_todo`
@@ -545,6 +564,31 @@ Aktuelle bewusste Einschraenkungen des Collectors:
     - eigener Nachweistest:
       - `scripts/90-dev/rl/run-pokerogue-modifier-evolution-item-mask-test.ts`
     - der Test validiert fuer jedes aktuell verwendete konkrete `EvolutionItem` mindestens ein legales Ziel und mehrere klare Nicht-Ziele
+  - haeufigere oder leichter testbare `FORM_CHANGE_ITEM`-Faelle sind jetzt ebenfalls dediziert abgesichert:
+    - eigener Nachweistest:
+      - `scripts/90-dev/rl/run-pokerogue-modifier-form-change-item-group1-mask-test.ts`
+    - der Test validiert fuer `69` priorisierte konkrete `FormChangeItem`-Werte jeweils:
+      - ein legales Ziel
+      - zwei klare Nicht-Ziele
+    - abgedeckt sind u. a.:
+      - Mega-Steine
+      - `BLUE_ORB`, `RED_ORB`
+      - `ADAMANT_CRYSTAL`, `LUSTROUS_GLOBE`, `GRISEOUS_CORE`
+      - `REVEAL_GLASS`, `PRISON_BOTTLE`, `MAX_MUSHROOMS`, `GRACIDEA`
+      - `RUSTED_SWORD`, `RUSTED_SHIELD`
+      - `SHARP_METEORITE`, `HARD_METEORITE`, `SMOOTH_METEORITE`
+      - `SHOCK_DRIVE`, `BURN_DRIVE`, `CHILL_DRIVE`, `DOUSE_DRIVE`
+      - `WELLSPRING_MASK`, `HEARTHFLAME_MASK`, `CORNERSTONE_MASK`
+    - bewusst weiter offen bleiben seltene Spezialfaelle mit Partner-/Abhaengigkeitslogik wie:
+      - `DARK_STONE`, `LIGHT_STONE`
+      - `N_SOLARIZER`, `N_LUNARIZER`
+      - `ULTRANECROZIUM_Z`
+      - `ICY_REINS_OF_UNITY`, `SHADOW_REINS_OF_UNITY`
+      - `Arceus`-Plates und `Silvally`-Memories
+    - diese Group-2-Faelle sind aktuell bewusst komplett im Action-Masking geblockt:
+      - Blockiergrund: `form_change_group2_todo`
+      - eigener Nachweistest:
+        - `scripts/90-dev/rl/run-pokerogue-modifier-form-change-item-group2-mask-test.ts`
 - Typische zielgebundene Modifier-Klassen im Submodul:
   - `PokemonModifierType`
     - Obertyp fuer Modifier, die eine Party-Zielauswahl brauchen

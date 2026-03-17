@@ -149,6 +149,35 @@ Wir unterscheiden zwei Ebenen:
   - unpassende Vergleichs-Pokemon werden korrekt als `available=false` maskiert
   - `EvolutionItem.NONE` bleibt bewusst nur interner Platzhalter fuer nicht itembasierte Evolutionen
 
+### FormChangeItemModifierType
+
+- Test:
+  - `scripts/90-dev/rl/run-pokerogue-modifier-form-change-item-group1-mask-test.ts`
+- konkret getestet:
+  - alle aktuell priorisierten Group-1-`FormChangeItem`-Werte
+  - darunter:
+    - Mega-Steine
+    - `BLUE_ORB`, `RED_ORB`
+    - `ADAMANT_CRYSTAL`, `LUSTROUS_GLOBE`, `GRISEOUS_CORE`
+    - `REVEAL_GLASS`
+    - `MAX_MUSHROOMS`
+    - `PRISON_BOTTLE`
+    - `RUSTED_SWORD`, `RUSTED_SHIELD`
+    - `SHARP_METEORITE`, `HARD_METEORITE`, `SMOOTH_METEORITE`
+    - `GRACIDEA`
+    - `SHOCK_DRIVE`, `BURN_DRIVE`, `CHILL_DRIVE`, `DOUSE_DRIVE`
+    - `WELLSPRING_MASK`, `HEARTHFLAME_MASK`, `CORNERSTONE_MASK`
+- Verhalten:
+  - loest artenspezifische Formwechsel eines einzelnen Pokemon aus
+  - die Legalitaet haengt vor allem an:
+    - passender Species
+    - passendem `FormChangeItem`
+    - passender aktueller Vorform (`preFormKey`)
+- Ergebnis:
+  - fuer alle priorisierten Group-1-Items wurde genau ein passendes Pokemon als `available=true` validiert
+  - zwei unpassende Vergleichs-Pokemon werden je Item korrekt als `available=false` maskiert
+  - aktuell validierte Group-1-Gesamtmenge: `69` konkrete `FormChangeItem`-Werte
+
 ## Bereits indirekt im Harness beobachtet, aber noch ohne eigene dedizierte Testdatei
 
 - `BERRY`-Apply-Pfad:
@@ -185,8 +214,18 @@ Wir unterscheiden zwei Ebenen:
   - `TM_ULTRA`
 - was sie tun:
   - lehren einem kompatiblen Pokemon einen Move
-- offener Punkt:
-  - braucht zusaetzlich Party-Ziel + Move-/Replace-Flow
+- aktueller Stand:
+  - im Collector/Action-Masking bewusst **komplett geblockt**
+  - Grund:
+    - gehoert fachlich in den spaeteren Learn-Move-/Move-Replacement-Block
+    - braucht Party-Ziel plus anschliessende Move-Auswahl bzw. Replace-Flow
+- geplanter spaeterer Support:
+  - wird bewusst erst wieder aufgegriffen, wenn wir das DQN fuer Move-Lernen / Move-Replacement bearbeiten
+- Nachweis:
+  - `scripts/90-dev/rl/run-pokerogue-modifier-tm-mask-test.ts`
+  - Ergebnis:
+    - `TM_COMMON`, `TM_GREAT`, `TM_ULTRA` liefern aktuell jeweils `non_executable_reason = tm_selection_todo`
+    - `action_mask = [0]`
 
 ### TerastallizeModifierType
 
@@ -207,22 +246,81 @@ Wir unterscheiden zwei Ebenen:
 
 ### FormChangeItemModifierType
 
-- konkrete Items:
-  - `FORM_CHANGE_ITEM`
-  - `RARE_FORM_CHANGE_ITEM`
-- was sie tun:
-  - loesen passende Formwechsel aus
-- offener Punkt:
-  - braucht artenspezifische Formwechsel-Szenarien
+- Group 1:
+  - ist jetzt ueber die dedizierte Suite abgedeckt
+- Group 2:
+  - ist jetzt bewusst **komplett geblockt** und ueber eine dedizierte Suite abgesichert
+  - Nachweis:
+    - `scripts/90-dev/rl/run-pokerogue-modifier-form-change-item-group2-mask-test.ts`
+  - Ergebnis:
+    - alle Group-2-Items liefern aktuell `non_executable_reason = form_change_group2_todo`
+    - `action_mask = [0]`
+- Group 2 konkret:
+  - `DARK_STONE`
+  - `LIGHT_STONE`
+  - `N_SOLARIZER`
+  - `N_LUNARIZER`
+  - `ULTRANECROZIUM_Z`
+  - `ICY_REINS_OF_UNITY`
+  - `SHADOW_REINS_OF_UNITY`
+  - alle `*_PLATE`-Items fuer `Arceus`
+  - alle `*_MEMORY`-Items fuer `Silvally`
+- Grund:
+  - braucht seltene Pokemon oder zusaetzliche Spezialbedingungen wie Partner-Pokemon/Abhaengigkeiten
+  - geplanter spaeterer Support erst, wenn diese Spezialfaelle gezielt angegangen werden
+
+### AttackTypeBoosterModifierType
+
+- Test:
+  - `scripts/90-dev/rl/run-pokerogue-modifier-attack-type-booster-mask-test.ts`
+- konkret getestet:
+  - `SILK_SCARF`
+  - `BLACK_BELT`
+  - `SHARP_BEAK`
+  - `POISON_BARB`
+  - `SOFT_SAND`
+  - `HARD_STONE`
+  - `SILVER_POWDER`
+  - `SPELL_TAG`
+  - `METAL_COAT`
+  - `CHARCOAL`
+  - `MYSTIC_WATER`
+  - `MIRACLE_SEED`
+  - `MAGNET`
+  - `TWISTED_SPOON`
+  - `NEVER_MELT_ICE`
+  - `DRAGON_FANG`
+  - `BLACK_GLASSES`
+  - `FAIRY_FEATHER`
+- Verhalten:
+  - Typ-Boost-Helditem fuer offensive Moves eines bestimmten Typs
+- aktueller Support-Stand im Collector:
+  - wird jetzt bewusst **unterstuetzt**
+  - ein Ziel ist nur legal, wenn das Pokemon:
+    - mindestens einen offensiven Move des passenden Typs besitzt
+    - und fuer diesen Move auch STAB hat
+- Ergebnis:
+  - fuer jedes Item ist der Zielschnitt jetzt deterministisch als `[1, 0, 0]` abgesichert:
+    - Slot 0: passendes Pokemon mit passendem STAB-Angriffs-Move
+    - Slot 1: passender Move ohne STAB -> illegal
+    - Slot 2: passender Typ ohne passenden Angriffs-Move -> illegal
 
 ### FusePokemonModifierType
 
 - konkretes Item:
-  - Fusions-Modifier
+  - `DNA_SPLICERS`
 - was es tut:
   - fusioniert zwei Party-Pokemon
-- offener Punkt:
-  - braucht einen echten Zwei-Ziel-Flow statt nur eines einfachen Party-Ziels
+- aktueller Stand:
+  - im Collector/Action-Masking bewusst **komplett geblockt**
+  - Grund:
+    - braucht einen echten Zwei-Ziel-Flow statt nur eines einfachen Party-Ziels
+    - fachlich eigenes spaeteres Follow-up-Thema
+- Nachweis:
+  - `scripts/90-dev/rl/run-pokerogue-modifier-fuse-mask-test.ts`
+  - Ergebnis:
+    - `non_executable_reason = fuse_todo`
+    - `action_mask = [0]`
 
 ### Weitere Held-Item-Unterklassen mit noch fehlender dedizierter Suite
 

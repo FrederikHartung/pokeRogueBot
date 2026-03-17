@@ -48,7 +48,12 @@ Kurzfristig ergaenzen:
       - pro Party-Slot statt nur globaler `available`-Flag ist jetzt im Collector angelegt
       - der Berry-Stack-Sonderfall ist jetzt mit einem deterministischen `SITRUS`-Target-Mask-Test verifiziert
       - `Potion`/`Revive` sowie weitere konsumierbare Item-Familien sind jetzt mit einer groesseren deterministischen Item-Suite abgedeckt
-      - naechste offene Zielkandidaten: `MINT`, `MEMORY_MUSHROOM`, `TM_*`, `TERA_SHARD`, `EVOLUTION_ITEM`, `FORM_CHANGE_ITEM`, `FUSE`
+      - `MINT`, `MEMORY_MUSHROOM`, `TERA_SHARD`, `EVOLUTION_ITEM` und `FORM_CHANGE_ITEM` Group 1 sind inzwischen dediziert abgesichert
+      - `AttackTypeBoosterModifierType` ist jetzt mit strengem STAB-Masking dediziert abgesichert und wird bewusst unterstuetzt
+      - `TM_*` ist jetzt bewusst als spaeterer Learn-Move-/Move-Replacement-Block mit `tm_selection_todo` dokumentiert und abgesichert
+      - `FUSE` ist jetzt bewusst als spaeterer Zwei-Ziel-Fusions-Block mit `fuse_todo` dokumentiert und abgesichert
+      - seltene `FORM_CHANGE_ITEM`-Spezialfaelle sind jetzt ebenfalls bewusst geblockt und ueber eine Group-2-Suite abgesichert
+      - naechste offene Zielkandidaten entstehen damit eher bei spaeterem gezieltem Re-Enable dieser Spezialfaelle oder bei noch ungetesteten Held-Item-Unterklassen
     - fuer neue RL-Collector-/Pipeline-Logik Tests in zwei Schichten aufbauen:
       - kleine deterministische External-RL-Integrationstests fuer echte Spiel-/UI-Pfade
       - schlanke Node-/Unit-Tests fuer reine Runner-, Config-, Reward- und Auswertelogik im Hauptrepo
