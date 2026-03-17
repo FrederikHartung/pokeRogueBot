@@ -52,6 +52,13 @@ Kurzfristig ergaenzen:
       - `AttackTypeBoosterModifierType` ist jetzt mit strengem STAB-Masking dediziert abgesichert und wird bewusst unterstuetzt
       - `SpeciesStatBoosterModifierType` ist jetzt mit strengem Species-Masking dediziert abgesichert und wird bewusst unterstuetzt
       - `BaseStatBoosterModifierType` ist jetzt technisch konservativ ueber den echten Stack-Cap abgesichert und wird bewusst unterstuetzt
+      - `PokemonBaseStatTotalModifierType` ist jetzt im selben Stil technisch konservativ ueber den echten Stack-Cap abgesichert und wird bewusst unterstuetzt
+      - `PokemonExpBoosterModifierType` ist jetzt im selben Stil technisch konservativ ueber den echten Stack-Cap abgesichert und wird bewusst unterstuetzt
+      - `PokemonFriendshipBoosterModifierType` ist jetzt im selben Stil technisch konservativ ueber den echten Stack-Cap abgesichert und wird bewusst unterstuetzt
+      - `PokemonMoveAccuracyBoosterModifierType` ist jetzt im selben Stil technisch konservativ ueber den echten Stack-Cap abgesichert und wird bewusst unterstuetzt
+      - `PokemonMultiHitModifierType` ist jetzt im selben Stil technisch konservativ ueber den echten Stack-Cap abgesichert und wird bewusst unterstuetzt
+      - `ContactHeldItemTransferChanceModifierType` ist jetzt im selben Stil technisch konservativ ueber den echten Stack-Cap abgesichert und wird bewusst unterstuetzt
+      - `TurnHeldItemTransferModifierType` ist jetzt im selben Stil technisch konservativ ueber den echten Stack-Cap abgesichert und wird bewusst unterstuetzt
       - `TM_*` ist jetzt bewusst als spaeterer Learn-Move-/Move-Replacement-Block mit `tm_selection_todo` dokumentiert und abgesichert
       - `FUSE` ist jetzt bewusst als spaeterer Zwei-Ziel-Fusions-Block mit `fuse_todo` dokumentiert und abgesichert
       - seltene `FORM_CHANGE_ITEM`-Spezialfaelle sind jetzt ebenfalls bewusst geblockt und ueber eine Group-2-Suite abgesichert

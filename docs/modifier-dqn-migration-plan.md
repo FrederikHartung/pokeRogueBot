@@ -553,7 +553,56 @@ Aktuelle bewusste Einschraenkungen des Collectors:
       - keine harte Rollen-Heuristik im Action-Masking
       - nur Targets am echten Stack-Cap werden illegal maskiert
     - die fachliche Priorisierung, welches Pokemon z. B. `PROTEIN`, `CALCIUM` oder `CARBOS` bevorzugt bekommen sollte, bleibt vorerst Aufgabe der Reward-Policy
+  - `PokemonBaseStatTotalModifierType` wird jetzt im selben Stil technisch-konservativ behandelt:
+    - eigener Nachweistest:
+      - `scripts/90-dev/rl/run-pokerogue-modifier-base-stat-total-mask-test.ts`
+    - aktuell keine harte Heuristik im Action-Masking
+    - nur Targets am echten Stack-Cap werden illegal maskiert
+    - betrifft aktuell den Mystery-Encounter-Fall `MYSTERY_ENCOUNTER_SHUCKLE_JUICE` mit den Varianten `+10` und `-15`
+  - `PokemonExpBoosterModifierType` wird jetzt ebenfalls im selben Stil technisch-konservativ behandelt:
+    - eigener Nachweistest:
+      - `scripts/90-dev/rl/run-pokerogue-modifier-pokemon-exp-booster-mask-test.ts`
+    - aktuell keine harte Heuristik im Action-Masking
+    - nur Targets am echten Stack-Cap werden illegal maskiert
+    - aktuell abgesichert fuer:
+      - `LUCKY_EGG`
+      - `GOLDEN_EGG`
+  - `PokemonFriendshipBoosterModifierType` wird jetzt ebenfalls im selben Stil technisch-konservativ behandelt:
+    - eigener Nachweistest:
+      - `scripts/90-dev/rl/run-pokerogue-modifier-pokemon-friendship-booster-mask-test.ts`
+    - aktuell keine harte Evolutions-/Rollen-Heuristik im Action-Masking
+    - nur Targets am echten Stack-Cap werden illegal maskiert
+    - aktuell abgesichert fuer:
+      - `SOOTHE_BELL`
+  - `PokemonMoveAccuracyBoosterModifierType` wird jetzt ebenfalls im selben Stil technisch-konservativ behandelt:
+    - eigener Nachweistest:
+      - `scripts/90-dev/rl/run-pokerogue-modifier-pokemon-move-accuracy-booster-mask-test.ts`
+    - aktuell keine harte Move-/Rollen-Heuristik im Action-Masking
+    - nur Targets am echten Stack-Cap werden illegal maskiert
+    - aktuell abgesichert fuer:
+      - `WIDE_LENS`
+  - `PokemonMultiHitModifierType` wird jetzt ebenfalls im selben Stil technisch-konservativ behandelt:
+    - eigener Nachweistest:
+      - `scripts/90-dev/rl/run-pokerogue-modifier-pokemon-multi-hit-mask-test.ts`
+    - aktuell keine harte Move-/Rollen-Heuristik im Action-Masking
+    - nur Targets am echten Stack-Cap werden illegal maskiert
+    - aktuell abgesichert fuer:
+      - `MULTI_LENS`
+  - `ContactHeldItemTransferChanceModifierType` wird jetzt ebenfalls im selben Stil technisch-konservativ behandelt:
+    - eigener Nachweistest:
+      - `scripts/90-dev/rl/run-pokerogue-modifier-contact-held-item-transfer-mask-test.ts`
+    - aktuell keine harte Move-/Rollen-Heuristik im Action-Masking
+    - nur Targets am echten Stack-Cap werden illegal maskiert
+    - aktuell abgesichert fuer:
+      - `GRIP_CLAW`
     - die Suite prueft je nach Item entweder Party-Zielmaskierung oder Move-Zielmaskierung in einem kontrollierten Starter-Setup
+  - `TurnHeldItemTransferModifierType` wird jetzt ebenfalls im selben Stil technisch-konservativ behandelt:
+    - eigener Nachweistest:
+      - `scripts/90-dev/rl/run-pokerogue-modifier-turn-held-item-transfer-mask-test.ts`
+    - aktuell keine harte fachliche Heuristik im Action-Masking
+    - nur Targets am echten Stack-Cap werden illegal maskiert
+    - aktuell abgesichert fuer:
+      - `MINI_BLACK_HOLE`
   - `MEMORY_MUSHROOM` wird aktuell bewusst nicht als erlaubte Aktion materialisiert:
     - der Modifier ist fachlich wie `TM_*` ein spaeterer Follow-up-Fall mit weiterer Auswahl
     - aktueller Blockiergrund im Action-Masking: `remember_move_todo`

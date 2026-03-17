@@ -349,6 +349,135 @@ Wir unterscheiden zwei Ebenen:
     - Slot 0: bereits auf Max-Stack fuer den betroffenen Stat -> illegal
     - Slot 1 und 2: noch unter Cap -> legal
 
+### PokemonBaseStatTotalModifierType
+
+- Test:
+  - `scripts/90-dev/rl/run-pokerogue-modifier-base-stat-total-mask-test.ts`
+- konkret getestet:
+  - `MYSTERY_ENCOUNTER_SHUCKLE_JUICE` mit `+10`
+  - `MYSTERY_ENCOUNTER_SHUCKLE_JUICE` mit `-15`
+- Verhalten:
+  - veraendert den gesamten Base-Stat-Total-Wert eines einzelnen Pokemon
+  - HP wird halb so stark angepasst wie die anderen Stats
+  - maximale Stack-Anzahl ist technisch `2`
+- aktueller Support-Stand im Collector:
+  - wird jetzt bewusst **unterstuetzt**
+  - aktuell keine harte Rollen-Heuristik im Action-Masking
+  - ein Ziel wird nur dann illegal, wenn der Stack-Cap bereits erreicht ist
+- Ergebnis:
+  - beide Varianten sind deterministisch als `[0, 1, 1]` abgesichert:
+    - Slot 0: bereits auf Max-Stack -> illegal
+    - Slot 1 und 2: noch unter Cap -> legal
+
+### PokemonExpBoosterModifierType
+
+- Test:
+  - `scripts/90-dev/rl/run-pokerogue-modifier-pokemon-exp-booster-mask-test.ts`
+- konkret getestet:
+  - `LUCKY_EGG`
+  - `GOLDEN_EGG`
+- Verhalten:
+  - pokemon-spezifischer EXP-Boost als Helditem
+  - maximale Stack-Anzahl ist technisch `99`
+- aktueller Support-Stand im Collector:
+  - wird jetzt bewusst **unterstuetzt**
+  - aktuell keine harte Rollen-Heuristik im Action-Masking
+  - ein Ziel wird nur dann illegal, wenn der Stack-Cap bereits erreicht ist
+- Ergebnis:
+  - beide Items sind deterministisch als `[0, 1, 1]` abgesichert:
+    - Slot 0: bereits auf Max-Stack -> illegal
+    - Slot 1 und 2: noch unter Cap -> legal
+
+### PokemonFriendshipBoosterModifierType
+
+- Test:
+  - `scripts/90-dev/rl/run-pokerogue-modifier-pokemon-friendship-booster-mask-test.ts`
+- konkret getestet:
+  - `SOOTHE_BELL`
+- Verhalten:
+  - pokemon-spezifischer Friendship-Boost als Helditem
+  - maximale Stack-Anzahl ist technisch `3`
+- aktueller Support-Stand im Collector:
+  - wird jetzt bewusst **unterstuetzt**
+  - aktuell keine harte Evolutions-/Rollen-Heuristik im Action-Masking
+  - ein Ziel wird nur dann illegal, wenn der Stack-Cap bereits erreicht ist
+- Ergebnis:
+  - `SOOTHE_BELL` ist deterministisch als `[0, 1, 1]` abgesichert:
+    - Slot 0: bereits auf Max-Stack -> illegal
+    - Slot 1 und 2: noch unter Cap -> legal
+
+### PokemonMoveAccuracyBoosterModifierType
+
+- Test:
+  - `scripts/90-dev/rl/run-pokerogue-modifier-pokemon-move-accuracy-booster-mask-test.ts`
+- konkret getestet:
+  - `WIDE_LENS`
+- Verhalten:
+  - pokemon-spezifischer Genauigkeits-Boost als Helditem
+  - maximale Stack-Anzahl ist technisch `3`
+- aktueller Support-Stand im Collector:
+  - wird jetzt bewusst **unterstuetzt**
+  - aktuell keine harte Move-/Rollen-Heuristik im Action-Masking
+  - ein Ziel wird nur dann illegal, wenn der Stack-Cap bereits erreicht ist
+- Ergebnis:
+  - `WIDE_LENS` ist deterministisch als `[0, 1, 1]` abgesichert:
+    - Slot 0: bereits auf Max-Stack -> illegal
+    - Slot 1 und 2: noch unter Cap -> legal
+
+### PokemonMultiHitModifierType
+
+- Test:
+  - `scripts/90-dev/rl/run-pokerogue-modifier-pokemon-multi-hit-mask-test.ts`
+- konkret getestet:
+  - `MULTI_LENS`
+- Verhalten:
+  - pokemon-spezifischer Multi-Hit-/Zusatztreffer-Boost als Helditem
+  - maximale Stack-Anzahl ist technisch `2`
+- aktueller Support-Stand im Collector:
+  - wird jetzt bewusst **unterstuetzt**
+  - aktuell keine harte Move-/Rollen-Heuristik im Action-Masking
+  - ein Ziel wird nur dann illegal, wenn der Stack-Cap bereits erreicht ist
+- Ergebnis:
+  - `MULTI_LENS` ist deterministisch als `[0, 1, 1]` abgesichert:
+    - Slot 0: bereits auf Max-Stack -> illegal
+    - Slot 1 und 2: noch unter Cap -> legal
+
+### ContactHeldItemTransferChanceModifierType
+
+- Test:
+  - `scripts/90-dev/rl/run-pokerogue-modifier-contact-held-item-transfer-mask-test.ts`
+- konkret getestet:
+  - `GRIP_CLAW`
+- Verhalten:
+  - pokemon-spezifische Chance, bei erfolgreichem Kontaktangriff Helditems zu uebertragen/zu stehlen
+  - maximale Stack-Anzahl ist technisch `5`
+- aktueller Support-Stand im Collector:
+  - wird jetzt bewusst **unterstuetzt**
+  - aktuell keine harte Move-/Rollen-Heuristik im Action-Masking
+  - ein Ziel wird nur dann illegal, wenn der Stack-Cap bereits erreicht ist
+- Ergebnis:
+  - `GRIP_CLAW` ist deterministisch als `[0, 1, 1]` abgesichert:
+    - Slot 0: bereits auf Max-Stack -> illegal
+    - Slot 1 und 2: noch unter Cap -> legal
+
+### TurnHeldItemTransferModifierType
+
+- Test:
+  - `scripts/90-dev/rl/run-pokerogue-modifier-turn-held-item-transfer-mask-test.ts`
+- konkret getestet:
+  - `MINI_BLACK_HOLE`
+- Verhalten:
+  - pokemon-spezifischer turnbasierter Held-Item-Transfer
+  - maximale Stack-Anzahl ist technisch `1`
+- aktueller Support-Stand im Collector:
+  - wird jetzt bewusst **unterstuetzt**
+  - aktuell keine harte fachliche Heuristik im Action-Masking
+  - ein Ziel wird nur dann illegal, wenn der Stack-Cap bereits erreicht ist
+- Ergebnis:
+  - `MINI_BLACK_HOLE` ist deterministisch als `[0, 1, 1]` abgesichert:
+    - Slot 0: bereits auf Max-Stack -> illegal
+    - Slot 1 und 2: noch ohne Item und damit legal
+
 ### FusePokemonModifierType
 
 - konkretes Item:
@@ -382,8 +511,6 @@ Wir unterscheiden zwei Ebenen:
   - erhoeht Multi-Hit-Verhalten
 - `ContactHeldItemTransferChanceModifierType`
   - uebertraegt Held-Items bei Kontakt mit Chance
-- `TurnHeldItemTransferModifierType`
-  - turnbasierter Held-Item-Transfer
 - `EVOLUTION_TRACKER_GIMMIGHOUL`
 - `REVIVER_SEED`
 - `WHITE_HERB`
