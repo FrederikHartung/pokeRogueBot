@@ -326,6 +326,29 @@ Wir unterscheiden zwei Ebenen:
     - Slot 0: passendes Pokemon der vorgesehenen Species
     - Slot 1 und 2: unpassende Species -> illegal
 
+### BaseStatBoosterModifierType
+
+- Test:
+  - `scripts/90-dev/rl/run-pokerogue-modifier-base-stat-booster-mask-test.ts`
+- konkret getestet:
+  - `HP_UP`
+  - `PROTEIN`
+  - `IRON`
+  - `CALCIUM`
+  - `ZINC`
+  - `CARBOS`
+- Verhalten:
+  - permanenter Stat-Boost fuer genau einen Basisstat eines einzelnen Pokemon
+  - die maximale Stack-Anzahl ist technisch an den IV des jeweiligen Stats gebunden
+- aktueller Support-Stand im Collector:
+  - wird jetzt bewusst **unterstuetzt**
+  - aktuell keine harte Rollen-Heuristik im Action-Masking
+  - ein Ziel wird nur dann illegal, wenn der Stack-Cap fuer genau diesen Stat bereits erreicht ist
+- Ergebnis:
+  - fuer jedes Item ist der Zielschnitt jetzt deterministisch als `[0, 1, 1]` abgesichert:
+    - Slot 0: bereits auf Max-Stack fuer den betroffenen Stat -> illegal
+    - Slot 1 und 2: noch unter Cap -> legal
+
 ### FusePokemonModifierType
 
 - konkretes Item:

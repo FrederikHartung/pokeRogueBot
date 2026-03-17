@@ -546,6 +546,13 @@ Aktuelle bewusste Einschraenkungen des Collectors:
       - Item nur auf die dafuer vorgesehene Species
       - unpassende Species werden illegal maskiert, auch wenn das Spiel den Helditem-Pfad technisch grundsaetzlich oeffnen koennte
     - damit ist z. B. `LIGHT_BALL` auf `Pikachu` legal, auf `Eevee` oder `Charmander` aber bewusst illegal
+  - `BaseStatBoosterModifierType` wird jetzt ebenfalls gezielt unterstuetzt:
+    - eigener Nachweistest:
+      - `scripts/90-dev/rl/run-pokerogue-modifier-base-stat-booster-mask-test.ts`
+    - der Target-Schnitt bleibt hier absichtlich technisch-konservativ:
+      - keine harte Rollen-Heuristik im Action-Masking
+      - nur Targets am echten Stack-Cap werden illegal maskiert
+    - die fachliche Priorisierung, welches Pokemon z. B. `PROTEIN`, `CALCIUM` oder `CARBOS` bevorzugt bekommen sollte, bleibt vorerst Aufgabe der Reward-Policy
     - die Suite prueft je nach Item entweder Party-Zielmaskierung oder Move-Zielmaskierung in einem kontrollierten Starter-Setup
   - `MEMORY_MUSHROOM` wird aktuell bewusst nicht als erlaubte Aktion materialisiert:
     - der Modifier ist fachlich wie `TM_*` ein spaeterer Follow-up-Fall mit weiterer Auswahl

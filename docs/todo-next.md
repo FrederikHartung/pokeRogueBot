@@ -51,9 +51,12 @@ Kurzfristig ergaenzen:
       - `MINT`, `MEMORY_MUSHROOM`, `TERA_SHARD`, `EVOLUTION_ITEM` und `FORM_CHANGE_ITEM` Group 1 sind inzwischen dediziert abgesichert
       - `AttackTypeBoosterModifierType` ist jetzt mit strengem STAB-Masking dediziert abgesichert und wird bewusst unterstuetzt
       - `SpeciesStatBoosterModifierType` ist jetzt mit strengem Species-Masking dediziert abgesichert und wird bewusst unterstuetzt
+      - `BaseStatBoosterModifierType` ist jetzt technisch konservativ ueber den echten Stack-Cap abgesichert und wird bewusst unterstuetzt
       - `TM_*` ist jetzt bewusst als spaeterer Learn-Move-/Move-Replacement-Block mit `tm_selection_todo` dokumentiert und abgesichert
       - `FUSE` ist jetzt bewusst als spaeterer Zwei-Ziel-Fusions-Block mit `fuse_todo` dokumentiert und abgesichert
       - seltene `FORM_CHANGE_ITEM`-Spezialfaelle sind jetzt ebenfalls bewusst geblockt und ueber eine Group-2-Suite abgesichert
+      - Reward-Policy spaeter fuer `BaseStatBoosterModifierType` gezielt verfeinern:
+        - z. B. `PROTEIN` eher fuer physische Sweeper, `CALCIUM` eher fuer spezielle Sweeper, `CARBOS` eher fuer offensive Speed-Skalierung
       - naechste offene Zielkandidaten entstehen damit eher bei spaeterem gezieltem Re-Enable dieser Spezialfaelle oder bei noch ungetesteten Held-Item-Unterklassen
     - fuer neue RL-Collector-/Pipeline-Logik Tests in zwei Schichten aufbauen:
       - kleine deterministische External-RL-Integrationstests fuer echte Spiel-/UI-Pfade
