@@ -24,6 +24,10 @@ import Phaser from "phaser";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 type ModifierPolicy = "random_executable";
+type CollectorVariant = "sanity_masking" | "strategic_fixed_seed";
+const SCHEMA_VERSION = "modifier_strategic_fixed_seed_output_v1";
+const STARTER_CONFIG_ID = "wave_lib_w1_starters_v1";
+const WORKER_ID = process.env.POKEROGUE_COLLECTOR_WORKER_ID ?? "local-worker-0";
 
 interface BattlerSnapshot {
   species_id: number;
@@ -76,10 +80,14 @@ interface ModifierDecisionSnapshot {
 }
 
 interface ModifierStepRecord {
+  step_index: number;
+  worker_id: string;
+  decision_rng_seed: string;
   wave_index: number;
   combat_turns: CombatDecisionSnapshot[];
   modifier_decision: ModifierDecisionSnapshot;
   selected_action: ModifierActionSnapshot;
+  selected_action_valid: boolean;
   immediate_reward: number;
 }
 
@@ -132,9 +140,13 @@ interface TimeoutDebugSnapshot {
 }
 
 interface EpisodeRecord {
+  schema_version: string;
   run_index: number;
+  worker_id: string;
+  decision_rng_seed: string;
   seed: string;
   max_waves: number;
+  collector_variant: CollectorVariant;
   modifier_policy: ModifierPolicy;
   runtime_ms: number;
   completed_waves: number;
@@ -144,13 +156,17 @@ interface EpisodeRecord {
   terminal_reward: number;
   total_reward: number;
   steps: ModifierStepRecord[];
+  retry_count?: number;
   timeout_debug?: TimeoutDebugSnapshot;
+  error_debug?: TimeoutDebugSnapshot;
+  error_stack?: string;
 }
 
 const OUTPUT_PATH = __OUTPUT_PATH__;
 const SEED = __SEED__;
 const RUN_COUNT = __RUN_COUNT__;
 const MAX_WAVES = __MAX_WAVES__;
+const COLLECTOR_VARIANT = __COLLECTOR_VARIANT__ as CollectorVariant;
 const MODIFIER_POLICY = __MODIFIER_POLICY__ as ModifierPolicy;
 const COMBAT_DQN_CHECKPOINT = __COMBAT_DQN_CHECKPOINT__;
 const COMBAT_DQN_DEVICE = __COMBAT_DQN_DEVICE__;
@@ -187,18 +203,59 @@ const WAVE_LIB_W1_STARTERS = [
     moveset: [MoveId.TACKLE, MoveId.TAIL_WHIP, MoveId.WATER_GUN],
   },
 ];
-const SAFE_REWARD_ACTION_IDS = new Set([
-  "POKEBALL",
-  "GREAT_BALL",
-  "ULTRA_BALL",
-  "MASTER_BALL",
+// Central offline policy for SelectModifierPhase reward actions.
+// Reward actions are either:
+// - explicitly blocked for the current offline DQN setup,
+// - allowed as direct no-target actions,
+// - allowed as party-target actions via selectFilter-based target masking,
+// - or still unsupported because they require move/multi-step follow-up selection.
+const OFFLINE_BLOCKED_REWARD_IDS = new Set([
   "LURE",
   "SUPER_LURE",
   "MAX_LURE",
+  "MAP",
+  "MEMORY_MUSHROOM",
+  "DNA_SPLICERS",
+  "TERA_SHARD",
+  "TERA_ORB",
+  "MEGA_BRACELET",
+  "DYNAMAX_BAND",
+  "LOCK_CAPSULE",
+  "VOUCHER",
+  "VOUCHER_PLUS",
+  "VOUCHER_PREMIUM",
+  "IV_SCANNER",
+  "SHINY_CHARM",
+  "HEALING_CHARM",
+  "ABILITY_CHARM",
+  "CATCHING_CHARM",
+  "EVIOLITE",
+  "LEEK",
+  "TOXIC_ORB",
+  "FLAME_ORB",
+  "BATON",
+  "SOUL_DEW",
+]);
+const OFFLINE_ALLOWED_DIRECT_REWARD_IDS = new Set([
+  "POKEBALL",
+  "GREAT_BALL",
+  "ULTRA_BALL",
+  "ROGUE_BALL",
+  "MASTER_BALL",
   "BERRY",
+  "SACRED_ASH",
+  "RARER_CANDY",
   "TEMP_STAT_STAGE_BOOSTER",
+  "DIRE_HIT",
   "NUGGET",
   "BIG_NUGGET",
+  "RELIC_GOLD",
+  "AMULET_COIN",
+  "CANDY_JAR",
+  "EXP_CHARM",
+  "SUPER_EXP_CHARM",
+  "EXP_SHARE",
+  "BERRY_POUCH",
 ]);
 const BLOCKED_GROUP2_FORM_CHANGE_ITEM_IDS = new Set([
   "DARK_STONE",
@@ -254,6 +311,11 @@ const SPECIES_STAT_BOOSTER_ELIGIBLE_SPECIES: Record<string, SpeciesId[]> = {
   DEEP_SEA_SCALE: [SpeciesId.CLAMPERL],
   DEEP_SEA_TOOTH: [SpeciesId.CLAMPERL],
 };
+const OFFLINE_BLOCKED_MODIFIER_TYPE_NAMES = new Set([
+  "RememberMoveModifierType",
+  "TerastallizeModifierType",
+  "FusePokemonModifierType",
+]);
 
 interface PersistentCombatDqnWorker {
   child: ReturnType<typeof spawn>;
@@ -280,6 +342,30 @@ function createDeterministicRandom(seed: string): () => number {
     state >>>= 0;
     return state / 4294967296;
   };
+}
+
+function isTransientStartupMysteryEncounterError(
+  terminationReason: string,
+  waveReached: number,
+  steps: ModifierStepRecord[],
+): boolean {
+  return (
+    terminationReason.includes("mysteryEncounter")
+    && waveReached === 0
+    && steps.length === 0
+  );
+}
+
+function shouldRetryRun(
+  terminationReason: string,
+  waveReached: number,
+  steps: ModifierStepRecord[],
+  attemptIndex: number,
+): boolean {
+  if (attemptIndex >= 1) {
+    return false;
+  }
+  return isTransientStartupMysteryEncounterError(terminationReason, waveReached, steps);
 }
 
 function toHpRatio(hp: number, maxHp: number): number {
@@ -865,6 +951,10 @@ function getModifierTypeId(option: any): string {
   return modifierType?.id ?? modifierType?.name ?? modifierType?.constructor?.name ?? "unknown";
 }
 
+function isSupportedPotionShopItem(modifierTypeId: string): boolean {
+  return modifierTypeId === "POTION" || modifierTypeId === "Potion";
+}
+
 function toModifierOptionSnapshot(option: any, index: number): ModifierOptionSnapshot {
   const modifierType = option.modifierTypeOption?.type;
   return {
@@ -897,7 +987,7 @@ function getActionAvailability(game: GameManager, option: any): { available: boo
   if (cost > game.scene.money) {
     return { available: false, reason: "insufficient_money" };
   }
-  if (modifierTypeId === "POTION" && !partyFlags.hasMissingHp) {
+  if (isSupportedPotionShopItem(modifierTypeId) && !partyFlags.hasMissingHp) {
     return { available: false, reason: "no_injured_pokemon" };
   }
   if (modifierTypeId === "REVIVE" && !partyFlags.hasFaintedPokemon) {
@@ -915,24 +1005,31 @@ function getActionExecutability(
 ): { executable: boolean; reason?: string; requiresPartyTarget?: boolean } {
   const modifierTypeId = getModifierTypeId(option);
   const modifierType = option?.modifierTypeOption?.type;
+  const modifierTypeName = String(modifierType?.constructor?.name ?? "");
   if (actionType === "take_reward") {
-    if (modifierTypeId === "MEMORY_MUSHROOM" || modifierType?.constructor?.name === "RememberMoveModifierType") {
-      return { executable: false, reason: "remember_move_todo" };
+    if (modifierTypeId === "MEMORY_MUSHROOM" || modifierTypeName === "RememberMoveModifierType") {
+      return { executable: false, reason: "blocked_by_offline_modifier_policy:remember_move_todo" };
     }
-    if (modifierTypeId === "TERA_SHARD" || modifierType?.constructor?.name === "TerastallizeModifierType") {
-      return { executable: false, reason: "tera_shard_todo" };
+    if (modifierTypeId === "TERA_SHARD" || modifierTypeName === "TerastallizeModifierType") {
+      return { executable: false, reason: "blocked_by_offline_modifier_policy:tera_shard_todo" };
     }
-    if (modifierTypeId === "DNA_SPLICERS" || modifierType?.constructor?.name === "FusePokemonModifierType") {
-      return { executable: false, reason: "fuse_todo" };
+    if (modifierTypeId === "DNA_SPLICERS" || modifierTypeName === "FusePokemonModifierType") {
+      return { executable: false, reason: "blocked_by_offline_modifier_policy:fuse_todo" };
     }
     if (
-      modifierType?.constructor?.name === "FormChangeItemModifierType"
+      modifierTypeName === "FormChangeItemModifierType"
       && BLOCKED_GROUP2_FORM_CHANGE_ITEM_IDS.has(String(modifierTypeId))
     ) {
-      return { executable: false, reason: "form_change_group2_todo" };
+      return { executable: false, reason: "blocked_by_offline_modifier_policy:form_change_group2_todo" };
     }
     if (modifierTypeId.startsWith("TM")) {
-      return { executable: false, reason: "tm_selection_todo" };
+      return { executable: false, reason: "blocked_by_offline_modifier_policy:tm_selection_todo" };
+    }
+    if (
+      OFFLINE_BLOCKED_REWARD_IDS.has(modifierTypeId)
+      || OFFLINE_BLOCKED_MODIFIER_TYPE_NAMES.has(modifierTypeName)
+    ) {
+      return { executable: false, reason: "blocked_by_offline_modifier_policy" };
     }
     if (typeof modifierType?.moveSelectFilter === "function") {
       return { executable: false, reason: "requires_move_selection" };
@@ -940,10 +1037,14 @@ function getActionExecutability(
     if (typeof modifierType?.selectFilter === "function") {
       return { executable: true, requiresPartyTarget: true };
     }
-    if (SAFE_REWARD_ACTION_IDS.has(modifierTypeId)) {
+    if (OFFLINE_ALLOWED_DIRECT_REWARD_IDS.has(modifierTypeId)) {
       return { executable: true };
     }
     return { executable: false, reason: "requires_followup_selection" };
+  }
+
+  if (isSupportedPotionShopItem(modifierTypeId) && typeof modifierType?.selectFilter === "function") {
+    return { executable: true, requiresPartyTarget: true };
   }
 
   return { executable: false, reason: "shop_item_execution_not_implemented" };
@@ -1064,20 +1165,41 @@ function buildModifierDecisionSnapshot(game: GameManager): ModifierDecisionSnaps
     row.forEach((option, columnIndex) => {
       const availability = getActionAvailability(game, option);
       const executability = getActionExecutability("buy_shop_item", option);
-      const available = availability.available && executability.executable;
-      actions.push({
-        action_index: actions.length,
-        action_type: "buy_shop_item",
-        shop_row_index: rowIndex,
-        shop_column_index: columnIndex,
-        modifier_type_id: getModifierTypeId(option),
-        cost: option.modifierTypeOption?.cost ?? 0,
-        available,
-        executable: executability.executable,
-        unavailable_reason: availability.reason,
-        non_executable_reason: executability.reason,
-      });
-      actionMask.push(available ? 1 : 0);
+      if (executability.requiresPartyTarget) {
+        game.scene.getPlayerParty().forEach((_pokemon: any, partyIndex: number) => {
+          const targetAvailability = getRewardTargetAvailability(game, option, partyIndex);
+          const available = availability.available && targetAvailability.available && executability.executable;
+          actions.push({
+            action_index: actions.length,
+            action_type: "buy_shop_item",
+            shop_row_index: rowIndex,
+            shop_column_index: columnIndex,
+            target_party_index: partyIndex,
+            modifier_type_id: getModifierTypeId(option),
+            cost: option.modifierTypeOption?.cost ?? 0,
+            available,
+            executable: executability.executable,
+            unavailable_reason: availability.reason ?? targetAvailability.reason,
+            non_executable_reason: executability.reason,
+          });
+          actionMask.push(available ? 1 : 0);
+        });
+      } else {
+        const available = availability.available && executability.executable;
+        actions.push({
+          action_index: actions.length,
+          action_type: "buy_shop_item",
+          shop_row_index: rowIndex,
+          shop_column_index: columnIndex,
+          modifier_type_id: getModifierTypeId(option),
+          cost: option.modifierTypeOption?.cost ?? 0,
+          available,
+          executable: executability.executable,
+          unavailable_reason: availability.reason,
+          non_executable_reason: executability.reason,
+        });
+        actionMask.push(available ? 1 : 0);
+      }
     });
   });
 
@@ -1325,6 +1447,50 @@ function advanceCurrentUiPromptIfPossible(game: GameManager): boolean {
   return true;
 }
 
+async function waitForCommandPhaseAfterModifierAction(
+  game: GameManager,
+  timeoutMs: number,
+): Promise<void> {
+  let commandReached = false;
+  let commandFailed = false;
+
+  game.phaseInterceptor.to("CommandPhase")
+    .then(() => {
+      commandReached = true;
+    })
+    .catch(() => {
+      commandFailed = true;
+    });
+
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    if (commandReached) {
+      return;
+    }
+    if (commandFailed) {
+      throw new Error("Failed while waiting for CommandPhase after modifier action");
+    }
+
+    if (resolveLearnMoveIfNeeded(game)) {
+      await sleep(25);
+      continue;
+    }
+
+    if (advanceCurrentUiPromptIfPossible(game)) {
+      await sleep(25);
+      continue;
+    }
+
+    await sleep(25);
+  }
+
+  if (commandReached) {
+    return;
+  }
+
+  throw new Error(`step_timeout:modifier_action_to_command_phase:${timeoutMs}`);
+}
+
 function sampleUniformAction(valid: number[]): number {
   return valid[Math.floor(Math.random() * valid.length)]!;
 }
@@ -1398,6 +1564,12 @@ function isCombatTerminalPhase(game: GameManager): boolean {
     || game.isCurrentPhase("BattleEndPhase")
     || game.isCurrentPhase("SelectModifierPhase")
     || game.isCurrentPhase("EggLapsePhase");
+}
+
+function isGameTerminalPhase(game: GameManager): boolean {
+  return game.isCurrentPhase("GameOverPhase")
+    || game.isCurrentPhase("PostGameOverPhase")
+    || game.isCurrentPhase("TitlePhase");
 }
 
 function clearStalePromptsForForcedSwitch(game: GameManager): void {
@@ -1681,18 +1853,23 @@ function toRewardRowCursor(): number {
   return ShopCursorTarget.REWARDS;
 }
 
-async function executeTakeRewardAction(game: GameManager, rewardIndex: number, targetPartyIndex?: number): Promise<void> {
+function toShopRowCursor(shopRowIndex: number): number {
+  return shopRowIndex + 2;
+}
+
+async function selectModifierOptionAndResolvePartyTarget(
+  game: GameManager,
+  rowCursor: number,
+  cursor: number,
+  targetPartyIndex?: number,
+): Promise<UiMode> {
   await waitForModifierInputReady(game);
   const handler = getModifierHandler(game);
-  handler.setRowCursor(toRewardRowCursor());
-  handler.setCursor(rewardIndex);
+  handler.setRowCursor(rowCursor);
+  handler.setCursor(cursor);
   handler.processInput(Button.ACTION);
 
   const followupMode = await waitForModifierRewardFollowupMode(game);
-  console.error(
-    `[modifier-fixed-seed-reward] after_select wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} ui=${UiMode[followupMode] ?? followupMode} reward_index=${rewardIndex}`,
-  );
-
   if (followupMode === UiMode.PARTY) {
     await waitForUiMode(game, UiMode.PARTY);
     const partyHandler = game.scene.ui.getHandler() as any;
@@ -1753,22 +1930,84 @@ async function executeTakeRewardAction(game: GameManager, rewardIndex: number, t
     }
   }
 
-  await game.phaseInterceptor.to("CommandPhase");
+  return followupMode;
 }
 
-async function executeModifierAction(game: GameManager, action: ModifierActionSnapshot): Promise<void> {
+async function waitForModifierSelectOrCommandPhaseAfterShopAction(
+  game: GameManager,
+  timeoutMs: number,
+): Promise<"modifier_select" | "command_phase"> {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    if (game.isCurrentPhase("CommandPhase")) {
+      return "command_phase";
+    }
+    if (game.isCurrentPhase("SelectModifierPhase") && game.scene.ui.getMode() === UiMode.MODIFIER_SELECT) {
+      return "modifier_select";
+    }
+    if (advanceCurrentUiPromptIfPossible(game)) {
+      await sleep(25);
+      continue;
+    }
+    await sleep(25);
+  }
+
+  throw new Error(`step_timeout:shop_action_followup:${timeoutMs}`);
+}
+
+async function executeTakeRewardAction(game: GameManager, rewardIndex: number, targetPartyIndex?: number): Promise<"command_phase"> {
+  const followupMode = await selectModifierOptionAndResolvePartyTarget(
+    game,
+    toRewardRowCursor(),
+    rewardIndex,
+    targetPartyIndex,
+  );
+  console.error(
+    `[modifier-fixed-seed-reward] after_select wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} ui=${UiMode[followupMode] ?? followupMode} reward_index=${rewardIndex}`,
+  );
+
+  await waitForCommandPhaseAfterModifierAction(game, STEP_TIMEOUT_MS);
+  return "command_phase";
+}
+
+async function executeBuyShopItemAction(
+  game: GameManager,
+  shopRowIndex: number,
+  shopColumnIndex: number,
+  targetPartyIndex?: number,
+): Promise<"modifier_select" | "command_phase"> {
+  const followupMode = await selectModifierOptionAndResolvePartyTarget(
+    game,
+    toShopRowCursor(shopRowIndex),
+    shopColumnIndex,
+    targetPartyIndex,
+  );
+  console.error(
+    `[modifier-fixed-seed-shop-buy] after_select wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} ui=${UiMode[followupMode] ?? followupMode} shop_row=${shopRowIndex} shop_col=${shopColumnIndex}`,
+  );
+  return waitForModifierSelectOrCommandPhaseAfterShopAction(game, STEP_TIMEOUT_MS);
+}
+
+async function executeModifierAction(game: GameManager, action: ModifierActionSnapshot): Promise<"modifier_select" | "command_phase"> {
   switch (action.action_type) {
     case "skip":
       await executeSkipAction(game);
-      return;
+      return "command_phase";
     case "take_reward":
       if (action.reward_index == null) {
         throw new Error("Reward action missing reward_index");
       }
-      await executeTakeRewardAction(game, action.reward_index, action.target_party_index);
-      return;
+      return executeTakeRewardAction(game, action.reward_index, action.target_party_index);
     case "buy_shop_item":
-      throw new Error("Shop item execution not implemented yet");
+      if (action.shop_row_index == null || action.shop_column_index == null) {
+        throw new Error("Shop action missing shop coordinates");
+      }
+      return executeBuyShopItemAction(
+        game,
+        action.shop_row_index,
+        action.shop_column_index,
+        action.target_party_index,
+      );
   }
 }
 
@@ -1847,6 +2086,27 @@ function applyWaveLibW1StarterLayout(game: GameManager): void {
   }
 }
 
+function buildFakeModifierOption(
+  modifierTypeId: string,
+  extraType: Record<string, unknown> = {},
+  modifierTypeName = "ModifierType",
+): any {
+  return {
+    modifierTypeOption: {
+      cost: 0,
+      upgradeCount: 0,
+      type: {
+        id: modifierTypeId,
+        name: modifierTypeId,
+        constructor: {
+          name: modifierTypeName,
+        },
+        ...extraType,
+      },
+    },
+  };
+}
+
 describe("modifier fixed seed collector", () => {
   let phaserGame: Phaser.Game;
 
@@ -1864,141 +2124,275 @@ describe("modifier fixed seed collector", () => {
     cleanupPersistentCombatDqnWorker();
   });
 
+  it("applies offline reward executability policy to blocked, direct, and target rewards", () => {
+    expect(getActionExecutability("take_reward", buildFakeModifierOption("MAP"))).toEqual({
+      executable: false,
+      reason: "blocked_by_offline_modifier_policy",
+    });
+
+    expect(getActionExecutability("take_reward", buildFakeModifierOption("VOUCHER"))).toEqual({
+      executable: false,
+      reason: "blocked_by_offline_modifier_policy",
+    });
+
+    expect(getActionExecutability("take_reward", buildFakeModifierOption("LURE"))).toEqual({
+      executable: false,
+      reason: "blocked_by_offline_modifier_policy",
+    });
+
+    expect(getActionExecutability("take_reward", buildFakeModifierOption("ROGUE_BALL"))).toEqual({
+      executable: true,
+    });
+
+    expect(getActionExecutability("take_reward", buildFakeModifierOption("RARER_CANDY"))).toEqual({
+      executable: true,
+    });
+
+    expect(
+      getActionExecutability(
+        "take_reward",
+        buildFakeModifierOption(
+          "LEFTOVERS",
+          {
+            selectFilter: () => null,
+          },
+          "PokemonHeldItemModifierType",
+        ),
+      ),
+    ).toEqual({
+      executable: true,
+      requiresPartyTarget: true,
+    });
+
+    expect(getActionExecutability("take_reward", buildFakeModifierOption("TM_FLAMETHROWER"))).toEqual({
+      executable: false,
+      reason: "blocked_by_offline_modifier_policy:tm_selection_todo",
+    });
+
+    expect(
+      getActionExecutability(
+        "take_reward",
+        buildFakeModifierOption("MEMORY_MUSHROOM", {}, "RememberMoveModifierType"),
+      ),
+    ).toEqual({
+      executable: false,
+      reason: "blocked_by_offline_modifier_policy:remember_move_todo",
+    });
+
+    expect(getActionExecutability("take_reward", buildFakeModifierOption("UNKNOWN_REWARD"))).toEqual({
+      executable: false,
+      reason: "requires_followup_selection",
+    });
+
+    expect(
+      getActionExecutability(
+        "buy_shop_item",
+        buildFakeModifierOption(
+          "Potion",
+          {
+            selectFilter: () => null,
+          },
+          "PokemonHpRestoreModifierType",
+        ),
+      ),
+    ).toEqual({
+      executable: true,
+      requiresPartyTarget: true,
+    });
+  });
+
   it("collects repeated fixed-seed modifier runs", async () => {
     const episodes: EpisodeRecord[] = [];
 
     for (let runIndex = 0; runIndex < RUN_COUNT; runIndex += 1) {
-      const game = new GameManager(phaserGame);
-      vi.spyOn(game.scene, "getDoubleBattleChance").mockReturnValue(Number.MAX_SAFE_INTEGER);
+      let recordedEpisode: EpisodeRecord | null = null;
 
-      game.override
-        .seed(SEED)
-        .disableTrainerWaves()
-        .enemySpecies(SpeciesId.MAGIKARP)
-        .enemyMoveset(MoveId.SPLASH);
+      for (let attemptIndex = 0; attemptIndex < 2; attemptIndex += 1) {
+        const game = new GameManager(phaserGame);
+        vi.spyOn(game.scene, "getDoubleBattleChance").mockReturnValue(Number.MAX_SAFE_INTEGER);
 
-      const random = createDeterministicRandom(`${SEED}::${runIndex}`);
-      const steps: ModifierStepRecord[] = [];
-      let completedWaves = 0;
-      let terminationReason = "unknown";
-      let timeoutDebug: TimeoutDebugSnapshot | undefined;
-      let selectedModifierActionForDebug: ModifierActionSnapshot | undefined;
-      const runStartedAt = Date.now();
+        game.override.seed(SEED);
 
-      try {
-        await game.classicMode.startBattle(STARTER_SPECIES);
-        applyWaveLibW1StarterLayout(game);
+        if (COLLECTOR_VARIANT === "sanity_masking") {
+          game.override
+            .disableTrainerWaves()
+            .enemySpecies(SpeciesId.MAGIKARP)
+            .enemyMoveset(MoveId.SPLASH);
+        }
 
-        while (completedWaves < MAX_WAVES) {
-          const combatTurns: CombatDecisionSnapshot[] = [];
-          while (!game.isCurrentPhase("SelectModifierPhase")) {
-            const currentBattle = game.scene.currentBattle;
-            if (!currentBattle) {
-              terminationReason = "missing_current_battle";
-              break;
-            }
-            if ((currentBattle.turn ?? 0) > MAX_COMBAT_TURNS_PER_WAVE) {
-              throw new Error(`step_timeout:combat_turn_limit:${MAX_COMBAT_TURNS_PER_WAVE}`);
-            }
-            if (currentBattle.double) {
-              terminationReason = "double_battle_not_supported";
-              break;
-            }
-            if (!game.isCurrentPhase("CommandPhase")) {
-              throw new Error(`unexpected_combat_phase:${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"}`);
-            }
+        if (COLLECTOR_VARIANT === "strategic_fixed_seed") {
+          // Mirror the current combat training scope: seeded real encounters, but singles only.
+          game.override.battleStyle("single");
+        }
 
-            const combatState = buildStateFromSnapshot(game);
-            const actionMask = Array.isArray(combatState.action_mask)
-              ? (combatState.action_mask as number[])
-              : [];
-            const { action, actionSource } = await selectCombatActionFromMask(combatState, actionMask);
-            if (action < 0) {
-              terminationReason = "no_valid_combat_action";
-              break;
-            }
+        const random = createDeterministicRandom(`${SEED}::${runIndex}`);
+        const decisionRngSeed = `${SEED}::${runIndex}`;
+        const steps: ModifierStepRecord[] = [];
+        let completedWaves = 0;
+        let terminationReason = "unknown";
+        let timeoutDebug: TimeoutDebugSnapshot | undefined;
+        let errorDebug: TimeoutDebugSnapshot | undefined;
+        let errorStack: string | undefined;
+        let selectedModifierActionForDebug: ModifierActionSnapshot | undefined;
+        const runStartedAt = Date.now();
 
-            combatTurns.push(buildCombatDecisionSnapshot(game, combatState, action, actionSource));
-            executeCombatAction(game, action);
+        try {
+          await game.classicMode.startBattle(STARTER_SPECIES);
+          applyWaveLibW1StarterLayout(game);
 
-            const advanceStatus = await withTimeout(advanceCombatAfterAction(game), STEP_TIMEOUT_MS, "advance_combat_after_action");
-            if (advanceStatus === "timeout") {
-              throw new Error(`step_timeout:advance_combat_after_action:${STEP_TIMEOUT_MS}`);
-            }
-            if (advanceStatus === "terminal" && !game.isCurrentPhase("SelectModifierPhase")) {
-              if (game.isCurrentPhase("BattleEndPhase")) {
-                const completedWaveIndex = game.scene.currentBattle?.waveIndex ?? 0;
+          while (completedWaves < MAX_WAVES) {
+            const combatTurns: CombatDecisionSnapshot[] = [];
+            while (!game.isCurrentPhase("SelectModifierPhase")) {
+              const currentBattle = game.scene.currentBattle;
+              if (!currentBattle) {
+                terminationReason = "missing_current_battle";
+                break;
+              }
+              if ((currentBattle.turn ?? 0) > MAX_COMBAT_TURNS_PER_WAVE) {
+                throw new Error(`step_timeout:combat_turn_limit:${MAX_COMBAT_TURNS_PER_WAVE}`);
+              }
+              if (currentBattle.double) {
+                terminationReason = "double_battle_not_supported";
+                break;
+              }
+              if (!game.isCurrentPhase("CommandPhase")) {
+                throw new Error(`unexpected_combat_phase:${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"}`);
+              }
+
+              const combatState = buildStateFromSnapshot(game);
+              const actionMask = Array.isArray(combatState.action_mask)
+                ? (combatState.action_mask as number[])
+                : [];
+              const { action, actionSource } = await selectCombatActionFromMask(combatState, actionMask);
+              if (action < 0) {
+                terminationReason = "no_valid_combat_action";
+                break;
+              }
+
+              combatTurns.push(buildCombatDecisionSnapshot(game, combatState, action, actionSource));
+              executeCombatAction(game, action);
+
+              const advanceStatus = await withTimeout(advanceCombatAfterAction(game), STEP_TIMEOUT_MS, "advance_combat_after_action");
+              if (advanceStatus === "timeout") {
+                throw new Error(`step_timeout:advance_combat_after_action:${STEP_TIMEOUT_MS}`);
+              }
+              if (advanceStatus === "terminal" && !game.isCurrentPhase("SelectModifierPhase")) {
+                if (game.isCurrentPhase("BattleEndPhase")) {
+                  const completedWaveIndex = game.scene.currentBattle?.waveIndex ?? 0;
                 if (completedWaveIndex > 0 && completedWaveIndex % 10 === 0) {
                   await withTimeout(
                     game.phaseInterceptor.to("CommandPhase"),
                     STEP_TIMEOUT_MS,
                     "battle_end_to_next_battle_command_phase",
-                  );
+                    );
                   completedWaves += 1;
                   continue;
                 }
 
-                await withTimeout(
-                  game.phaseInterceptor.to("SelectModifierPhase"),
-                  STEP_TIMEOUT_MS,
-                  "battle_end_to_select_modifier_phase",
-                );
-                if (game.isCurrentPhase("SelectModifierPhase")) {
+                const phaseManager = game.scene.phaseManager;
+                const hasQueuedSelectModifier = phaseManager.hasPhaseOfType("SelectModifierPhase");
+                const hasQueuedNextBattle = phaseManager.hasPhaseOfType("NewBattlePhase")
+                  || phaseManager.hasPhaseOfType("NextEncounterPhase")
+                  || phaseManager.hasPhaseOfType("NewBiomeEncounterPhase")
+                  || phaseManager.hasPhaseOfType("EncounterPhase");
+
+                if (hasQueuedSelectModifier) {
+                  await withTimeout(
+                    game.phaseInterceptor.to("SelectModifierPhase"),
+                    STEP_TIMEOUT_MS,
+                    "battle_end_to_select_modifier_phase",
+                  );
                   break;
                 }
+                if (hasQueuedNextBattle) {
+                  await withTimeout(
+                    game.phaseInterceptor.to("CommandPhase"),
+                    STEP_TIMEOUT_MS,
+                    "battle_end_to_next_battle_command_phase",
+                  );
+                  continue;
+                }
+                if (isGameTerminalPhase(game)) {
+                  terminationReason = `combat_terminal:${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"}`;
+                  break;
+                }
+                terminationReason = `unexpected_post_battle_queue:${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"}`;
+                break;
+              }
+                if (game.isCurrentPhase("GameOverPhase") || game.isCurrentPhase("PostGameOverPhase") || game.isCurrentPhase("TitlePhase")) {
+                  terminationReason = "team_wipe_or_game_over";
+                } else {
+                  terminationReason = `combat_terminal:${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"}`;
+                }
+                break;
+              }
+            }
+
+            if (terminationReason !== "unknown") {
+              break;
+            }
+            if (!game.isCurrentPhase("SelectModifierPhase")) {
+              terminationReason = `expected_select_modifier_phase_but_got:${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"}`;
+              break;
+            }
+
+            console.error(
+              `[modifier-fixed-seed-shop] run=${runIndex} wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} ${JSON.stringify(buildModifierPhaseLogSnapshot(game))}`,
+            );
+
+            let modifierPhaseContinues = true;
+            let firstModifierActionInWave = true;
+            while (modifierPhaseContinues) {
+              if (!game.isCurrentPhase("SelectModifierPhase")) {
                 terminationReason = `expected_select_modifier_phase_but_got:${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"}`;
                 break;
               }
-              if (game.isCurrentPhase("GameOverPhase") || game.isCurrentPhase("PostGameOverPhase") || game.isCurrentPhase("TitlePhase")) {
-                terminationReason = "team_wipe_or_game_over";
-              } else {
-                terminationReason = `combat_terminal:${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"}`;
+
+              const modifierDecision = buildModifierDecisionSnapshot(game);
+              expect(MODIFIER_POLICY).toBe("random_executable");
+              const selectedAction = pickRandomExecutableAction(modifierDecision, random);
+              selectedModifierActionForDebug = selectedAction;
+              const immediateReward = calculateImmediateReward(modifierDecision, selectedAction, game);
+
+              steps.push({
+                step_index: steps.length,
+                worker_id: WORKER_ID,
+                decision_rng_seed: decisionRngSeed,
+                wave_index: modifierDecision.wave_index,
+                combat_turns: firstModifierActionInWave ? combatTurns : [],
+                modifier_decision: modifierDecision,
+                selected_action: selectedAction,
+                selected_action_valid: modifierDecision.action_mask[selectedAction.action_index] === 1,
+                immediate_reward: immediateReward,
+              });
+
+              const modifierOutcome = await withTimeout(
+                executeModifierAction(game, selectedAction),
+                STEP_TIMEOUT_MS,
+                "execute_modifier_action",
+              );
+              firstModifierActionInWave = false;
+
+              if (modifierOutcome === "command_phase") {
+                completedWaves += 1;
+                modifierPhaseContinues = false;
               }
-              break;
             }
           }
 
-          if (terminationReason !== "unknown") {
-            break;
+          if (terminationReason === "unknown") {
+            terminationReason = completedWaves >= MAX_WAVES ? "max_waves_reached" : "episode_loop_ended";
           }
-          if (!game.isCurrentPhase("SelectModifierPhase")) {
-            terminationReason = `expected_select_modifier_phase_but_got:${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"}`;
-            break;
+        } catch (error) {
+          if (terminationReason === "unknown") {
+            terminationReason = error instanceof Error ? error.message : String(error);
           }
-
-          console.error(
-            `[modifier-fixed-seed-shop] run=${runIndex} wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} ${JSON.stringify(buildModifierPhaseLogSnapshot(game))}`,
-          );
-
-          const modifierDecision = buildModifierDecisionSnapshot(game);
-          expect(MODIFIER_POLICY).toBe("random_executable");
-          const selectedAction = pickRandomExecutableAction(modifierDecision, random);
-          selectedModifierActionForDebug = selectedAction;
-          const immediateReward = calculateImmediateReward(modifierDecision, selectedAction, game);
-
-          steps.push({
-            wave_index: modifierDecision.wave_index,
-            combat_turns: combatTurns,
-            modifier_decision: modifierDecision,
-            selected_action: selectedAction,
-            immediate_reward: immediateReward,
-          });
-
-          await withTimeout(executeModifierAction(game, selectedAction), STEP_TIMEOUT_MS, "execute_modifier_action");
-          completedWaves += 1;
-        }
-
-        if (terminationReason === "unknown") {
-          terminationReason = completedWaves >= MAX_WAVES ? "max_waves_reached" : "episode_loop_ended";
-        }
-      } catch (error) {
-        if (terminationReason === "unknown") {
-          terminationReason = error instanceof Error ? error.message : String(error);
-        }
-        if (terminationReason.startsWith("step_timeout:")) {
-          timeoutDebug = buildTimeoutDebugSnapshot(game);
+          if (error instanceof Error) {
+            errorStack = error.stack;
+          }
+          errorDebug = buildTimeoutDebugSnapshot(game);
           if (selectedModifierActionForDebug) {
-            timeoutDebug.selected_modifier_action = {
+            errorDebug.selected_modifier_action = {
               action_index: selectedModifierActionForDebug.action_index,
               action_type: selectedModifierActionForDebug.action_type,
               modifier_type_id: selectedModifierActionForDebug.modifier_type_id,
@@ -2009,43 +2403,83 @@ describe("modifier fixed seed collector", () => {
               cost: selectedModifierActionForDebug.cost,
             };
           }
-          console.error(
-            `[modifier-fixed-seed-timeout] run=${runIndex} wave=${timeoutDebug.wave_index} phase=${timeoutDebug.phase_name} ui=${timeoutDebug.ui_mode} reason=${terminationReason}`,
-          );
-          console.error(JSON.stringify(timeoutDebug));
+          if (terminationReason.startsWith("step_timeout:")) {
+            timeoutDebug = errorDebug;
+            console.error(
+              `[modifier-fixed-seed-timeout] run=${runIndex} wave=${timeoutDebug.wave_index} phase=${timeoutDebug.phase_name} ui=${timeoutDebug.ui_mode} reason=${terminationReason}`,
+            );
+            console.error(JSON.stringify(timeoutDebug));
+          } else {
+            console.error(
+              `[modifier-fixed-seed-error] run=${runIndex} attempt=${attemptIndex} reason=${terminationReason}`,
+            );
+            console.error(JSON.stringify(errorDebug));
+            if (errorStack) {
+              console.error(errorStack);
+            }
+          }
+        } finally {
+          game.phaseInterceptor.restoreOg();
         }
-      } finally {
-        game.phaseInterceptor.restoreOg();
+
+        const waveReached = completedWaves;
+        const runtimeMs = Date.now() - runStartedAt;
+        const localRewardSum = steps.reduce((sum, step) => sum + step.immediate_reward, 0);
+        const terminalReward = calculateTerminalReward(waveReached);
+        const shouldRetry = shouldRetryRun(terminationReason, waveReached, steps, attemptIndex);
+
+        if (shouldRetry) {
+          console.error(
+            `[modifier-fixed-seed-retry] run=${runIndex} attempt=${attemptIndex} reason=${terminationReason}`,
+          );
+          continue;
+        }
+
+        recordedEpisode = {
+          schema_version: SCHEMA_VERSION,
+          run_index: runIndex,
+          worker_id: WORKER_ID,
+          decision_rng_seed: decisionRngSeed,
+          seed: SEED,
+          max_waves: MAX_WAVES,
+          collector_variant: COLLECTOR_VARIANT,
+          modifier_policy: MODIFIER_POLICY,
+          runtime_ms: runtimeMs,
+          completed_waves: completedWaves,
+          wave_reached: waveReached,
+          termination_reason: terminationReason,
+          local_reward_sum: localRewardSum,
+          terminal_reward: terminalReward,
+          total_reward: localRewardSum + terminalReward,
+          steps,
+          retry_count: attemptIndex,
+          timeout_debug: timeoutDebug,
+          error_debug: errorDebug,
+          error_stack: errorStack,
+        };
+        break;
       }
 
-      const waveReached = completedWaves;
-      const runtimeMs = Date.now() - runStartedAt;
-      const localRewardSum = steps.reduce((sum, step) => sum + step.immediate_reward, 0);
-      const terminalReward = calculateTerminalReward(waveReached);
-      episodes.push({
-        run_index: runIndex,
-        seed: SEED,
-        max_waves: MAX_WAVES,
-        modifier_policy: MODIFIER_POLICY,
-        runtime_ms: runtimeMs,
-        completed_waves: completedWaves,
-        wave_reached: waveReached,
-        termination_reason: terminationReason,
-        local_reward_sum: localRewardSum,
-        terminal_reward: terminalReward,
-        total_reward: localRewardSum + terminalReward,
-        steps,
-        timeout_debug: timeoutDebug,
-      });
+      if (!recordedEpisode) {
+        throw new Error(`failed_to_record_episode:${runIndex}`);
+      }
+
+      episodes.push(recordedEpisode);
     }
 
     const averageWaveReached = episodes.reduce((sum, episode) => sum + episode.wave_reached, 0) / episodes.length;
     const averageTotalReward = episodes.reduce((sum, episode) => sum + episode.total_reward, 0) / episodes.length;
 
     const payload = {
+      schema_version: SCHEMA_VERSION,
       seed: SEED,
       run_count: RUN_COUNT,
       max_waves: MAX_WAVES,
+      collector_variant: COLLECTOR_VARIANT,
+      worker_id: WORKER_ID,
+      starter_config_id: STARTER_CONFIG_ID,
+      starter_species: STARTER_SPECIES.map(speciesId => SpeciesId[speciesId] ?? String(speciesId)),
+      decision_rng_strategy: "seed_plus_run_index",
       step_timeout_ms: STEP_TIMEOUT_MS,
       modifier_policy: MODIFIER_POLICY,
       combat_dqn_checkpoint: COMBAT_DQN_CHECKPOINT,

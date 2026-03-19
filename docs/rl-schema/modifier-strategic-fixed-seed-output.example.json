@@ -1,0 +1,68 @@
+{
+  "schema_version": "modifier_strategic_fixed_seed_output_v1",
+  "seed": "modifier-strategic-fixed-seed-example",
+  "run_count": 1,
+  "max_waves": 11,
+  "collector_variant": "strategic_fixed_seed",
+  "worker_id": "local-worker-0",
+  "starter_config_id": "wave_lib_w1_starters_v1",
+  "starter_species": ["BULBASAUR", "CHARMANDER", "SQUIRTLE"],
+  "decision_rng_strategy": "seed_plus_run_index",
+  "step_timeout_ms": 15000,
+  "modifier_policy": "random_executable",
+  "combat_dqn_checkpoint": "data/rl/models/example.pt",
+  "combat_dqn_device": "cpu",
+  "generated_at": "2026-03-19T00:00:00.000Z",
+  "summary": {
+    "average_wave_reached": 4,
+    "average_total_reward": 1.2,
+    "best_wave_reached": 4,
+    "worst_wave_reached": 4
+  },
+  "episodes": [
+    {
+      "schema_version": "modifier_strategic_fixed_seed_output_v1",
+      "run_index": 0,
+      "worker_id": "local-worker-0",
+      "decision_rng_seed": "modifier-strategic-fixed-seed-example::0",
+      "seed": "modifier-strategic-fixed-seed-example",
+      "max_waves": 11,
+      "collector_variant": "strategic_fixed_seed",
+      "modifier_policy": "random_executable",
+      "runtime_ms": 5432,
+      "completed_waves": 4,
+      "wave_reached": 4,
+      "termination_reason": "team_wipe_or_game_over",
+      "local_reward_sum": 0.2,
+      "terminal_reward": 1.0,
+      "total_reward": 1.2,
+      "retry_count": 0,
+      "steps": [
+        {
+          "step_index": 0,
+          "worker_id": "local-worker-0",
+          "decision_rng_seed": "modifier-strategic-fixed-seed-example::0",
+          "wave_index": 1,
+          "combat_turns": [],
+          "modifier_decision": {
+            "wave_index": 1,
+            "reward_options": [],
+            "shop_rows": [],
+            "actions": [],
+            "action_mask": []
+          },
+          "selected_action": {
+            "action_index": 0,
+            "action_type": "take_reward",
+            "modifier_type_id": "POKEBALL",
+            "cost": 0,
+            "available": true,
+            "executable": true
+          },
+          "selected_action_valid": true,
+          "immediate_reward": 0.1
+        }
+      ]
+    }
+  ]
+}

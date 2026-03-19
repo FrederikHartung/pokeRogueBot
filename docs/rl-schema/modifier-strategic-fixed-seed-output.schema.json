@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sfh.dev/pokerogue/rl-schema/modifier-strategic-fixed-seed-output.schema.json",
+  "title": "Modifier Strategic Fixed-Seed Output",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "seed",
+    "run_count",
+    "max_waves",
+    "collector_variant",
+    "worker_id",
+    "starter_config_id",
+    "starter_species",
+    "decision_rng_strategy",
+    "modifier_policy",
+    "combat_dqn_checkpoint",
+    "combat_dqn_device",
+    "episodes",
+    "summary"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "modifier_strategic_fixed_seed_output_v1"
+    },
+    "seed": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "max_waves": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "collector_variant": {
+      "enum": ["sanity_masking", "strategic_fixed_seed"]
+    },
+    "worker_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "starter_config_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "starter_species": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "decision_rng_strategy": {
+      "type": "string",
+      "minLength": 1
+    },
+    "modifier_policy": {
+      "type": "string",
+      "minLength": 1
+    },
+    "combat_dqn_checkpoint": {
+      "type": "string",
+      "minLength": 1
+    },
+    "combat_dqn_device": {
+      "type": "string",
+      "minLength": 1
+    },
+    "episodes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/episode"
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "average_wave_reached",
+        "average_total_reward",
+        "best_wave_reached",
+        "worst_wave_reached"
+      ],
+      "properties": {
+        "average_wave_reached": { "type": "number" },
+        "average_total_reward": { "type": "number" },
+        "best_wave_reached": { "type": "number" },
+        "worst_wave_reached": { "type": "number" }
+      }
+    }
+  },
+  "$defs": {
+    "episode": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "schema_version",
+        "run_index",
+        "worker_id",
+        "decision_rng_seed",
+        "seed",
+        "max_waves",
+        "collector_variant",
+        "modifier_policy",
+        "completed_waves",
+        "wave_reached",
+        "termination_reason",
+        "total_reward",
+        "steps"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "modifier_strategic_fixed_seed_output_v1"
+        },
+        "run_index": { "type": "integer", "minimum": 0 },
+        "worker_id": { "type": "string", "minLength": 1 },
+        "decision_rng_seed": { "type": "string", "minLength": 1 },
+        "seed": { "type": "string", "minLength": 1 },
+        "max_waves": { "type": "integer", "minimum": 1 },
+        "collector_variant": {
+          "enum": ["sanity_masking", "strategic_fixed_seed"]
+        },
+        "modifier_policy": { "type": "string", "minLength": 1 },
+        "completed_waves": { "type": "integer", "minimum": 0 },
+        "wave_reached": { "type": "integer", "minimum": 0 },
+        "termination_reason": { "type": "string", "minLength": 1 },
+        "total_reward": { "type": "number" },
+        "retry_count": { "type": "integer", "minimum": 0 },
+        "timeout_debug": { "type": "object" },
+        "error_debug": { "type": "object" },
+        "error_stack": { "type": "string", "minLength": 1 },
+        "steps": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/step" }
+        }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "step_index",
+        "worker_id",
+        "decision_rng_seed",
+        "wave_index",
+        "combat_turns",
+        "modifier_decision",
+        "selected_action",
+        "selected_action_valid",
+        "immediate_reward"
+      ],
+      "properties": {
+        "step_index": { "type": "integer", "minimum": 0 },
+        "worker_id": { "type": "string", "minLength": 1 },
+        "decision_rng_seed": { "type": "string", "minLength": 1 },
+        "wave_index": { "type": "integer", "minimum": 0 },
+        "combat_turns": { "type": "array" },
+        "modifier_decision": { "type": "object" },
+        "selected_action": { "type": "object" },
+        "selected_action_valid": { "type": "boolean" },
+        "immediate_reward": { "type": "number" }
+      }
+    }
+  }
+}

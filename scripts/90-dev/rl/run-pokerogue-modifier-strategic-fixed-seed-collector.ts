@@ -12,16 +12,16 @@ const templatePath = path.join(__dirname, "templates", "modifier-fixed-seed-coll
 
 const runId = `${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
 const tempDir = path.join(pokerogueRoot, "test", ".external-rl", runId);
-const tempTestRelativePath = path.join("test", ".external-rl", runId, "modifier-fixed-seed-collector.test.ts");
+const tempTestRelativePath = path.join("test", ".external-rl", runId, "modifier-strategic-fixed-seed-collector.test.ts");
 const tempTestPath = path.join(pokerogueRoot, tempTestRelativePath);
 
-const defaultOutputPath = path.join(repoRoot, "data", "temp", "rl", "modifier-fixed-seed-collector.json");
+const defaultOutputPath = path.join(repoRoot, "data", "temp", "rl", "modifier-strategic-fixed-seed-collector.json");
 const outputPath = process.argv[2] ? path.resolve(process.argv[2]) : defaultOutputPath;
-const seed = process.argv[3] ?? "modifier-fixed-seed";
+const seed = process.argv[3] ?? "modifier-strategic-fixed-seed";
 const runCount = Number.parseInt(process.argv[4] ?? "", 10) || 10;
 const maxWaves = Number.parseInt(process.argv[5] ?? "", 10) || 10;
 const modifierPolicy = process.argv[6] ?? "random_executable";
-const collectorVariant = "sanity_masking";
+const collectorVariant = "strategic_fixed_seed";
 const stepTimeoutMs = Number.parseInt(process.argv[10] ?? "", 10)
   || Number.parseInt(process.env.POKEROGUE_MODIFIER_STEP_TIMEOUT_MS ?? "", 10)
   || 15000;
@@ -122,7 +122,7 @@ if (result.status !== 0 && !existsSync(outputPath)) {
 
 if (existsSync(outputPath)) {
   const payload = JSON.parse(readFileSync(outputPath, "utf8"));
-  console.log("Modifier fixed-seed collector output:", outputPath);
+  console.log("Modifier strategic fixed-seed collector output:", outputPath);
   console.log("Seed:", payload.seed);
   console.log("Runs:", payload.run_count ?? "unknown");
   console.log("Max waves:", payload.max_waves ?? "unknown");

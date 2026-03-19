@@ -68,7 +68,7 @@ Quelle:
 | Items | Reward-Tiers | Zieltyp | Action Masking | Status | Hinweis |
 |---|---|---|---|---|---|
 | `POKEBALL`, `GREAT_BALL`, `ULTRA_BALL`, `ROGUE_BALL`, `MASTER_BALL` | Common / Great / Ultra / Rogue / Master | kein Ziel | Nein | abgesichert | bewusst kein Action Masking; normale Add-Pokeball-Modifier ohne Zielauswahl |
-| `LURE`, `SUPER_LURE`, `MAX_LURE` | Common / Great / Ultra | kein Ziel | Nein | abgesichert | bewusst kein Action Masking; globaler Double-Battle-Chance-Booster ohne Zielauswahl |
+| `LURE`, `SUPER_LURE`, `MAX_LURE` | Common / Great / Ultra | kein Ziel | Nein | bewusst geblockt | vorerst aus Offline-DQN-Action-Space herausnehmen; strategische Fixed-Seed-Pipeline bleibt bis auf Weiteres auf Single Battles begrenzt |
 | `MAP` | Great | kein Ziel | Nein | bewusst geblockt | vorerst aus Offline-DQN-Action-Space herausnehmen; spaeter nur mit dediziertem Nachweistest und klarer Biome-/Routing-Policy re-enablen |
 
 ### Heilung, Revive und PP
@@ -189,21 +189,22 @@ Diese Nachweise existieren aktuell schon:
   - `WHITE_HERB`
   - `MYSTICAL_ROCK`
   - `GOLDEN_PUNCH`
+  - `SCOPE_LENS`
 
 ## Priorisierte offene Kandidaten nach dieser Matrix
 
 Wenn wir die naechsten `SelectModifierPhase`-Faelle ausserhalb der bereits erledigten Tests priorisieren wollen, sind aus dieser Uebersicht die sinnvollsten naechsten Kandidaten:
 
-1. `EVIOLITE`
-2. `LEEK`
-3. `TOXIC_ORB`
-4. `FLAME_ORB`
-5. generische offene Held-Items mit wahrscheinlich reinem Stack-Cap-Masking:
+1. Items, die vorerst bewusst geblockt bleiben sollen, bis Anschlusslogik vorhanden ist:
+   - `EVIOLITE`
+   - `LEEK`
+   - `TOXIC_ORB`
+   - `FLAME_ORB`
+   - `BATON`
+   - `SOUL_DEW`
+2. erlaubte, aber noch nicht dediziert per Stack-Cap-Test nachgewiesene konservative Held-Items:
    - `QUICK_CLAW`
    - `LEFTOVERS`
    - `SHELL_BELL`
    - `FOCUS_BAND`
    - `KINGS_ROCK`
-   - `SCOPE_LENS`
-   - `BATON`
-   - `SOUL_DEW`

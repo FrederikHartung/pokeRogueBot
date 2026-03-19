@@ -15,6 +15,10 @@ Wichtig:
   - `tactical`: kurzer Horizont, gezielte einzelne Kaempfe oder eng umrissene Szenarien
   - `strategic`: mehrere Wellen oder ganze Runs mit langfristigen Entscheidungen
 
+Ergaenzendes Arbeitsdokument fuer die aktuelle strategische Collector-Pipeline:
+
+- [docs/modifier-strategic-fixed-seed-pipeline.md](/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/docs/modifier-strategic-fixed-seed-pipeline.md)
+
 ## Warum der Umbau noetig ist
 
 Der aktuelle Modifier-RL-Pfad ist fachlich und technisch limitiert:

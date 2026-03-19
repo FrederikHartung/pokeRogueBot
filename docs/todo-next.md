@@ -28,19 +28,59 @@ Kurzfristig ergaenzen:
 - Sobald der Umbau fertig ist und der Live-Pfad fuer diese Entscheidung stabil ueber das DQN laeuft, kann das alte Switch-Neuron entfernt werden.
 - Modifier-DQN-Migration vorbereiten:
 - Plan ist jetzt in `docs/modifier-dqn-migration-plan.md` dokumentiert
+- strategische Pipeline-Doku ist jetzt in `docs/modifier-strategic-fixed-seed-pipeline.md` dokumentiert
 - Begriffe festgezogen:
   - allgemeines Verfahren: `Strategic Fixed-Seed Run Collector`
   - aktuelle Modifier-Variante: `Modifier Fixed-Seed Collector`
 - erster Umsetzungsschnitt soll ohne permanente `pokerogue/`-Submodul-Aenderungen auskommen
 - bevorzugter Start ist ein Tactical-External-RL-Smoke-Harness im Hauptrepo, das temporaer unter `pokerogue/test/.external-rl/...` laeuft und Combat- sowie Modifier-Decision-Points sammelt
 - naechster Modifier-Strategic-Schritt:
-  - lokaler Fixed-Seed-Run-Collector mit fester Combat-DQN-Version und variabler Shop-Policy
+  - lokaler Strategic-Fixed-Seed-Collector mit echter seed-basierter Wild-/Trainer-Logik, fixer Combat-DQN-Version und variabler Shop-Policy
   - Combat im Fixed-Seed-Collector laeuft jetzt bereits ueber einen persistenten DQN-Inferenz-Worker statt ueber eine lokale Surrogat-Heuristik
+  - neue Collector-Varianten sind jetzt getrennt:
+    - `sanity_masking` fuer technische Masking-/Pipeline-Sanity
+    - `strategic_fixed_seed` fuer echte seed-basierte Runs mit RANDOM-Modifier-Entscheidungen
+  - `strategic_fixed_seed` versucht aktuell den Scope moeglichst auf Single Battles zu begrenzen, Trainer-Doppelkampfe rutschen aber weiter durch
+  - die `LURE`-Familie ist dafuer vorerst wieder aus dem Offline-Modifier-Action-Space herausgenommen
+  - `buy_shop_item` ist im strategic collector jetzt fuer `Potion` aktiv:
+    - Party-Zielauswahl wird unterstuetzt
+    - mehrfacher `Potion`-Kauf in derselben `SelectModifierPhase` ist moeglich
+    - danach kann weiterhin noch ein kostenloses Reward-Item genommen werden
+  - neuer 50-Run-Smoke mit `Potion`-Shop-Support:
+    - `average_wave_reached = 8.2`
+    - `29 / 50` Runs mit aktivem `Potion`-Shopkauf
+    - aber weiter `7` Terminations mit `double_battle_not_supported`
+  - aktueller Stand nach weiteren Seed-Laeufen:
+    - seltener Startup-Crash `Cannot read properties of null (reading 'mysteryEncounter')` ist jetzt im Collector defensiv mit Retry + besserem Error-Debug abgefangen
+    - der fruehere Wild-Flee-/Teleport-Haenger `battle_end_to_select_modifier_phase` ist im Collector behoben
+    - verbleibender Hauptblocker fuer weitere strategische Datengenerierung ist jetzt klar `double_battle_not_supported`
+  - neue Prioritaet:
+    - Double Battles im Strategic-Fixed-Seed-Collector muessen als eigener naechster Ausbau unterstuetzt werden
+    - ohne Double-Battle-Support bleiben einzelne Seeds oder laengere Runs systematisch abgeschnitten
+    - damit blockiert der fehlende Double-Battle-Pfad inzwischen das erste sinnvolle Modifier-DQN staerker als weitere kleine Single-Battle-Politur
+  - offene Punkte fuer Double-Battle-Support:
+    - entscheiden, ob Phase 1 im strategic collector Double Battles ueber Heuristik, ueber das bestehende Live-Fallback-Verhalten oder ueber einen kleinen eigenen Harness-Pfad spielt
+    - Combat-Observation/Action-Semantik fuer Double Battles im strategic collector festziehen
+    - Forced-Switch-/Targeting-/zwei aktive Gegner sauber als Collector-Contract definieren
+    - Action-Mask und Telemetrie fuer Double-Battle-Turns dokumentieren
+    - Regressionstest mit einem bekannten Seed/Wave aufsetzen, der aktuell deterministisch in `double_battle_not_supported` endet
+  - weiterhin offen:
+    - `Ether`
+    - `Revive`
+  - erster strategischer Smoke-Run bis `maxWave=11` lief technisch erfolgreich, kam aber inhaltlich nur bis Wave `4`; aktueller Fokus ist daher zunaechst Pipeline-Stabilitaet unter echten Gegnern statt sofort Trainingsqualitaet
   - terminaler Reward fuer Phase 1 primaer ueber erreichte Wave
+  - geplanter naechster Strategics-Schritt nach Collector-Stabilitaet:
+    - seed-lokales post-hoc Credit Assignment fuer Modifier-Steps
+    - erster Vorschlag ist jetzt in `docs/modifier-strategic-fixed-seed-pipeline.md` dokumentiert:
+      - seed-lokales Rank-Signal
+      - leichtes Step-Discounting
+      - separater Postprocessing-Schritt statt Credit direkt im Collector
   - kleines lokales Shaping fuer unkluge `skip`-Entscheidungen beibehalten
   - standardmaessiger Wave-Step-Timeout aktuell wieder `15000ms`; hoehere Werte nur noch fuer gezielte Debug-Laeufe
   - `LearnMovePhase` wird im Harness jetzt aktiv ueber eine kleine Portierung der bestehenden Kotlin-/Java-Logik bedient; der fruehere Learn-Move-Timeout ist damit nicht mehr der Hauptblocker
   - aktueller Fokus fuer den naechsten Debug-Schritt:
+    - strategischen Collector lokal stabil ueber `maxWave=11` und danach hoehere fruehe Wellen bringen
+    - echte Trainer-/Wild-Kaempfe und deren terminale Abbrueche sauber klassifizieren
     - `battle_end_to_select_modifier_phase`
     - `execute_modifier_action` im `UiMode.PARTY` mit den neuen Timeout-Logs fuer `selected_modifier_action`, `party_ui_mode` und `party_cursor`
     - Boss-Wellen `10/20/30/...` separat behandeln, da dort bewusst keine normale `SelectModifierPhase` kommt
