@@ -5,7 +5,12 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { validatePolicyConfig } from "./policy-contract.ts";
-import { validateCollectorRunConfig, validateIterativePipelineConfig, validateRandomCollectionPipelineConfig } from "./run-config-contract.ts";
+import {
+  validateCollectorRunConfig,
+  validateIterativePipelineConfig,
+  validateModifierStrategicPipelineConfig,
+  validateRandomCollectionPipelineConfig,
+} from "./run-config-contract.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -65,6 +70,19 @@ test("random-collection configs validate required collect and archive fields", (
     const configPath = path.join(repoRoot, relativePath);
     const config = JSON.parse(readFileSync(configPath, "utf8"));
     validateRandomCollectionPipelineConfig(config, {
+      context: relativePath,
+    });
+  }
+});
+
+test("modifier strategic remote configs validate required collect and archive fields", () => {
+  for (const relativePath of [
+    "data/rl/modifier-strategic-seeded-remote-smoke.json",
+    "data/rl/modifier-strategic-seeded-remote-10seeds-20runs-wave30.json",
+  ]) {
+    const configPath = path.join(repoRoot, relativePath);
+    const config = JSON.parse(readFileSync(configPath, "utf8"));
+    validateModifierStrategicPipelineConfig(config, {
       context: relativePath,
     });
   }

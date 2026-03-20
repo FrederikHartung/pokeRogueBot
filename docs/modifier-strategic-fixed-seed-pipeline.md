@@ -13,6 +13,11 @@ Der Fokus liegt auf einem reproduzierbaren Multi-Run-Setup, bei dem:
 
 Langfristig soll daraus ein Datengenerierungs- und Trainingsprozess fuer ein eigenes DQN fuer die `SelectModifierPhase` entstehen.
 
+Remote-Betrieb:
+
+- fuer die seed-basierte Remote-Datengenerierung gibt es jetzt einen eigenen Betriebs- und Startpfad:
+  - [modifier-strategic-seeded-remote.md](/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/docs/modifier-strategic-seeded-remote.md)
+
 ## Status Quo
 
 Aktuell existieren zwei klar getrennte Collector-Varianten:
@@ -24,13 +29,19 @@ Aktuell existieren zwei klar getrennte Collector-Varianten:
 - `strategic_fixed_seed`
   - erste strategische Variante mit echten seed-basierten Wild-Pokemon und Trainerkaempfen
   - Mystery Encounters bleiben weiterhin deaktiviert
-  - Wildkaempfe werden aktuell moeglichst auf Single Battles gedrueckt, Trainer-Doppelkampfe sind aber noch nicht sauber abgefangen
+  - Wild- und Trainerkaempfe laufen jetzt wieder ohne kuenstliches Single-Druecken; Double Battles werden ueber den lokalen Double-Fallback-Pfad abgearbeitet
   - Combat-Entscheidungen laufen ueber das bestehende Combat-DQN
   - Entscheidungen in der `SelectModifierPhase` werden als `random_executable` aus der gueltigen Action Mask gezogen
-  - `buy_shop_item` ist aktuell bereits fuer `Potion` unterstuetzt, inklusive Party-Zielauswahl
-  - nach einem erfolgreichen `Potion`-Kauf bleibt dieselbe `SelectModifierPhase` offen, sodass weitere Shop-Kaeufe oder danach ein kostenloses Reward-Item folgen koennen
-- `Ether` und `Revive` bleiben vorerst noch technisch geblockt
-- die `LURE`-Familie bleibt vorerst aus dem Offline-Action-Space herausgenommen
+  - Batch-Ausfuehrung erfolgt jetzt episodeweise:
+  - jeder Run startet in einem eigenen Vitest-Prozess
+  - dadurch gilt der Collector-Timeout pro Run statt global ueber den gesamten Batch
+  - der strategische Runner aggregiert die Einzel-Outputs danach wieder zu einem gemeinsamen Artefakt mit fortlaufenden `run_index`-Werten
+  - `buy_shop_item` ist aktuell fuer die Heil-/Revive-Kernfamilien unterstuetzt:
+    - `Potion`, `Super Potion`, `Hyper Potion`, `Max Potion`, `Full Restore`, `Full Heal`
+    - `Revive`, `Max Revive`, `Sacred Ash`
+  - nach einem erfolgreichen Shop-Kauf bleibt dieselbe `SelectModifierPhase` offen, sodass weitere Shop-Kaeufe oder danach ein kostenloses Reward-Item folgen koennen
+  - `Ether` und verwandte PP-Heil-Items bleiben vorerst noch technisch geblockt
+- die `LURE`-Familie ist wieder als direkter Reward im Offline-Action-Space erlaubt
 
 Die strategische Variante ist aktuell als Smoke-/Stabilitaets-Harness zu verstehen:
 
@@ -39,24 +50,30 @@ Die strategische Variante ist aktuell als Smoke-/Stabilitaets-Harness zu versteh
 
 ## Aktueller Blocker
 
-Der wichtigste verbleibende technische Blocker fuer den naechsten Modifier-DQN-Schritt ist inzwischen nicht mehr das reine Action Masking, sondern fehlender Double-Battle-Support im `strategic_fixed_seed`-Collector.
+Der wichtigste technische Blocker ist inzwischen nicht mehr das reine Action Masking. Der lokale Double-Battle-Pfad ist in Phase 1 nun vorhanden; offen ist jetzt vor allem die breitere Stabilitaetsvalidierung ueber mehr Seeds sowie der weitere Ausbau noch fehlender Shop-Pfade wie PP-Heilung.
 
 Aktueller Stand:
 
 - fruehe Single-Battle-Probleme wie der `Abra -> Teleport -> naechster Wildkampf`-Haenger wurden im Collector bereits bereinigt
 - ein seltener Startup-Crash rund um `mysteryEncounter` wird aktuell defensiv ueber einmaligen Retry plus besseres Error-Debug abgefangen
-- der aktuelle `battleStyle("single")`-Ansatz deckt Trainer-Doppelkampfe nicht vollstaendig ab
-- laengere oder bestimmte Seed-Verlaeufe enden aber weiter mit `double_battle_not_supported`
+- der strategic Collector hat inzwischen einen lokalen Double-Fallback-Pfad und terminiert bekannte Referenz-Seeds nicht mehr mit `double_battle_not_supported`
+- kuenstliche Wild-Double-Unterdrueckung ueber `getDoubleBattleChance`-Mock und `battleStyle("single")` ist entfernt, damit die Seeds wieder naeher am echten Run-Verhalten liegen
+- ein lokaler 5-Run-Sanity-Check bis `max_waves = 15` lief mit dem aktuellen Stand technisch fehlerfrei durch:
+  - Artefakt: `data/temp/rl/modifier-strategic-fixed-seed-wave15-runs5-double-recover-check3.json`
+  - `technical_count = 0`
+  - alle `5/5` Runs endeten regulär mit `team_wipe_or_game_over`
+  - `average_wave_reached = 8.2`
+  - im konkreten Sample wurden keine Double-Turns getroffen; die Multi-Seed-Validierung bleibt daher weiter wichtig
 
 Konsequenz:
 
-- die strategische Datengenerierung skaliert aktuell nicht sauber ueber viele Seeds
-- bekannte Seeds werden kuenstlich frueh abgeschnitten
-- ein erstes Modifier-DQN wuerde sonst auf systematisch verkuerzten Run-Verlaeufen trainiert
+- die strategische Datengenerierung muss jetzt auf mehr Seeds erneut validiert werden
+- kuenstliche Verkuerzung durch erzwungene Single-Battle-Guards soll nicht mehr Teil des strategischen Setups sein
+- der naechste Fokus liegt damit staerker auf Stabilitaet ueber mehr Seeds, Combat-Policy-Qualitaet in echten Runs und auf noch fehlenden Shop-Pfaden jenseits der bereits unterstuetzten Heal-/Revive-Familien
 
 Darum ist der naechste groessere Ausbauschritt jetzt:
 
-- Double Battles im Strategic-Fixed-Seed-Harness gezielt unterstuetzen
+- die aktuelle Double-/Harness-Stabilitaet ueber weitere Seeds verifizieren und danach die noch fehlenden Survival-Items nachziehen
 
 Offene Designpunkte dafuer:
 
@@ -64,6 +81,435 @@ Offene Designpunkte dafuer:
 - wie Combat-State, Action-Mask und Telemetrie fuer Double-Battle-Turns dokumentiert werden
 - wie Forced Switches, Targeting und zwei aktive Gegner im Collector-Contract repraesentiert werden
 - welcher bekannte Seed/Wave als Regressionstest fuer das bisherige `double_battle_not_supported` dienen soll
+
+## Aktueller Arbeitsplan fuer Double-Battle-Support
+
+Der aktuelle gemeinsame Arbeitsplan ist:
+
+1. den `strategic_fixed_seed`-Collector technisch fuer Double Battles entblocken
+2. dafuer zunaechst einen klaren Double-Battle-Contract fuer Combat-State, Action-Space, Targeting und Forced Switches festziehen
+3. den lokalen strategic Collector in einer ersten Phase ueber einen stabilen Double-Fallback oder Harness-Pfad weiterlaufen lassen, statt bei Double Battles hart zu terminieren
+4. danach die Remote-Offline-Pipeline fuer Combat-Datengenerierung auf echte Double-Battle-Szenarien erweitern
+5. auf Basis dieser Daten ein erstes Combat-DQN fuer Double Battles trainieren
+6. den strategic Modifier-Collector spaeter von Double-Fallback auf echtes Double-Combat-DQN umstellen
+7. erst danach das erste `SelectModifierPhase`-DQN auf vollstaendigeren Seed-Runs trainieren und benchmarken
+
+### Phase-1-Ziel
+
+Kurzfristig ist das wichtigste Ziel noch nicht maximale Kampfqualitaet in Double Battles, sondern:
+
+- keine kuenstlichen Run-Abbrueche mehr bei `double_battle_not_supported`
+- stabile Datengenerierung ueber bekannte Seeds mit Trainer-Doppelkampfen
+- saubere Telemetrie fuer spaetere Double-Combat-Trainingsarbeit
+
+### Neuer lokaler Sanity-Stand
+
+Der aktuelle lokale Zwischenstand nach den juengsten Harness-Fixes ist:
+
+- ein Multi-Seed-Sanity-Run ueber `5 Seeds x 5 Runs` bis `max_waves = 30` lief technisch erfolgreich durch
+- Artefakte liegen unter `data/temp/rl/multi-seed-sanity-wave30-final/`
+- alle `25/25` Runs endeten regulär mit `team_wipe_or_game_over`
+- kein technischer Run-Abbruch mehr im Sample (`technical_count = 0`)
+- ueber alle 25 Runs lag `average_wave_reached` bei `8.88`
+- das beste Ergebnis im Sample war `wave_reached = 18`
+
+### Offene Architekturfrage: ein gemeinsames oder zwei Combat-DQNs?
+
+Diese Frage ist noch nicht final entschieden und soll waehrend der weiteren Planung bewusst offen gehalten werden.
+
+Aktuell stehen zwei plausible Zielbilder im Raum:
+
+1. getrennte Modelle:
+   - ein `single combat dqn`
+   - ein `double combat dqn`
+2. gemeinsames Modell:
+   - ein gemeinsames `combat dqn`, das sowohl Single- als auch Double-Battle-Zustaende verarbeiten kann
+
+Der aktuelle Arbeitsstand spricht eher fuer einen stufenweisen Ansatz:
+
+- kurzfristig getrennte Pfade zuerst
+- spaeter optional pruefen, ob eine Zusammenfuehrung in ein gemeinsames Modell sinnvoll ist
+
+### Aktuelle Architekturentscheidung
+
+Die aktuelle gemeinsame Entscheidung lautet:
+
+- wir gehen vorerst mit zwei getrennten Combat-DQNs weiter:
+  - `single combat dqn`
+  - `double combat dqn`
+- ein gemeinsames Modell fuer Single und Double Battles kann spaeter noch bewusst evaluiert werden, wenn:
+  - der Double-Contract stabil ist
+  - ausreichend Double-Daten vorliegen
+  - belastbare Benchmarks fuer beide Modi existieren
+
+## Phase-1-Contract fuer Double Battles
+
+Der Phase-1-Contract fuer Double Battles soll bewusst klein, robust und collector-tauglich starten.
+
+Ziel ist noch nicht perfekte strategische Double-Battle-Intelligenz, sondern:
+
+- stabile Collector-Ausfuehrung
+- klare Action-Mask-Semantik
+- spaeter trainierbare Double-Combat-Transitions
+
+### 1. State-Schnitt fuer Phase 1
+
+Der Double-State soll zunaechst folgende Kernteile enthalten:
+
+- `battle_type = "double"`
+- `wave_index`
+- `is_trainer_battle`
+- `turn_index`
+
+Aktive eigene Seite:
+
+- `ally_active[2]`
+  - `present`
+  - `species_id`
+  - `hp_ratio`
+  - `fainted`
+  - `level`
+  - `types`
+  - `can_act`
+
+Aktive Gegnerseite:
+
+- `enemy_active[2]`
+  - `present`
+  - `species_id`
+  - `hp_ratio`
+  - `fainted`
+  - `level`
+  - `types`
+
+Bench:
+
+- `bench_slots[6]`
+  - `present`
+  - `fainted`
+  - `hp_ratio`
+  - `level`
+  - `types`
+  - `legal_switch_target`
+
+Forced-Switch-Kontext:
+
+- `requires_forced_switch`
+- `forced_switch_slots[2]`
+  - markiert, welcher aktive Ally-Slot ersetzt werden muss
+
+Phase-1-Prinzip:
+
+- nur Features aufnehmen, die fuer robuste Collectors und erstes Double-DQN noetig sind
+- keine uebermaessig breite State-Explosion im ersten Schritt
+
+### 2. Action-Space fuer Phase 1
+
+Fuer Phase 1 wird ein flacher kombinierter Action-Space vorgeschlagen.
+
+Pro aktivem eigenen Slot:
+
+- Move-Action pro Move-Slot und legalem Ziel
+- Switch-Action pro legalem Bench-Slot
+
+Beispielhafte Semantik:
+
+- `ally0_move0_target_enemy0`
+- `ally0_move0_target_enemy1`
+- `ally0_switch_slot3`
+- `ally1_move2_target_enemy0`
+- `ally1_switch_slot4`
+
+Fuer Phase 1 bewusst noch nicht geplant:
+
+- hochoptimierte simultane Joint-Action beider Allies in einem einzigen grossen Kombinationsschritt
+
+Stattdessen Phase-1-Arbeitsmodell:
+
+- der Collector bzw. spaetere Double-Combat-Pfad entscheidet slotweise in stabiler Reihenfolge
+- zuerst `ally0`
+- dann `ally1`
+
+Das ist fuer Phase 1 einfacher beherrschbar und reduziert die Groesse des initialen Action-Space deutlich.
+
+### 2a. Festgezogene Entscheidung fuer Phase 1
+
+Die aktuelle gemeinsame Entscheidung lautet:
+
+- Double-Battle-Entscheidungen werden in Phase 1 slotweise modelliert
+- zuerst wird fuer `ally0` entschieden
+- danach fuer `ally1`
+- ein grosser gemeinsamer Joint-Action-Space fuer beide Allies wird in Phase 1 bewusst nicht gebaut
+
+Gruende dafuer:
+
+- deutlich kleinerer und robusterer Action-Space
+- einfacher zu maskieren und zu debuggen
+- Forced-Switch-Faelle werden klarer
+- schnellerer erster Ausbau fuer strategic collector und spaeteren Double-Combat-Collector
+
+### 3. Action Masking
+
+Das Action Masking fuer Double Battles soll in Phase 1 mindestens absichern:
+
+- kein Move ohne PP
+- kein Move auf nicht vorhandene oder bereits ungueltige Targets
+- kein Switch auf fainted oder illegale Bench-Slots
+- kein Switch auf bereits aktive Slots
+- keine normale Move-Action fuer Slots, die gerade `forced switch` statt normalem Agieren haben
+
+Fuer Target-Masking gilt:
+
+- Singles und Doubles sollen dieselbe Grundidee teilen:
+  - illegal = aus der Maske entfernt
+  - legal = in der Maske freigegeben
+
+### 4. Forced Switches
+
+Forced Switches sind ein eigener Pflichtteil des Double-Contracts.
+
+Phase-1-Regel:
+
+- wenn ein aktiver Ally-Slot ersetzt werden muss, wird fuer diesen Slot kein normaler Move-/Target-Action-Space gebaut
+- stattdessen sind nur legale Switch-Ziele fuer genau diesen Slot erlaubt
+
+Noetige State-Felder:
+
+- `requires_forced_switch`
+- `forced_switch_slots[2]`
+
+Noetige Action-Semantik:
+
+- `ally0_forced_switch_slot3`
+- `ally1_forced_switch_slot4`
+
+### 5. Strategic Collector Phase 1
+
+Der `strategic_fixed_seed`-Collector soll in Phase 1 noch nicht sofort ein echtes Double-Combat-DQN brauchen.
+
+Geplanter erster Schritt:
+
+- bei `single` weiter bestehendes `single combat dqn`
+- bei `double` zunaechst ein robuster Double-Fallback-Pfad
+
+Dieser Double-Fallback soll:
+
+- den Double-State lesen
+- valide slotweise Aktionen waehlen
+- Forced Switches bedienen
+- keine harten `double_battle_not_supported`-Abbrueche mehr erzeugen
+
+Zusaetzliche Telemetrie:
+
+- `combat_mode = "single_dqn" | "double_fallback"`
+
+### 6. Remote Offline Combat Training
+
+Der spaetere Remote-Collector fuer Double-Combat-Training soll auf demselben fachlichen Contract aufbauen, aber:
+
+- echte Double-Combat-Transitions erzeugen
+- fuer Training und Benchmarking materialisierte Double-Szenarien sammeln
+
+Fuer Phase 1 der Datengenerierung gilt:
+
+- Single- und Double-Daten getrennt sammeln
+- Single- und Double-DQN getrennt trainieren
+- Single- und Double-Benchmarks getrennt reporten
+
+### 7. Erster Regressionstest
+
+Fuer den Ausbau soll ein bekannter Seed/Wave-Fall definiert werden, der aktuell deterministisch in `double_battle_not_supported` endet.
+
+Aktuell bevorzugter Regression-Fall:
+
+- Seed: `modifier-strategic-fixed-seed-wave15-s3`
+- Collector: `strategic_fixed_seed`
+- Referenz-Artefakt: `data/temp/rl/modifier-strategic-fixed-seed-wave14-seed3-runs20.json`
+- aktuelles Verhalten:
+  - `20/20` Runs enden mit `double_battle_not_supported`
+  - jeweils bei `wave_reached = 13`
+  - der letzte gespeicherte Modifier-Step liegt ebenfalls auf `wave_index = 13`
+
+Warum dieser Fall bevorzugt wird:
+
+- deutlich deterministischer als die sporadischen Double-Faelle anderer Seeds
+- genug Wiederholungen vorhanden
+- damit sehr gut als technischer Nachweistest fuer den ersten Double-Fallback geeignet
+
+Dieser Fall soll danach als Regressionstest dienen fuer:
+
+- kein harter Collector-Abbruch mehr
+- gueltige Double-Action-Mask vorhanden
+- Double-Fallback oder spaeter Double-DQN fuehrt den Kampf weiter
+
+### Aktueller lokaler Status des Regression-Falls
+
+Stand lokal:
+
+- der strategic collector bricht im Referenzfall nicht mehr mit `double_battle_not_supported` ab
+- der Trainer-Doppelkampf auf `wave 14` wird inzwischen slotweise ueber `double_fallback` gespielt
+- im Collector-Output werden dabei bereits echte Double-Turns gespeichert
+- der bekannte Reward-Follow-up-Timeout nach dem Double-Battle ist im aktuellen lokalen Stand ebenfalls behoben
+
+Konkret belegt durch den lokalen Check:
+
+- Artefakt: `data/temp/rl/modifier-strategic-fixed-seed-wave14-seed3-run1-double-fallback-check-v12.json`
+- Ergebnis:
+  - `double_turns = 6`
+  - `completed_waves = 14`
+  - `termination_reason = "max_waves_reached"`
+  - damit laeuft der Referenzfall aktuell regulär bis zum gesetzten Cutoff durch
+
+Zusaetzlicher lokaler Sanity-Check:
+
+- Artefakt: `data/temp/rl/modifier-strategic-fixed-seed-wave15-runs5-double-recover-check3.json`
+- Ergebnis:
+  - `5/5` Runs technisch fehlerfrei
+  - `technical_count = 0`
+  - `average_wave_reached = 8.2`
+  - alle Episoden endeten mit `team_wipe_or_game_over`
+  - `double_turns = 0` im konkreten Sample
+  - damit ist der Harness lokal wieder robust genug fuer weitere Seed-Validierung; der naechste Engpass liegt eher bei Combat-Policy-Qualitaet und noch fehlenden Shop-Pfaden wie PP-Heilung
+
+## Konkreter Implementierungsplan fuer den naechsten Ausbau
+
+### Schritt 1: Doppelkampf-Regression reproduzierbar festziehen
+
+Ziel:
+
+- einen oder mehrere konkrete bekannte Seed/Wave-Faelle als feste Regression definieren
+
+Ergebnis:
+
+- dokumentierter Seed
+- dokumentierte Ziel-Wave
+- aktuelles Ist-Verhalten
+- spaeterer Nachweistest fuer den Fix
+
+### Schritt 2: Double-State-Builder im Collector einfuehren
+
+Ziel:
+
+- separaten Double-State fuer den strategic collector aufbauen
+
+Betroffene Themen:
+
+- `ally_active[2]`
+- `enemy_active[2]`
+- Bench-/Switch-Kontext
+- Forced-Switch-Felder
+
+Ergebnis:
+
+- der Collector kann Double-Zustaende lesen und loggen
+- noch ohne vollstaendige Double-DQN-Policy
+
+Technische Haupt-Touchpoints im aktuellen Collector:
+
+- `buildStateFromSnapshot(...)`
+- `buildCombatDecisionSnapshot(...)`
+- `buildTimeoutDebugSnapshot(...)`
+
+### Schritt 3: Slotweise Double-Action-Mask einfuehren
+
+Ziel:
+
+- pro aktivem Ally-Slot legale Double-Aktionen maskieren
+
+Betroffene Themen:
+
+- legale Moves
+- legale Targets
+- legale Switches
+- Forced-Switch-only-Mask fuer betroffene Slots
+
+Ergebnis:
+
+- der Collector kann fuer `ally0` und `ally1` jeweils einen legalen slotweisen Action-Space erzeugen
+
+Technische Haupt-Touchpoints im aktuellen Collector:
+
+- `selectCombatActionFromMask(...)`
+- `executeCombatAction(...)`
+- die bisherige Single-Battle-Move-/Switch-Semantik rund um `selectMoveByIndex(...)` und `selectSwitchByPartyIndex(...)`
+
+### Schritt 4: Double-Fallback fuer strategic collector bauen
+
+Ziel:
+
+- bei Double Battles nicht mehr terminieren
+
+Phase-1-Verhalten:
+
+- `single` weiter ueber `single combat dqn`
+- `double` ueber robusten slotweisen Fallback
+
+Der Fallback soll:
+
+- fuer `ally0` eine legale Aktion waehlen
+- danach fuer `ally1` eine legale Aktion waehlen
+- Forced Switches bedienen
+- Targeting technisch sauber ausfuehren
+
+Ergebnis:
+
+- `double_battle_not_supported` verschwindet aus dem strategic collector
+
+Aktueller lokaler Phase-1-Stand:
+
+- freiwillige Double-Switches sind vorerst bewusst deaktiviert
+- der Fallback priorisiert zunaechst legale Move-Aktionen gegen Gegnerziele
+- damit wird der erste Double-Battle-Pfad stabiler und vermeidet illegale Doppel-Switch-Reservierungen auf denselben Bench-Slot
+
+Technische Haupt-Touchpoints im aktuellen Collector:
+
+- `advanceCombatAfterAction(...)`
+- `waitForPromiseOrTerminal(...)`
+- `resolveForcedSwitchIfNeeded(...)`
+- Combat-Loop im Episodenlauf
+
+### Schritt 5: Double-Telemetrie und Contract erweitern
+
+Ziel:
+
+- Double-Turns sauber im Output sichtbar machen
+
+Neue Felder bzw. Themen:
+
+- `battle_type`
+- `combat_mode`
+- slotweise Action-Records
+- Double-Action-Mask-/Target-Mask-Sicht
+
+Ergebnis:
+
+- Double-Turns sind spaeter nachvollziehbar fuer Debugging, Datengenerierung und Training
+
+### Schritt 6: Regressionstest fuer strategic collector
+
+Ziel:
+
+- ein bisher scheiternder Double-Seed laeuft nach dem Umbau stabil weiter
+
+Mindestens pruefen:
+
+- kein `double_battle_not_supported`
+- kein ungueltiger Target-/Switch-Pfad
+- Collector endet spaeter regulär oder an echtem Kampfverlust
+
+### Schritt 7: Remote-Combat-Double-Collector planen
+
+Erst nach stabilem local harness:
+
+- Double-Szenarien fuer die Remote-Offline-Combat-Pipeline materialisieren
+- Double-Transitions getrennt sammeln
+- erstes `double combat dqn` trainieren
+
+Die bewusste Reihenfolge ist:
+
+- zuerst local strategic collector stabilisieren
+- dann Remote-Double-Datengenerierung
+- dann erstes Double-Combat-DQN
 
 ## Kernidee der Pipeline
 

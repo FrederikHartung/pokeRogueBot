@@ -47,13 +47,24 @@ function resolveFirstExisting(candidates: readonly string[]): string | null {
   return null;
 }
 
-const combatCheckpoint = process.argv[7]
-  ? path.resolve(process.argv[7])
+function normalizeOptionalCliArg(value: string | undefined): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+const checkpointOverride = normalizeOptionalCliArg(process.argv[7]);
+const combatDeviceOverride = normalizeOptionalCliArg(process.argv[8]);
+const pythonOverride = normalizeOptionalCliArg(process.argv[9]) ?? process.env.POKEROGUE_COMBAT_DQN_PYTHON ?? null;
+
+const combatCheckpoint = checkpointOverride
+  ? path.resolve(checkpointOverride)
   : process.env.POKEROGUE_COMBAT_DQN_CHECKPOINT
   ? path.resolve(process.env.POKEROGUE_COMBAT_DQN_CHECKPOINT)
   : resolveFirstExisting(defaultCombatCheckpointCandidates);
-const combatDevice = process.argv[8] ?? process.env.POKEROGUE_COMBAT_DQN_DEVICE ?? "cpu";
-const pythonOverride = process.argv[9] ?? process.env.POKEROGUE_COMBAT_DQN_PYTHON ?? null;
+const combatDevice = combatDeviceOverride ?? process.env.POKEROGUE_COMBAT_DQN_DEVICE ?? "cpu";
 const pythonBin = pythonOverride
   ? (path.isAbsolute(pythonOverride) ? pythonOverride : pythonOverride)
   : resolveFirstExisting(defaultPythonCandidates) ?? "python3";
@@ -88,6 +99,7 @@ const testSource = templateSource
   .replaceAll("__OUTPUT_PATH__", JSON.stringify(outputPath))
   .replaceAll("__SEED__", JSON.stringify(seed))
   .replaceAll("__RUN_COUNT__", String(runCount))
+  .replaceAll("__RUN_INDEX_OFFSET__", "0")
   .replaceAll("__MAX_WAVES__", String(maxWaves))
   .replaceAll("__COLLECTOR_VARIANT__", JSON.stringify(collectorVariant))
   .replaceAll("__MODIFIER_POLICY__", JSON.stringify(modifierPolicy))

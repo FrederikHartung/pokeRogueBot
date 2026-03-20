@@ -205,7 +205,11 @@ function buildMessage({
   } else if (event === "collection_completed") {
     lines.push("State: collection completed");
     if (collectionMetrics) {
-      lines.push(`Scenarios: ${collectionMetrics.scenario_count ?? "?"}`);
+      if (collectionMetrics.seed_count != null) {
+        lines.push(`Seeds: ${collectionMetrics.seed_count}`);
+      } else {
+        lines.push(`Scenarios: ${collectionMetrics.scenario_count ?? "?"}`);
+      }
       lines.push(`Waves: ${formatWaves(collectionMetrics.waves)}`);
       lines.push(`Batches: ${collectionMetrics.completed_batches ?? "?"}/${collectionMetrics.total_batches ?? "?"}`);
       lines.push(`Episodes: ${collectionMetrics.completed_episodes ?? "?"}/${collectionMetrics.total_episodes ?? "?"}`);
@@ -237,7 +241,11 @@ function buildMessage({
     lines.push("State: collection failed");
     lines.push(`Phase: ${phase ?? inferCurrentPhase(manifest) ?? "unknown"}`);
     if (collectionMetrics) {
-      lines.push(`Scenarios: ${collectionMetrics.scenario_count ?? "?"}`);
+      if (collectionMetrics.seed_count != null) {
+        lines.push(`Seeds: ${collectionMetrics.seed_count}`);
+      } else {
+        lines.push(`Scenarios: ${collectionMetrics.scenario_count ?? "?"}`);
+      }
       lines.push(`Batches: ${collectionMetrics.completed_batches ?? "?"}/${collectionMetrics.total_batches ?? "?"}`);
       lines.push(`Episodes: ${collectionMetrics.completed_episodes ?? "?"}/${collectionMetrics.total_episodes ?? "?"}`);
     } else if (progress) {

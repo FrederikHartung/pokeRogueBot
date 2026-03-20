@@ -241,6 +241,77 @@ function validateRuntimeRetentionConfig(value, context) {
   return structuredClone(value);
 }
 
+function validateModifierStrategicCollectConfig(value, context) {
+  assertPlainObject(value, context, "modifier strategic collect config");
+  assertAllowedKeys(
+    value,
+    new Set([
+      "runs_per_seed",
+      "runs_per_instance",
+      "parallelism",
+      "max_waves",
+      "modifier_policy",
+      "step_timeout_ms",
+      "run_process_timeout_ms",
+      "combat_dqn_checkpoint",
+      "combat_dqn_device",
+      "combat_dqn_python",
+    ]),
+    context,
+    "modifier strategic collect config",
+  );
+
+  assertPositiveInteger(value.runs_per_seed, context, "runs_per_seed");
+  assertPositiveInteger(value.runs_per_instance, context, "runs_per_instance");
+  assertPositiveInteger(value.max_waves, context, "max_waves");
+  if ("parallelism" in value) {
+    assertPositiveInteger(value.parallelism, context, "parallelism");
+  }
+  if ("step_timeout_ms" in value) {
+    assertPositiveInteger(value.step_timeout_ms, context, "step_timeout_ms");
+  }
+  if ("run_process_timeout_ms" in value) {
+    assertPositiveInteger(value.run_process_timeout_ms, context, "run_process_timeout_ms");
+  }
+  for (const key of ["combat_dqn_checkpoint", "combat_dqn_device", "combat_dqn_python"]) {
+    if (key in value) {
+      assertOptionalString(value[key], context, key);
+    }
+  }
+
+  const modifierPolicy = value.modifier_policy ?? "random_executable";
+  if (modifierPolicy !== "random_executable") {
+    throw new Error(`Unsupported modifier_policy${describeContext(context)}: ${String(modifierPolicy)}`);
+  }
+
+  return {
+    ...structuredClone(value),
+    modifier_policy: modifierPolicy,
+  };
+}
+
+function validateModifierStrategicPostprocessConfig(value, context) {
+  assertPlainObject(value, context, "modifier strategic postprocess config");
+  assertAllowedKeys(value, new Set(["enabled", "gamma", "output_path"]), context, "modifier strategic postprocess config");
+  if ("enabled" in value) {
+    assertOptionalBoolean(value.enabled, context, "enabled");
+  }
+  if ("gamma" in value) {
+    assertFiniteNumber(value.gamma, context, "gamma");
+    if (value.gamma <= 0 || value.gamma > 1) {
+      throw new Error(`Invalid gamma${describeContext(context)}: ${value.gamma}`);
+    }
+  }
+  if ("output_path" in value) {
+    assertOptionalString(value.output_path, context, "output_path");
+  }
+  return {
+    enabled: value.enabled ?? true,
+    gamma: value.gamma ?? 0.99,
+    output_path: value.output_path ?? null,
+  };
+}
+
 function validateIterativeCollectPhase(value, context, allowRandomPolicy) {
   assertPlainObject(value, context, "iterative collect phase");
   assertAllowedKeys(value, new Set(["episodes_per_instance", "batch_size", "parallelism", "enabled", "collector", "policy", "device"]), context, "iterative collect phase");
@@ -431,6 +502,50 @@ export function validateRandomCollectionPipelineConfig(value, options = {}) {
   if ("runtime_retention" in value) {
     normalized.runtime_retention = validateRuntimeRetentionConfig(value.runtime_retention, `${context}.runtime_retention`);
   }
+  return normalized;
+}
+
+export function validateModifierStrategicPipelineConfig(value, options = {}) {
+  const { context = "modifier strategic pipeline config" } = options;
+  assertPlainObject(value, context, "modifier strategic pipeline config");
+  assertAllowedKeys(
+    value,
+    new Set([
+      "seeds",
+      "seed_prefix",
+      "seed_start_index",
+      "seed_count",
+      "output_root",
+      "manifest_path",
+      "collect",
+      "postprocess",
+      "archive",
+    ]),
+    context,
+    "modifier strategic pipeline config",
+  );
+
+  assertOptionalStringArray(value.seeds, context, "seeds");
+  assertOptionalString(value.seed_prefix, context, "seed_prefix");
+  if ("seed_start_index" in value) {
+    assertOptionalInteger(value.seed_start_index, context, "seed_start_index");
+  }
+  if ("seed_count" in value) {
+    assertOptionalInteger(value.seed_count, context, "seed_count", { positive: true });
+  }
+  assertOptionalString(value.output_root, context, "output_root");
+  assertOptionalString(value.manifest_path, context, "manifest_path");
+
+  const hasExplicitSeeds = Array.isArray(value.seeds) && value.seeds.length > 0;
+  const hasGeneratedSeeds = typeof value.seed_prefix === "string" && value.seed_prefix.length > 0 && Number.isInteger(value.seed_count) && value.seed_count > 0;
+  if (!hasExplicitSeeds && !hasGeneratedSeeds) {
+    throw new Error(`Expected either seeds[] or seed_prefix + seed_count${describeContext(context)}`);
+  }
+
+  const normalized = structuredClone(value);
+  normalized.collect = validateModifierStrategicCollectConfig(value.collect ?? {}, `${context}.collect`);
+  normalized.postprocess = validateModifierStrategicPostprocessConfig(value.postprocess ?? {}, `${context}.postprocess`);
+  normalized.archive = validateArchiveConfig(value.archive ?? {}, `${context}.archive`);
   return normalized;
 }
 

@@ -1,0 +1,27 @@
+{
+  "seed_prefix": "modifier-strategic-remote-smoke-s",
+  "seed_start_index": 1,
+  "seed_count": 1,
+  "output_root": "./pipeline-runs/modifier-strategic-seeded-remote-smoke",
+  "manifest_path": "./pipeline-runs/modifier-strategic-seeded-remote-smoke/manifest.json",
+  "collect": {
+    "runs_per_seed": 1,
+    "runs_per_instance": 1,
+    "parallelism": 1,
+    "max_waves": 15,
+    "modifier_policy": "random_executable",
+    "step_timeout_ms": 15000,
+    "run_process_timeout_ms": 300000,
+    "combat_dqn_device": "cpu",
+    "combat_dqn_python": "python3"
+  },
+  "postprocess": {
+    "enabled": true,
+    "gamma": 0.99,
+    "output_path": "./pipeline-runs/modifier-strategic-seeded-remote-smoke/merged/modifier-strategic-training-transitions.jsonl"
+  },
+  "archive": {
+    "format": "tar.gz",
+    "output_path": "./pipeline-runs/modifier-strategic-seeded-remote-smoke/artifacts/modifier-strategic-seeded-runtime.tar.gz"
+  }
+}

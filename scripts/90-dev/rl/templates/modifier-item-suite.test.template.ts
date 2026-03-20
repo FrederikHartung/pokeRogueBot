@@ -158,6 +158,13 @@ it.each(reviveCases)("validates party target mask for $itemId", ({ itemId, optio
   recordValidatedItem(itemId, "party", "nur fainted Pokemon darf gewaehlt werden");
 });
 
+it("validates direct no-target handling for SACRED_ASH", () => {
+  const option = new ModifierTypeOption(modifierTypes.SACRED_ASH(), 0, 100);
+  expect(typeof option.type.selectFilter).toBe("undefined");
+  expect(typeof option.type.moveSelectFilter).toBe("undefined");
+  recordValidatedItem("SACRED_ASH", "party", "globaler Revive ohne Party- oder Move-Zielauswahl");
+});
+
 it("validates party target mask for FULL_HEAL", () => {
   const party = initStarterScene();
   const bulbasaur = party[0];

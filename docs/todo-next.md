@@ -40,12 +40,16 @@ Kurzfristig ergaenzen:
   - neue Collector-Varianten sind jetzt getrennt:
     - `sanity_masking` fuer technische Masking-/Pipeline-Sanity
     - `strategic_fixed_seed` fuer echte seed-basierte Runs mit RANDOM-Modifier-Entscheidungen
-  - `strategic_fixed_seed` versucht aktuell den Scope moeglichst auf Single Battles zu begrenzen, Trainer-Doppelkampfe rutschen aber weiter durch
-  - die `LURE`-Familie ist dafuer vorerst wieder aus dem Offline-Modifier-Action-Space herausgenommen
+  - `strategic_fixed_seed` laeuft jetzt wieder ohne kuenstliches Single-Druecken von Wildkaempfen; Double Battles werden lokal ueber den Double-Fallback-Pfad abgearbeitet
+  - die `LURE`-Familie ist im Offline-Modifier-Action-Space wieder erlaubt
   - `buy_shop_item` ist im strategic collector jetzt fuer `Potion` aktiv:
     - Party-Zielauswahl wird unterstuetzt
     - mehrfacher `Potion`-Kauf in derselben `SelectModifierPhase` ist moeglich
     - danach kann weiterhin noch ein kostenloses Reward-Item genommen werden
+  - strategische Multi-Run-Batches werden jetzt episodeweise ausgefuehrt:
+    - jeder Run startet in einem eigenen Vitest-Prozess
+    - dadurch gilt der Timeout pro Run statt ueber den gesamten Batch
+    - der Runner aggregiert die Einzelresultate danach wieder in ein gemeinsames Output-Artefakt
   - neuer 50-Run-Smoke mit `Potion`-Shop-Support:
     - `average_wave_reached = 8.2`
     - `29 / 50` Runs mit aktivem `Potion`-Shopkauf
@@ -53,20 +57,48 @@ Kurzfristig ergaenzen:
   - aktueller Stand nach weiteren Seed-Laeufen:
     - seltener Startup-Crash `Cannot read properties of null (reading 'mysteryEncounter')` ist jetzt im Collector defensiv mit Retry + besserem Error-Debug abgefangen
     - der fruehere Wild-Flee-/Teleport-Haenger `battle_end_to_select_modifier_phase` ist im Collector behoben
-    - verbleibender Hauptblocker fuer weitere strategische Datengenerierung ist jetzt klar `double_battle_not_supported`
+    - bekannte `double_battle_not_supported`-Faelle sind im lokalen strategic Collector inzwischen behoben
+    - lokaler 5-Run-Sanity-Check mit aktuellem Double-/Lure-Stand ist gruen:
+      - `data/temp/rl/modifier-strategic-fixed-seed-wave15-runs5-double-recover-check3.json`
+      - `technical_count = 0`
+      - `average_wave_reached = 8.2`
+      - alle `5/5` Runs enden regulär mit `team_wipe_or_game_over`
+      - im konkreten Sample `double_turns = 0`
   - neue Prioritaet:
-    - Double Battles im Strategic-Fixed-Seed-Collector muessen als eigener naechster Ausbau unterstuetzt werden
-    - ohne Double-Battle-Support bleiben einzelne Seeds oder laengere Runs systematisch abgeschnitten
-    - damit blockiert der fehlende Double-Battle-Pfad inzwischen das erste sinnvolle Modifier-DQN staerker als weitere kleine Single-Battle-Politur
+    - stabilere Datengenerierung ueber mehr Seeds mit wieder aktivierten Wild-Doppelkampfen und erlaubter `LURE`-Familie validieren
+    - danach noch fehlende Shop-Survival-Items wie `Ether` nachziehen
+    - dann erstes sinnvolles Modifier-DQN auf dem weniger kuenstlich beschnittenen Run-Space trainieren
   - offene Punkte fuer Double-Battle-Support:
     - entscheiden, ob Phase 1 im strategic collector Double Battles ueber Heuristik, ueber das bestehende Live-Fallback-Verhalten oder ueber einen kleinen eigenen Harness-Pfad spielt
     - Combat-Observation/Action-Semantik fuer Double Battles im strategic collector festziehen
     - Forced-Switch-/Targeting-/zwei aktive Gegner sauber als Collector-Contract definieren
     - Action-Mask und Telemetrie fuer Double-Battle-Turns dokumentieren
-    - Regressionstest mit einem bekannten Seed/Wave aufsetzen, der aktuell deterministisch in `double_battle_not_supported` endet
+    - Regressionstest festziehen:
+      - bevorzugter Referenzfall ist aktuell `modifier-strategic-fixed-seed-wave15-s3`
+      - Referenz-Artefakt: `data/temp/rl/modifier-strategic-fixed-seed-wave14-seed3-runs20.json`
+      - aktuelles Ist: `20/20` Runs enden bei `wave_reached = 13` mit `double_battle_not_supported`
+  - neuer lokaler Zwischenstand:
+    - der Referenzfall kommt inzwischen regulär bis `max_waves = 14`
+    - belegt in `data/temp/rl/modifier-strategic-fixed-seed-wave14-seed3-run1-double-fallback-check-v12.json`
+    - dort werden `6` Double-Turns gespeichert
+    - `termination_reason = max_waves_reached`
+  - neuer Multi-Seed-Sanity-Stand:
+    - lokaler Multi-Seed-Sanity-Run `5 Seeds x 5 Runs` bis `max_waves = 30` ist jetzt technisch gruen
+    - Artefakte liegen unter `data/temp/rl/multi-seed-sanity-wave30-final/`
+    - `25/25` Runs enden regulär mit `team_wipe_or_game_over`
+    - `technical_count = 0`
+    - Gesamtmittel: `average_wave_reached = 8.88`
+    - bestes Ergebnis im Sample: `wave_reached = 18`
+  - neuer Remote-Sammelpfad fuer die strategic seeded Modifier-Datengenerierung ist angelegt:
+    - Doku: `docs/modifier-strategic-seeded-remote.md`
+    - Smoke-Config: `data/rl/modifier-strategic-seeded-remote-smoke.json`
+    - Batch-Config: `data/rl/modifier-strategic-seeded-remote-10seeds-20runs-wave30.json`
+    - Remote-Helper: `scripts/01-data-generation/pipeline/run-modifier-strategic-seeded-remote.sh`
   - weiterhin offen:
+    - Combat-Policy-Qualitaet in einzelnen echten States ist noch schwankend; der Harness ist aktuell stabiler als die Kampfentscheidungen selbst
+    - freiwillige Double-Switches spaeter sauber erweitern; aktuell Phase-1-bewusst move-first ohne freiwillige Double-Switches
     - `Ether`
-    - `Revive`
+    - PP-Heilung im Shop (`Ether`/`Max Ether`/`Elixir`/`Max Elixir`) technisch nachziehen
   - erster strategischer Smoke-Run bis `maxWave=11` lief technisch erfolgreich, kam aber inhaltlich nur bis Wave `4`; aktueller Fokus ist daher zunaechst Pipeline-Stabilitaet unter echten Gegnern statt sofort Trainingsqualitaet
   - terminaler Reward fuer Phase 1 primaer ueber erreichte Wave
   - geplanter naechster Strategics-Schritt nach Collector-Stabilitaet:
@@ -88,6 +120,7 @@ Kurzfristig ergaenzen:
       - pro Party-Slot statt nur globaler `available`-Flag ist jetzt im Collector angelegt
       - der Berry-Stack-Sonderfall ist jetzt mit einem deterministischen `SITRUS`-Target-Mask-Test verifiziert
       - `Potion`/`Revive` sowie weitere konsumierbare Item-Familien sind jetzt mit einer groesseren deterministischen Item-Suite abgedeckt
+      - die strategische Collector-Ausfuehrung unterstuetzt jetzt auch Shop-Revivals (`Revive`, `Max Revive`, `Sacred Ash`) zusaetzlich zu Reward-Revivals
       - `MINT`, `MEMORY_MUSHROOM`, `TERA_SHARD`, `EVOLUTION_ITEM` und `FORM_CHANGE_ITEM` Group 1 sind inzwischen dediziert abgesichert
       - `AttackTypeBoosterModifierType` ist jetzt mit strengem STAB-Masking dediziert abgesichert und wird bewusst unterstuetzt
       - `SpeciesStatBoosterModifierType` ist jetzt mit strengem Species-Masking dediziert abgesichert und wird bewusst unterstuetzt

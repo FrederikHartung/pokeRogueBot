@@ -10,6 +10,7 @@ import { allMoves } from "#data/data-lists";
 import { MoveId } from "#enums/move-id";
 import { MoveCategory } from "#enums/move-category";
 import { MoveUseMode } from "#enums/move-use-mode";
+import { getMoveTargets } from "#moves/move-utils";
 import { Nature } from "#enums/nature";
 import { PokemonType } from "#enums/pokemon-type";
 import { ShopCursorTarget } from "#enums/shop-cursor-target";
@@ -41,11 +42,28 @@ interface CombatDecisionSnapshot {
   wave_index: number;
   turn_index: number;
   is_double_battle: boolean;
+  battle_type?: "single" | "double";
+  acting_field_index?: number;
   player: BattlerSnapshot;
   enemy: BattlerSnapshot;
+  ally_field?: BattlerSnapshot[];
+  enemy_field?: BattlerSnapshot[];
   action_mask: number[];
   selected_action: number;
   action_source: string;
+}
+
+interface DoubleSlotActionSnapshot {
+  action_index: number;
+  action_kind: "move" | "switch";
+  acting_field_index: number;
+  move_index?: number;
+  move_id?: number;
+  target_index?: BattlerIndex;
+  selected_targets?: BattlerIndex[];
+  requires_target_phase?: boolean;
+  switch_party_index?: number;
+  score: number;
 }
 
 interface ModifierOptionSnapshot {
@@ -120,6 +138,7 @@ interface SelectedModifierActionDebugSnapshot {
 interface TimeoutDebugSnapshot {
   phase_name: string;
   ui_mode: string;
+  command_field_index?: number | null;
   wave_index: number | null;
   turn_index: number | null;
   combat_turn_count: number | null;
@@ -165,6 +184,7 @@ interface EpisodeRecord {
 const OUTPUT_PATH = __OUTPUT_PATH__;
 const SEED = __SEED__;
 const RUN_COUNT = __RUN_COUNT__;
+const RUN_INDEX_OFFSET = __RUN_INDEX_OFFSET__;
 const MAX_WAVES = __MAX_WAVES__;
 const COLLECTOR_VARIANT = __COLLECTOR_VARIANT__ as CollectorVariant;
 const MODIFIER_POLICY = __MODIFIER_POLICY__ as ModifierPolicy;
@@ -210,9 +230,6 @@ const WAVE_LIB_W1_STARTERS = [
 // - allowed as party-target actions via selectFilter-based target masking,
 // - or still unsupported because they require move/multi-step follow-up selection.
 const OFFLINE_BLOCKED_REWARD_IDS = new Set([
-  "LURE",
-  "SUPER_LURE",
-  "MAX_LURE",
   "MAP",
   "MEMORY_MUSHROOM",
   "DNA_SPLICERS",
@@ -237,6 +254,9 @@ const OFFLINE_BLOCKED_REWARD_IDS = new Set([
   "SOUL_DEW",
 ]);
 const OFFLINE_ALLOWED_DIRECT_REWARD_IDS = new Set([
+  "LURE",
+  "SUPER_LURE",
+  "MAX_LURE",
   "POKEBALL",
   "GREAT_BALL",
   "ULTRA_BALL",
@@ -317,14 +337,15 @@ const OFFLINE_BLOCKED_MODIFIER_TYPE_NAMES = new Set([
   "FusePokemonModifierType",
 ]);
 
-interface PersistentCombatDqnWorker {
+interface PersistentExternalPolicyWorker {
   child: ReturnType<typeof spawn>;
   readline: Interface;
   pending: Array<{ resolve: (action: number) => void; reject: (error: Error) => void }>;
   stderrChunks: string[];
+  key: string;
 }
 
-let persistentCombatDqnWorker: PersistentCombatDqnWorker | null = null;
+const persistentExternalPolicyWorkers = new Map<string, PersistentExternalPolicyWorker>();
 
 function hashString(input: string): number {
   let hash = 2166136261;
@@ -379,59 +400,95 @@ function buildStateFromSnapshot(game: GameManager): Record<string, unknown> {
   return buildCombatObservation(game);
 }
 
-function describeCombatWorkerStderr(): string {
-  if (!persistentCombatDqnWorker || persistentCombatDqnWorker.stderrChunks.length === 0) {
+function externalPolicyKey(policyConfig: {
+  command: string[];
+  env?: Record<string, string>;
+  timeout_ms?: number;
+  persistent?: boolean;
+}): string {
+  return JSON.stringify({
+    command: Array.isArray(policyConfig?.command) ? policyConfig.command : [],
+    env: typeof policyConfig?.env === "object" && policyConfig.env !== null ? policyConfig.env : {},
+    timeout_ms: Number.isFinite(policyConfig?.timeout_ms) ? policyConfig.timeout_ms : null,
+    persistent: policyConfig?.persistent === true,
+  });
+}
+
+function describeWorkerStderr(worker: PersistentExternalPolicyWorker | null): string {
+  if (!worker || worker.stderrChunks.length === 0) {
     return "";
   }
-  return persistentCombatDqnWorker.stderrChunks.join("");
+  return worker.stderrChunks.join("");
 }
 
-function cleanupPersistentCombatDqnWorker(): void {
-  if (!persistentCombatDqnWorker) {
-    return;
+function cleanupPersistentExternalPolicyWorkers(): void {
+  for (const worker of persistentExternalPolicyWorkers.values()) {
+    while (worker.pending.length > 0) {
+      worker.pending.shift()?.reject(new Error("Persistent external policy worker was cleaned up"));
+    }
+    try {
+      worker.child.stdin.write(JSON.stringify({ shutdown: true }) + "\n");
+    } catch {
+      // Best-effort.
+    }
+    try {
+      worker.readline.close();
+    } catch {
+      // Best-effort.
+    }
+    try {
+      worker.child.stdin.end();
+    } catch {
+      // Best-effort.
+    }
+    try {
+      worker.child.kill("SIGTERM");
+    } catch {
+      // Best-effort.
+    }
   }
-  const worker = persistentCombatDqnWorker;
-  persistentCombatDqnWorker = null;
-  while (worker.pending.length > 0) {
-    worker.pending.shift()?.reject(new Error("Combat DQN worker cleaned up"));
-  }
-  try {
-    worker.child.stdin.write(JSON.stringify({ shutdown: true }) + "\n");
-  } catch {
-    // Best-effort.
-  }
-  try {
-    worker.readline.close();
-  } catch {
-    // Best-effort.
-  }
-  try {
-    worker.child.stdin.end();
-  } catch {
-    // Best-effort.
-  }
-  try {
-    worker.child.kill("SIGTERM");
-  } catch {
-    // Best-effort.
-  }
+  persistentExternalPolicyWorkers.clear();
 }
 
-function getOrStartPersistentCombatDqnWorker(): PersistentCombatDqnWorker {
-  if (persistentCombatDqnWorker) {
-    return persistentCombatDqnWorker;
+function getOrStartPersistentExternalPolicyWorker(policyConfig: {
+  command: string[];
+  env?: Record<string, string>;
+  timeout_ms?: number;
+  persistent?: boolean;
+}): PersistentExternalPolicyWorker {
+  const key = externalPolicyKey(policyConfig);
+  const existing = persistentExternalPolicyWorkers.get(key);
+  if (existing) {
+    return existing;
   }
 
+  if (!Array.isArray(policyConfig?.command) || policyConfig.command.length === 0) {
+    throw new Error("POLICY.command must be a non-empty string array for external_command");
+  }
+
+  const pythonRelatedEnv = Object.fromEntries(
+    Object.entries(process.env)
+      .filter(([key]) => /^(PYTHON|VIRTUAL_ENV|CONDA|TORCH|PYTORCH|PYTHONHOME|PYTHONPATH|DYLD|LD_)/.test(key)),
+  );
+  console.error(
+    `[modifier-fixed-seed-single-dqn-worker-start] cwd=${process.cwd()} command=${JSON.stringify(policyConfig.command)} env=${JSON.stringify(pythonRelatedEnv)}`,
+  );
+
+  const [command, ...args] = policyConfig.command;
+  const env = typeof policyConfig?.env === "object" && policyConfig.env !== null
+    ? { ...process.env, ...policyConfig.env }
+    : process.env;
   const child = spawn(
-    COMBAT_DQN_PYTHON,
-    [COMBAT_DQN_WORKER_SCRIPT, "--checkpoint", COMBAT_DQN_CHECKPOINT, "--device", COMBAT_DQN_DEVICE],
+    command,
+    args,
     {
       stdio: ["pipe", "pipe", "pipe"],
-      env: process.env,
+      env,
     },
   );
   const readline = createInterface({ input: child.stdout });
-  const worker: PersistentCombatDqnWorker = {
+  const worker: PersistentExternalPolicyWorker = {
+    key,
     child,
     readline,
     pending: [],
@@ -463,48 +520,85 @@ function getOrStartPersistentCombatDqnWorker(): PersistentCombatDqnWorker {
     }
   });
 
-  child.on("error", (error: Error) => {
-    persistentCombatDqnWorker = null;
+  const rejectAllPending = (reason: string) => {
     while (worker.pending.length > 0) {
-      worker.pending.shift()?.reject(new Error("Combat DQN worker failed: " + String(error) + " " + describeCombatWorkerStderr()));
+      worker.pending.shift()?.reject(new Error(reason + describeWorkerStderr(worker)));
     }
+  };
+
+  child.on("error", (error: Error) => {
+    persistentExternalPolicyWorkers.delete(key);
+    rejectAllPending("Persistent external policy worker failed: " + String(error) + " ");
   });
 
   child.on("exit", (code: number | null, signal: NodeJS.Signals | null) => {
-    persistentCombatDqnWorker = null;
-    while (worker.pending.length > 0) {
-      worker.pending.shift()?.reject(
-        new Error(
-          "Combat DQN worker exited unexpectedly"
+    persistentExternalPolicyWorkers.delete(key);
+    if (worker.pending.length > 0) {
+      rejectAllPending(
+        "Persistent external policy worker exited unexpectedly"
           + " code=" + String(code)
           + " signal=" + String(signal)
-          + " "
-          + describeCombatWorkerStderr(),
-        ),
+          + " ",
       );
     }
   });
 
-  persistentCombatDqnWorker = worker;
+  persistentExternalPolicyWorkers.set(key, worker);
   return worker;
 }
 
-async function inferCombatActionWithDqn(state: Record<string, unknown>, actionMask: number[]): Promise<number> {
-  const worker = getOrStartPersistentCombatDqnWorker();
+async function runPersistentExternalPolicy(
+  policyConfig: {
+    command: string[];
+    env?: Record<string, string>;
+    timeout_ms?: number;
+    persistent?: boolean;
+  },
+  state: Record<string, unknown>,
+  actionMask: number[],
+): Promise<number> {
+  const worker = getOrStartPersistentExternalPolicyWorker(policyConfig);
+  const timeoutMs = Number.isFinite(policyConfig?.timeout_ms) && policyConfig.timeout_ms! > 0
+    ? Number(policyConfig.timeout_ms)
+    : 5000;
   const payload = JSON.stringify({ state, action_mask: actionMask }) + "\n";
-  return await new Promise<number>((resolve, reject) => {
-    worker.pending.push({ resolve, reject });
-    worker.child.stdin.write(payload, "utf8", error => {
-      if (!error) {
-        return;
-      }
-      const pendingIndex = worker.pending.findIndex(entry => entry.resolve === resolve);
-      if (pendingIndex >= 0) {
-        worker.pending.splice(pendingIndex, 1);
-      }
-      reject(error instanceof Error ? error : new Error(String(error)));
-    });
-  });
+
+  return await withTimeout(
+    new Promise<number>((resolve, reject) => {
+      worker.pending.push({ resolve, reject });
+      worker.child.stdin.write(payload, "utf8", (error: Error | null | undefined) => {
+        if (!error) {
+          return;
+        }
+        const pendingIndex = worker.pending.findIndex(entry => entry.resolve === resolve);
+        if (pendingIndex >= 0) {
+          worker.pending.splice(pendingIndex, 1);
+        }
+        reject(error instanceof Error ? error : new Error(String(error)));
+      });
+    }),
+    timeoutMs,
+    "persistent external policy",
+  );
+}
+
+async function inferCombatActionWithDqn(state: Record<string, unknown>, actionMask: number[]): Promise<number> {
+  return await runPersistentExternalPolicy(
+    {
+      command: [
+        COMBAT_DQN_PYTHON,
+        COMBAT_DQN_WORKER_SCRIPT,
+        "--checkpoint",
+        COMBAT_DQN_CHECKPOINT,
+        "--device",
+        COMBAT_DQN_DEVICE,
+      ],
+      persistent: true,
+      timeout_ms: STEP_TIMEOUT_MS,
+    },
+    state,
+    actionMask,
+  );
 }
 
 function buildBattlerSnapshot(pokemon: any): BattlerSnapshot {
@@ -682,6 +776,113 @@ function usesBestOffenseStat(user: any, target: any, moveData: any): boolean {
     return attack >= specialAttack;
   }
   return specialAttack >= attack;
+}
+
+function buildActiveBattlerState(pokemon: any, canAct = true): Record<string, unknown> {
+  if (!pokemon) {
+    return {
+      present: 0,
+      species_id: 0,
+      hp_ratio: 0,
+      fainted: 0,
+      level: 0,
+      types: [],
+      can_act: 0,
+    };
+  }
+
+  return {
+    present: 1,
+    species_id: pokemon.species?.speciesId ?? 0,
+    hp_ratio: toHpRatio(pokemon.hp, pokemon.getMaxHp()),
+    fainted: pokemon.isFainted() ? 1 : 0,
+    level: pokemon.level ?? 0,
+    types: pokemon.getTypes(true, true).filter((type: number) => Number.isInteger(type) && type >= 0).slice(0, 2),
+    can_act: canAct && !pokemon.isFainted() ? 1 : 0,
+  };
+}
+
+function getCommandFieldIndexSafe(game: GameManager): number {
+  const currentPhase = game.scene.phaseManager?.getCurrentPhase?.() as { getFieldIndex?: () => number } | undefined;
+  if (typeof currentPhase?.getFieldIndex === "function") {
+    const fieldIndex = currentPhase.getFieldIndex();
+    if (Number.isInteger(fieldIndex)) {
+      return fieldIndex;
+    }
+  }
+  return 0;
+}
+
+function getActingPlayerPokemon(game: GameManager): any | undefined {
+  const currentPhase = game.scene.phaseManager?.getCurrentPhase?.() as { getPokemon?: () => any } | undefined;
+  if (typeof currentPhase?.getPokemon === "function") {
+    return currentPhase.getPokemon();
+  }
+  const playerField = game.scene.getPlayerField(true);
+  return playerField[getCommandFieldIndexSafe(game)] ?? playerField[0];
+}
+
+function getPrimaryEnemyTarget(game: GameManager): any | undefined {
+  const activeEnemies = game.scene.getEnemyField(true);
+  return activeEnemies[0];
+}
+
+function isEnemyBattlerIndex(targetIndex: BattlerIndex): boolean {
+  return targetIndex === BattlerIndex.ENEMY || targetIndex === BattlerIndex.ENEMY_2;
+}
+
+function buildDoubleCombatObservation(game: GameManager): Record<string, unknown> {
+  const battle = game.scene.currentBattle;
+  const playerField = game.scene.getPlayerField(true);
+  const enemyField = game.scene.getEnemyField(true);
+  const actingFieldIndex = getCommandFieldIndexSafe(game);
+  const actingPokemon = getActingPlayerPokemon(game);
+  const activeEnemy = getPrimaryEnemyTarget(game);
+  const party = game.scene.getPlayerParty();
+
+  return {
+    battle_type: "double",
+    wave_index: battle?.waveIndex ?? 0,
+    turn_index: battle?.turn ?? 0,
+    is_trainer_battle: battle?.trainer != null ? 1 : 0,
+    acting_field_index: actingFieldIndex,
+    ally_active: [
+      buildActiveBattlerState(playerField[0], actingFieldIndex === 0),
+      buildActiveBattlerState(playerField[1], actingFieldIndex === 1),
+    ],
+    enemy_active: [
+      buildActiveBattlerState(enemyField[0], false),
+      buildActiveBattlerState(enemyField[1], false),
+    ],
+    bench_slots: Array.from({ length: 6 }, (_, slot) => {
+      const member = party[slot];
+      if (!member) {
+        return {
+          present: 0,
+          fainted: 0,
+          hp_ratio: 0,
+          level: 0,
+          types: [],
+          legal_switch_target: 0,
+        };
+      }
+      return {
+        present: 1,
+        fainted: member.isFainted() ? 1 : 0,
+        hp_ratio: toHpRatio(member.hp, member.getMaxHp()),
+        level: member.level ?? 0,
+        types: member.getTypes(true, true).filter((type: number) => Number.isInteger(type) && type >= 0).slice(0, 2),
+        legal_switch_target: !member.isFainted() && !member.isOnField() && member.isAllowedInBattle() ? 1 : 0,
+      };
+    }),
+    requires_forced_switch: game.isCurrentPhase("SwitchPhase") ? 1 : 0,
+    forced_switch_slots: [
+      game.isCurrentPhase("SwitchPhase") && actingFieldIndex === 0 ? 1 : 0,
+      game.isCurrentPhase("SwitchPhase") && actingFieldIndex === 1 ? 1 : 0,
+    ],
+    acting_pokemon_species_id: actingPokemon?.species?.speciesId ?? 0,
+    primary_enemy_species_id: activeEnemy?.species?.speciesId ?? 0,
+  };
 }
 
 function buildCombatObservation(game: GameManager): Record<string, unknown> {
@@ -917,11 +1118,21 @@ function buildCombatDecisionSnapshot(
   state: Record<string, unknown>,
   selectedAction: number,
   actionSource: string,
+  preparedPlayerSnapshot?: BattlerSnapshot,
+  preparedEnemySnapshot?: BattlerSnapshot,
 ): CombatDecisionSnapshot {
-  const playerPokemon = game.scene.getPlayerPokemon();
-  const enemyPokemon = game.scene.getEnemyPokemon();
+  const playerSnapshot = preparedPlayerSnapshot
+    ?? (() => {
+      const playerPokemon = game.scene.getPlayerPokemon();
+      return playerPokemon ? buildBattlerSnapshot(playerPokemon) : null;
+    })();
+  const enemySnapshot = preparedEnemySnapshot
+    ?? (() => {
+      const enemyPokemon = game.scene.getEnemyPokemon();
+      return enemyPokemon ? buildBattlerSnapshot(enemyPokemon) : null;
+    })();
 
-  if (!playerPokemon || !enemyPokemon) {
+  if (!playerSnapshot || !enemySnapshot) {
     throw new Error("Unable to build combat decision snapshot: missing battlers");
   }
 
@@ -930,12 +1141,160 @@ function buildCombatDecisionSnapshot(
     wave_index: game.scene.currentBattle.waveIndex,
     turn_index: game.scene.currentBattle.turn,
     is_double_battle: game.scene.currentBattle.double,
-    player: buildBattlerSnapshot(playerPokemon),
-    enemy: buildBattlerSnapshot(enemyPokemon),
+    player: playerSnapshot,
+    enemy: enemySnapshot,
     action_mask: Array.isArray(state.action_mask) ? [...(state.action_mask as number[])] : [],
     selected_action: selectedAction,
     action_source: actionSource,
   };
+}
+
+function buildDoubleCombatDecisionSnapshot(
+  game: GameManager,
+  state: Record<string, unknown>,
+  selectedAction: DoubleSlotActionSnapshot,
+  actionMask: number[],
+  actionSource: string,
+): CombatDecisionSnapshot {
+  const playerField = game.scene.getPlayerField(true);
+  const enemyField = game.scene.getEnemyField(true);
+  const actingPokemon = getActingPlayerPokemon(game);
+  const primaryEnemy = getPrimaryEnemyTarget(game);
+
+  if (!actingPokemon || !primaryEnemy) {
+    throw new Error("Unable to build double combat decision snapshot: missing battlers");
+  }
+
+  return {
+    state,
+    wave_index: game.scene.currentBattle.waveIndex,
+    turn_index: game.scene.currentBattle.turn,
+    is_double_battle: true,
+    battle_type: "double",
+    acting_field_index: selectedAction.acting_field_index,
+    player: buildBattlerSnapshot(actingPokemon),
+    enemy: buildBattlerSnapshot(primaryEnemy),
+    ally_field: playerField.map(pokemon => buildBattlerSnapshot(pokemon)),
+    enemy_field: enemyField.map(pokemon => buildBattlerSnapshot(pokemon)),
+    action_mask: [...actionMask],
+    selected_action: selectedAction.action_index,
+    action_source: actionSource,
+  };
+}
+
+function estimateDoubleActionScore(user: any, target: any, moveData: any): number {
+  if (!user || !moveData) {
+    return 0;
+  }
+  if (!target) {
+    if (moveData.category === MoveCategory.STATUS) {
+      return 0.05;
+    }
+    return 0.1;
+  }
+  const userTypes = user.getTypes(true, true).filter((type: number) => Number.isInteger(type) && type >= 0).slice(0, 2);
+  const effectiveness = target.getMoveEffectiveness(user, moveData, false, true);
+  const stab = userTypes.includes(moveData.type) ? 1 : 0;
+  return estimateDamageRatio(user, target, moveData, effectiveness, stab);
+}
+
+function buildDoubleSlotActions(game: GameManager): DoubleSlotActionSnapshot[] {
+  const actingFieldIndex = getCommandFieldIndexSafe(game);
+  const actingPokemon = getActingPlayerPokemon(game);
+  if (!actingPokemon) {
+    return [];
+  }
+
+  const actions: DoubleSlotActionSnapshot[] = [];
+  const allowSwitchActions = game.isCurrentPhase("SwitchPhase");
+  const moveset = actingPokemon.getMoveset().slice(0, 4);
+  moveset.forEach((move: any, moveIndex: number) => {
+    const [usable] = move.isUsable(actingPokemon, false, true);
+    if (!usable) {
+      return;
+    }
+    const moveData = move.getMove();
+    const moveTargets = getMoveTargets(actingPokemon, move.moveId);
+    const requiresTargetPhase = moveTargets.multiple || moveTargets.targets.length > 1;
+    if (moveTargets.multiple || moveTargets.targets.length <= 1) {
+      const selectedTargets = moveTargets.multiple
+        ? [...moveTargets.targets]
+        : moveTargets.targets.length === 1
+          ? [moveTargets.targets[0]!]
+          : [];
+      const targetPokemon = moveTargets.targets.length === 1
+        ? game.scene.getPokemonById(game.scene.getField().find(p => p?.getBattlerIndex?.() === moveTargets.targets[0])?.id)
+        : getPrimaryEnemyTarget(game);
+      actions.push({
+        action_index: actions.length,
+        action_kind: "move",
+        acting_field_index: actingFieldIndex,
+        move_index: moveIndex,
+        move_id: move.moveId,
+        target_index: moveTargets.multiple ? undefined : moveTargets.targets[0],
+        selected_targets: selectedTargets,
+        requires_target_phase: requiresTargetPhase,
+        score: estimateDoubleActionScore(actingPokemon, targetPokemon, moveData),
+      });
+      return;
+    }
+
+    moveTargets.targets
+      .filter((targetIndex: BattlerIndex) => isEnemyBattlerIndex(targetIndex))
+      .forEach((targetIndex: BattlerIndex) => {
+      const targetPokemon = game.scene.getField(true).find(p => p.getBattlerIndex() === targetIndex);
+      actions.push({
+        action_index: actions.length,
+        action_kind: "move",
+        acting_field_index: actingFieldIndex,
+        move_index: moveIndex,
+        move_id: move.moveId,
+        target_index: targetIndex,
+        selected_targets: [targetIndex],
+        requires_target_phase: requiresTargetPhase,
+        score: estimateDoubleActionScore(actingPokemon, targetPokemon, moveData),
+      });
+      });
+  });
+
+  if (!allowSwitchActions && actions.length > 0) {
+    return actions;
+  }
+
+  game.scene.getPlayerParty().forEach((member: any, partyIndex: number) => {
+    if (!member || member.isFainted() || member.isOnField() || !member.isAllowedInBattle()) {
+      return;
+    }
+    actions.push({
+      action_index: actions.length,
+      action_kind: "switch",
+      acting_field_index: actingFieldIndex,
+      switch_party_index: partyIndex,
+      score: 0.02 + toHpRatio(member.hp, member.getMaxHp()),
+    });
+  });
+
+  return actions;
+}
+
+function buildDoubleSlotActionMask(actions: DoubleSlotActionSnapshot[]): number[] {
+  return actions.map(() => 1);
+}
+
+function selectDoubleFallbackAction(actions: DoubleSlotActionSnapshot[]): DoubleSlotActionSnapshot | null {
+  if (actions.length === 0) {
+    return null;
+  }
+  const bestAction = [...actions].sort((left, right) => {
+    if (right.score !== left.score) {
+      return right.score - left.score;
+    }
+    if (left.action_kind !== right.action_kind) {
+      return left.action_kind === "move" ? -1 : 1;
+    }
+    return left.action_index - right.action_index;
+  })[0];
+  return bestAction ?? null;
 }
 
 function getModifierHandler(game: GameManager): ModifierSelectUiHandler {
@@ -951,8 +1310,26 @@ function getModifierTypeId(option: any): string {
   return modifierType?.id ?? modifierType?.name ?? modifierType?.constructor?.name ?? "unknown";
 }
 
-function isSupportedPotionShopItem(modifierTypeId: string): boolean {
-  return modifierTypeId === "POTION" || modifierTypeId === "Potion";
+function normalizeModifierTypeId(modifierTypeId?: string | null): string {
+  return String(modifierTypeId ?? "").trim().toUpperCase().replaceAll(" ", "_");
+}
+
+function isSupportedHpRestoreShopItem(modifierTypeId: string): boolean {
+  return new Set(["POTION", "SUPER_POTION", "HYPER_POTION", "MAX_POTION", "FULL_RESTORE"]).has(
+    normalizeModifierTypeId(modifierTypeId),
+  );
+}
+
+function isSupportedStatusHealShopItem(modifierTypeId: string): boolean {
+  return normalizeModifierTypeId(modifierTypeId) === "FULL_HEAL";
+}
+
+function isSupportedReviveShopItem(modifierTypeId: string): boolean {
+  return new Set(["REVIVE", "MAX_REVIVE"]).has(normalizeModifierTypeId(modifierTypeId));
+}
+
+function isSupportedDirectShopItem(modifierTypeId: string): boolean {
+  return normalizeModifierTypeId(modifierTypeId) === "SACRED_ASH";
 }
 
 function toModifierOptionSnapshot(option: any, index: number): ModifierOptionSnapshot {
@@ -970,30 +1347,36 @@ function getPartyResourceFlags(game: GameManager): {
   hasMissingHp: boolean;
   hasFaintedPokemon: boolean;
   hasMissingPp: boolean;
+  hasStatusProblem: boolean;
 } {
   const party = game.scene.getPlayerParty();
   return {
     hasMissingHp: party.some(pokemon => !pokemon.isFainted() && pokemon.hp < pokemon.getMaxHp()),
     hasFaintedPokemon: party.some(pokemon => pokemon.isFainted()),
     hasMissingPp: party.some(pokemon => pokemon.getMoveset().some((move: any) => move.ppUsed > 0)),
+    hasStatusProblem: party.some(pokemon => !pokemon.isFainted() && pokemon.status?.effect != null),
   };
 }
 
 function getActionAvailability(game: GameManager, option: any): { available: boolean; reason?: string } {
   const modifierTypeId = getModifierTypeId(option);
+  const normalizedModifierTypeId = normalizeModifierTypeId(modifierTypeId);
   const partyFlags = getPartyResourceFlags(game);
   const cost = option.modifierTypeOption?.cost ?? 0;
 
   if (cost > game.scene.money) {
     return { available: false, reason: "insufficient_money" };
   }
-  if (isSupportedPotionShopItem(modifierTypeId) && !partyFlags.hasMissingHp) {
+  if (isSupportedHpRestoreShopItem(modifierTypeId) && !partyFlags.hasMissingHp) {
     return { available: false, reason: "no_injured_pokemon" };
   }
-  if (modifierTypeId === "REVIVE" && !partyFlags.hasFaintedPokemon) {
+  if (isSupportedStatusHealShopItem(modifierTypeId) && !partyFlags.hasStatusProblem) {
+    return { available: false, reason: "no_status_problem" };
+  }
+  if ((isSupportedReviveShopItem(modifierTypeId) || normalizedModifierTypeId === "SACRED_ASH") && !partyFlags.hasFaintedPokemon) {
     return { available: false, reason: "no_fainted_pokemon" };
   }
-  if (modifierTypeId.includes("ETHER") && !partyFlags.hasMissingPp) {
+  if (normalizedModifierTypeId.includes("ETHER") && !partyFlags.hasMissingPp) {
     return { available: false, reason: "no_missing_pp" };
   }
   return { available: true };
@@ -1004,29 +1387,30 @@ function getActionExecutability(
   option: any,
 ): { executable: boolean; reason?: string; requiresPartyTarget?: boolean } {
   const modifierTypeId = getModifierTypeId(option);
+  const normalizedModifierTypeId = normalizeModifierTypeId(modifierTypeId);
   const modifierType = option?.modifierTypeOption?.type;
   const modifierTypeName = String(modifierType?.constructor?.name ?? "");
   if (actionType === "take_reward") {
-    if (modifierTypeId === "MEMORY_MUSHROOM" || modifierTypeName === "RememberMoveModifierType") {
+    if (normalizedModifierTypeId === "MEMORY_MUSHROOM" || modifierTypeName === "RememberMoveModifierType") {
       return { executable: false, reason: "blocked_by_offline_modifier_policy:remember_move_todo" };
     }
-    if (modifierTypeId === "TERA_SHARD" || modifierTypeName === "TerastallizeModifierType") {
+    if (normalizedModifierTypeId === "TERA_SHARD" || modifierTypeName === "TerastallizeModifierType") {
       return { executable: false, reason: "blocked_by_offline_modifier_policy:tera_shard_todo" };
     }
-    if (modifierTypeId === "DNA_SPLICERS" || modifierTypeName === "FusePokemonModifierType") {
+    if (normalizedModifierTypeId === "DNA_SPLICERS" || modifierTypeName === "FusePokemonModifierType") {
       return { executable: false, reason: "blocked_by_offline_modifier_policy:fuse_todo" };
     }
     if (
       modifierTypeName === "FormChangeItemModifierType"
-      && BLOCKED_GROUP2_FORM_CHANGE_ITEM_IDS.has(String(modifierTypeId))
+      && BLOCKED_GROUP2_FORM_CHANGE_ITEM_IDS.has(String(normalizedModifierTypeId))
     ) {
       return { executable: false, reason: "blocked_by_offline_modifier_policy:form_change_group2_todo" };
     }
-    if (modifierTypeId.startsWith("TM")) {
+    if (normalizedModifierTypeId.startsWith("TM")) {
       return { executable: false, reason: "blocked_by_offline_modifier_policy:tm_selection_todo" };
     }
     if (
-      OFFLINE_BLOCKED_REWARD_IDS.has(modifierTypeId)
+      OFFLINE_BLOCKED_REWARD_IDS.has(normalizedModifierTypeId)
       || OFFLINE_BLOCKED_MODIFIER_TYPE_NAMES.has(modifierTypeName)
     ) {
       return { executable: false, reason: "blocked_by_offline_modifier_policy" };
@@ -1037,14 +1421,22 @@ function getActionExecutability(
     if (typeof modifierType?.selectFilter === "function") {
       return { executable: true, requiresPartyTarget: true };
     }
-    if (OFFLINE_ALLOWED_DIRECT_REWARD_IDS.has(modifierTypeId)) {
+    if (OFFLINE_ALLOWED_DIRECT_REWARD_IDS.has(normalizedModifierTypeId)) {
       return { executable: true };
     }
     return { executable: false, reason: "requires_followup_selection" };
   }
 
-  if (isSupportedPotionShopItem(modifierTypeId) && typeof modifierType?.selectFilter === "function") {
+  if (
+    (isSupportedHpRestoreShopItem(modifierTypeId)
+      || isSupportedStatusHealShopItem(modifierTypeId)
+      || isSupportedReviveShopItem(modifierTypeId))
+    && typeof modifierType?.selectFilter === "function"
+  ) {
     return { executable: true, requiresPartyTarget: true };
+  }
+  if (isSupportedDirectShopItem(modifierTypeId)) {
+    return { executable: true };
   }
 
   return { executable: false, reason: "shop_item_execution_not_implemented" };
@@ -1258,6 +1650,7 @@ function buildTimeoutDebugSnapshot(game: GameManager): TimeoutDebugSnapshot {
   const uiModeValue = game.scene.ui.getMode();
   const uiModeName = UiMode[uiModeValue] ?? String(uiModeValue);
   const currentBattle = game.scene.currentBattle;
+  const commandFieldIndex = game.isCurrentPhase("CommandPhase") ? getCommandFieldIndexSafe(game) : null;
   const playerPokemon = game.scene.getPlayerPokemon?.() ?? null;
   const enemyPokemon = game.scene.getEnemyPokemon?.() ?? null;
 
@@ -1283,6 +1676,7 @@ function buildTimeoutDebugSnapshot(game: GameManager): TimeoutDebugSnapshot {
   return {
     phase_name: phaseName,
     ui_mode: uiModeName,
+    command_field_index: commandFieldIndex,
     wave_index: currentBattle?.waveIndex ?? null,
     turn_index: currentBattle?.turn ?? null,
     combat_turn_count: currentBattle?.turn ?? null,
@@ -1447,10 +1841,66 @@ function advanceCurrentUiPromptIfPossible(game: GameManager): boolean {
   return true;
 }
 
+function normalizeCommandPhaseUiIfNeeded(game: GameManager): boolean {
+  if (!game.isCurrentPhase("CommandPhase")) {
+    return false;
+  }
+  if (game.scene.ui?.getMode?.() !== UiMode.PARTY) {
+    return false;
+  }
+  game.scene.ui.setMode(UiMode.COMMAND, getCommandFieldIndexSafe(game));
+  return true;
+}
+
+function getRecoverableDoublePartnerCommandFieldIndex(game: GameManager): number | null {
+  if (!game.scene.currentBattle?.double || !game.isCurrentPhase("CommandPhase")) {
+    return null;
+  }
+  if (game.scene.ui?.getMode?.() !== UiMode.MESSAGE) {
+    return null;
+  }
+
+  const fieldIndex = getCommandFieldIndexSafe(game);
+  if (!Number.isInteger(fieldIndex) || fieldIndex <= 0) {
+    return null;
+  }
+
+  const currentPhase = game.scene.phaseManager?.getCurrentPhase?.() as { getPokemon?: () => any } | undefined;
+  const phasePokemon = typeof currentPhase?.getPokemon === "function" ? currentPhase.getPokemon() : null;
+  if (!phasePokemon || phasePokemon.isFainted?.()) {
+    return null;
+  }
+
+  const activePlayerField = game.scene.getPlayerField(true).filter((pokemon: any) => pokemon?.isActive?.());
+  if (activePlayerField.length <= fieldIndex) {
+    return null;
+  }
+
+  const turnCommands = (game.scene.currentBattle as any)?.turnCommands;
+  if (Array.isArray(turnCommands) && turnCommands[fieldIndex]?.skip) {
+    return null;
+  }
+
+  return fieldIndex;
+}
+
+function getCurrentCommandPhaseFieldIndex(game: GameManager): number | null {
+  if (!game.isCurrentPhase("CommandPhase")) {
+    return null;
+  }
+  const currentPhase = game.scene.phaseManager?.getCurrentPhase?.() as { getFieldIndex?: () => number } | undefined;
+  if (typeof currentPhase?.getFieldIndex !== "function") {
+    return null;
+  }
+  const fieldIndex = currentPhase.getFieldIndex();
+  return Number.isInteger(fieldIndex) ? fieldIndex : null;
+}
+
 async function waitForCommandPhaseAfterModifierAction(
   game: GameManager,
   timeoutMs: number,
 ): Promise<void> {
+  clearStaleCombatCommandPrompts(game);
   let commandReached = false;
   let commandFailed = false;
 
@@ -1464,6 +1914,9 @@ async function waitForCommandPhaseAfterModifierAction(
 
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
+    if (game.isCurrentPhase("CommandPhase")) {
+      return;
+    }
     if (commandReached) {
       return;
     }
@@ -1472,6 +1925,10 @@ async function waitForCommandPhaseAfterModifierAction(
     }
 
     if (resolveLearnMoveIfNeeded(game)) {
+      await sleep(25);
+      continue;
+    }
+    if (normalizeCommandPhaseUiIfNeeded(game)) {
       await sleep(25);
       continue;
     }
@@ -1505,7 +1962,9 @@ async function selectCombatActionFromMask(state: Record<string, unknown>, action
     return { action: -1, actionSource: "no_valid_action" };
   }
 
+  console.error(`[modifier-fixed-seed-single-dqn] request valid=${valid.join(",")}`);
   const action = await inferCombatActionWithDqn(state, actionMask);
+  console.error(`[modifier-fixed-seed-single-dqn] response action=${action}`);
   if (valid.includes(action)) {
     return { action, actionSource: "dqn" };
   }
@@ -1513,7 +1972,29 @@ async function selectCombatActionFromMask(state: Record<string, unknown>, action
   return { action: valid[0] ?? sampleUniformAction(valid), actionSource: "dqn_invalid_fallback_first_valid" };
 }
 
-function selectMoveByIndex(game: GameManager, actionIndex: number): void {
+function selectSingleBattleLoopGuardAction(combatTurns: CombatDecisionSnapshot[], actionMask: number[]): { action: number; actionSource: string } | null {
+  const recentTurns = combatTurns.slice(-4);
+  if (recentTurns.length < 4) {
+    return null;
+  }
+
+  const allRecentActionsAreSwitches = recentTurns.every(turn => !turn.is_double_battle && turn.selected_action >= MOVE_ACTIONS);
+  if (!allRecentActionsAreSwitches) {
+    return null;
+  }
+
+  const validMoveAction = actionMask.slice(0, MOVE_ACTIONS).findIndex(value => value === 1);
+  if (validMoveAction < 0) {
+    return null;
+  }
+
+  return {
+    action: validMoveAction,
+    actionSource: "single_battle_switch_loop_guard_first_valid_move",
+  };
+}
+
+function queueMoveByIndex(game: GameManager, actionIndex: number): void {
   game.onNextPrompt("CommandPhase", UiMode.COMMAND, () => {
     game.scene.ui.setMode(
       UiMode.FIGHT,
@@ -1528,8 +2009,81 @@ function selectMoveByIndex(game: GameManager, actionIndex: number): void {
       MoveUseMode.NORMAL,
     );
   });
+}
 
-  game.selectTarget(actionIndex, BattlerIndex.ENEMY);
+function queueMoveByIndexWithResolvedTargets(
+  game: GameManager,
+  actionIndex: number,
+  moveId: MoveId,
+  targets: BattlerIndex[],
+): void {
+  game.onNextPrompt("CommandPhase", UiMode.COMMAND, () => {
+    game.scene.ui.setMode(
+      UiMode.FIGHT,
+      (game.scene.phaseManager.getCurrentPhase() as CommandPhase).getFieldIndex(),
+    );
+  });
+
+  game.onNextPrompt("CommandPhase", UiMode.FIGHT, () => {
+    (game.scene.phaseManager.getCurrentPhase() as CommandPhase).handleCommand(
+      Command.FIGHT,
+      actionIndex,
+      MoveUseMode.NORMAL,
+      {
+        move: moveId,
+        targets,
+        useMode: MoveUseMode.NORMAL,
+      },
+    );
+  });
+}
+
+function selectMoveByIndex(game: GameManager, actionIndex: number, targetIndex?: BattlerIndex): void {
+  queueMoveByIndex(game, actionIndex);
+  game.selectTarget(actionIndex, targetIndex);
+}
+
+function queueDoubleTargetSelection(game: GameManager, action: DoubleSlotActionSnapshot): void {
+  game.onNextPrompt(
+    "SelectTargetPhase",
+    UiMode.TARGET_SELECT,
+    () => {
+      console.error(
+        `[modifier-fixed-seed-double-target-callback] wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} field=${action.acting_field_index} target=${action.target_index ?? "na"} move_index=${action.move_index ?? "na"}`,
+      );
+      resolveCurrentTargetSelection(game, action);
+    },
+    () => isCombatTerminalPhase(game),
+  );
+}
+
+function resolveCurrentTargetSelection(game: GameManager, action: DoubleSlotActionSnapshot): void {
+  if (!game.isCurrentPhase("SelectTargetPhase")) {
+    throw new Error(`resolveCurrentTargetSelection called outside SelectTargetPhase:${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"}`);
+  }
+
+  const handler = game.scene.ui.getHandler() as {
+    setCursor?: (cursor: number) => boolean;
+    processInput?: (button: Button) => boolean;
+  } | undefined;
+  if (typeof handler?.processInput !== "function") {
+    throw new Error("Target selection handler is not ready");
+  }
+
+  const currentPhase = game.scene.phaseManager?.getCurrentPhase?.() as { getPokemon?: () => any } | undefined;
+  const actingPokemon = typeof currentPhase?.getPokemon === "function" ? currentPhase.getPokemon() : null;
+  const selectedMove = action.move_index != null
+    ? actingPokemon?.getMoveset?.()?.[action.move_index]?.getMove?.()
+    : null;
+
+  if (selectedMove && !selectedMove.isMultiTarget() && action.target_index != null && typeof handler.setCursor === "function") {
+    handler.setCursor(action.target_index);
+  }
+
+  console.error(
+    `[modifier-fixed-seed-double-target-resolve] wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} field=${action.acting_field_index} target=${action.target_index ?? "na"} ui=${UiMode[game.scene.ui.getMode() as number] ?? String(game.scene.ui.getMode())}`,
+  );
+  handler.processInput(Button.ACTION);
 }
 
 function selectSwitchByPartyIndex(game: GameManager, partyIndex: number): void {
@@ -1538,11 +2092,40 @@ function selectSwitchByPartyIndex(game: GameManager, partyIndex: number): void {
 
 function executeCombatAction(game: GameManager, action: number): void {
   if (action < MOVE_ACTIONS) {
-    selectMoveByIndex(game, action);
+    selectMoveByIndex(game, action, BattlerIndex.ENEMY);
     return;
   }
 
   selectSwitchByPartyIndex(game, action - MOVE_ACTIONS);
+}
+
+function executeDoubleSlotAction(game: GameManager, action: DoubleSlotActionSnapshot): void {
+  if (action.action_kind === "switch") {
+    if (action.switch_party_index == null) {
+      throw new Error("Double slot switch action missing switch_party_index");
+    }
+    selectSwitchByPartyIndex(game, action.switch_party_index);
+    return;
+  }
+  if (action.move_index == null) {
+    throw new Error("Double slot move action missing move_index");
+  }
+  const selectedTargets = Array.isArray(action.selected_targets) ? action.selected_targets.filter(target => target != null) : [];
+  if (action.move_id != null && selectedTargets.length === 1) {
+    queueMoveByIndexWithResolvedTargets(game, action.move_index, action.move_id as MoveId, selectedTargets);
+    return;
+  }
+  if (action.requires_target_phase) {
+    queueMoveByIndex(game, action.move_index);
+    queueDoubleTargetSelection(game, action);
+    return;
+  }
+  if (action.move_id != null && selectedTargets.length >= 1) {
+    queueMoveByIndexWithResolvedTargets(game, action.move_index, action.move_id as MoveId, selectedTargets);
+    return;
+  }
+
+  queueMoveByIndex(game, action.move_index);
 }
 
 function hasRemainingPlayerTeam(game: GameManager): boolean {
@@ -1572,6 +2155,25 @@ function isGameTerminalPhase(game: GameManager): boolean {
     || game.isCurrentPhase("TitlePhase");
 }
 
+function isContinuousEncounterContinuationPhase(game: GameManager): boolean {
+  if (isGameTerminalPhase(game) || game.isCurrentPhase("SelectModifierPhase")) {
+    return false;
+  }
+
+  return game.isCurrentPhase("CommandPhase")
+    || game.isCurrentPhase("NewBattlePhase")
+    || game.isCurrentPhase("NextEncounterPhase")
+    || game.isCurrentPhase("NewBiomeEncounterPhase")
+    || game.isCurrentPhase("EncounterPhase")
+    || game.isCurrentPhase("ReturnPhase")
+    || game.isCurrentPhase("SummonPhase")
+    || game.isCurrentPhase("ToggleDoublePositionPhase")
+    || game.isCurrentPhase("CheckSwitchPhase")
+    || game.isCurrentPhase("InitEncounterPhase")
+    || game.isCurrentPhase("PostSummonPhase")
+    || game.isCurrentPhase("TurnInitPhase");
+}
+
 function clearStalePromptsForForcedSwitch(game: GameManager): void {
   const interceptor = game.phaseInterceptor as any;
   if (!Array.isArray(interceptor?.prompts) || interceptor.prompts.length === 0) {
@@ -1580,6 +2182,19 @@ function clearStalePromptsForForcedSwitch(game: GameManager): void {
   while (interceptor.prompts.length > 0 && interceptor.prompts[0]?.phaseTarget === "CheckSwitchPhase") {
     interceptor.prompts.shift();
   }
+}
+
+function clearStaleCombatCommandPrompts(game: GameManager): void {
+  const interceptor = game.phaseInterceptor as any;
+  if (!Array.isArray(interceptor?.prompts) || interceptor.prompts.length === 0) {
+    return;
+  }
+  interceptor.prompts = interceptor.prompts.filter((prompt: { phaseTarget?: string; mode?: UiMode }) => {
+    if (prompt?.phaseTarget !== "CommandPhase") {
+      return true;
+    }
+    return prompt.mode !== UiMode.COMMAND && prompt.mode !== UiMode.FIGHT;
+  });
 }
 
 function resolveOptionalCheckSwitchIfNeeded(game: GameManager): "not_check_switch" | "skipped" {
@@ -1657,6 +2272,8 @@ async function waitForPromiseOrTerminal(
   game: GameManager,
   promise: Promise<unknown>,
   timeoutMs: number,
+  isSuccessfulState?: (game: GameManager) => boolean,
+  terminalPhaseLogStartIndex?: number,
 ): Promise<"ok" | "terminal" | "timeout"> {
   let resolved = false;
   let failed = false;
@@ -1669,7 +2286,13 @@ async function waitForPromiseOrTerminal(
 
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
+    const loggedTerminal = terminalPhaseLogStartIndex != null
+      && hasLoggedTerminalPhaseSince(game, terminalPhaseLogStartIndex);
     if (resolveLearnMoveIfNeeded(game)) {
+      await sleep(25);
+      continue;
+    }
+    if (normalizeCommandPhaseUiIfNeeded(game)) {
       await sleep(25);
       continue;
     }
@@ -1678,25 +2301,38 @@ async function waitForPromiseOrTerminal(
     if (forcedSwitchStatus === "no_candidate") {
       return "terminal";
     }
-    if (isCombatTerminalPhase(game)) {
+    if (isCombatTerminalPhase(game) || loggedTerminal) {
       return "terminal";
+    }
+    if (isSuccessfulState?.(game) === true) {
+      return "ok";
     }
     if (resolved) {
       return "ok";
     }
     if (failed) {
-      return isCombatTerminalPhase(game) ? "terminal" : "timeout";
+      return isCombatTerminalPhase(game) || loggedTerminal ? "terminal" : "timeout";
     }
     await sleep(25);
   }
 
-  return isCombatTerminalPhase(game) ? "terminal" : "timeout";
+  return isCombatTerminalPhase(game)
+    || (
+      terminalPhaseLogStartIndex != null
+      && hasLoggedTerminalPhaseSince(game, terminalPhaseLogStartIndex)
+    )
+    ? "terminal"
+    : "timeout";
 }
 
 async function waitForCommandOrTerminalAfterForcedSwitch(game: GameManager, timeoutMs: number): Promise<"ok" | "terminal" | "timeout"> {
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
     if (resolveLearnMoveIfNeeded(game)) {
+      await sleep(25);
+      continue;
+    }
+    if (normalizeCommandPhaseUiIfNeeded(game)) {
       await sleep(25);
       continue;
     }
@@ -1725,10 +2361,19 @@ async function advanceCombatAfterAction(game: GameManager): Promise<"ok" | "term
     "SelectModifierPhase",
     "EggLapsePhase",
   ];
+  const startingTurn = game.scene.currentBattle?.turn ?? 0;
+  const endOfTurnPhaseLogStart = Array.isArray(game.phaseInterceptor.log) ? game.phaseInterceptor.log.length : 0;
   const endOfTurnStatus = await waitForPromiseOrTerminal(
     game,
     withTimeout(game.toEndOfTurn(), STEP_TIMEOUT_MS, "end of turn"),
     STEP_TIMEOUT_MS,
+    currentGame => {
+      const currentTurn = currentGame.scene.currentBattle?.turn ?? startingTurn;
+      return currentTurn > startingTurn
+        && currentGame.isCurrentPhase("CommandPhase")
+        && currentGame.scene.ui?.getMode?.() === UiMode.COMMAND;
+    },
+    endOfTurnPhaseLogStart,
   );
 
   if (endOfTurnStatus === "timeout" && game.isCurrentPhase("SwitchPhase")) {
@@ -1774,6 +2419,10 @@ async function advanceCombatAfterAction(game: GameManager): Promise<"ok" | "term
       await sleep(25);
       continue;
     }
+    if (normalizeCommandPhaseUiIfNeeded(game)) {
+      await sleep(25);
+      continue;
+    }
     resolveOptionalCheckSwitchIfNeeded(game);
     const forcedSwitchStatus = resolveForcedSwitchIfNeeded(game);
     if (forcedSwitchStatus === "no_candidate") {
@@ -1781,6 +2430,9 @@ async function advanceCombatAfterAction(game: GameManager): Promise<"ok" | "term
     }
     if (nextTurnTerminal || isCombatTerminalPhase(game) || hasLoggedTerminalPhaseSince(game, phaseLogStart)) {
       return "terminal";
+    }
+    if (game.isCurrentPhase("CommandPhase") && game.scene.ui?.getMode?.() === UiMode.COMMAND) {
+      return "ok";
     }
     if (nextTurnResolved) {
       return "ok";
@@ -1798,6 +2450,201 @@ async function advanceCombatAfterAction(game: GameManager): Promise<"ok" | "term
   return "timeout";
 }
 
+async function advanceDoubleCombatAfterAction(
+  game: GameManager,
+  action: DoubleSlotActionSnapshot,
+): Promise<"ok" | "terminal" | "timeout"> {
+  const startingTurn = game.scene.currentBattle?.turn ?? 0;
+  const selectedTargets = Array.isArray(action.selected_targets) ? action.selected_targets.filter(target => target != null) : [];
+  const needsTargetSelection = action.action_kind === "move" && action.requires_target_phase === true && selectedTargets.length > 1;
+
+  if (needsTargetSelection) {
+    const targetStatus = await waitForPromiseOrTerminal(
+      game,
+      withTimeout(
+        game.phaseInterceptor.to("SelectTargetPhase"),
+        STEP_TIMEOUT_MS,
+        "double_to_select_target_phase",
+      ),
+      STEP_TIMEOUT_MS,
+      currentGame => currentGame.isCurrentPhase("SelectTargetPhase"),
+    );
+    if (targetStatus !== "ok") {
+      return targetStatus;
+    }
+    const targetResolutionStatus = await waitForDoubleTargetSelectionResolution(game, STEP_TIMEOUT_MS);
+    if (targetResolutionStatus !== "ok") {
+      return targetResolutionStatus;
+    }
+    if (action.acting_field_index === 0 && game.isCurrentPhase("CommandPhase") && game.scene.ui.getMode() === UiMode.COMMAND) {
+      const fieldIndex = getCommandFieldIndexSafe(game);
+      const currentTurn = game.scene.currentBattle?.turn ?? startingTurn;
+      if (fieldIndex > 0 || currentTurn > startingTurn) {
+        return "ok";
+      }
+    }
+  }
+
+  if (isCombatTerminalPhase(game)) {
+    return "terminal";
+  }
+
+  if (action.acting_field_index === 0) {
+    const fieldZeroFollowupStatus = await waitForDoubleFieldZeroFollowup(game, startingTurn, STEP_TIMEOUT_MS);
+    if (fieldZeroFollowupStatus === "terminal" || fieldZeroFollowupStatus === "timeout") {
+      return fieldZeroFollowupStatus;
+    }
+    if (fieldZeroFollowupStatus === "partner_command") {
+      return isCombatTerminalPhase(game) ? "terminal" : "ok";
+    }
+    const currentTurn = game.scene.currentBattle?.turn ?? startingTurn;
+    const alreadyAdvancedToNextCommandTurn = currentTurn > startingTurn
+      && game.isCurrentPhase("CommandPhase")
+      && game.scene.ui?.getMode?.() === UiMode.COMMAND;
+    if (alreadyAdvancedToNextCommandTurn) {
+      return "ok";
+    }
+    const nextTurnStatus = await waitForPromiseOrTerminal(
+      game,
+      withTimeout(game.toNextTurn(), STEP_TIMEOUT_MS, "double_field0_to_next_turn"),
+      STEP_TIMEOUT_MS,
+      currentGame => {
+        const nextTurn = currentGame.scene.currentBattle?.turn ?? startingTurn;
+        return nextTurn > startingTurn
+          && currentGame.isCurrentPhase("CommandPhase")
+          && currentGame.scene.ui?.getMode?.() === UiMode.COMMAND;
+      },
+    );
+    if (nextTurnStatus !== "ok") {
+      return nextTurnStatus;
+    }
+    return "ok";
+  }
+
+  const nextTurnStatus = await waitForPromiseOrTerminal(
+    game,
+    withTimeout(game.toNextTurn(), STEP_TIMEOUT_MS, "double_to_next_turn"),
+    STEP_TIMEOUT_MS,
+    currentGame => {
+      const currentTurn = currentGame.scene.currentBattle?.turn ?? startingTurn;
+      return currentTurn > startingTurn
+        && currentGame.isCurrentPhase("CommandPhase")
+        && currentGame.scene.ui?.getMode?.() === UiMode.COMMAND;
+    },
+  );
+  if (nextTurnStatus !== "ok") {
+    return nextTurnStatus;
+  }
+  return "ok";
+}
+
+async function waitForDoubleTargetSelectionResolution(
+  game: GameManager,
+  timeoutMs: number,
+): Promise<"ok" | "terminal" | "timeout"> {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    if (isCombatTerminalPhase(game)) {
+      return "terminal";
+    }
+    if (game.isCurrentPhase("SelectTargetPhase") && advanceCurrentUiPromptIfPossible(game)) {
+      await sleep(25);
+      continue;
+    }
+    if (!game.isCurrentPhase("SelectTargetPhase") && game.scene.ui.getMode() !== UiMode.TARGET_SELECT) {
+      return "ok";
+    }
+    await sleep(25);
+  }
+  return isCombatTerminalPhase(game) ? "terminal" : "timeout";
+}
+
+async function waitForDoubleFieldZeroFollowup(
+  game: GameManager,
+  startingTurn: number,
+  timeoutMs: number,
+): Promise<"partner_command" | "turn_progressed" | "terminal" | "timeout"> {
+  const startedAt = Date.now();
+  let stuckCommandMessageSince: number | null = null;
+  while (Date.now() - startedAt < timeoutMs) {
+    if (resolveLearnMoveIfNeeded(game)) {
+      await sleep(25);
+      continue;
+    }
+    if (normalizeCommandPhaseUiIfNeeded(game)) {
+      await sleep(25);
+      continue;
+    }
+    resolveOptionalCheckSwitchIfNeeded(game);
+    const forcedSwitchStatus = resolveForcedSwitchIfNeeded(game);
+    if (forcedSwitchStatus === "no_candidate") {
+      return "terminal";
+    }
+    if (isCombatTerminalPhase(game)) {
+      return "terminal";
+    }
+
+    if (game.isCurrentPhase("CommandPhase") && game.scene.ui.getMode() === UiMode.COMMAND) {
+      const fieldIndex = getCommandFieldIndexSafe(game);
+      if (fieldIndex > 0) {
+        return "partner_command";
+      }
+      const currentTurn = game.scene.currentBattle?.turn ?? startingTurn;
+      if (currentTurn > startingTurn) {
+        return "turn_progressed";
+      }
+    }
+
+    if (game.isCurrentPhase("CommandPhase") && game.scene.ui.getMode() === UiMode.MESSAGE) {
+      if (stuckCommandMessageSince == null) {
+        stuckCommandMessageSince = Date.now();
+      } else if (Date.now() - stuckCommandMessageSince >= 250) {
+        const recoverableDoublePartnerFieldIndex = getRecoverableDoublePartnerCommandFieldIndex(game);
+        if (recoverableDoublePartnerFieldIndex != null) {
+          const currentCommandPhaseFieldIndex = getCurrentCommandPhaseFieldIndex(game);
+          console.error(
+            `[modifier-fixed-seed-double-followup-recover-command] wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} field=${recoverableDoublePartnerFieldIndex} phaseField=${currentCommandPhaseFieldIndex ?? "unknown"}`,
+          );
+          const recoverStatus = await waitForPromiseOrTerminal(
+            game,
+            withTimeout(
+              game.phaseInterceptor.to("CommandPhase"),
+              STEP_TIMEOUT_MS,
+              "double_followup_command_phase_recover",
+            ),
+            STEP_TIMEOUT_MS,
+          );
+          if (recoverStatus !== "ok") {
+            return recoverStatus;
+          }
+          await sleep(25);
+          continue;
+        }
+      }
+    } else {
+      stuckCommandMessageSince = null;
+    }
+
+    if (
+      game.isCurrentPhase("EnemyCommandPhase")
+      || game.isCurrentPhase("TurnStartPhase")
+      || game.isCurrentPhase("MovePhase")
+      || game.isCurrentPhase("TurnEndPhase")
+      || game.isCurrentPhase("TurnInitPhase")
+    ) {
+      return "turn_progressed";
+    }
+
+    if (advanceCurrentUiPromptIfPossible(game)) {
+      await sleep(25);
+      continue;
+    }
+    await sleep(25);
+  }
+
+  return isCombatTerminalPhase(game) ? "terminal" : "timeout";
+}
+
 async function waitForModifierInputReady(game: GameManager, timeoutMs = 5000): Promise<void> {
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
@@ -1808,6 +2655,110 @@ async function waitForModifierInputReady(game: GameManager, timeoutMs = 5000): P
     await new Promise(resolve => setTimeout(resolve, 10));
   }
   throw new Error("Timed out waiting for modifier input readiness");
+}
+
+async function waitForSelectModifierPhaseReady(game: GameManager, timeoutMs: number): Promise<void> {
+  let phaseReached = false;
+  let phaseFailed = false;
+
+  game.phaseInterceptor.to("SelectModifierPhase")
+    .then(() => {
+      phaseReached = true;
+    })
+    .catch(() => {
+      phaseFailed = true;
+    });
+
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    if (game.isCurrentPhase("SelectModifierPhase") && game.scene.ui.getMode() === UiMode.MODIFIER_SELECT) {
+      return;
+    }
+    if (phaseReached) {
+      return;
+    }
+    if (phaseFailed) {
+      throw new Error("Failed while waiting for SelectModifierPhase");
+    }
+    if (advanceCurrentUiPromptIfPossible(game)) {
+      await sleep(25);
+      continue;
+    }
+    await sleep(25);
+  }
+
+  throw new Error(`step_timeout:select_modifier_phase_ready:${timeoutMs}`);
+}
+
+async function waitForCombatCommandInputReady(game: GameManager, timeoutMs = 5000): Promise<void> {
+  const startedAt = Date.now();
+  let stuckCommandMessageSince: number | null = null;
+  while (Date.now() - startedAt < timeoutMs) {
+    if (resolveLearnMoveIfNeeded(game)) {
+      await sleep(25);
+      continue;
+    }
+    resolveOptionalCheckSwitchIfNeeded(game);
+    const forcedSwitchStatus = resolveForcedSwitchIfNeeded(game);
+    if (forcedSwitchStatus === "no_candidate") {
+      throw new Error("no_candidate_forced_switch");
+    }
+    if (isCombatTerminalPhase(game)) {
+      return;
+    }
+    if (game.isCurrentPhase("CommandPhase") && game.scene.ui.getMode() === UiMode.COMMAND) {
+      return;
+    }
+    if (game.isCurrentPhase("CommandPhase") && game.scene.ui.getMode() === UiMode.MESSAGE) {
+      if (stuckCommandMessageSince == null) {
+        stuckCommandMessageSince = Date.now();
+      } else if (Date.now() - stuckCommandMessageSince >= 250) {
+        const recoverableDoublePartnerFieldIndex = getRecoverableDoublePartnerCommandFieldIndex(game);
+        if (recoverableDoublePartnerFieldIndex != null) {
+          const currentCommandPhaseFieldIndex = getCurrentCommandPhaseFieldIndex(game);
+          console.error(
+            `[modifier-fixed-seed-double-recover-command] wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} field=${recoverableDoublePartnerFieldIndex} phaseField=${currentCommandPhaseFieldIndex ?? "unknown"}`,
+          );
+          const recoverStatus = await waitForPromiseOrTerminal(
+            game,
+            withTimeout(
+              game.phaseInterceptor.to("CommandPhase"),
+              STEP_TIMEOUT_MS,
+              "double_command_phase_recover",
+            ),
+            STEP_TIMEOUT_MS,
+          );
+          if (recoverStatus === "timeout") {
+            throw new Error(`step_timeout:double_command_phase_recover:${STEP_TIMEOUT_MS}`);
+          }
+          if (recoverStatus === "terminal") {
+            return;
+          }
+          await sleep(25);
+          continue;
+        }
+        if (game.scene.currentBattle?.double !== true) {
+          const fieldIndex = getCommandFieldIndexSafe(game);
+          console.error(
+            `[modifier-fixed-seed-single-force-command] wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} field=${fieldIndex}`,
+          );
+          game.scene.ui.showText("", 0);
+          game.scene.ui.setMode(UiMode.COMMAND, fieldIndex);
+          await sleep(25);
+          continue;
+        }
+      }
+    } else {
+      stuckCommandMessageSince = null;
+    }
+    if (advanceCurrentUiPromptIfPossible(game)) {
+      await sleep(25);
+      continue;
+    }
+    await sleep(25);
+  }
+
+  throw new Error(`step_timeout:combat_command_input_ready:${timeoutMs}`);
 }
 
 async function waitForUiMode(game: GameManager, mode: UiMode, timeoutMs = 5000): Promise<void> {
@@ -1846,7 +2797,7 @@ async function executeSkipAction(game: GameManager): Promise<void> {
     throw new Error("Confirm handler does not support processInput");
   }
   confirmHandler.processInput(Button.ACTION);
-  await game.phaseInterceptor.to("CommandPhase");
+  await waitForCommandPhaseAfterModifierAction(game, STEP_TIMEOUT_MS);
 }
 
 function toRewardRowCursor(): number {
@@ -1937,6 +2888,7 @@ async function waitForModifierSelectOrCommandPhaseAfterShopAction(
   game: GameManager,
   timeoutMs: number,
 ): Promise<"modifier_select" | "command_phase"> {
+  clearStaleCombatCommandPrompts(game);
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
     if (game.isCurrentPhase("CommandPhase")) {
@@ -2045,7 +2997,13 @@ function calculateImmediateReward(
     reward += 0.1;
   }
 
-  if (selectedAction.modifier_type_id === "POTION" && partyFlags.hasMissingHp) {
+  if (isSupportedHpRestoreShopItem(selectedAction.modifier_type_id) && partyFlags.hasMissingHp) {
+    reward += 1.0;
+  }
+  if (
+    (isSupportedReviveShopItem(selectedAction.modifier_type_id) || isSupportedDirectShopItem(selectedAction.modifier_type_id))
+    && partyFlags.hasFaintedPokemon
+  ) {
     reward += 1.0;
   }
 
@@ -2121,7 +3079,7 @@ describe("modifier fixed seed collector", () => {
   });
 
   afterAll(() => {
-    cleanupPersistentCombatDqnWorker();
+    cleanupPersistentExternalPolicyWorkers();
   });
 
   it("applies offline reward executability policy to blocked, direct, and target rewards", () => {
@@ -2136,8 +3094,7 @@ describe("modifier fixed seed collector", () => {
     });
 
     expect(getActionExecutability("take_reward", buildFakeModifierOption("LURE"))).toEqual({
-      executable: false,
-      reason: "blocked_by_offline_modifier_policy",
+      executable: true,
     });
 
     expect(getActionExecutability("take_reward", buildFakeModifierOption("ROGUE_BALL"))).toEqual({
@@ -2199,17 +3156,78 @@ describe("modifier fixed seed collector", () => {
       executable: true,
       requiresPartyTarget: true,
     });
+
+    expect(
+      getActionExecutability(
+        "buy_shop_item",
+        buildFakeModifierOption(
+          "Full Heal",
+          {
+            selectFilter: () => null,
+          },
+          "PokemonStatusHealModifierType",
+        ),
+      ),
+    ).toEqual({
+      executable: true,
+      requiresPartyTarget: true,
+    });
+
+    expect(
+      getActionExecutability(
+        "buy_shop_item",
+        buildFakeModifierOption(
+          "Revive",
+          {
+            selectFilter: () => null,
+          },
+          "PokemonReviveModifierType",
+        ),
+      ),
+    ).toEqual({
+      executable: true,
+      requiresPartyTarget: true,
+    });
+
+    expect(
+      getActionExecutability(
+        "buy_shop_item",
+        buildFakeModifierOption(
+          "Max Revive",
+          {
+            selectFilter: () => null,
+          },
+          "PokemonReviveModifierType",
+        ),
+      ),
+    ).toEqual({
+      executable: true,
+      requiresPartyTarget: true,
+    });
+
+    expect(
+      getActionExecutability(
+        "buy_shop_item",
+        buildFakeModifierOption(
+          "Sacred Ash",
+          {},
+          "AllPokemonFullReviveModifierType",
+        ),
+      ),
+    ).toEqual({
+      executable: true,
+    });
   });
 
   it("collects repeated fixed-seed modifier runs", async () => {
     const episodes: EpisodeRecord[] = [];
 
-    for (let runIndex = 0; runIndex < RUN_COUNT; runIndex += 1) {
+    for (let localRunIndex = 0; localRunIndex < RUN_COUNT; localRunIndex += 1) {
+      const runIndex = RUN_INDEX_OFFSET + localRunIndex;
       let recordedEpisode: EpisodeRecord | null = null;
 
       for (let attemptIndex = 0; attemptIndex < 2; attemptIndex += 1) {
         const game = new GameManager(phaserGame);
-        vi.spyOn(game.scene, "getDoubleBattleChance").mockReturnValue(Number.MAX_SAFE_INTEGER);
 
         game.override.seed(SEED);
 
@@ -2221,8 +3239,7 @@ describe("modifier fixed seed collector", () => {
         }
 
         if (COLLECTOR_VARIANT === "strategic_fixed_seed") {
-          // Mirror the current combat training scope: seeded real encounters, but singles only.
-          game.override.battleStyle("single");
+          // Keep real seeded encounters for strategic data generation.
         }
 
         const random = createDeterministicRandom(`${SEED}::${runIndex}`);
@@ -2252,24 +3269,195 @@ describe("modifier fixed seed collector", () => {
                 throw new Error(`step_timeout:combat_turn_limit:${MAX_COMBAT_TURNS_PER_WAVE}`);
               }
               if (currentBattle.double) {
-                terminationReason = "double_battle_not_supported";
+                const battleWaveIndexBeforeAction = game.scene.currentBattle?.waveIndex ?? 0;
+                await waitForCombatCommandInputReady(game, STEP_TIMEOUT_MS);
+                const doubleState = buildDoubleCombatObservation(game);
+                const doubleActions = buildDoubleSlotActions(game);
+                const doubleActionMask = buildDoubleSlotActionMask(doubleActions);
+                const selectedDoubleAction = selectDoubleFallbackAction(doubleActions);
+                if (!selectedDoubleAction) {
+                  terminationReason = "no_valid_double_action";
+                  break;
+                }
+                console.error(
+                  `[modifier-fixed-seed-double-action] wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} turn=${game.scene.currentBattle?.turn ?? "unknown"} field=${selectedDoubleAction.acting_field_index} kind=${selectedDoubleAction.action_kind} move_index=${selectedDoubleAction.move_index ?? "na"} target=${selectedDoubleAction.target_index ?? "na"} switch_party_index=${selectedDoubleAction.switch_party_index ?? "na"}`,
+                );
+
+                combatTurns.push(
+                  buildDoubleCombatDecisionSnapshot(
+                    game,
+                    doubleState,
+                    selectedDoubleAction,
+                    doubleActionMask,
+                    "double_fallback",
+                  ),
+                );
+                executeDoubleSlotAction(game, selectedDoubleAction);
+
+                const advanceStatus = await withTimeout(
+                  advanceDoubleCombatAfterAction(game, selectedDoubleAction),
+                  STEP_TIMEOUT_MS,
+                  "advance_double_combat_after_action",
+                );
+                if (advanceStatus === "timeout") {
+                  throw new Error(`step_timeout:advance_double_combat_after_action:${STEP_TIMEOUT_MS}`);
+                }
+                if (advanceStatus === "terminal" && !game.isCurrentPhase("SelectModifierPhase")) {
+                  const isMilestoneWaveContinuation = battleWaveIndexBeforeAction > 0
+                    && battleWaveIndexBeforeAction % 10 === 0
+                    && !isGameTerminalPhase(game)
+                    && !game.isCurrentPhase("SelectModifierPhase");
+                if (isMilestoneWaveContinuation) {
+                  await withTimeout(
+                    waitForCombatCommandInputReady(game, STEP_TIMEOUT_MS),
+                    STEP_TIMEOUT_MS,
+                    "post_terminal_to_next_battle_command_phase",
+                  );
+                  completedWaves += 1;
+                  continue;
+                }
+                const isContinuousEncounterContinuation = isContinuousEncounterContinuationPhase(game);
+                if (isContinuousEncounterContinuation) {
+                  await withTimeout(
+                    waitForCombatCommandInputReady(game, STEP_TIMEOUT_MS),
+                    STEP_TIMEOUT_MS,
+                    "continuous_encounter_command_ready",
+                  );
+                  continue;
+                }
+                if (game.isCurrentPhase("BattleEndPhase")) {
+                  const completedWaveIndex = game.scene.currentBattle?.waveIndex ?? 0;
+                  if (completedWaveIndex > 0 && completedWaveIndex % 10 === 0) {
+                    await withTimeout(
+                      game.phaseInterceptor.to("CommandPhase"),
+                        STEP_TIMEOUT_MS,
+                        "battle_end_to_next_battle_command_phase",
+                      );
+                      completedWaves += 1;
+                      continue;
+                    }
+
+                    const phaseManager = game.scene.phaseManager;
+                    const hasQueuedSelectModifier = phaseManager.hasPhaseOfType("SelectModifierPhase");
+                    const hasQueuedNextBattle = phaseManager.hasPhaseOfType("NewBattlePhase")
+                      || phaseManager.hasPhaseOfType("NextEncounterPhase")
+                      || phaseManager.hasPhaseOfType("NewBiomeEncounterPhase")
+                      || phaseManager.hasPhaseOfType("EncounterPhase");
+
+                    if (hasQueuedSelectModifier) {
+                      await withTimeout(
+                        waitForSelectModifierPhaseReady(game, STEP_TIMEOUT_MS),
+                        STEP_TIMEOUT_MS,
+                        "battle_end_to_select_modifier_phase",
+                      );
+                      break;
+                    }
+                    if (hasQueuedNextBattle) {
+                      await withTimeout(
+                        game.phaseInterceptor.to("CommandPhase"),
+                        STEP_TIMEOUT_MS,
+                        "battle_end_to_next_battle_command_phase",
+                      );
+                      continue;
+                    }
+                    if (isGameTerminalPhase(game)) {
+                      terminationReason = `combat_terminal:${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"}`;
+                      break;
+                    }
+                    terminationReason = `unexpected_post_battle_queue:${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"}`;
+                    break;
+                  }
+                  if (game.isCurrentPhase("EggLapsePhase")) {
+                    await withTimeout(
+                      waitForSelectModifierPhaseReady(game, STEP_TIMEOUT_MS),
+                      STEP_TIMEOUT_MS,
+                      "egg_lapse_to_select_modifier_phase",
+                    );
+                    break;
+                  }
+                  if (game.isCurrentPhase("GameOverPhase") || game.isCurrentPhase("PostGameOverPhase") || game.isCurrentPhase("TitlePhase")) {
+                    terminationReason = "team_wipe_or_game_over";
+                  } else {
+                    terminationReason = `combat_terminal:${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"}`;
+                  }
+                  break;
+                }
+                continue;
+              }
+              if (!game.isCurrentPhase("CommandPhase")) {
+                await withTimeout(
+                  game.phaseInterceptor.to("CommandPhase"),
+                  STEP_TIMEOUT_MS,
+                  "single_to_command_phase",
+                );
+              }
+              console.error(
+                `[modifier-fixed-seed-single] pre-command-ready wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} turn=${game.scene.currentBattle?.turn ?? "unknown"} phase=${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"} ui=${UiMode[game.scene.ui?.getMode?.() as number] ?? String(game.scene.ui?.getMode?.())}`,
+              );
+              await waitForCombatCommandInputReady(game, STEP_TIMEOUT_MS);
+              console.error(
+                `[modifier-fixed-seed-single] post-command-ready wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} turn=${game.scene.currentBattle?.turn ?? "unknown"} phase=${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"} ui=${UiMode[game.scene.ui?.getMode?.() as number] ?? String(game.scene.ui?.getMode?.())}`,
+              );
+              if (isCombatTerminalPhase(game)) {
+                if (game.isCurrentPhase("GameOverPhase") || game.isCurrentPhase("PostGameOverPhase") || game.isCurrentPhase("TitlePhase")) {
+                  terminationReason = "team_wipe_or_game_over";
+                } else {
+                  terminationReason = `combat_terminal:${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"}`;
+                }
                 break;
               }
               if (!game.isCurrentPhase("CommandPhase")) {
                 throw new Error(`unexpected_combat_phase:${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"}`);
               }
 
+              const preparedPlayerPokemon = game.scene.getPlayerPokemon();
+              const preparedEnemyPokemon = game.scene.getEnemyPokemon();
+              const battleWaveIndexBeforeAction = game.scene.currentBattle?.waveIndex ?? 0;
+              if (!preparedPlayerPokemon || !preparedEnemyPokemon) {
+                throw new Error("missing_battlers_before_combat_action_selection");
+              }
+              const preparedPlayerSnapshot = buildBattlerSnapshot(preparedPlayerPokemon);
+              const preparedEnemySnapshot = buildBattlerSnapshot(preparedEnemyPokemon);
+              console.error(
+                `[modifier-fixed-seed-single] building_state wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} turn=${game.scene.currentBattle?.turn ?? "unknown"} player=${preparedPlayerSnapshot.species_name} enemy=${preparedEnemySnapshot.species_name}`,
+              );
               const combatState = buildStateFromSnapshot(game);
+              console.error(`[modifier-fixed-seed-single-state] ${JSON.stringify(combatState)}`);
               const actionMask = Array.isArray(combatState.action_mask)
                 ? (combatState.action_mask as number[])
                 : [];
-              const { action, actionSource } = await selectCombatActionFromMask(combatState, actionMask);
+              const loopGuardSelection = selectSingleBattleLoopGuardAction(combatTurns, actionMask);
+              let selectedCombatAction: { action: number; actionSource: string };
+              if (loopGuardSelection) {
+                selectedCombatAction = loopGuardSelection;
+              } else {
+                selectedCombatAction = await withTimeout(
+                  selectCombatActionFromMask(combatState, actionMask),
+                  STEP_TIMEOUT_MS,
+                  "combat_dqn_action_select",
+                );
+              }
+              const { action, actionSource } = selectedCombatAction;
               if (action < 0) {
                 terminationReason = "no_valid_combat_action";
                 break;
               }
 
-              combatTurns.push(buildCombatDecisionSnapshot(game, combatState, action, actionSource));
+              if (!game.isCurrentPhase("CommandPhase")) {
+                await sleep(25);
+                continue;
+              }
+
+              combatTurns.push(
+                buildCombatDecisionSnapshot(
+                  game,
+                  combatState,
+                  action,
+                  actionSource,
+                  preparedPlayerSnapshot,
+                  preparedEnemySnapshot,
+                ),
+              );
               executeCombatAction(game, action);
 
               const advanceStatus = await withTimeout(advanceCombatAfterAction(game), STEP_TIMEOUT_MS, "advance_combat_after_action");
@@ -2277,6 +3465,28 @@ describe("modifier fixed seed collector", () => {
                 throw new Error(`step_timeout:advance_combat_after_action:${STEP_TIMEOUT_MS}`);
               }
               if (advanceStatus === "terminal" && !game.isCurrentPhase("SelectModifierPhase")) {
+                const isMilestoneWaveContinuation = battleWaveIndexBeforeAction > 0
+                  && battleWaveIndexBeforeAction % 10 === 0
+                  && !isGameTerminalPhase(game)
+                  && !game.isCurrentPhase("SelectModifierPhase");
+                if (isMilestoneWaveContinuation) {
+                  await withTimeout(
+                    waitForCombatCommandInputReady(game, STEP_TIMEOUT_MS),
+                    STEP_TIMEOUT_MS,
+                    "post_terminal_to_next_battle_command_phase",
+                  );
+                  completedWaves += 1;
+                  continue;
+                }
+                const isContinuousEncounterContinuation = isContinuousEncounterContinuationPhase(game);
+                if (isContinuousEncounterContinuation) {
+                  await withTimeout(
+                    waitForCombatCommandInputReady(game, STEP_TIMEOUT_MS),
+                    STEP_TIMEOUT_MS,
+                    "continuous_encounter_command_ready",
+                  );
+                  continue;
+                }
                 if (game.isCurrentPhase("BattleEndPhase")) {
                   const completedWaveIndex = game.scene.currentBattle?.waveIndex ?? 0;
                 if (completedWaveIndex > 0 && completedWaveIndex % 10 === 0) {
@@ -2298,7 +3508,7 @@ describe("modifier fixed seed collector", () => {
 
                 if (hasQueuedSelectModifier) {
                   await withTimeout(
-                    game.phaseInterceptor.to("SelectModifierPhase"),
+                    waitForSelectModifierPhaseReady(game, STEP_TIMEOUT_MS),
                     STEP_TIMEOUT_MS,
                     "battle_end_to_select_modifier_phase",
                   );
@@ -2319,6 +3529,14 @@ describe("modifier fixed seed collector", () => {
                 terminationReason = `unexpected_post_battle_queue:${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"}`;
                 break;
               }
+                if (game.isCurrentPhase("EggLapsePhase")) {
+                  await withTimeout(
+                    waitForSelectModifierPhaseReady(game, STEP_TIMEOUT_MS),
+                    STEP_TIMEOUT_MS,
+                    "egg_lapse_to_select_modifier_phase",
+                  );
+                  break;
+                }
                 if (game.isCurrentPhase("GameOverPhase") || game.isCurrentPhase("PostGameOverPhase") || game.isCurrentPhase("TitlePhase")) {
                   terminationReason = "team_wipe_or_game_over";
                 } else {
@@ -2496,5 +3714,5 @@ describe("modifier fixed seed collector", () => {
 
     fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
     fs.writeFileSync(OUTPUT_PATH, JSON.stringify(payload, null, 2), { encoding: "utf8" });
-  }, Math.max(300000, RUN_COUNT * STEP_TIMEOUT_MS * 3));
+  }, Math.max(300000, RUN_COUNT * MAX_WAVES * 6000));
 });

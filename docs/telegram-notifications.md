@@ -89,6 +89,7 @@ Relevante Dateien:
 - `scripts/01-data-generation/pipeline/run-wave-library-random-collection-pipeline.ts`
 - `scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh`
 - `scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh`
+- `scripts/01-data-generation/pipeline/run-modifier-strategic-seeded-remote.sh`
 - `scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh`
 - `scripts/03-benchmark/eval/run-dqn-benchmark-compare-remote.sh`
 - `scripts/04-automation/telegram/run-telegram-control-bot.mjs`

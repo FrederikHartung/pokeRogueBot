@@ -57,7 +57,7 @@ Quelle:
 |---|---|---|---|---|---|
 | HP-Heilung | `POTION`, `SUPER_POTION`, `HYPER_POTION`, `MAX_POTION`, `FULL_RESTORE` | Party-Ziel | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` |
 | Statusheilung | `FULL_HEAL` | Party-Ziel | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` |
-| Revives | `REVIVE`, `MAX_REVIVE`, `SACRED_ASH` | Party-Ziel bzw. global | Ja bei `REVIVE`/`MAX_REVIVE`, nein bei `SACRED_ASH` | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` |
+| Revives | `REVIVE`, `MAX_REVIVE`, `SACRED_ASH` | Party-Ziel bzw. global | Ja bei `REVIVE`/`MAX_REVIVE`, nein bei `SACRED_ASH` | abgesichert | `run-pokerogue-modifier-item-suite-test.ts`; strategic Collector fuehrt Shop-Revivals inzwischen ebenfalls aus |
 | PP-Heilung | `ETHER`, `MAX_ETHER`, `ELIXIR`, `MAX_ELIXIR` | Party-Ziel bzw. Party+Move | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` |
 | Spezial-Learn-Move | `MEMORY_MUSHROOM` | Party+Move | Ja | bewusst geblockt | `remember_move_todo`, `run-pokerogue-modifier-memory-mushroom-mask-test.ts` |
 
@@ -68,7 +68,7 @@ Quelle:
 | Items | Reward-Tiers | Zieltyp | Action Masking | Status | Hinweis |
 |---|---|---|---|---|---|
 | `POKEBALL`, `GREAT_BALL`, `ULTRA_BALL`, `ROGUE_BALL`, `MASTER_BALL` | Common / Great / Ultra / Rogue / Master | kein Ziel | Nein | abgesichert | bewusst kein Action Masking; normale Add-Pokeball-Modifier ohne Zielauswahl |
-| `LURE`, `SUPER_LURE`, `MAX_LURE` | Common / Great / Ultra | kein Ziel | Nein | bewusst geblockt | vorerst aus Offline-DQN-Action-Space herausnehmen; strategische Fixed-Seed-Pipeline bleibt bis auf Weiteres auf Single Battles begrenzt |
+| `LURE`, `SUPER_LURE`, `MAX_LURE` | Common / Great / Ultra | kein Ziel | Nein | abgesichert | bewusst kein Action Masking; Double-Battle-Chance-Booster mit direktem Einfluss auf den aktuellen Run |
 | `MAP` | Great | kein Ziel | Nein | bewusst geblockt | vorerst aus Offline-DQN-Action-Space herausnehmen; spaeter nur mit dediziertem Nachweistest und klarer Biome-/Routing-Policy re-enablen |
 
 ### Heilung, Revive und PP

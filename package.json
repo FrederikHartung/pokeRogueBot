@@ -24,6 +24,7 @@
     "rl:pipeline:wave-lib:bootstrap": "node scripts/01-data-generation/pipeline/run-wave-library-bootstrap-pipeline.mjs",
     "rl:pipeline:wave-lib:iterative": "node scripts/01-data-generation/pipeline/run-wave-library-iterative-pipeline.ts",
     "rl:pipeline:wave-lib:collect": "node scripts/01-data-generation/pipeline/run-wave-library-random-collection-pipeline.ts",
+    "rl:pipeline:modifier:strategic:collect": "node scripts/01-data-generation/pipeline/run-modifier-strategic-seeded-collection-pipeline.ts",
     "rl:train:dqn:wave-lib:v2": "python3 scripts/02-training/offline-dqn/train_dqn_offline.py --config ./data/rl/train-dqn-offline-wave-library-bootstrap-combined-960.json",
     "rl:train:dqn:wave-lib:v3": "python3 scripts/02-training/offline-dqn/train_dqn_offline.py --config ./data/rl/train-dqn-offline-wave-library-random-valid-action-v3-server.json",
     "rl:train:dqn:wave-lib:rival-focus": "python3 scripts/02-training/offline-dqn/train_dqn_offline.py --config ./data/rl/train-dqn-offline-wave-library-rival-focus-504.json",

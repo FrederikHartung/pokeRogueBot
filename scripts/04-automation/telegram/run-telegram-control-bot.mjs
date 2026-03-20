@@ -9,6 +9,7 @@ const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, "../../..");
 const iterativeControlDir = path.join(repoRoot, "data", "rl", "pipeline-runs", "wave-library-iterative-remote-control");
 const randomCollectionControlDir = path.join(repoRoot, "data", "rl", "pipeline-runs", "wave-library-random-collection-remote-control");
+const modifierStrategicControlDir = path.join(repoRoot, "data", "rl", "pipeline-runs", "modifier-strategic-seeded-remote-control");
 const trainingControlDir = path.join(repoRoot, "data", "rl", "training-runs", "offline-dqn-remote-control");
 const benchmarkControlDir = path.join(repoRoot, "data", "rl", "benchmark-runs", "dqn-compare-remote-control");
 
@@ -151,6 +152,8 @@ function normalizeCommand(text) {
 function runRemoteHelper(command) {
   const helperScript = stateDir === randomCollectionControlDir
     ? "scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh"
+    : stateDir === modifierStrategicControlDir
+      ? "scripts/01-data-generation/pipeline/run-modifier-strategic-seeded-remote.sh"
     : stateDir === trainingControlDir
       ? "scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh"
       : stateDir === benchmarkControlDir
@@ -274,6 +277,11 @@ function listManagedRuns() {
       fallbackConfigPath: path.join(repoRoot, "data", "rl", "wave-library-random-collection-remote-50ep.json"),
     },
     {
+      kind: "modifier_strategic_collection",
+      controlDir: modifierStrategicControlDir,
+      fallbackConfigPath: path.join(repoRoot, "data", "rl", "modifier-strategic-seeded-remote-10seeds-20runs-wave30.json"),
+    },
+    {
       kind: "offline_dqn_training",
       controlDir: trainingControlDir,
       fallbackConfigPath: path.join(repoRoot, "data", "rl", "train-dqn-offline-wave-library-random-valid-action-v3-server.json"),
@@ -312,10 +320,12 @@ function describeManagedRun({ kind, controlDir, fallbackConfigPath }) {
   );
   const pidFile = path.join(
     controlDir,
-    kind === "iterative"
+      kind === "iterative"
       ? "remote-pipeline.pid"
       : kind === "random_collection"
         ? "remote-random-collection.pid"
+        : kind === "modifier_strategic_collection"
+          ? "remote-modifier-strategic-seeded.pid"
         : kind === "offline_dqn_training"
           ? "remote-offline-dqn-training.pid"
           : "remote-dqn-benchmark.pid",
@@ -377,7 +387,7 @@ function buildStatusBlock(run) {
     return null;
   }
 
-  if (run.kind === "random_collection") {
+  if (run.kind === "random_collection" || run.kind === "modifier_strategic_collection") {
     return buildRandomCollectionStatusBlock(run);
   }
   if (run.kind === "offline_dqn_training") {
@@ -454,7 +464,7 @@ function buildRandomCollectionStatusBlock(run) {
 
   const scenarioCount = summarizeScenarioCount(manifest);
   if (scenarioCount != null) {
-    lines.push(`Scenarios: ${scenarioCount}`);
+    lines.push(`${run.kind === "modifier_strategic_collection" ? "Seeds" : "Scenarios"}: ${scenarioCount}`);
   }
 
   if (state === "running") {
@@ -601,10 +611,10 @@ function summarizeProgress(manifest) {
   return {
     totalBatches: manifest.batches.length,
     completedBatches: manifest.batches.filter(batch => batch.status === "completed").length,
-    totalEpisodes: manifest.batches.reduce((sum, batch) => sum + Number(batch.episodes ?? 0), 0),
+    totalEpisodes: manifest.batches.reduce((sum, batch) => sum + Number(batch.runs ?? batch.episodes ?? 0), 0),
     completedEpisodes: manifest.batches
       .filter(batch => batch.status === "completed")
-      .reduce((sum, batch) => sum + Number(batch.episodes ?? 0), 0),
+      .reduce((sum, batch) => sum + Number(batch.runs ?? batch.episodes ?? 0), 0),
   };
 }
 
@@ -614,7 +624,7 @@ function summarizeScenarioCount(manifest) {
   }
   return new Set(
     manifest.batches
-      .map(batch => batch?.scenario_name)
+      .map(batch => batch?.seed ?? batch?.scenario_name)
       .filter(value => typeof value === "string" && value.length > 0),
   ).size;
 }
