@@ -39,6 +39,7 @@ bash scripts/01-data-generation/pipeline/run-modifier-strategic-seeded-remote.sh
 
 - Smoke: `data/rl/modifier-strategic-seeded-remote-smoke.json`
 - Remote-Batch: `data/rl/modifier-strategic-seeded-remote-10seeds-20runs-wave30.json`
+- Groesserer Batch: `data/rl/modifier-strategic-seeded-remote-50seeds-50runs-wave30.json`
 
 ## Konfigurationsmodell
 
@@ -69,6 +70,7 @@ Interpretation:
 - `runs_per_instance`: wie viele Episoden derselbe Collector-Runner in einem Batch fuer denselben Seed ausfuehrt
 - Anzahl Batches pro Seed: `ceil(runs_per_seed / runs_per_instance)`
 - das Postprocessing baut aus den Raw-Outputs direkt `modifier_training_transition_v1`
+- `collect.combat_dqn_python` sollte auf Remote nach Moeglichkeit weggelassen werden, damit der strategic Collector automatisch zuerst die Repo-venv unter `.venv/bin/python*` nutzt
 
 ## Laufphasen
 

@@ -1,0 +1,26 @@
+{
+  "seed_prefix": "modifier-strategic-remote-train-s",
+  "seed_start_index": 1,
+  "seed_count": 50,
+  "output_root": "./pipeline-runs/modifier-strategic-seeded-remote-50seeds-50runs-wave30",
+  "manifest_path": "./pipeline-runs/modifier-strategic-seeded-remote-50seeds-50runs-wave30/manifest.json",
+  "collect": {
+    "runs_per_seed": 50,
+    "runs_per_instance": 5,
+    "parallelism": 2,
+    "max_waves": 30,
+    "modifier_policy": "random_executable",
+    "step_timeout_ms": 15000,
+    "run_process_timeout_ms": 300000,
+    "combat_dqn_device": "cpu"
+  },
+  "postprocess": {
+    "enabled": true,
+    "gamma": 0.99,
+    "output_path": "./pipeline-runs/modifier-strategic-seeded-remote-50seeds-50runs-wave30/merged/modifier-strategic-training-transitions.jsonl"
+  },
+  "archive": {
+    "format": "tar.gz",
+    "output_path": "./pipeline-runs/modifier-strategic-seeded-remote-50seeds-50runs-wave30/artifacts/modifier-strategic-seeded-runtime.tar.gz"
+  }
+}
