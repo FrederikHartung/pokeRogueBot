@@ -105,6 +105,116 @@ git checkout feature/bot-harness
 git merge upstream-main
 ```
 
+### Praktischer Submodul-Update-Workflow fuer dieses Repo
+
+Fuer dieses Projekt ist der relevante Stand nicht einfach irgendein lokaler Branch, sondern:
+
+- der im Hauptrepo versionierte Submodul-Pointer
+- plus die in `.gitmodules` hinterlegte Submodul-URL
+
+Der normale Update-Fall im Hauptrepo ist daher:
+
+```bash
+cd /path/to/pokeRogueBot
+git pull
+git submodule sync --recursive
+git submodule update --init --recursive
+```
+
+Danach sollte geprueft werden:
+
+```bash
+git -C pokerogue remote -v
+git -C pokerogue rev-parse --short HEAD
+git -C pokerogue status --short --branch
+```
+
+Wichtig:
+
+- `git submodule sync --recursive` ist wichtig, wenn `.gitmodules` geaendert wurde, z. B. von Upstream auf den eigenen Fork.
+- `git submodule update --init --recursive` pinnt das Submodul auf den im Hauptrepo erwarteten Commit.
+- `## HEAD (no branch)` im Submodul ist nach `git submodule update` normal und kein Fehler.
+
+### Bekannter Fallstrick: `lefthook` / `post-checkout` / `pnpm`
+
+Im `pokerogue/`-Submodul kann `git submodule update --init --recursive` scheinbar haengen bei:
+
+```text
+waiting: update-packages
+```
+
+Ursache ist typischerweise nicht Git selbst, sondern der `post-checkout`-Hook des Submoduls:
+
+- `lefthook`
+- Hook `update-packages`
+- ruft `pnpm i` auf
+
+Typische Symptome:
+
+- `git submodule update` wirkt minutenlang blockiert
+- `corepack` fragt interaktiv nach dem Download von `pnpm`
+- auf einem frischen Remote-Server ist `pnpm` noch nicht aktiviert
+
+Empfohlene Loesung:
+
+1. Wenn `git submodule update` bei `waiting: update-packages` sichtbar haengt, abbrechen.
+2. Im Submodul `corepack` und die passende `pnpm`-Version aus `pokerogue/package.json` vorbereiten.
+3. `pnpm install` einmal manuell ausfuehren.
+4. Danach `git submodule update` ohne Hook erneut laufen lassen.
+
+Hinweis:
+
+- Fuer den aktuell verwendeten, auf `v1.11.6` basierten Bot-Stand ist dies derzeit `pnpm@10.24.0`.
+- Trotzdem im Zweifel immer `pokerogue/package.json` als Source of Truth behandeln.
+
+Konkreter Ablauf:
+
+```bash
+cd /path/to/pokeRogueBot/pokerogue
+corepack enable
+corepack prepare pnpm@<VERSION-AUS-package.json> --activate
+hash -r
+pnpm --version
+pnpm install
+
+cd /path/to/pokeRogueBot
+LEFTHOOK=0 git submodule update --init --recursive
+```
+
+Danach erneut pruefen:
+
+```bash
+git -C pokerogue rev-parse --short HEAD
+git -C pokerogue status --short --branch
+git -C pokerogue submodule status --recursive
+```
+
+Falls `assets` oder `locales` vorher als modified auftauchten, werden sie durch den erneuten rekursiven Submodul-Checkout normalerweise auf den erwarteten Stand gezogen.
+
+### Empfohlener Remote-Server-Ablauf
+
+Wenn ein Remote-Server auf den versionierten Hauptrepo- und Submodul-Stand gebracht werden soll:
+
+```bash
+cd ~/repos/pokeRogueBot
+git pull
+git submodule sync --recursive
+
+cd pokerogue
+corepack enable
+corepack prepare pnpm@<VERSION-AUS-package.json> --activate
+hash -r
+pnpm install
+cd ..
+
+LEFTHOOK=0 git submodule update --init --recursive
+
+git -C pokerogue rev-parse --short HEAD
+git -C pokerogue status --short --branch
+```
+
+Wenn der Server danach sauber ist, koennen erst danach Hauptrepo-Dependencies, Smoke-Runs oder Remote-Pipelines gestartet werden.
+
 ### Wie der Stand fuer Remote und andere Nutzer reproduzierbar wird
 
 Es gibt zwei saubere Varianten:

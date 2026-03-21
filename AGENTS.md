@@ -200,7 +200,7 @@ This is a Spring Boot application (version 3.5.3) written in mixed Java/Kotlin t
 
 **Game Integration:**
 
-- PokeRogue game is included as a git submodule in `pokerogue/` (pinned to v1.11.6, last stable release)
+- PokeRogue game is included as a git submodule in `pokerogue/`; der bot-kompatible Stand wird ueber den im Hauptrepo versionierten Submodul-Pointer festgelegt und ist aktuell ein auf `v1.11.6` basierter Custom-Fork-Stand
 - Code im `pokerogue/`-Submodul darf nicht ohne vorherige Rueckfrage und explizite Zustimmung angepasst werden
 - Aenderungen im `pokerogue/`-Submodul sind nur erlaubt, wenn sie vorher vom User freigegeben wurden und bestehende Spiel- und Phasenlogik nicht umbauen, ausser dies ist technisch zwingend notwendig
 - Bei Architektur- oder RL-Erweiterungen ist zunaechst zu pruefen, ob eine Loesung ohne permanente Submodul-Aenderung moeglich ist, z. B. ueber temporaere External-RL-Tests oder einen ergaenzenden Harness ausserhalb der Kernlogik
@@ -210,9 +210,12 @@ This is a Spring Boot application (version 3.5.3) written in mixed Java/Kotlin t
   - versionierte Patch-Dateien unter `patches/pokerogue/` fuer kleine oder experimentelle Anpassungen
 - Verbindliche Referenz fuer den empfohlenen Fork-/Patch-Workflow:
   - `docs/pokerogue-submodule-versioning.md`
+- Verbindliche Referenz fuer den operativen Submodul-Update-Workflow inklusive Hook-Fallstricken:
+  - `docs/pokerogue-submodule-versioning.md`
 - Wenn Patch-Dateien verwendet werden, den Helper nutzen:
   - `bash scripts/ops/apply-pokerogue-patches.sh check`
   - `bash scripts/ops/apply-pokerogue-patches.sh apply`
+- Wenn `git submodule update --init --recursive` sichtbar auf `waiting: update-packages` haengt, zuerst an den `lefthook`-`post-checkout`-Hook und fehlendes `pnpm` denken; dann `corepack`/`pnpm` im Submodul manuell vorbereiten und den erneuten Checkout bei Bedarf mit `LEFTHOOK=0` ausfuehren
 - Es ist nicht von grundlegenden Bugs im `pokerogue/`-Submodul auszugehen, solange nicht konkrete Belege aus Tests, Logs oder reproduzierbaren Laufzeitfehlern dafuer vorliegen
 - The submodule is used at build time: JS bridge TypeScript files import enum definitions from `pokerogue/src/enums/` and use `import type` for game classes (Pokemon, BattleScene, Move, etc.) from the submodule source
 - For full type resolution in the bridge files, install the pokerogue submodule's dependencies: `cd pokerogue && pnpm install` (resolves transitive types like Phaser)

@@ -37,6 +37,10 @@ const defaultCombatCheckpointCandidates = [
   path.join(repoRoot, "data", "rl", "models", "dqn-combat-wave-library-random-valid-action-3400.pt"),
   path.join(repoRoot, "data", "rl", "models", "dqn-combat-wave-library-bootstrap-combined-960.pt"),
 ] as const;
+const defaultPythonCandidates = [
+  path.join(repoRoot, ".venv", "bin", "python"),
+  path.join(repoRoot, ".venv", "bin", "python3"),
+] as const;
 function resolveFirstExisting(candidates: readonly string[]): string | null {
   for (const candidate of candidates) {
     if (existsSync(candidate)) {
@@ -66,7 +70,7 @@ const combatCheckpoint = checkpointOverride
 const combatDevice = combatDeviceOverride ?? process.env.POKEROGUE_COMBAT_DQN_DEVICE ?? "cpu";
 const pythonBin = pythonOverride
   ? (path.isAbsolute(pythonOverride) ? pythonOverride : pythonOverride)
-  : "python3";
+  : resolveFirstExisting(defaultPythonCandidates) ?? "python3";
 const combatInferWorkerScript = path.join(repoRoot, "scripts", "02-training", "inference", "dqn_policy_infer_worker.py");
 
 function cleanup(): void {
