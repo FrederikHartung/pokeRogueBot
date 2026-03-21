@@ -61,7 +61,8 @@ interface DoubleSlotActionSnapshot {
   move_id?: number;
   target_index?: BattlerIndex;
   selected_targets?: BattlerIndex[];
-  requires_target_phase?: boolean;
+  expects_select_target_phase?: boolean;
+  uses_struggle_fallback?: boolean;
   switch_party_index?: number;
   score: number;
 }
@@ -1120,7 +1121,19 @@ function buildCombatDecisionSnapshot(
   actionSource: string,
   preparedPlayerSnapshot?: BattlerSnapshot,
   preparedEnemySnapshot?: BattlerSnapshot,
+  actionMaskOverride?: number[],
 ): CombatDecisionSnapshot {
+  const snapshotActionMask = actionMaskOverride
+    ? [...actionMaskOverride]
+    : Array.isArray(state.action_mask)
+      ? [...(state.action_mask as number[])]
+      : [];
+  const snapshotState = actionMaskOverride
+    ? {
+      ...state,
+      action_mask: snapshotActionMask,
+    }
+    : state;
   const playerSnapshot = preparedPlayerSnapshot
     ?? (() => {
       const playerPokemon = game.scene.getPlayerPokemon();
@@ -1137,13 +1150,13 @@ function buildCombatDecisionSnapshot(
   }
 
   return {
-    state,
+    state: snapshotState,
     wave_index: game.scene.currentBattle.waveIndex,
     turn_index: game.scene.currentBattle.turn,
     is_double_battle: game.scene.currentBattle.double,
     player: playerSnapshot,
     enemy: enemySnapshot,
-    action_mask: Array.isArray(state.action_mask) ? [...(state.action_mask as number[])] : [],
+    action_mask: snapshotActionMask,
     selected_action: selectedAction,
     action_source: actionSource,
   };
@@ -1202,20 +1215,29 @@ function buildDoubleSlotActions(game: GameManager): DoubleSlotActionSnapshot[] {
   const actingFieldIndex = getCommandFieldIndexSafe(game);
   const actingPokemon = getActingPlayerPokemon(game);
   if (!actingPokemon) {
+    console.error(
+      `[modifier-fixed-seed-double-actions-empty] wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} turn=${game.scene.currentBattle?.turn ?? "unknown"} field=${actingFieldIndex} reason=no_acting_pokemon phase=${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"} ui=${UiMode[game.scene.ui?.getMode?.() as number] ?? String(game.scene.ui?.getMode?.())}`,
+    );
     return [];
   }
 
   const actions: DoubleSlotActionSnapshot[] = [];
   const allowSwitchActions = game.isCurrentPhase("SwitchPhase");
   const moveset = actingPokemon.getMoveset().slice(0, 4);
-  moveset.forEach((move: any, moveIndex: number) => {
-    const [usable] = move.isUsable(actingPokemon, false, true);
+  const moveUsability = moveset.map((move: any) => {
+    const [usable, reason] = move.isUsable(actingPokemon, false, true);
+    return { move, usable, reason };
+  });
+  moveUsability.forEach(({ move, usable }, moveIndex: number) => {
     if (!usable) {
       return;
     }
     const moveData = move.getMove();
     const moveTargets = getMoveTargets(actingPokemon, move.moveId);
-    const requiresTargetPhase = moveTargets.multiple || moveTargets.targets.length > 1;
+    // Mirror CommandPhase semantics for the way this harness submits the move:
+    // - single-target moves are sent with one resolved target and skip SelectTargetPhase
+    // - multi-target moves still enqueue SelectTargetPhase even though their targets are known
+    const expectsSelectTargetPhase = moveTargets.multiple && moveTargets.targets.length > 1;
     if (moveTargets.multiple || moveTargets.targets.length <= 1) {
       const selectedTargets = moveTargets.multiple
         ? [...moveTargets.targets]
@@ -1233,7 +1255,7 @@ function buildDoubleSlotActions(game: GameManager): DoubleSlotActionSnapshot[] {
         move_id: move.moveId,
         target_index: moveTargets.multiple ? undefined : moveTargets.targets[0],
         selected_targets: selectedTargets,
-        requires_target_phase: requiresTargetPhase,
+        expects_select_target_phase: expectsSelectTargetPhase,
         score: estimateDoubleActionScore(actingPokemon, targetPokemon, moveData),
       });
       return;
@@ -1251,11 +1273,28 @@ function buildDoubleSlotActions(game: GameManager): DoubleSlotActionSnapshot[] {
         move_id: move.moveId,
         target_index: targetIndex,
         selected_targets: [targetIndex],
-        requires_target_phase: requiresTargetPhase,
+        expects_select_target_phase: expectsSelectTargetPhase,
         score: estimateDoubleActionScore(actingPokemon, targetPokemon, moveData),
       });
       });
   });
+
+  if (actions.length === 0 && !allowSwitchActions && moveUsability.length > 0 && moveUsability.every(entry => !entry.usable)) {
+    const fallbackMoveIndex = moveUsability.findIndex(entry => entry.move != null);
+    if (fallbackMoveIndex >= 0) {
+      actions.push({
+        action_index: 0,
+        action_kind: "move",
+        acting_field_index: actingFieldIndex,
+        move_index: fallbackMoveIndex,
+        selected_targets: [],
+        expects_select_target_phase: false,
+        uses_struggle_fallback: true,
+        score: -0.01,
+      });
+      return actions;
+    }
+  }
 
   if (!allowSwitchActions && actions.length > 0) {
     return actions;
@@ -1273,6 +1312,50 @@ function buildDoubleSlotActions(game: GameManager): DoubleSlotActionSnapshot[] {
       score: 0.02 + toHpRatio(member.hp, member.getMaxHp()),
     });
   });
+
+  if (actions.length === 0) {
+    const movesetDebug = moveUsability.map(({ move, usable, reason }, moveIndex: number) => {
+      const moveTargets = getMoveTargets(actingPokemon, move.moveId);
+      return {
+        move_index: moveIndex,
+        move_name: MoveId[move.moveId] ?? String(move.moveId),
+        usable,
+        reason: reason ?? null,
+        pp_left: Math.max(0, (move.getMovePp?.() ?? 0) - (move.ppUsed ?? 0)),
+        targets: moveTargets.targets,
+        multiple: moveTargets.multiple,
+      };
+    });
+    console.error(
+      `[modifier-fixed-seed-double-actions-empty] ${JSON.stringify({
+        wave_index: game.scene.currentBattle?.waveIndex ?? null,
+        turn_index: game.scene.currentBattle?.turn ?? null,
+        acting_field_index: actingFieldIndex,
+        phase_name: game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? null,
+        ui_mode: UiMode[game.scene.ui?.getMode?.() as number] ?? String(game.scene.ui?.getMode?.()),
+        allow_switch_actions: allowSwitchActions,
+        acting_species: SpeciesId[actingPokemon.species?.speciesId] ?? String(actingPokemon.species?.speciesId ?? "unknown"),
+        acting_hp_ratio: toHpRatio(actingPokemon.hp, actingPokemon.getMaxHp()),
+        player_field: game.scene.getPlayerField(true).map((pokemon: any) => pokemon
+          ? {
+            battler_index: pokemon.getBattlerIndex?.() ?? null,
+            species_name: SpeciesId[pokemon.species?.speciesId] ?? String(pokemon.species?.speciesId ?? "unknown"),
+            fainted: pokemon.isFainted?.() ?? false,
+            hp_ratio: toHpRatio(pokemon.hp, pokemon.getMaxHp()),
+          }
+          : null),
+        enemy_field: game.scene.getEnemyField(true).map((pokemon: any) => pokemon
+          ? {
+            battler_index: pokemon.getBattlerIndex?.() ?? null,
+            species_name: SpeciesId[pokemon.species?.speciesId] ?? String(pokemon.species?.speciesId ?? "unknown"),
+            fainted: pokemon.isFainted?.() ?? false,
+            hp_ratio: toHpRatio(pokemon.hp, pokemon.getMaxHp()),
+          }
+          : null),
+        moveset: movesetDebug,
+      })}`,
+    );
+  }
 
   return actions;
 }
@@ -1994,6 +2077,68 @@ function selectSingleBattleLoopGuardAction(combatTurns: CombatDecisionSnapshot[]
   };
 }
 
+function selectSingleBattleStruggleFallbackAction(
+  game: GameManager,
+  actionMask: number[],
+): { action: number; actionSource: string } | null {
+  if (actionMask.some(value => value === 1)) {
+    return null;
+  }
+
+  const player = game.scene.getPlayerPokemon?.();
+  if (!player) {
+    return null;
+  }
+
+  const moveSlots = (player.getMoveset?.() ?? []).slice(0, MOVE_ACTIONS);
+  if (moveSlots.length === 0) {
+    return null;
+  }
+
+  const firstMoveIndex = moveSlots.findIndex((move: any) => move != null);
+  if (firstMoveIndex < 0) {
+    return null;
+  }
+
+  const allMovesUnusable = moveSlots.every((move: any) => {
+    if (!move) {
+      return true;
+    }
+    const [usable] = move.isUsable(player, false, true);
+    return !usable;
+  });
+  if (!allMovesUnusable) {
+    return null;
+  }
+
+  console.error(
+    `[modifier-fixed-seed-single-struggle-fallback] wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} turn=${game.scene.currentBattle?.turn ?? "unknown"} move_index=${firstMoveIndex}`,
+  );
+  return {
+    action: firstMoveIndex,
+    actionSource: "single_struggle_fallback",
+  };
+}
+
+function normalizeCombatActionMaskForSnapshot(
+  actionMask: number[],
+  selectedAction: number,
+  actionSource: string,
+): number[] {
+  const normalizedMask = [...actionMask];
+  if (actionSource !== "single_struggle_fallback") {
+    return normalizedMask;
+  }
+  if (selectedAction < 0) {
+    return normalizedMask;
+  }
+  while (normalizedMask.length <= selectedAction) {
+    normalizedMask.push(0);
+  }
+  normalizedMask[selectedAction] = 1;
+  return normalizedMask;
+}
+
 function queueMoveByIndex(game: GameManager, actionIndex: number): void {
   game.onNextPrompt("CommandPhase", UiMode.COMMAND, () => {
     game.scene.ui.setMode(
@@ -2115,7 +2260,7 @@ function executeDoubleSlotAction(game: GameManager, action: DoubleSlotActionSnap
     queueMoveByIndexWithResolvedTargets(game, action.move_index, action.move_id as MoveId, selectedTargets);
     return;
   }
-  if (action.requires_target_phase) {
+  if (action.expects_select_target_phase) {
     queueMoveByIndex(game, action.move_index);
     queueDoubleTargetSelection(game, action);
     return;
@@ -2450,26 +2595,72 @@ async function advanceCombatAfterAction(game: GameManager): Promise<"ok" | "term
   return "timeout";
 }
 
+async function waitForDoubleTargetPhaseOrImmediateFollowup(
+  game: GameManager,
+  action: DoubleSlotActionSnapshot,
+  startingTurn: number,
+  timeoutMs: number,
+): Promise<"select_target" | "ok" | "terminal" | "timeout"> {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    if (resolveLearnMoveIfNeeded(game)) {
+      await sleep(25);
+      continue;
+    }
+    if (normalizeCommandPhaseUiIfNeeded(game)) {
+      await sleep(25);
+      continue;
+    }
+    resolveOptionalCheckSwitchIfNeeded(game);
+    const forcedSwitchStatus = resolveForcedSwitchIfNeeded(game);
+    if (forcedSwitchStatus === "no_candidate") {
+      return "terminal";
+    }
+    if (isCombatTerminalPhase(game)) {
+      return "terminal";
+    }
+    if (game.isCurrentPhase("SelectTargetPhase")) {
+      return "select_target";
+    }
+    if (game.isCurrentPhase("CommandPhase") && game.scene.ui?.getMode?.() === UiMode.COMMAND) {
+      const fieldIndex = getCommandFieldIndexSafe(game);
+      const currentTurn = game.scene.currentBattle?.turn ?? startingTurn;
+      if (fieldIndex > action.acting_field_index || currentTurn > startingTurn) {
+        console.error(
+          `[modifier-fixed-seed-double-target-shortcut] wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} field=${action.acting_field_index} next_field=${fieldIndex} turn=${currentTurn}`,
+        );
+        return "ok";
+      }
+    }
+    if (advanceCurrentUiPromptIfPossible(game)) {
+      await sleep(25);
+      continue;
+    }
+    await sleep(25);
+  }
+
+  return isCombatTerminalPhase(game) ? "terminal" : "timeout";
+}
+
 async function advanceDoubleCombatAfterAction(
   game: GameManager,
   action: DoubleSlotActionSnapshot,
 ): Promise<"ok" | "terminal" | "timeout"> {
   const startingTurn = game.scene.currentBattle?.turn ?? 0;
-  const selectedTargets = Array.isArray(action.selected_targets) ? action.selected_targets.filter(target => target != null) : [];
-  const needsTargetSelection = action.action_kind === "move" && action.requires_target_phase === true && selectedTargets.length > 1;
+  const needsTargetSelection = action.action_kind === "move" && action.expects_select_target_phase === true;
 
   if (needsTargetSelection) {
-    const targetStatus = await waitForPromiseOrTerminal(
+    const targetStatus = await waitForDoubleTargetPhaseOrImmediateFollowup(
       game,
-      withTimeout(
-        game.phaseInterceptor.to("SelectTargetPhase"),
-        STEP_TIMEOUT_MS,
-        "double_to_select_target_phase",
-      ),
+      action,
+      startingTurn,
       STEP_TIMEOUT_MS,
-      currentGame => currentGame.isCurrentPhase("SelectTargetPhase"),
     );
-    if (targetStatus !== "ok") {
+    if (targetStatus === "ok") {
+      return "ok";
+    }
+    if (targetStatus !== "select_target") {
       return targetStatus;
     }
     const targetResolutionStatus = await waitForDoubleTargetSelectionResolution(game, STEP_TIMEOUT_MS);
@@ -3280,7 +3471,7 @@ describe("modifier fixed seed collector", () => {
                   break;
                 }
                 console.error(
-                  `[modifier-fixed-seed-double-action] wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} turn=${game.scene.currentBattle?.turn ?? "unknown"} field=${selectedDoubleAction.acting_field_index} kind=${selectedDoubleAction.action_kind} move_index=${selectedDoubleAction.move_index ?? "na"} target=${selectedDoubleAction.target_index ?? "na"} switch_party_index=${selectedDoubleAction.switch_party_index ?? "na"}`,
+                  `[modifier-fixed-seed-double-action] wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} turn=${game.scene.currentBattle?.turn ?? "unknown"} field=${selectedDoubleAction.acting_field_index} kind=${selectedDoubleAction.action_kind} move_index=${selectedDoubleAction.move_index ?? "na"} target=${selectedDoubleAction.target_index ?? "na"} switch_party_index=${selectedDoubleAction.switch_party_index ?? "na"} struggle=${selectedDoubleAction.uses_struggle_fallback ? 1 : 0}`,
                 );
 
                 combatTurns.push(
@@ -3427,9 +3618,14 @@ describe("modifier fixed seed collector", () => {
                 ? (combatState.action_mask as number[])
                 : [];
               const loopGuardSelection = selectSingleBattleLoopGuardAction(combatTurns, actionMask);
+              const struggleFallbackSelection = loopGuardSelection
+                ? null
+                : selectSingleBattleStruggleFallbackAction(game, actionMask);
               let selectedCombatAction: { action: number; actionSource: string };
               if (loopGuardSelection) {
                 selectedCombatAction = loopGuardSelection;
+              } else if (struggleFallbackSelection) {
+                selectedCombatAction = struggleFallbackSelection;
               } else {
                 selectedCombatAction = await withTimeout(
                   selectCombatActionFromMask(combatState, actionMask),
@@ -3448,6 +3644,11 @@ describe("modifier fixed seed collector", () => {
                 continue;
               }
 
+              const effectiveActionMaskForSnapshot = normalizeCombatActionMaskForSnapshot(
+                actionMask,
+                action,
+                actionSource,
+              );
               combatTurns.push(
                 buildCombatDecisionSnapshot(
                   game,
@@ -3456,6 +3657,7 @@ describe("modifier fixed seed collector", () => {
                   actionSource,
                   preparedPlayerSnapshot,
                   preparedEnemySnapshot,
+                  effectiveActionMaskForSnapshot,
                 ),
               );
               executeCombatAction(game, action);

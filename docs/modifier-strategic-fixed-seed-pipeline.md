@@ -113,6 +113,87 @@ Der aktuelle lokale Zwischenstand nach den juengsten Harness-Fixes ist:
 - ueber alle 25 Runs lag `average_wave_reached` bei `8.88`
 - das beste Ergebnis im Sample war `wave_reached = 18`
 
+### Wiederverwendbare Loesung fuer Double-Battle-Timeouts
+
+Ein spaeter wichtiger Root-Cause fuer technische Abbrueche war nicht mehr das grundsaetzliche Double-Battle-Supporting, sondern ein sehr konkreter Harness-Fehler rund um `SelectTargetPhase`, Partner-Slot-Follow-up und leere PP-Sets.
+
+Der relevante Referenzfall war:
+
+- Remote-Run `modifier-strategic-remote-train-s2`
+- Batch `modifier-strategic-remote-train-s2--batch-002`
+- technischer Fehler:
+  - `step_timeout:advance_double_combat_after_action:15000`
+- danach, nach erster Teilfix-Stufe:
+  - `no_valid_double_action`
+- und schliesslich noch im Single-Pfad:
+  - `no_valid_combat_action`
+
+Die wiederverwendbare Loesung besteht aus drei Teilen.
+
+1. Wait-Logik an die echte `CommandPhase`-Semantik koppeln
+
+- Die Entscheidung, ob nach einem Move auf `SelectTargetPhase` gewartet werden muss, soll nicht heuristisch aus `move.isMultiTarget()` allein abgeleitet werden.
+- Source of truth ist die Submodul-Logik in:
+  - `pokerogue/src/phases/command-phase.ts`
+  - `pokerogue/src/data/moves/move-utils.ts`
+- Praktisch ist fuer den Harness entscheidend:
+  - `getMoveTargets(user, moveId)` liefert `targets` und `multiple`
+  - fuer bereits aufgeloeste Single-Target-Moves kann der Flow direkt zur naechsten `CommandPhase` oder zum naechsten Turn fortschreiten
+  - fuer echte Multi-Target-Moves kann `SelectTargetPhase` zwar auftreten, aber oft sehr kurz und direkt mit Rueckkehr zur Partner-`CommandPhase`
+- Wiederverwendbare Regel fuer Collector/Harness-Code:
+  - `expects_select_target_phase = moveTargets.multiple && moveTargets.targets.length > 1`
+  - nicht jede Action mit irgendeinem Target braucht einen harten Wait auf `SelectTargetPhase`
+
+2. Double-Follow-up robust behandeln
+
+- Nach dem Ausloesen eines Double-Moves darf der Harness nicht stur nur auf `SelectTargetPhase` warten.
+- Stattdessen muss als erfolgreicher Follow-up auch gelten:
+  - naechste `CommandPhase` fuer den Partner-Slot (`fieldIndex` steigt)
+  - oder der Turn ist bereits weitergelaufen
+- Der praktische Effekt:
+  - schnelle Multi-Target- oder bereits intern aufgeloeste Target-Faelle fuehren nicht mehr in einen kuenstlichen Timeout
+  - der Harness akzeptiert sowohl `SelectTargetPhase` als auch den unmittelbaren Sprung in den naechsten stabilen Command-Zustand
+
+3. `Struggle` nicht im Harness nachbauen, sondern die Spiel-Logik nutzen
+
+- Ein zweiter Root-Cause war spaeter, dass in Double- und Single-Battles alle regulären Moves `0 PP` hatten.
+- Der Harness lieferte dann:
+  - `no_valid_double_action`
+  - oder `no_valid_combat_action`
+- Das Spiel selbst hat aber bereits die korrekte Logik in `CommandPhase.handleFightCommand(...)`:
+  - wenn kein normaler Move mehr nutzbar ist, wird automatisch `MoveId.STRUGGLE` verwendet
+- Wiederverwendbares Muster:
+  - wenn alle Move-Slots unusable sind und kein legaler Switch existiert, den Kampf nicht im Harness abbrechen
+  - stattdessen einfach einen existierenden Move-Slot queueen
+  - die eigentliche `CommandPhase` des Spiels entscheidet dann selbst korrekt auf `STRUGGLE`
+- Das ist deutlich robuster als eine eigene Collector-Sonderlogik fuer `Struggle`
+- Wichtig fuer den Daten-Contract:
+  - wenn ein solcher Fallback-Snapshot geschrieben wird, muessen `selected_action`, top-level `action_mask` und verschachtelte `state.action_mask` konsistent bleiben
+  - sonst entsteht trotz funktionierendem Lauf stiller Drift im Combat-Datensatz
+
+Praktische Leitlinien fuer kuenftige Harness-/Collector-Arbeit:
+
+- `SelectTargetPhase`-Warteverhalten immer an die originale `CommandPhase`-Semantik des Submoduls koppeln
+- bei Double-Follow-up nie davon ausgehen, dass `SelectTargetPhase` sichtbar oder stabil lange aktiv bleibt
+- bei leerem PP-Set keine kuenstlichen `no_valid_*_action`-Terminations erzeugen, solange die Spiel-Logik regulär `Struggle` uebernehmen kann
+- wenn `actions.length === 0`, sofort strukturierte Debug-Informationen loggen:
+  - `phase_name`
+  - `ui_mode`
+  - `acting_field_index`
+  - `moveset` mit `usable`, `reason`, `pp_left`, `targets`, `multiple`
+  - aktives Player-/Enemy-Field
+
+Verifikation dieser Loesung:
+
+- der Einzel-Repro
+  - `modifier-strategic-remote-train-s2`, `run_index_start = 7`
+  - endet lokal wieder regulär mit `team_wipe_or_game_over`
+  - Artefakt: `data/temp/rl/repro-s2-run7.json`
+- der urspruengliche 5er-Problem-Batch
+  - `modifier-strategic-remote-train-s2`, `run_index_start = 5`, `runs = 5`
+  - laeuft lokal wieder technisch gruen
+  - Artefakt: `data/temp/rl/repro-s2-batch2.json`
+
 ### Offene Architekturfrage: ein gemeinsames oder zwei Combat-DQNs?
 
 Diese Frage ist noch nicht final entschieden und soll waehrend der weiteren Planung bewusst offen gehalten werden.

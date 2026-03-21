@@ -121,3 +121,15 @@ Der Smoke-Run ist erfolgreich, wenn:
 - `build_transitions` erfolgreich `modifier_training_transition_v1` erzeugt
 - `archive_dataset` ein Download-Artefakt schreibt
 - keine technische Termination in der Pipeline auftritt
+
+## Bekannter Reuse-Hinweis fuer Double-Battle-Timeouts
+
+Falls ein groesserer Seed-Run spaeter an einem technischen Double-Battle-Fehler haengt, ist die wichtigste Referenz nicht die Remote-Huelle selbst, sondern die strategische Collector-Doku:
+
+- [modifier-strategic-fixed-seed-pipeline.md](/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/docs/modifier-strategic-fixed-seed-pipeline.md)
+
+Dort ist die wiederverwendbare Loesung fuer den frueheren Wave-19-Fehler dokumentiert:
+
+- `SelectTargetPhase`-Waits an `CommandPhase` + `getMoveTargets(...)` koppeln
+- im Double-Follow-up auch den direkten Ruecksprung in die naechste `CommandPhase` als Erfolg akzeptieren
+- bei leeren PP-Sets nicht mit `no_valid_*_action` abbrechen, sondern die Spiel-Logik regulär auf `STRUGGLE` fallen lassen
