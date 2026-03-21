@@ -204,6 +204,15 @@ This is a Spring Boot application (version 3.5.3) written in mixed Java/Kotlin t
 - Code im `pokerogue/`-Submodul darf nicht ohne vorherige Rueckfrage und explizite Zustimmung angepasst werden
 - Aenderungen im `pokerogue/`-Submodul sind nur erlaubt, wenn sie vorher vom User freigegeben wurden und bestehende Spiel- und Phasenlogik nicht umbauen, ausser dies ist technisch zwingend notwendig
 - Bei Architektur- oder RL-Erweiterungen ist zunaechst zu pruefen, ob eine Loesung ohne permanente Submodul-Aenderung moeglich ist, z. B. ueber temporaere External-RL-Tests oder einen ergaenzenden Harness ausserhalb der Kernlogik
+- Ein `dirty` `pokerogue/`-Stand ist nicht reproduzierbar und reicht nicht fuer Remote-Server oder andere Nutzer; relevante Submodul-Aenderungen muessen versioniert werden
+- Bevorzugte Strategien fuer versionierte Submodul-Aenderungen:
+  - eigener Fork des Submoduls fuer laengerfristige oder fuer andere Nutzer relevante Aenderungen
+  - versionierte Patch-Dateien unter `patches/pokerogue/` fuer kleine oder experimentelle Anpassungen
+- Verbindliche Referenz fuer den empfohlenen Fork-/Patch-Workflow:
+  - `docs/pokerogue-submodule-versioning.md`
+- Wenn Patch-Dateien verwendet werden, den Helper nutzen:
+  - `bash scripts/ops/apply-pokerogue-patches.sh check`
+  - `bash scripts/ops/apply-pokerogue-patches.sh apply`
 - Es ist nicht von grundlegenden Bugs im `pokerogue/`-Submodul auszugehen, solange nicht konkrete Belege aus Tests, Logs oder reproduzierbaren Laufzeitfehlern dafuer vorliegen
 - The submodule is used at build time: JS bridge TypeScript files import enum definitions from `pokerogue/src/enums/` and use `import type` for game classes (Pokemon, BattleScene, Move, etc.) from the submodule source
 - For full type resolution in the bridge files, install the pokerogue submodule's dependencies: `cd pokerogue && pnpm install` (resolves transitive types like Phaser)
