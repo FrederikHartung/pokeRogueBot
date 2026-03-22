@@ -25,10 +25,13 @@ Aktuell existieren zwei klar getrennte Collector-Varianten:
 - `sanity_masking`
   - technische Pipeline fuer Action-Masking-, Follow-up- und Collector-Sanity
   - nutzt bewusst stark vereinfachte Kampfbedingungen
+  - laesst die Test-Harness-Normalisierung fuer `IVs` und `Natures` bewusst aktiv, damit Smoke-/Regression-/Sanity-Laeufe moeglichst stabil und reproduzierbar bleiben
   - dient nicht primaer der strategischen Datengenerierung
 - `strategic_fixed_seed`
   - erste strategische Variante mit echten seed-basierten Wild-Pokemon und Trainerkaempfen
   - Mystery Encounters bleiben weiterhin deaktiviert
+  - `IVs` und `Natures` werden hier bewusst nicht mehr ueber den Test-Harness normalisiert, damit die Trainingsdaten naeher am echten Spielverhalten bleiben
+  - `Shiny`-RNG bleibt vorerst weiterhin deaktiviert, weil dies fuer Combat-Entscheidungen deutlich weniger relevant ist als `IV`-/Nature-Streuung, aber zusaetzliche Varianz in die technischen Laeufe bringt
   - Wild- und Trainerkaempfe laufen jetzt wieder ohne kuenstliches Single-Druecken; Double Battles werden ueber den lokalen Double-Fallback-Pfad abgearbeitet
   - Combat-Entscheidungen laufen ueber das bestehende Combat-DQN
   - Entscheidungen in der `SelectModifierPhase` werden als `random_executable` aus der gueltigen Action Mask gezogen
@@ -47,6 +50,12 @@ Die strategische Variante ist aktuell als Smoke-/Stabilitaets-Harness zu versteh
 
 - Ziel ist zunaechst, die Pipeline robust durch echte Runs zu bringen
 - noch nicht Ziel ist sofort gute strategische Modifier-Qualitaet
+
+Wichtige Trennung fuer die Zukunft:
+
+- Smoke-, Regression- und reine Collector-Sanity-Laeufe duerfen weiter mit normalisierten `IVs` und `Natures` arbeiten, weil dort Reproduzierbarkeit und technische Stabilitaet wichtiger sind als perfekte Live-Naehe
+- fuer spaetere Trainingsdaten des Combat-DQN und fuer strategische Seed-Runs mit Trainingsanspruch sollen `IVs` und `Natures` dagegen nicht kuenstlich normalisiert werden
+- Hintergrund ist der sonst entstehende Train/Serve-Mismatch: das Live-Spiel hat zufaellige `IVs` und `Natures`, der Test-Harness wuerde mit der Default-Normalisierung aber eine kuenstlich geglaettete Kampfverteilung erzeugen
 
 ## Aktueller Blocker
 
@@ -170,6 +179,26 @@ Die wiederverwendbare Loesung besteht aus drei Teilen.
 - Wichtig fuer den Daten-Contract:
   - wenn ein solcher Fallback-Snapshot geschrieben wird, muessen `selected_action`, top-level `action_mask` und verschachtelte `state.action_mask` konsistent bleiben
   - sonst entsteht trotz funktionierendem Lauf stiller Drift im Combat-Datensatz
+
+4. Post-Victory-Forced-Switch nicht als technischen Terminalzustand behandeln
+
+- Ein weiterer legitimer Sonderfall ist ein simultaner KO am Kampfende, nach dem das Spiel noch kurz in `SwitchPhase` bleibt, obwohl der Kampf bereits gewonnen ist.
+- In diesem Zustand darf `isVictorySafe(...)` nicht sofort als `combat_terminal:SwitchPhase` hochgezogen werden.
+- Stattdessen muss der Collector weiter auf einen stabilen Folgezustand warten:
+  - `BattleEndPhase`
+  - `TrainerVictoryPhase`
+  - `MoneyRewardPhase`
+  - `ModifierRewardPhase`
+  - `EggLapsePhase`
+  - `SelectModifierPhase`
+  - oder direkt die naechste `CommandPhase` eines Folgekampfs
+- Erst echte Game-Terminalphasen oder ein fehlender legaler Forced-Switch-Kandidat sind hier technische Abbruchgruende.
+- Wichtig fuer die praktische Umsetzung:
+  - dieselben Follow-up-Waits muessen in diesen Nachlaufphasen auch aktiv `MESSAGE`-/`CONFIRM`-Prompts weiterklicken
+  - sonst bleiben legitime Zustandsfolgen wie `TurnInitPhase -> MESSAGE -> CommandPhase` oder `BattleEndPhase -> MESSAGE -> SelectModifierPhase` kuenstlich haengen, obwohl der Kampf fachlich korrekt weiterlaeuft
+  - wenn der Test-Helper dabei trotzdem auf `TurnInitPhase + MESSAGE` kleben bleibt, ist ein gezielter Recovery-Sprung auf die naechste `CommandPhase` robuster als ein technischer Timeout des Runs
+  - wichtig ist ausserdem, den Nachlauf nicht noch einmal mit einem zweiten aeusseren `Promise.race` auf exakt dieselbe Timeout-Grenze zu begrenzen; sonst wird ein legitimer innerer Post-Battle-Timeout-Branch abgeschnitten, bevor der Collector `BattleEndPhase` oder `SelectModifierPhase` noch als gueltigen Folgezustand verarbeiten kann
+  - fuer normale Forced-Switches nach einem KO gilt zusaetzlich: wenn `SwitchPhase` bereits in `UiMode.MESSAGE` steht und der Ersatz-Slot schon gequeued wurde, darf der Harness die Phase aktiv beenden; sonst bleibt der Run trotz korrekt vorbereiteter `SwitchSummonPhase` kuenstlich im Switch-Nachlauf haengen
 
 Praktische Leitlinien fuer kuenftige Harness-/Collector-Arbeit:
 

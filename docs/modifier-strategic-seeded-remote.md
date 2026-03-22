@@ -13,6 +13,12 @@ Eigenschaften:
 - anschliessendes seed-lokales Postprocessing zu `modifier_training_transition_v1`
 - Telegram-Benachrichtigung bei Erfolg und Fehler
 
+Wichtige Datenhygiene fuer diesen Pfad:
+
+- der strategische Collector laesst fuer Trainingsdaten die Test-Harness-Normalisierung von `IVs` und `Natures` bewusst ausgeschaltet
+- damit sollen die Combat-Verlaeufe naeher an der spaeteren Live-Verteilung bleiben
+- reine Smoke-/Regression-/Sanity-Pfade duerfen weiterhin mit normalisierten `IVs`/`Natures` arbeiten; das ist aber nicht das Ziel dieser Remote-Trainingspipeline
+
 ## Einstieg
 
 Package-Script:
@@ -90,8 +96,34 @@ Im Runtime-Ordner entstehen insbesondere:
 - `artifacts-summary.json`
 - `collection-metrics.json`
 - `collect_dataset/batches/*.json`
+- `collect_dataset/logs/*.stdout.log`
+- `collect_dataset/logs/*.stderr.log`
+- `collect_dataset/failures/*.failure.txt`
 - `merged/modifier-strategic-training-transitions.jsonl`
 - `artifacts/modifier-strategic-seeded-runtime.tar.gz`
+
+Diese Log-/Failure-Artefakte gelten nicht nur fuer den Remote-Helper, sondern genauso fuer lokale Aufrufe von
+`run-modifier-strategic-seeded-collection-pipeline.ts`, solange dieselbe Runtime-Struktur verwendet wird.
+
+## Fehlerdiagnose
+
+Wenn ein Batch fehlschlaegt, werden die relevanten Informationen jetzt dauerhaft im Runtime-Ordner persistiert:
+
+- pro Batch `stdout` unter `collect_dataset/logs/<batch>.stdout.log`
+- pro Batch `stderr` unter `collect_dataset/logs/<batch>.stderr.log`
+- pro Batch eine kompakte Failure-Summary unter `collect_dataset/failures/<batch>.failure.txt`
+- im `manifest.json` zusaetzlich Batch-Felder fuer:
+  - `stdout_log_path`
+  - `stderr_log_path`
+  - `failure_summary_path`
+  - `exit_code`
+  - `signal`
+  - `error_excerpt`
+
+Wichtig:
+
+- der Top-Level-Fehlerpfad laedt das aktuelle Manifest vor dem finalen `failed`-Status jetzt neu ein
+- dadurch werden bereits gespeicherte Batch-Status und Batch-Fehlerdaten im Fehlerfall nicht mehr von einem aelteren Manifest-Stand ueberschrieben
 
 ## Telegram
 

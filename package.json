@@ -6,11 +6,9 @@
     "build:js": "npm run typecheck:js-bridge && node build-js.mjs",
     "rl:dump:starters": "node scripts/90-dev/tools/dump-pokerogue-starter-defaults.mjs",
     "rl:collect": "node scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts",
-    "rl:gen:scenarios": "node scripts/01-data-generation/scenarios/run-wave-library-scenario-adapter.mjs",
     "rl:gen:scenarios:wave-lib": "node scripts/01-data-generation/scenarios/run-wave-library-scenario-adapter.mjs",
     "rl:gen:scenarios:delta": "node scripts/01-data-generation/scenarios/build-wave-library-delta-config.ts",
     "rl:collect:wave-lib:smoke": "node scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts ./data/rl/collector-run-wave-library-v2-smoke.json",
-    "rl:collect:bench": "node scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts ./data/rl/collector-run-benchmarked-wave-library-v2.json",
     "rl:collect:bench:wave-lib:v2": "node scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts ./data/rl/collector-run-benchmarked-wave-library-v2.json",
     "rl:collect:bench:wave-lib:v2:full": "node scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts ./data/rl/collector-run-benchmarked-wave-library-v2-full.json",
     "rl:check:dataset": "node scripts/01-data-generation/dataset/run-rl-dataset-sanity.mjs",
@@ -21,7 +19,6 @@
     "rl:test:modifier:strategic-contract": "node --test scripts/90-dev/rl/modifier-strategic-fixed-seed-contract.test.ts",
     "rl:test:modifier:strategic-postprocess": "node --test scripts/90-dev/rl/build-modifier-strategic-training-transitions.test.ts",
     "rl:build:modifier:strategic-transitions": "node scripts/90-dev/rl/build-modifier-strategic-training-transitions.ts",
-    "rl:pipeline:wave-lib:bootstrap": "node scripts/01-data-generation/pipeline/run-wave-library-bootstrap-pipeline.mjs",
     "rl:pipeline:wave-lib:iterative": "node scripts/01-data-generation/pipeline/run-wave-library-iterative-pipeline.ts",
     "rl:pipeline:wave-lib:collect": "node scripts/01-data-generation/pipeline/run-wave-library-random-collection-pipeline.ts",
     "rl:pipeline:modifier:strategic:collect": "node scripts/01-data-generation/pipeline/run-modifier-strategic-seeded-collection-pipeline.ts",
@@ -61,7 +58,8 @@
     "rl:test:modifier:mystical-rock-mask": "node scripts/90-dev/rl/run-pokerogue-modifier-mystical-rock-mask-test.ts",
     "rl:test:modifier:item-suite": "node scripts/90-dev/rl/run-pokerogue-modifier-item-suite-test.ts",
     "rl:collect:modifier:fixed-seed": "node scripts/90-dev/rl/run-pokerogue-modifier-fixed-seed-collector.ts",
-    "rl:inspect:dataset": "python3 -m streamlit run scripts/90-dev/inspect/streamlit_rl_dataset_inspector.py"
+    "rl:inspect:dataset": "python3 -m streamlit run scripts/90-dev/inspect/streamlit_rl_dataset_inspector.py",
+    "rl:pipeline:learn": "node scripts/01-data-generation/pipeline/run-learn-pipeline.ts"
   },
   "devDependencies": {
     "@types/node": "^24.5.2",
