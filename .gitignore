@@ -59,10 +59,8 @@ data/rl/generated/test-wave-library-iterative-*/
 data/rl/combat/*.jsonl
 data/rl/combat/*-report.json
 data/rl/dataset-pools/
-data/rl/pipeline-runs/wave-library-random-collection-remote-*/
+data/rl/pipeline-runs/
 data/rl/models/*.pt
-data/rl/pipeline-runs/wave-library-iterative-remote-*/
-data/rl/pipeline-runs/modifier-strategic-seeded-remote-*/
 data/rl/training-runs/
 
 # Productive wave library runtime artifacts
