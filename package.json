@@ -59,7 +59,8 @@
     "rl:test:modifier:item-suite": "node scripts/90-dev/rl/run-pokerogue-modifier-item-suite-test.ts",
     "rl:collect:modifier:fixed-seed": "node scripts/90-dev/rl/run-pokerogue-modifier-fixed-seed-collector.ts",
     "rl:inspect:dataset": "python3 -m streamlit run scripts/90-dev/inspect/streamlit_rl_dataset_inspector.py",
-    "rl:pipeline:learn": "node scripts/01-data-generation/pipeline/run-learn-pipeline.ts"
+    "rl:pipeline:learn": "node scripts/01-data-generation/pipeline/run-learn-pipeline.ts",
+    "dev:clean": "node scripts/90-dev/clean-temp-data.ts"
   },
   "devDependencies": {
     "@types/node": "^24.5.2",
