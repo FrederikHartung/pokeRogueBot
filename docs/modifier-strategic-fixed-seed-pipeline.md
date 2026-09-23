@@ -13,6 +13,8 @@ Der Fokus liegt auf einem reproduzierbaren Multi-Run-Setup, bei dem:
 
 Langfristig soll daraus ein Datengenerierungs- und Trainingsprozess fuer ein eigenes DQN fuer die `SelectModifierPhase` entstehen.
 
+Fuer das grundsaetzliche Funktionsprinzip des Headless-Testharness (Phasen-Reihenfolge, Prompt-Queue-Semantik, warum Timeouts wie die unten beschriebenen ueberhaupt auftreten) siehe die zentrale Referenz `docs/pokerogue-headless-test-harness-mechanics.md`.
+
 Remote-Betrieb:
 
 - fuer die seed-basierte Remote-Datengenerierung gibt es jetzt einen eigenen Betriebs- und Startpfad:

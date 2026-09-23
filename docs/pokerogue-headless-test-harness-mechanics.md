@@ -1,0 +1,161 @@
+# PokeRogue Headless Test-Harness Mechanics
+
+## Zweck dieser Doku
+
+Diese Datei ist die zentrale, mechanismus-nahe Referenz dafuer, **wie** der `pokerogue`-Submodul-Testharness (Vitest + `GameManager` + `PhaseInterceptor` + `PromptHandler`) headless Runs simuliert, und **warum** die RL-Collector-Pipeline in der Vergangenheit wiederholt in Timeouts gelaufen ist, weil auf eine Phase gewartet wurde, die entweder uebersprungen wurde oder erst nach einer ueberraschend spaeten anderen Phase kam.
+
+Zielgruppe: jede kuenftige Session, die an der Datengenerierungs-Pipeline (`scripts/01-data-generation/`, `scripts/90-dev/rl/`) oder an `pokerogue/test/porubot/regressions/` arbeitet, **bevor** neue Collector-Logik geschrieben oder ein bestehender Timeout debuggt wird.
+
+Verwandte, aber inhaltlich unterschiedliche Dokumente:
+
+- `docs/modifier-strategic-fixed-seed-pipeline.md` - konkrete, pipeline-spezifische Fixes und ihr historischer Kontext ("was wurde wann behoben").
+- `docs/modifier-dqn-migration-plan.md` - Migrationsplan und dort dokumentierte Einzelbefunde.
+- `docs/rl-headless-simulation-notes.md` - frueher, breiterer Erkundungsstand zur RL-Environment-Architektur (teilweise veraltet, siehe dessen Dateipfade).
+- `docs/pokerogue-submodule-versioning.md` - Fork-/Patch-Workflow, inkl. des `test/porubot/regressions/`-Anwendungsfalls.
+
+Diese Datei ersetzt die anderen nicht, sondern buendelt das **uebertragbare Funktionsprinzip**, damit neue Timeout-Faelle schneller eingeordnet werden koennen statt jedes Mal neu reverse-engineered zu werden.
+
+## 1. Die vier relevanten Bausteine
+
+| Baustein | Datei im Submodul | Rolle |
+|---|---|---|
+| `PhaseManager` | `src/phase-manager.ts` | Fuehrt echte Spiel-Phasen (`VictoryPhase`, `FaintPhase`, `SwitchPhase`, ...) in einer FIFO-Queue aus. Kommt aus dem eigentlichen Spiel, nicht aus dem Testharness. |
+| `PhaseInterceptor` | `test/framework/phase-interceptor.ts` | Ueberschreibt `PhaseManager.startCurrentPhase`, damit der Test manuell steuern kann, wann die naechste Phase laeuft (`to(target)`), statt dass alles im Spieltempo durchlaeuft. Fuehrt ein Log aller durchlaufenen Phasen (`phaseInterceptor.log`). |
+| `PromptHandler` | `test/helpers/prompt-handler.ts` | Simuliert UI-Eingaben: registriert Callbacks, die feuern, sobald eine bestimmte Phase **und** ein bestimmter `UiMode` gleichzeitig aktiv sind. |
+| `GameManager` | `test/framework/game-manager.ts` | Fassade fuer alles oben, plus Komfort-Helper (`killPokemon`, `doKillOpponents`, `doSelectModifier`, `doSelectPartyPokemon`, `toNextTurn`, `toNextWave`, ...). |
+
+Wichtig: **Nichts davon ist RL-Collector-spezifisch.** Es ist der normale Vitest-Testharness von PokeRogue selbst; der Collector (Hauptrepo, `scripts/90-dev/rl/templates/*.template.ts`) ist einfach ein sehr grosser, generierter Vitest-Testfall, der dieselben Primitives benutzt wie jeder gewoehnliche `pokerogue`-Test.
+
+## 2. Die Prompt-Queue ist FIFO und strikt blockierend
+
+`PromptHandler` haelt intern ein Array `prompts: UIPrompt[]`. Ein Intervall (`doPromptCheck`) prueft **ausschliesslich `prompts[0]`** - niemals die ganze Liste:
+
+```ts
+private doPromptCheck(): void {
+  if (this.prompts.length === 0) return;
+  const prompt = this.prompts[0];
+  if (prompt.expireFn?.()) { this.prompts.shift(); return; }
+  if (/* mode, phase und handler passen zu prompt */) {
+    prompt.callback();
+    this.prompts.shift();
+  }
+  // sonst: prompt bleibt an Position 0 liegen, für immer, bis er passt oder expiriert
+}
+```
+
+**Konsequenz:** Wenn ein frueh registrierter Prompt auf eine Phase/UiMode-Kombination wartet, die noch gar nicht dran ist, und dieser Prompt kein `expireFn` hat, blockiert er **jeden nachfolgend registrierten Prompt** - selbst wenn dessen Bedingung laengst erfuellt waere. Es findet kein "skip the ones that don't match yet" statt.
+
+### Daraus folgt eine harte Regel
+
+**Prompts muessen exakt in der chronologischen Reihenfolge registriert werden, in der ihre Zielzustaende im echten Spielablauf auftreten** - nicht in der Reihenfolge, in der es fuer den Testcode bequem ist.
+
+Zwei konkrete, in dieser Session tatsaechlich reproduzierte Stolperfallen:
+
+1. **`move.select(...)` registriert selbst intern einen Prompt** (fuer das FIGHT-Menu). Wird vorher schon ein eigener Prompt fuer eine spaetere Phase (z. B. `SelectModifierPhase` oder `SwitchPhase`) registriert, sitzt dieser an Position 0 und blockiert `move.select`s eigenen Prompt fuer immer. Symptom: Der Test haengt exakt nach der Logzeile `Move position for X: 0` / `PhaseInterceptor.to: Waiting for phase to end after being interrupted!`, ohne dass je eine `MovePhase` beginnt.
+   - **Fix:** Erst `move.select(...)` aufrufen, danach erst `await phaseInterceptor.to(...)` bis zu einem Zwischenziel, und **erst danach** eigene Prompts fuer weiter in der Zukunft liegende Phasen registrieren.
+2. **Eigene Prompts in falscher Reihenfolge registriert:** `doSelectPartyPokemon(1)` (wartet auf `SwitchPhase`+`PARTY`) VOR `doSelectModifier()` (wartet auf `SelectModifierPhase`+`MODIFIER_SELECT`) registriert, obwohl `SelectModifierPhase` im echten Ablauf **zuerst** kommt. Ergebnis: identischer Hang, diesmal spaeter im Ablauf (nach `UI mode changed to MODIFIER_SELECT`, ohne dass der Cancel-Callback je feuert).
+   - **Fix:** Registrierungsreihenfolge = Ablaufreihenfolge im Spiel: `doSelectModifier()` **vor** `doSelectPartyPokemon(...)`.
+
+**Praktische Merkregel:** Wenn ein Test/Collector nach einer bestimmten Logzeile deterministisch haengt (kein Timeout-Fehler, einfach kein Fortschritt mehr), zuerst pruefen, ob **irgendein** vorher registrierter Prompt auf eine Bedingung wartet, die inzwischen nicht mehr eintreten kann oder noch nicht dran ist.
+
+## 3. Phasen-Reihenfolge ist nicht immer intuitiv
+
+Der `PhaseManager` haengt neue Phasen entweder per `pushNew(...)` (ans Ende der Queue) oder `unshiftNew(...)` (direkt als naechstes) an. Mehrere Spielsystem-Teile haengen **unabhaengig voneinander** eigene Phasenketten an dieselbe Queue - die resultierende Gesamtreihenfolge ist daher nicht immer die, die man aus der Spiellogik alleine erwarten wuerde.
+
+### 3.1 Boss-Wellen ueberspringen `SelectModifierPhase` komplett
+
+`src/phases/victory-phase.ts` (`VictoryPhase.start()`):
+
+```ts
+if (currentWaveIndex % 10) {
+  globalScene.phaseManager.pushNew("SelectModifierPhase", ...);
+} else if (gameMode.isDaily) {
+  globalScene.phaseManager.pushNew("ModifierRewardPhase", modifierTypes.EXP_CHARM);
+  ...
+} else {
+  // Classic, wave % 10 === 0 (Boss-Welle): kein SelectModifierPhase.
+  // Stattdessen ggf. ModifierRewardPhase(s), danach SelectBiomePhase, dann immer NewBattlePhase.
+}
+```
+
+**Belegt durch `test/porubot/regressions/boss-wave-skips-select-modifier-phase.test.ts`**: Sieg auf Welle 10 (Classic, Wild, `disableTrainerWaves()`) fuehrt zu `ModifierRewardPhase -> SelectBiomePhase -> ... -> NewBattlePhase`, **niemals** `SelectModifierPhase`. Ein Collector, der nach jedem Sieg blind auf `SelectModifierPhase` wartet, haengt auf jeder Welle mit `waveIndex % 10 === 0` fuer immer.
+
+### 3.2 Ein erzwungener Wechsel nach simultanem KO kommt spaeter als erwartet
+
+`src/phases/faint-phase.ts` (`FaintPhase.doFaint()`, Spieler-Zweig): wenn das aktive Spieler-Pokemon faint **und** es legale Ersatz-Pokemon in der Party gibt, wird ein `SwitchPhase` per `pushNew` angehaengt.
+
+Das Problem: Bei einem **simultanen** KO (Spieler stirbt an Rueckstoss im selben Zug, in dem auch der Gegner besiegt wird) laeuft haeufig zuerst die gegnerische `FaintPhase`, die per `unshiftNew` sofort eine `VictoryPhase` einschiebt. Diese `VictoryPhase` haengt ihrerseits ihre komplette Belohnungskette (`EggLapsePhase`, ggf. `ModifierRewardPhase`, `SelectModifierPhase`/`SelectBiomePhase`, **`NewBattlePhase`**) per `pushNew` ans Ende der Queue. **Erst danach** laeuft die `FaintPhase` des Spielers und haengt ihr eigenes `SwitchPhase` per `pushNew` an - also **hinter** der bereits wartenden `NewBattlePhase`.
+
+**Empirisch verifizierte, tatsaechliche Log-Reihenfolge** (siehe `test/porubot/regressions/post-victory-switch-phase-is-not-terminal.test.ts`):
+
+```
+... BattleEndPhase -> EggLapsePhase -> SelectModifierPhase -> NewBattlePhase -> SwitchPhase -> SwitchSummonPhase -> NextEncounterPhase -> ... -> CommandPhase
+```
+
+**`SwitchPhase` laeuft also NACH `NewBattlePhase`**, nicht davor. Ein Collector, der `NewBattlePhase` als "sicher am Anfang der naechsten Welle, bereit fuer die naechste `CommandPhase`" interpretiert und aufhoert, auf UI-Prompts zu reagieren, haengt sich exakt hier auf: er wartet auf eine `CommandPhase`, die ein noch unbeantworteter `SwitchPhase`-Prompt blockiert.
+
+**Praktische Konsequenz fuer Collector-Code:** Nach jedem Sieg, bei dem das aktive Spieler-Pokemon mitgestorben ist, muss der Collector einen moeglichen `SwitchPhase`-Prompt **auch noch nach** `NewBattlePhase` erwarten und bedienen, nicht nur davor.
+
+### 3.3 Weitere bereits dokumentierte Muster (siehe verlinkte Docs fuer Details)
+
+- Forced Switch waehrend einer `toNextTurn()`-Wait-Loop (nicht nur davor) - `docs/combat-training-wave-library-v2.md`, `docs/todo-next.md`.
+- Wilde Flee-/Teleport-Sequenzen, die in `battle_end_to_select_modifier_phase` haengen konnten (inzwischen behoben) - `docs/todo-next.md`.
+- `LearnMovePhase` frueher nur per Timeout "ausgesessen", jetzt aktiv bedient - `docs/modifier-dqn-migration-plan.md`.
+- Double-Battle `SelectTargetPhase`-Semantik und Struggle-Handling - `docs/modifier-strategic-fixed-seed-pipeline.md` ("Wiederverwendbare Loesung fuer Double-Battle-Timeouts").
+
+## 4. Was `phaseInterceptor.to(target)` tatsaechlich garantiert - und was nicht
+
+```ts
+public async to(target: PhaseString, runTarget = true): Promise<void>
+```
+
+- Es wartet, bis die **aktuell laufende Phase** `target` heisst - nicht bis eine bestimmte Kette vorheriger Phasen vollstaendig "sauber" durchlaufen ist.
+- `runTarget = false` stoppt **vor** dem Start von `target` selbst (nuetzlich, um Zustand kurz vor einer Phase zu inspizieren).
+- **Es garantiert nicht**, dass alle fuer diesen Zeitpunkt "logisch zugehoerigen" Phasen bereits gelaufen sind. Wie in 3.2 gezeigt, kann eine fachlich zusammengehoerige Phase (`SwitchPhase` nach einem Sieg) noch **nach** dem Ziel-Phasennamen liegen, den man eigentlich als "fertig" interpretiert hatte.
+
+**Merksatz:** `to("NewBattlePhase")` bedeutet nur "wir sind jetzt in `NewBattlePhase`", nicht "der komplette Sieg-/Belohnungs-/Wechsel-Zyklus ist abgeschlossen".
+
+## 5. Best Practices fuer neue Collector-/Test-Logik
+
+1. **Nie annehmen, dass Phase X direkt auf Phase Y folgt.** Immer auf den naechsten tatsaechlich erwarteten Phasennamen warten und dabei offen fuer Zwischenzustaende bleiben (Boss-Welle: kein `SelectModifierPhase`; simultanes KO: `SwitchPhase` nach `NewBattlePhase`).
+2. **Prompts strikt in chronologischer Reihenfolge registrieren.** Vor jedem `move.select(...)`/`doSwitchPokemon(...)` etc. pruefen, ob noch aeltere, unerfuellte Prompts in der Queue haengen koennten.
+3. **`timeout_debug`-Snapshot-Pattern verwenden** (siehe `docs/modifier-dqn-migration-plan.md`): bei jedem Step-Timeout Phase, UI-Mode, Welle, Party-Zustand etc. strukturiert loggen, statt nur "timeout" zu werfen.
+4. **Stuck-Message-Watchdog mit Recovery-Sprung verwenden** (siehe `scripts/90-dev/rl/templates/modifier-fixed-seed-collector.test.template.ts`, Suche nach `stuckTurnInitMessageSince`/`stuckSwitchMessageSince`): wenn ueber ~250ms keine Bewegung aus einem `MESSAGE`/`TurnInit`-Zustand erfolgt, aktiv einen Sprung zur naechsten bekannten guten Phase versuchen, bevor der volle Step-Timeout ausgeschoepft wird.
+5. **Boss-Wellen (`waveIndex % 10 === 0`) explizit als Sonderfall behandeln**, nie implizit ueber "warte auf `SelectModifierPhase`".
+6. **Bei einem neuen, bisher unbekannten Hang zuerst `game.phaseInterceptor.log` inspizieren** (z. B. per temporaerem `console.log` im eigenen Testfile - niemals in `pokerogue/src/`) statt zu raten. Das war in dieser Session der entscheidende Schritt, um die in 3.2 beschriebene Reihenfolge ueberhaupt zu entdecken.
+
+## 6. `test/porubot/regressions/` als lebende Dokumentation
+
+Die unter Punkt 3 beschriebenen Muster sind nicht nur hier textuell dokumentiert, sondern als **ausfuehrbare, deterministische Regressionstests** im Fork abgelegt:
+
+- `pokerogue/test/porubot/regressions/boss-wave-skips-select-modifier-phase.test.ts`
+- `pokerogue/test/porubot/regressions/post-victory-switch-phase-is-not-terminal.test.ts`
+
+Ausfuehrung (aus dem Hauptrepo):
+
+```bash
+npm run rl:test:porubot:regressions
+```
+
+Diese Tests sind der pre-approved, stehende Ausnahme-Ort fuer weitere Regressionstests dieser Art (siehe `AGENTS.md` und `docs/pokerogue-submodule-versioning.md` - Abschnitt "Konkreter Anwendungsfall: `test/porubot/regressions/`"). Wird ein neues Timeout-Muster gefunden und verstanden, sollte es nach Moeglichkeit:
+
+1. hier in Abschnitt 3 als neues Unterkapitel dokumentiert werden,
+2. als neuer, fokussierter Test in `test/porubot/regressions/` nachgebildet werden.
+
+### Kochrezept fuer einen neuen Regressionstest
+
+1. Kleinstmoegliches, deterministisches Szenario waehlen (fixer Seed/Wave/State, keine Zufallsabhaengigkeit - ggf. `startingHeldItems([{ name: "TEMP_STAT_STAGE_BOOSTER", type: Stat.ACC }])` nutzen, um Trefferquoten auf 100% zu erzwingen).
+2. Ueber `game.override.*` den Zustand exakt herstellen, der das Muster ausloest.
+3. Aktionen (`move.select`, `killPokemon`, `doKillOpponents`, HP-Direktzuweisung wie `game.field.getPlayerPokemon().hp = 1`) in der **tatsaechlichen chronologischen Reihenfolge** ausfuehren.
+4. Alle in diesem Ablauf noetigen Prompts (`doSelectModifier`, `doSelectPartyPokemon`, ...) **in der Reihenfolge registrieren, in der ihre Zielphasen im Spiel auftreten** (siehe Abschnitt 2).
+5. Mit `await game.phaseInterceptor.to(<naechster verlaesslicher Endpunkt, z. B. "CommandPhase">)` bis zu einem stabilen, weiterverarbeitbaren Zustand vorlaufen.
+6. Auf das **Vorhandensein und die relative Reihenfolge** von Phasennamen in `game.phaseInterceptor.log` pruefen (`.toContain(...)`, `log.indexOf(a) > log.indexOf(b)`), nicht nur auf das Erreichen einer Endphase - die Reihenfolge selbst ist oft der eigentliche Regressionspunkt.
+7. Bei einem unerwarteten Hang: temporaeren `console.log(game.phaseInterceptor.log)` (oder gezielt vorher/nachher) direkt im eigenen Testfile einbauen, NIE in `pokerogue/src/` debuggen.
+
+## 7. Pflegehinweis
+
+Diese Datei beschreibt **Mechanismen**, die sich mit Submodul-Updates (neue PokeRogue-Version) aendern koennen - insbesondere die konkreten Phasennamen und ihre Reihenfolge in Abschnitt 3. Nach jedem `pokerogue`-Versions-Bump:
+
+1. `npm run rl:test:porubot:regressions` laufen lassen.
+2. Falls ein Test dort bricht: Ursache klaeren, Fix in `test/porubot/regressions/` **und** die betroffene Beschreibung in Abschnitt 3 dieser Datei aktualisieren.
+3. Falls sich an den grundsaetzlichen Mechanismen (Abschnitt 1/2/4) etwas aendert (z. B. `PhaseInterceptor`/`PromptHandler` erneut umgeschrieben, wie es zwischen `v1.11.6` und `v1.12.0.10` bereits einmal geschah), diese Abschnitte explizit gegenlesen und aktualisieren.

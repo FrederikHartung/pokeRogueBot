@@ -1,5 +1,7 @@
 # RL Headless Simulation Notes
 
+> Fuer die aktuelle, detaillierte Mechanik des Headless-Testharness (Phasen-Reihenfolge, Prompt-Queue-Semantik, bekannte Timeout-Ursachen) siehe `docs/pokerogue-headless-test-harness-mechanics.md`. Diese Datei hier ist der urspruengliche, teils veraltete Erkundungsstand (Dateipfade wie `pokerogue/test/test-utils/...` entsprechen nicht mehr dem aktuellen Submodul-Stand).
+
 ## Context
 
 Goal: Collect many training experiences for a Deep Q Network (DQN) without slow browser automation.

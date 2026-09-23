@@ -8,6 +8,7 @@
 - Diese beiden Dateien sind der bevorzugte Startpunkt fuer inhaltlichen Projektkontext.
 - Verbindliche Regel fuer neue Chats: Vor Implementierungsarbeit zuerst diese beiden Dateien einlesen, sofern der Task nicht rein trivial ist (z. B. reine Ein-Zeilen-Antwort ohne Projektbezug).
 - Danach bei Bedarf in Detaildocs verzweigen (z. B. `docs/combat-training-v1.md`, `docs/todo-next.md`).
+- Vor jeder Arbeit an der RL-Collector-/Datenpipeline oder an `pokerogue/test/porubot/regressions/` zuerst `docs/pokerogue-headless-test-harness-mechanics.md` lesen: zentrale Referenz fuer Phasen-/Prompt-Mechanik im Headless-Testharness und bekannte Timeout-Ursachen.
 
 ## Remote Server Zugriff
 
@@ -208,6 +209,7 @@ This is a Spring Boot application (version 3.5.3) written in mixed Java/Kotlin t
   - kein Code unterhalb von `pokerogue/src/` angefasst wird,
   - und die Aenderung als Commit auf dem Fork-Branch versioniert wird (kein dirty Submodul-Stand)
   - Zweck dieses Ordners: kleine, deterministische Regressionstests, die bekannte, frueher aufgetretene Pipeline-/Collector-Abweichungen (z. B. uebersprungene oder blockierte Phasenuebergaenge) fest nachstellen; siehe `docs/pokerogue-submodule-versioning.md`
+  - Mechanismus-Hintergrund (Prompt-Queue-Semantik, Phasen-Reihenfolge, warum diese Abweichungen ueberhaupt auftreten) ist zentral in `docs/pokerogue-headless-test-harness-mechanics.md` dokumentiert; neue Erkenntnisse dort und nicht nur im Test-Code festhalten
   - Parametrisierte Datengenerierung (Seeds, Run-Count, Checkpoint-Pfade, grosse Output-Artefakte) bleibt bewusst ausserhalb dieser Ausnahme und laeuft weiterhin ueber das bestehende Template-/`test/.external-rl/`-Harness im Hauptrepo
 - Bei Architektur- oder RL-Erweiterungen ist zunaechst zu pruefen, ob eine Loesung ohne permanente Submodul-Aenderung moeglich ist, z. B. ueber temporaere External-RL-Tests oder einen ergaenzenden Harness ausserhalb der Kernlogik
 - Ein `dirty` `pokerogue/`-Stand ist nicht reproduzierbar und reicht nicht fuer Remote-Server oder andere Nutzer; relevante Submodul-Aenderungen muessen versioniert werden

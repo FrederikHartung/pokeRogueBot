@@ -266,6 +266,7 @@ Dieser Ordner im Fork ist die einzige Stelle im `pokerogue/`-Submodul, fuer die 
 - Ausdruecklich NICHT fuer parametrisierte Datengenerierung (Seeds, Run-Count, DQN-Checkpoint-Pfade, grosse JSON-Output-Artefakte). Dafuer bleibt das bestehende Template-Harness im Hauptrepo (`scripts/90-dev/rl/templates/*.template.ts` -> zur Laufzeit gerendert nach `pokerogue/test/.external-rl/`) zustaendig, da diese Laeufe inhaerent pro Invocation parametrisiert sind und ihre Outputs nicht in den Fork committed werden sollen.
 - Wird ueber einen eigenen Vitest-Aufruf ausgefuehrt (z. B. `npm run rl:test:porubot:regressions` im Hauptrepo), nicht ueber ein blankes `pnpm test` im Submodul, damit diese Tests nicht ungewollt jedes Mal mitlaufen, wenn jemand die Upstream-Testsuite ausfuehrt.
 - `test/.external-rl/` ist zusaetzlich ueber eine versionierte `.gitignore`-Regel im Fork ausgeschlossen (vorher nur lokal ueber `.git/modules/pokerogue/info/exclude`, was auf einem frischen Checkout nicht reproduzierbar war).
+- Zwei erste Tests sind bereits vorhanden: `boss-wave-skips-select-modifier-phase.test.ts` und `post-victory-switch-phase-is-not-terminal.test.ts`. Der mechanistische Hintergrund dazu (Prompt-Queue-Semantik, warum Phasen in ueberraschender Reihenfolge laufen) ist zentral in `docs/pokerogue-headless-test-harness-mechanics.md` dokumentiert - beim Schreiben neuer Tests dieser Art zuerst dort lesen.
 
 ## Option B: Versionierte Patch-Dateien im Hauptrepo
 

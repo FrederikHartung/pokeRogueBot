@@ -1,5 +1,7 @@
 # Modifier DQN Migration Plan
 
+Fuer das grundsaetzliche Funktionsprinzip des Headless-Testharness (Phasen-Reihenfolge, Prompt-Queue-Semantik, bekannte Timeout-Ursachen) siehe die zentrale Referenz `docs/pokerogue-headless-test-harness-mechanics.md`.
+
 ## Zielbild
 
 Der bisherige Kotlin-/DL4J-/RL4J-basierte Modifier-RL-Pfad soll schrittweise auf denselben Grundansatz wie das Combat-DQN umgestellt werden:
