@@ -114,9 +114,45 @@ Das ist fuer den Testharness selbst unproblematisch - `phaseInterceptor.to()` bl
 
 **Belegt durch `test/porubot/regressions/learn-move-phase-requires-active-servicing.test.ts`**: nutzt eine begrenzte `do...while`-Schleife, die nach jedem `phaseInterceptor.to("LearnMovePhase")` prueft, ob die aktuelle Phase immer noch `LearnMovePhase` heisst, und falls ja, ein neues Prompt-Paar registriert, bevor erneut gewartet wird. Empirisch traten je nach zufaelligem Wildgegner 1-2 Instanzen hintereinander auf - die Schleife deckt beides ab, ohne die genaue Anzahl vorherzusagen.
 
-### 3.5 Noch offen: Double-Battle `SelectTargetPhase`/Struggle
+### 3.5 `SelectTargetPhase` haengt nicht nur an Multi-Target-Moves
 
-Fuer Double Battles ist die `SelectTargetPhase`-Semantik und das Struggle-Handling bereits in `docs/modifier-strategic-fixed-seed-pipeline.md` ("Wiederverwendbare Loesung fuer Double-Battle-Timeouts") dokumentiert, aber noch nicht als Regressionstest in `test/porubot/regressions/` nachgebildet.
+`src/phases/command-phase.ts` (`handleFightCommand`) entscheidet ueber `getMoveTargets(user, moveId)` (`src/data/moves/move-utils.ts`, liefert `{ targets, multiple }`), ob `SelectTargetPhase` geschoben wird:
+
+```ts
+if (moveTargets.targets.length > 1 && moveTargets.multiple) {
+  globalScene.phaseManager.unshiftNew("SelectTargetPhase", this.fieldIndex);
+}
+if (turnCommand.move && (moveTargets.targets.length <= 1 || moveTargets.multiple)) {
+  turnCommand.move.targets = moveTargets.targets;
+} else {
+  // laeuft auch fuer NICHT-Multi-Target-Moves, wenn mehr als ein legales Ziel existiert
+  globalScene.phaseManager.unshiftNew("SelectTargetPhase", this.fieldIndex);
+}
+```
+
+**Falle:** Eine naive Collector-Heuristik wie "`move.isMultiTarget()` == false -> nie `SelectTargetPhase` erwarten" ist falsch. `SelectTargetPhase` tritt in **zwei** Faellen auf:
+
+1. echte Multi-Target-Moves (`multiple: true`) - eher ein kurzer Bestaetigungs-Schritt, kein echtes Aim.
+2. Single-Target-Moves, wenn **mehr als ein legales Ziel** existiert (typischer Fall: Double Battle mit zwei lebenden Gegnern) - hier muss tatsaechlich disambiguiert werden.
+
+Nur wenn **exakt ein** legales Ziel existiert (`targets.length <= 1`), wird das Ziel automatisch aufgeloest und `SelectTargetPhase` entfaellt komplett.
+
+**Belegt durch `test/porubot/regressions/double-battle-select-target-phase-is-conditional.test.ts`**: `TACKLE` (single-target, `multiple: false`) erzeugt in einer Double Battle mit zwei lebenden `Poliwag` trotzdem `SelectTargetPhase` fuer beide Spieler-Slots - exakt der von der Heuristik uebersehene Fall. `DAZZLING_GLEAM` (`multiple: true`) erzeugt es ebenfalls, aus dem anderen Grund. Praktische Regel fuer Collector-Code: `expects_select_target_phase` an `getMoveTargets(...).targets.length > 1` koppeln, nicht an `move.isMultiTarget()` allein.
+
+### 3.6 `Struggle`-Fallback braucht keine Sonderlogik im Harness
+
+`src/phases/command-phase.ts` (`handleFightCommand`): wenn der gequeuete Move-Slot nicht nutzbar ist (`playerPokemon.trySelectMove(cursor, ignorePp)` liefert `canUse: false`) **und** kein Slot im gesamten Moveset ueberhaupt nutzbar ist, wird `moveId` automatisch auf `MoveId.STRUGGLE` gesetzt - ganz ohne dass der Harness das explizit anfordern muss:
+
+```ts
+const useStruggle = canUse
+  ? false
+  : cursor > -1 && !playerPokemon.getMoveset().some(m => m.isUsable(playerPokemon, ignorePP, true)[0]);
+const moveId = useStruggle ? MoveId.STRUGGLE : this.computeMoveId(playerPokemon, cursor, move);
+```
+
+**Falle:** Ein Collector, der bei einem leeren PP-Set eigene `no_valid_double_action`/`no_valid_combat_action`-Abbruchpfade baut, macht unnoetige Arbeit und riskiert stillen Drift im Daten-Contract (`selected_action`/`action_mask` muessen dann manuell konsistent gehalten werden). Es reicht, denselben (jetzt 0-PP-)Move-Slot ganz normal zu queuen - das Spiel loest `Struggle` selbst auf.
+
+**Belegt durch `test/porubot/regressions/struggle-fallback-needs-no-special-harness-logic.test.ts`**: setzt `moveset[0].ppUsed = moveset[0].getMovePp()` und queued denselben (jetzt erschoepften) Move-Slot direkt ueber die `CommandPhase`-FIGHT-Eingabe (nicht ueber `GameManager`s `move.select()`/`move.use()`, die genau das aus Testsicherheitsgruenden verhindern). Ergebnis: `Struggle` wird tatsaechlich verwendet (`toHaveUsedMove(MoveId.STRUGGLE)`), ohne jede Sonderbehandlung.
 
 ## 4. Was `phaseInterceptor.to(target)` tatsaechlich garantiert - und was nicht
 
@@ -147,6 +183,8 @@ Die unter Punkt 3 beschriebenen Muster sind nicht nur hier textuell dokumentiert
 - `pokerogue/test/porubot/regressions/post-victory-switch-phase-is-not-terminal.test.ts`
 - `pokerogue/test/porubot/regressions/forced-switch-mid-to-next-turn.test.ts`
 - `pokerogue/test/porubot/regressions/learn-move-phase-requires-active-servicing.test.ts`
+- `pokerogue/test/porubot/regressions/double-battle-select-target-phase-is-conditional.test.ts`
+- `pokerogue/test/porubot/regressions/struggle-fallback-needs-no-special-harness-logic.test.ts`
 
 Ausfuehrung (aus dem Hauptrepo):
 
