@@ -154,6 +154,30 @@ const moveId = useStruggle ? MoveId.STRUGGLE : this.computeMoveId(playerPokemon,
 
 **Belegt durch `test/porubot/regressions/struggle-fallback-needs-no-special-harness-logic.test.ts`**: setzt `moveset[0].ppUsed = moveset[0].getMovePp()` und queued denselben (jetzt erschoepften) Move-Slot direkt ueber die `CommandPhase`-FIGHT-Eingabe (nicht ueber `GameManager`s `move.select()`/`move.use()`, die genau das aus Testsicherheitsgruenden verhindern). Ergebnis: `Struggle` wird tatsaechlich verwendet (`toHaveUsedMove(MoveId.STRUGGLE)`), ohne jede Sonderbehandlung.
 
+### 3.7 Eine Phase wird erst durch `phaseInterceptor.to(...)` tatsaechlich "gestartet" - reines Polling reicht nicht
+
+Das ist der wichtigste, am schwersten zu findende Mechanismus in diesem ganzen Dokument, und die vermutliche Hauptursache vieler `step_timeout:advance_double_combat_after_action`-Vorfaelle in echten Pipeline-Laeufen.
+
+**Der Mechanismus:** `PhaseManager.shiftPhase()` setzt `currentPhase` auf die naechste Phase in der Queue und ruft danach `startCurrentPhase()` auf, was normalerweise `currentPhase.start()` ausfuehrt. Im Testharness ueberschreibt `PhaseInterceptor` diese Methode aber komplett (`test/framework/phase-interceptor.ts`):
+
+```ts
+this.scene.phaseManager["startCurrentPhase"] = () => {
+  this.state = "idling";
+};
+```
+
+Das heisst: **eine Phase wird "current"** (sichtbar ueber `game.isCurrentPhase(...)`/`getCurrentPhase()`), **ohne dass ihre eigene `start()`-Methode je laeuft** - solange, bis irgendwo explizit `game.phaseInterceptor.to(...)` aufgerufen wird. Dessen interne `run()`-Methode ist die **einzige** Stelle, die tatsaechlich `.start()` auf einer Phase aufruft. `game.toNextTurn()`/`game.toEndOfTurn()` sind selbst nur duenne Wrapper um genau das (`test/framework/game-manager.ts`).
+
+**Die Falle:** Jede Advance-Funktion in `test/porubot/harness/battle-command-advance.ts`, die auf einen Phasenwechsel *wartet*, braucht also eine begleitende, laufende `phaseInterceptor.to(...)`/`toNextTurn()`/`toEndOfTurn()`-Pumpe im Hintergrund - reines Polling von `game.isCurrentPhase(X)` allein bewegt nichts, egal wie oft man es abfragt. In `advanceCombatAfterAction`/`advanceDoubleCombatAfterAction` ist genau das ueberall der Fall (`game.toEndOfTurn()`/`game.toNextTurn()` laufen konkurrent zur Polling-Schleife) - **mit einer Ausnahme**: `waitForDoubleTargetPhaseOrImmediateFollowup` (der Pfad fuer `SelectTargetPhase`) hatte **keine** solche Pumpe. Wurde ein Single-Target-Move in einer Double-Battle mehrdeutig (siehe 3.5, `targets.length > 1 && !multiple`), blieb `SelectTargetPhase` fuer immer als "current" stehen, ohne je `.start()` zu erreichen - die UI wechselte nie zu `TARGET_SELECT`, und der Collector hing exakt am `advance_double_combat_after_action`-Timeout.
+
+**Der Fix** (`waitForDoubleTargetPhaseOrImmediateFollowup` in `test/porubot/harness/battle-command-advance.ts`): sobald `SelectTargetPhase` als current erkannt wird, aber die UI noch nicht in `TARGET_SELECT` ist, wird explizit `await game.phaseInterceptor.to("SelectTargetPhase")` aufgerufen (mit Timeout-Absicherung). Da das Ziel bereits die aktuelle Phase ist, startet dieser Aufruf **nur** diese eine Phase und wartet auf ihren Abschluss - keine spaeteren, unbeteiligten Phasen werden mitgelaufen.
+
+**Wichtige Falle beim Fix selbst:** Diese Pumpe darf **nicht** in `waitForPromiseOrTerminal` gewrappt werden - dessen eigenes, konkurrentes Polling (Forced-Switch-/Learn-Move-/Prompt-Behandlung alle 25ms) kollidiert mit `PhaseInterceptor`s interner Zustandsverwaltung und reproduziert denselben Hang. Ein einfacher `withTimeout(...)`-Aufruf ohne Zusatz-Polling ist hier die richtige, verifizierte Loesung.
+
+**Belegt durch:**
+- `pokerogue/test/porubot/harness/battle-command-advance.test.ts` (Testfall "resolves an ambiguous single-target move via SelectTargetPhase") - allgemeiner Mechanismus-Test, unabhaengig von Wave/Seed.
+- `pokerogue/test/porubot/regressions/replays/wave14-double-trainer-command-phase-stuck.test.ts` - Real-World-Replay eines konkreten historischen Pipeline-Timeouts (siehe Abschnitt 6.1), der vor dem Fix nachweislich rot war (echter TDD-Zyklus: Red -> Fix -> Green, per `console.log`/Spy-Diagnose auf `SelectTargetPhase.start`/`UI.setMode`/`TargetSelectUiHandler.show` verifiziert - alle drei wurden vor dem Fix nachweislich nie aufgerufen).
+
 ## 4. Was `phaseInterceptor.to(target)` tatsaechlich garantiert - und was nicht
 
 ```ts
@@ -186,6 +210,12 @@ Die unter Punkt 3 beschriebenen Muster sind nicht nur hier textuell dokumentiert
 - `pokerogue/test/porubot/regressions/double-battle-select-target-phase-is-conditional.test.ts`
 - `pokerogue/test/porubot/regressions/struggle-fallback-needs-no-special-harness-logic.test.ts`
 
+Zusaetzlich, seit der Extraktion der generischen Phasen-Fahrlogik (siehe 3.7 und `AGENTS.md` "Stehende Ausnahme ... harness/"):
+
+- `pokerogue/test/porubot/harness/battle-command-advance.ts` - die eigentliche, produktiv vom Hauptrepo-Collector-Template importierte Advance-Logik (`advanceCombatAfterAction`, `advanceDoubleCombatAfterAction` und ihre Abhaengigkeiten).
+- `pokerogue/test/porubot/harness/battle-command-advance.test.ts` - Selbsttest dieser Logik gegen generische Szenarien (kein Bezug zu einem konkreten historischen Vorfall).
+- `pokerogue/test/porubot/regressions/replays/wave14-double-trainer-command-phase-stuck.test.ts` - siehe 6.1, Real-World-Replay statt Dummy-Szenario.
+
 Ausfuehrung (aus dem Hauptrepo):
 
 ```bash
@@ -196,6 +226,21 @@ Diese Tests sind der pre-approved, stehende Ausnahme-Ort fuer weitere Regression
 
 1. hier in Abschnitt 3 als neues Unterkapitel dokumentiert werden,
 2. als neuer, fokussierter Test in `test/porubot/regressions/` nachgebildet werden.
+
+### 6.1 Zwei Test-Kategorien: synthetische Regressionstests vs. Real-World-Replays
+
+Die Tests in `regressions/` (ohne Unterordner) sind bewusst **synthetische** Szenarien: kleinstmoegliche, frei gewaehlte Setups, die ein bekanntes Mechanik-Muster beweisen und dokumentieren (siehe Abschnitt 3). Das reicht, um die Mechanik zu verstehen und gegen Drift bei Submodul-Updates abzusichern - beweist aber nicht, dass ein *konkreter, tatsaechlich aufgetretener* Pipeline-Timeout mit dem aktuellen Harness nicht mehr auftritt.
+
+Dafuer gibt es `regressions/replays/`: Tests, die einen realen Vorfall aus `data/temp/rl/*.json` (Hauptrepo) so nah wie moeglich nachstellen und **die echte Harness-Funktion** (aus `test/porubot/harness/`) direkt aufrufen, statt nur die Spiel-Mechanik isoliert zu pruefen.
+
+**Was aus den JSON-Episodendaten rekonstruierbar ist:**
+- Seed, Startparty (`starter_config_id`), erreichte Wave, `termination_reason` - direkt aus dem Episode-Objekt.
+- Der exakte Party-Zustand (Level, PP-Verbrauch pro Move) zum Zeitpunkt des Timeouts - aus `timeout_debug.party`.
+- Die Aktions-Historie fruehere Waves (`steps[].combat_turns[].selected_action` + `action_mask`, dekodiert ueber `MOVE_ACTIONS`/`executeCombatAction` im Collector-Template) - grundsaetzlich moeglich, aber teuer.
+
+**Was NICHT rekonstruierbar ist:** Der Biome-/Arena-Verlauf (welcher Biome-Pfad zu Wave N gefuehrt hat) wird nicht geloggt und haengt vom kompletten Run seit Wave 1 ab (verzweigter Random Walk durch den Biome-Graphen) - direktes `startingWave(N)` reproduziert daher nicht zwangslaeufig denselben Trainer/dieselbe Spezies wie im echten Lauf.
+
+**Pragmatischer Kompromiss (siehe `replays/wave14-double-trainer-command-phase-stuck.test.ts`):** Statt die ersten N-1 Waves vollstaendig nachzuspielen (teuer, fragil, und wegen der Biome-Frage ohnehin nicht exakt reproduzierbar), wird der **strukturelle Ausloeser** direkt hergestellt - hier per `battleType(BattleType.TRAINER)` + `randomTrainer({trainerType: ...})` + `enemySpecies(...)` + manuell gesetztem Party-Zustand (Level/PP aus `timeout_debug`). Das kostet nichts an Beweiskraft fuer den eigentlichen Mechanismus, weil die Wave-Inhalte (Trainer/Gegner) laut `resetSeed(waveIndex)` (`src/battle-scene.ts`) ohnehin nur vom Wave-Index abhaengen, waehrend der Party-Zustand reine Spielhistorie ist und daher billiger direkt gesetzt als nachgespielt werden kann.
 
 ### Kochrezept fuer einen neuen Regressionstest
 
