@@ -96,12 +96,27 @@ Das Problem: Bei einem **simultanen** KO (Spieler stirbt an Rueckstoss im selben
 
 **Praktische Konsequenz fuer Collector-Code:** Nach jedem Sieg, bei dem das aktive Spieler-Pokemon mitgestorben ist, muss der Collector einen moeglichen `SwitchPhase`-Prompt **auch noch nach** `NewBattlePhase` erwarten und bedienen, nicht nur davor.
 
-### 3.3 Weitere bereits dokumentierte Muster (siehe verlinkte Docs fuer Details)
+### 3.3 Ein erzwungener Wechsel kann mitten in einer `toNextTurn()`-Wait-Loop auftreten
 
-- Forced Switch waehrend einer `toNextTurn()`-Wait-Loop (nicht nur davor) - `docs/combat-training-wave-library-v2.md`, `docs/todo-next.md`.
-- Wilde Flee-/Teleport-Sequenzen, die in `battle_end_to_select_modifier_phase` haengen konnten (inzwischen behoben) - `docs/todo-next.md`.
-- `LearnMovePhase` frueher nur per Timeout "ausgesessen", jetzt aktiv bedient - `docs/modifier-dqn-migration-plan.md`.
-- Double-Battle `SelectTargetPhase`-Semantik und Struggle-Handling - `docs/modifier-strategic-fixed-seed-pipeline.md` ("Wiederverwendbare Loesung fuer Double-Battle-Timeouts").
+`toNextTurn()` (`test/framework/game-manager.ts`) ist nur eine duenne Huelle um zwei `phaseInterceptor.to(...)`-Aufrufe (`TurnInitPhase`, dann `CommandPhase`). Ein Move kann das eigene aktive Pokemon als Nebeneffekt faellen (z. B. `MEMENTO`, oder Rueckstoss - unabhaengig vom Schaden am Gegner), **ohne** dass der Kampf dadurch endet (der Gegner lebt, weitere Zuege folgen). Die dadurch ausgeloeste `SwitchPhase` liegt dann nicht *vor*, sondern *innerhalb* der beiden `to(...)`-Aufrufe von `toNextTurn()`.
+
+Das ist fuer den Testharness selbst unproblematisch - `phaseInterceptor.to()` blockiert korrekt, bis eine per `onNextPrompt` vorab registrierte Antwort den `SwitchPhase`-Prompt bedient. Das Problem liegt historisch in Collector-Code, der einen Switch-Prompt **nur direkt nach der Zugauswahl** prueft und danach blockierend auf "naechster Zug" wartet, ohne waehrenddessen erneut auf einen Switch-Prompt zu achten - siehe Wave-8-Rival-Vorfall in `docs/combat-training-wave-library-v2.md` und `docs/todo-next.md`.
+
+**Belegt durch `test/porubot/regressions/forced-switch-mid-to-next-turn.test.ts`**: `MEMENTO` faellt das eigene Pokemon garantiert (kein Zufall, keine Schadensberechnung noetig), der Gegner bleibt am Leben. Log zeigt `SwitchPhase` gefolgt von `CommandPhase`, **ohne** `BattleEndPhase`/`VictoryPhase` - der Kampf laeuft normal weiter.
+
+**Praktische Konsequenz:** Ein Switch-Prompt-Handler muss **vor** dem Aufruf einer "zum naechsten Zug vorlaufen"-Hilfsfunktion registriert werden (nicht erst danach), damit er greift, egal an welcher Stelle innerhalb der Wartekette die `SwitchPhase` tatsaechlich auftritt.
+
+### 3.4 `LearnMovePhase` braucht aktive Bedienung - und kann mehrfach hintereinander auftreten
+
+`src/phases/learn-move-phase.ts`: Hat ein Pokemon beim Level-up bereits 4 Attacken, fragt die Phase per `UiMode.CONFIRM` ("soll eine Attacke vergessen werden?"), und bei Ja per `UiMode.SUMMARY` ("welche?"). Ohne aktive Antwort auf **beide** Prompts bleibt die Phase haengen - sie endet nicht von selbst. Frueher wurde sie im Kotlin-Live-Bot nur per Timeout "ausgesessen" (haeufige Ursache fuer `step_timeout:advance_combat_after_action:*`), siehe `docs/modifier-dqn-migration-plan.md`.
+
+**Zusaetzliche Falle:** Eine einzelne grosse EXP-Gutschrift (z. B. nach einem Kill mit hohem `xpMultiplier`) kann **mehrere Level-up-Schwellen mit neuer Attacke auf einmal** ueberspringen und dadurch mehrere `LearnMovePhase`-Instanzen direkt hintereinander auf die Queue legen. Da Prompts (Abschnitt 2) strikt einmalig sind, muss fuer **jedes** Vorkommen erneut ein frisches Prompt-Paar registriert werden - ein Handler, der nur die erste Instanz bedient und dann auf die naechste erwartete Phase wartet, haengt an der zweiten `LearnMovePhase`.
+
+**Belegt durch `test/porubot/regressions/learn-move-phase-requires-active-servicing.test.ts`**: nutzt eine begrenzte `do...while`-Schleife, die nach jedem `phaseInterceptor.to("LearnMovePhase")` prueft, ob die aktuelle Phase immer noch `LearnMovePhase` heisst, und falls ja, ein neues Prompt-Paar registriert, bevor erneut gewartet wird. Empirisch traten je nach zufaelligem Wildgegner 1-2 Instanzen hintereinander auf - die Schleife deckt beides ab, ohne die genaue Anzahl vorherzusagen.
+
+### 3.5 Noch offen: Double-Battle `SelectTargetPhase`/Struggle
+
+Fuer Double Battles ist die `SelectTargetPhase`-Semantik und das Struggle-Handling bereits in `docs/modifier-strategic-fixed-seed-pipeline.md` ("Wiederverwendbare Loesung fuer Double-Battle-Timeouts") dokumentiert, aber noch nicht als Regressionstest in `test/porubot/regressions/` nachgebildet.
 
 ## 4. Was `phaseInterceptor.to(target)` tatsaechlich garantiert - und was nicht
 
@@ -130,6 +145,8 @@ Die unter Punkt 3 beschriebenen Muster sind nicht nur hier textuell dokumentiert
 
 - `pokerogue/test/porubot/regressions/boss-wave-skips-select-modifier-phase.test.ts`
 - `pokerogue/test/porubot/regressions/post-victory-switch-phase-is-not-terminal.test.ts`
+- `pokerogue/test/porubot/regressions/forced-switch-mid-to-next-turn.test.ts`
+- `pokerogue/test/porubot/regressions/learn-move-phase-requires-active-servicing.test.ts`
 
 Ausfuehrung (aus dem Hauptrepo):
 
