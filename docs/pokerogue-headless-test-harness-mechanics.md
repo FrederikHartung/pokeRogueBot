@@ -203,6 +203,24 @@ Dieselbe Kategorie Fehler betraf beim Nachpruefen zusaetzlich 29 weitere Dateien
 
 **Absicherung:** `npm run typecheck:scripts` (siehe `scripts/90-dev/check-script-imports.sh`) laesst `tsc --noEmit` gegen die vollstaendige `#alias/*`-Pfad-Map in der Root-`tsconfig.json` laufen (diese Map wurde dabei erstmals vollstaendig an `pokerogue/tsconfig.json` angeglichen) und wertet **nur** echte Import-Fehler (fehlendes Modul/fehlender Export, Fehlercodes `TS2307`/`TS2305`/`TS2459`/`TS2724`/`TS2306`) als Fehlschlag - `__PLACEHOLDER__`-Tokens in `*.template.ts`-Dateien erzeugen zwar ebenfalls `tsc`-Fehler, werden aber bewusst ignoriert. Nach jeder Aenderung an `#alias/*`-Imports in `scripts/` (insbesondere nach einem Bump des `pokerogue`-Submodul-Pointers) ausfuehren.
 
+### 3.10 `SwitchPhase` selbst (nicht nur `SwitchSummonPhase`) kann durch dasselbe Polling gewedgt werden - und `Pokemon.switchOut()` braucht ueberhaupt keine eigene Phase
+
+Direkte Fortsetzung von 3.8, gefunden im selben frischen Collector-Lauf: ein ganz gewoehnlicher Wave-interner KO (kein Wellenende, keine Challenge - siehe unten) loest einen erzwungenen Wechsel aus, der in `advanceCombatAfterAction` ebenfalls haengen blieb (`step_timeout:advance_combat_after_action`), diesmal aber bei `SwitchPhase`, nicht bei `SwitchSummonPhase`.
+
+**Zwei separate Erkenntnisse aus diesem einen Vorfall:**
+
+1. **Die urspruengliche Fehlermeldung war eine Sackgasse.** Der Debug-Snapshot zeigte `"Squirtle changed into an ineligible Pokémon\nfor this challenge!"` - das klingt nach einem Challenge-Mode-Bug, ist aber nur PokeRogues (etwas irrefuehrend benannter) generischer Text fuer *jedes* auf dem Feld stehende Pokemon, das nicht mehr kaempfen kann (`challenges:illegalEvolution` in `locales/en/challenges.json`, ausgeloest von `TurnInitPhase.start()` fuer `p.isOnField() && !p.isAllowedInBattle()` - und `isAllowedInBattle()` ist `!isFainted() && isAllowedInChallenge()`, wird also auch von einem simplen Fainten getriggert, voellig unabhaengig von aktiven Challenges). Bevor an dieser Nachricht weitergesucht wird: erst pruefen, ob das betroffene Pokemon einfach nur besiegt wurde.
+2. **`Pokemon.switchOut()`** (aufgerufen sowohl aus `TurnInitPhase.start()` als auch aus dem regulaeren Faint-Handling) **oeffnet die Party-UI direkt per synchronem `globalScene.ui.setMode(UiMode.PARTY, PartyUiMode.FAINT_SWITCH, ...)`-Aufruf - voellig ohne eigene Phase.** Das kann also als `ui_mode: PARTY` erscheinen, waehrend die *aktuelle* Phase etwas ganz anderes ist (im beobachteten Fall: die laengst queued `MovePhase` des Gegners), unabhaengig von `isCurrentPhase("SwitchPhase")`.
+
+**Der Fix, Teil 1** (`resolveForcedSwitchIfNeeded` in `test/porubot/harness/battle-command-advance.ts`): erkennt den erzwungenen Wechsel jetzt zusaetzlich ueber `ui_mode === PARTY && partyUiMode === PartyUiMode.FAINT_SWITCH`, nicht mehr nur ueber `isCurrentPhase("SwitchPhase")`.
+
+**Der Fix, Teil 2 - die eigentliche Ursache des Hangs:** Auch wenn tatsaechlich `SwitchPhase` als aktuelle Phase durchlaufen wird (z. B. bei einem gewoehnlichen Faint mitten im Kampf), gilt exakt derselbe Mechanismus wie in 3.7/3.8: die Phase wird "current", ohne dass ihre `start()` bereits gelaufen ist. Ein blinder `advanceCurrentUiPromptIfPossible()`-Tastendruck (der generisch auf jedes `ui_mode: MESSAGE` reagiert) kann feuern, *bevor* `SwitchPhase.start()` ueberhaupt dazu kommt, die Party-UI zu oeffnen - und verhindert das dauerhaft. Per Diagnose-Instrumentierung belegt: mit dem blinden Tastendruck blieb `ui_mode` fuer die gesamte Wartezeit bei `MESSAGE` (die Party-UI oeffnete nie); ohne ihn oeffnete sie sich sofort.
+
+**Der Fix:** `advanceCurrentUiPromptIfPossible` verweigert die Aktion jetzt sowohl fuer `SwitchSummonPhase` als auch fuer `SwitchPhase` (nicht nur fuer Ersteres). Fuer `SwitchPhase` bedeutet das nicht "ignorieren" wie bei `SwitchSummonPhase` (das braucht ja tatsaechlich eine Spielerentscheidung) - es bedeutet nur, `SwitchPhase` von der *falschen* Bedienung (blinder MESSAGE-Tastendruck) auszunehmen, damit die *richtige* Bedienung (`resolveForcedSwitchIfNeeded`s gezielte Cursor-/Party-Auswahl, sobald die Party-UI tatsaechlich offen ist) ueberhaupt zum Zug kommt.
+
+**Belegt durch:**
+- `pokerogue/test/porubot/harness/battle-command-advance.test.ts` (Testfall "resolves an ordinary mid-battle forced switch after a faint").
+
 ## 4. Was `phaseInterceptor.to(target)` tatsaechlich garantiert - und was nicht
 
 ```ts
