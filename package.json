@@ -3,6 +3,7 @@
   "type": "module",
   "scripts": {
     "typecheck:js-bridge": "node scripts/90-dev/js-bridge/typecheck-js-bridge.mjs",
+    "typecheck:scripts": "bash scripts/90-dev/check-script-imports.sh",
     "build:js": "npm run typecheck:js-bridge && node build-js.mjs",
     "rl:dump:starters": "node scripts/90-dev/tools/dump-pokerogue-starter-defaults.mjs",
     "rl:collect": "node scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts",

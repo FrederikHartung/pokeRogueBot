@@ -20,8 +20,8 @@ const testSource = `
 import fs from "node:fs";
 import path from "node:path";
 import { SpeciesId } from "#enums/species-id";
-import { GameManager } from "#test/test-utils/game-manager";
-import { generateStarters } from "#test/test-utils/game-manager-utils";
+import { GameManager } from "#test/framework/game-manager";
+import { generateStarters } from "#test/utils/game-manager-utils";
 import { afterEach, beforeAll, beforeEach, describe, it } from "vitest";
 
 describe("starter defaults dump", () => {

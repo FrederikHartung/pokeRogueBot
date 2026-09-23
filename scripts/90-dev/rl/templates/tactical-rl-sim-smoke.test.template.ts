@@ -6,7 +6,7 @@ import { MoveId } from "#enums/move-id";
 import { SpeciesId } from "#enums/species-id";
 import { UiMode } from "#enums/ui-mode";
 import { ModifierSelectUiHandler } from "#ui/modifier-select-ui-handler";
-import { GameManager } from "#test/test-utils/game-manager";
+import { GameManager } from "#test/framework/game-manager";
 import Phaser from "phaser";
 import { afterEach, beforeAll, beforeEach, describe, it } from "vitest";
 

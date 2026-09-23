@@ -19,10 +19,10 @@ import { UiMode } from "#enums/ui-mode";
 import type { CommandPhase } from "#phases/command-phase";
 import { EncounterPhase } from "#phases/encounter-phase";
 import { SelectStarterPhase } from "#phases/select-starter-phase";
-import type { GameManager } from "#test/test-utils/game-manager";
-import { generateStarters } from "#test/test-utils/game-manager-utils";
-import { PartyUiMode } from "#ui/party-ui-handler";
-import { getPokemonSpecies } from "#utils/pokemon-utils";
+import type { GameManager } from "#test/framework/game-manager";
+import { generateStarters } from "#test/utils/game-manager-utils";
+import { PartyUiMode } from "#enums/party-ui-mode";
+import { getPokemonSpeciesForm } from "#utils/pokemon-utils";
 
 const TERMINAL_ON_EGG_LAPSE = "__COLLECTOR_TERMINAL_ON_EGG_LAPSE__" === "true";
 const STEP_TIMEOUT_MS = Number("__COLLECTOR_STEP_TIMEOUT_MS__");
@@ -1056,7 +1056,7 @@ export function patchPokemonFromScenario(pokemon: any, member: any, player: bool
 
   pokemon.id = Number(member.id);
   pokemon.name = typeof member.name === "string" ? member.name : pokemon.name;
-  pokemon.species = getPokemonSpecies(Number(member.species_id));
+  pokemon.species = getPokemonSpeciesForm(Number(member.species_id), 0);
   pokemon.formIndex = Number.isInteger(member.form_index) ? Number(member.form_index) : 0;
   pokemon.level = Number(member.level);
   if (member.gender != null) {
@@ -1163,7 +1163,7 @@ export function applyScenarioMaterializedState(game: GameManager, scenario: any)
 }
 
 export function buildEnemyPokemonFromScenario(game: GameManager, member: any) {
-  const species = getPokemonSpecies(Number(member.species_id));
+  const species = getPokemonSpeciesForm(Number(member.species_id), 0);
   const level = Number(member.level);
   const enemyPokemon = game.scene.addEnemyPokemon(
     species,

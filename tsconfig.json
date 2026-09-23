@@ -13,15 +13,62 @@
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "baseUrl": ".",
+    // Mirrors pokerogue/tsconfig.json's own "paths" (the source of truth for
+    // these aliases), rebased onto the pokerogue/ submodule root, so that
+    // scripts/ import resolution errors are caught here instead of silently
+    // failing at runtime. Keep this in sync when the submodule adds/moves
+    // aliased directories - see AGENTS.md on checking alias paths whenever
+    // new #alias/* imports are introduced.
     "paths": {
-      "#app/*": ["pokerogue/src/*.ts"],
-      "#data/*": ["pokerogue/src/data/*.ts", "pokerogue/src/data/pokemon/*.ts", "pokerogue/src/data/pokemon-forms/*.ts"],
+      "#abilities/*": ["pokerogue/src/data/abilities/*.ts"],
+      "#api/*": ["pokerogue/src/api/*.ts"],
+      "#audio/*": ["pokerogue/src/audio/*.ts"],
+      "#biomes/*": ["pokerogue/src/data/balance/biomes/*.ts"],
+      "#balance/*": ["pokerogue/src/data/balance/species/*.ts", "pokerogue/src/data/balance/*.ts"],
+      "#constants/*": ["pokerogue/src/constants/*.ts"],
       "#enums/*": ["pokerogue/src/enums/*.ts"],
+      "#events/*": ["pokerogue/src/events/*.ts"],
       "#field/*": ["pokerogue/src/field/*.ts"],
+      "#init/*": ["pokerogue/src/init/*.ts"],
+      "#inputs/*": ["pokerogue/src/configs/inputs/*.ts"],
+      "#modifiers/*": ["pokerogue/src/modifier/*.ts"],
+      "#moves/*": ["pokerogue/src/data/moves/*.ts"],
+      "#mystery-encounters/*": [
+        "pokerogue/src/data/mystery-encounters/utils/*.ts",
+        "pokerogue/src/data/mystery-encounters/encounters/*.ts",
+        "pokerogue/src/data/mystery-encounters/requirements/*.ts",
+        "pokerogue/src/data/mystery-encounters/*.ts"
+      ],
+      "#package.json": ["pokerogue/package.json"],
       "#phases/*": ["pokerogue/src/phases/*.ts"],
+      "#plugins/*": ["pokerogue/plugins/phaser/*.ts"],
+      "#sprites/*": ["pokerogue/src/sprites/*.ts"],
+      "#system/*": [
+        "pokerogue/src/system/settings/*.ts",
+        "pokerogue/src/system/version-migration/versions/*.ts",
+        "pokerogue/src/system/version-migration/*.ts",
+        "pokerogue/src/system/*.ts"
+      ],
+      "#trainers/*": ["pokerogue/src/data/trainers/*.ts"],
+      "#types/*": ["pokerogue/src/@types/*.ts"],
+      "#ui/*": [
+        "pokerogue/src/ui/battle-info/*.ts",
+        "pokerogue/src/ui/containers/*.ts",
+        "pokerogue/src/ui/handlers/*.ts",
+        "pokerogue/src/ui/settings/*.ts",
+        "pokerogue/src/ui/utils/*.ts",
+        "pokerogue/src/ui/*.ts"
+      ],
+      "#utils/*": ["pokerogue/src/utils/*.ts"],
+      "#data/*": [
+        "pokerogue/src/data/pokemon-forms/*.ts",
+        "pokerogue/src/data/pokemon/*.ts",
+        "pokerogue/src/data/*.ts"
+      ],
+
+      // these must always be last
       "#test/*": ["pokerogue/test/*.ts"],
-      "#ui/*": ["pokerogue/src/ui/*.ts", "pokerogue/src/ui/handlers/*.ts", "pokerogue/src/ui/utils/*.ts"],
-      "#utils/*": ["pokerogue/src/utils/*.ts"]
+      "#app/*": ["pokerogue/src/*.ts"]
     }
   },
   "include": [

@@ -192,6 +192,9 @@ This is a Spring Boot application (version 3.5.3) written in mixed Java/Kotlin t
   - passender `paths`-Eintrag im zustaendigen `tsconfig`
   - benoetigte Typ-Dependencies wie Node-/Vitest-Typen
   - kurze Verifikation, dass VS Code bzw. `tsc` die neuen Imports wirklich aufloesen kann
+- Verbindliches Kommando dafuer: `npm run typecheck:scripts` (siehe `scripts/90-dev/check-script-imports.sh`). Prueft alle `scripts/**/*.ts` gegen die vollstaendige `#alias/*`-Pfad-Map in der Root-`tsconfig.json` und schlaegt gezielt nur bei echten Import-Fehlern fehl (fehlendes Modul, fehlender Export) - `__PLACEHOLDER__`-Tokens in `*.template.ts`-Dateien werden dabei bewusst ignoriert
+  - Hintergrund: `vitest` fuehrt vor dem Testlauf keine Typpruefung durch, daher wird ein falscher `#alias/*`-Import (z. B. nach einem Rename/Move im `pokerogue`-Submodul) nicht als Fehler sichtbar, sondern der importierte Wert wird zur Laufzeit still `undefined` - siehe den `PartyUiMode`-Vorfall in `docs/pokerogue-headless-test-harness-mechanics.md`
+  - Dieses Kommando nach jeder Aenderung an `#alias/*`-Imports in `scripts/` ausfuehren, insbesondere nach einem Bump des `pokerogue`-Submodul-Pointers
 
 **Language Usage:**
 

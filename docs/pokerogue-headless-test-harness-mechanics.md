@@ -178,6 +178,31 @@ Das heisst: **eine Phase wird "current"** (sichtbar ueber `game.isCurrentPhase(.
 - `pokerogue/test/porubot/harness/battle-command-advance.test.ts` (Testfall "resolves an ambiguous single-target move via SelectTargetPhase") - allgemeiner Mechanismus-Test, unabhaengig von Wave/Seed.
 - `pokerogue/test/porubot/regressions/replays/wave14-double-trainer-command-phase-stuck.test.ts` - Real-World-Replay eines konkreten historischen Pipeline-Timeouts (siehe Abschnitt 6.1), der vor dem Fix nachweislich rot war (echter TDD-Zyklus: Red -> Fix -> Green, per `console.log`/Spy-Diagnose auf `SelectTargetPhase.start`/`UI.setMode`/`TargetSelectUiHandler.show` verifiziert - alle drei wurden vor dem Fix nachweislich nie aufgerufen).
 
+### 3.8 Konkurrentes Prompt-Polling kann `SwitchSummonPhase` selbst wedgen - nicht nur fehlende Pumpen
+
+Eine zweite, verwandte, aber eigenstaendige Falle: nicht jede Phase haengt, weil ihr eine Pumpe *fehlt* (siehe 3.7) - manche haengen, weil eine begleitende Pumpe **stoert**.
+
+**Der Vorfall:** Ein neuer, frischer Collector-Lauf (nach dem Fix aus 3.7) reproduzierte einen weiteren `step_timeout:advance_combat_after_action`-Hang, diesmal in einem normalen Single-Battle-Trainerkampf: nach einem KO mitten im Kampf (nicht am Wellenende) wechselt der gegnerische Trainer automatisch sein naechstes Pokemon ein (`SwitchSummonPhase`, `player=false`). Diese Phase blieb dauerhaft bei `ui_mode: MESSAGE` stehen.
+
+**Root Cause:** `SwitchSummonPhase` wird - wie in 3.7 beschrieben - "current", ohne dass ihre `start()` sofort laeuft. Anders als beim `SelectTargetPhase`-Fall fehlt hier aber keine Pumpe: `advanceCombatAfterAction`s zweite Stufe (`game.toNextTurn()` im Hintergrund, konkurrent zu einer Polling-Schleife) wuerde `SwitchSummonPhase` normalerweise problemlos mitlaufen lassen (isoliert getestet: ~150ms). Das Problem ist die **Polling-Schleife selbst**: `advanceCurrentUiPromptIfPossible(game)` prueft nur den aktuellen `ui_mode` (nicht den Phasennamen) und druckt bei `MESSAGE`/`CONFIRM`/`EVOLUTION_SCENE` blind auf ACTION. Trifft dieser Tastendruck `SwitchSummonPhase`, bevor deren eigene `start()` geleaufen ist (der `ui_mode` ist zu dem Zeitpunkt noch ein Ueberbleibsel der vorherigen Phase), geraet die interne Message-/Callback-Kette der Phase aus dem Takt und sie schliesst nie ab - der begleitende `toNextTurn()`-Pump wartet dann ebenfalls fuer immer.
+
+**Der Fix** (`test/porubot/harness/battle-command-advance.ts`):
+- `advanceCurrentUiPromptIfPossible` verweigert die Aktion generell, solange `SwitchSummonPhase` aktuell ist (diese Phase braucht nie Spielereingabe, fuer keine Seite).
+- `advanceCombatAfterAction` pumpt `SwitchSummonPhase` zusaetzlich einmal isoliert (`await game.phaseInterceptor.to("SwitchSummonPhase")`, ohne begleitendes Polling, analog zu 3.7), bevor der normale Ablauf weiterlaeuft.
+
+**Einordnung:** Waehrend 3.7 zeigt "Phase X braucht eine Pumpe, die fehlt", zeigt dieser Fall "Phase X braucht *keine* Bedienung, bekommt aber versehentlich welche". Bei neuen Advance-Funktionen immer pruefen, ob eine generische, ui_mode-basierte Polling-Schleife (statt einer phasennamen-spezifischen Pruefung) versehentlich auch automatische, eingabefreie Phasen "bedient".
+
+**Belegt durch:**
+- `pokerogue/test/porubot/harness/battle-command-advance.test.ts` (Testfall "resolves after an enemy trainer's mid-battle auto-switch-in").
+
+### 3.9 Ein falscher `#alias/*`-Import wird von `vitest` nicht erkannt - `npm run typecheck:scripts` schliesst diese Luecke
+
+Bei derselben frischen Datengenerierung (siehe 3.8) fiel zunaechst ein anderer, vorgelagerter Fehler auf: `PartyUiMode` wurde per `import { PartyUiMode } from "#ui/party-ui-handler"` importiert, aber dieser Pfad exportiert `PartyUiMode` nicht (mehr) - die Datei wurde im Zuge einer Upstream-Aenderung nach `src/ui/handlers/party-ui-handler.ts` verschoben, und `PartyUiMode` selbst liegt seither in `src/enums/party-ui-mode.ts`. Da `vitest` Testdateien ohne vorherige Typpruefung transpiliert und ausfuehrt, wurde aus dem falschen Import zur Laufzeit still `undefined` - jede Modifier-Belohnung mit Party-Ziel (z. B. Rare Candy) crashte sofort mit `Cannot read properties of undefined (reading 'MODIFIER')`, ohne jeden Hinweis auf die eigentliche Ursache.
+
+Dieselbe Kategorie Fehler betraf beim Nachpruefen zusaetzlich 29 weitere Dateien unter `scripts/` (ein Alt-Pfad `#test/test-utils/game-manager(-utils)`, der laengst nach `#test/framework/game-manager` bzw. `#test/utils/game-manager-utils` verschoben wurde) sowie eine entfernte Funktion `getPokemonSpecies` (jetzt `getPokemonSpeciesForm(id, formIndex)`).
+
+**Absicherung:** `npm run typecheck:scripts` (siehe `scripts/90-dev/check-script-imports.sh`) laesst `tsc --noEmit` gegen die vollstaendige `#alias/*`-Pfad-Map in der Root-`tsconfig.json` laufen (diese Map wurde dabei erstmals vollstaendig an `pokerogue/tsconfig.json` angeglichen) und wertet **nur** echte Import-Fehler (fehlendes Modul/fehlender Export, Fehlercodes `TS2307`/`TS2305`/`TS2459`/`TS2724`/`TS2306`) als Fehlschlag - `__PLACEHOLDER__`-Tokens in `*.template.ts`-Dateien erzeugen zwar ebenfalls `tsc`-Fehler, werden aber bewusst ignoriert. Nach jeder Aenderung an `#alias/*`-Imports in `scripts/` (insbesondere nach einem Bump des `pokerogue`-Submodul-Pointers) ausfuehren.
+
 ## 4. Was `phaseInterceptor.to(target)` tatsaechlich garantiert - und was nicht
 
 ```ts

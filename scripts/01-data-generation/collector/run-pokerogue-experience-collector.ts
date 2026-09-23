@@ -188,7 +188,7 @@ import { StatusEffect } from "#enums/status-effect";
 import { TrainerSlot } from "#enums/trainer-slot";
 import { UiMode } from "#enums/ui-mode";
 import { getPokemonSpecies } from "#utils/pokemon-utils";
-import { GameManager } from "#test/test-utils/game-manager";
+import { GameManager } from "#test/framework/game-manager";
 import { afterAll, beforeAll, describe, it } from "vitest";
 import {
   applyScenarioOverrides,
