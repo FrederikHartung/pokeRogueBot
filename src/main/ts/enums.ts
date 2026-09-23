@@ -8,7 +8,6 @@ export { MoveCategory } from "../../../pokerogue/src/enums/move-category";
 export { BiomeId } from "../../../pokerogue/src/enums/biome-id";
 export { BattleType } from "../../../pokerogue/src/enums/battle-type";
 export { BattleStyle } from "../../../pokerogue/src/enums/battle-style";
-export { BattleSpec } from "../../../pokerogue/src/enums/battle-spec";
 export { ModifierTier } from "../../../pokerogue/src/enums/modifier-tier";
 export { MysteryEncounterMode } from "../../../pokerogue/src/enums/mystery-encounter-mode";
 export { MysteryEncounterType } from "../../../pokerogue/src/enums/mystery-encounter-type";

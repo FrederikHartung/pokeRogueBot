@@ -1,6 +1,5 @@
 import {
     BiomeId,
-    BattleSpec,
     BattleStyle,
     BattleType,
     MysteryEncounterMode,
@@ -73,7 +72,7 @@ type WaveApi = {
     getWave: () => WaveDto | null;
     getWaveJson: () => string;
     getBiomeEnumString: (index: number) => string;
-    getBattleSpecString: (index: number) => string;
+    getBattleSpecString: (isClassicFinalBoss: boolean) => string;
     getBattleTypeString: (index: number) => string;
     getBattleStyleString: (index: number) => string;
     getMysteryEncounterModeString: (index: number) => string;
@@ -206,7 +205,7 @@ const waveApi: WaveApi = {
     getArena: (battleScene: BattleScene) => {
         if(battleScene && battleScene.arena){
             return {
-                biome: waveApi.getBiomeEnumString(battleScene.arena.biomeType), //string
+                biome: waveApi.getBiomeEnumString(battleScene.arena.biomeId), //string
                 lastTimeOfDay: battleScene.arena.getTimeOfDay(), //int
             };
         }
@@ -229,7 +228,7 @@ const waveApi: WaveApi = {
         const trainerHasSpecialtyType = trainer?.config.hasSpecialtyType() ?? false;
         const battleSceneDto = {
             arena: waveApi.getArena(scene), //object
-            battleSpec: waveApi.getBattleSpecString(currentBattle.battleSpec), //enum
+            battleSpec: waveApi.getBattleSpecString(currentBattle.isClassicFinalBoss), //enum
             battleStyle: waveApi.getBattleStyleString(scene.battleStyle), //String
 
             battleScore: currentBattle.battleScore, //int
@@ -280,8 +279,8 @@ const waveApi: WaveApi = {
         return enumToString(BattleType, index);
     },
 
-    getBattleSpecString: (index: number) => {
-        return enumToString(BattleSpec, index);
+    getBattleSpecString: (isClassicFinalBoss: boolean) => {
+        return isClassicFinalBoss ? "FINAL_BOSS" : "DEFAULT";
     },
 
     getBattleStyleString: (index: number) => {

@@ -113,6 +113,14 @@ warning_log_file_for_config() {
   runtime_path "${1}" "remote-modifier-strategic-warnings.log"
 }
 
+batch_logs_dir_for_config() {
+  runtime_path "${1}" "collect_dataset/logs"
+}
+
+batch_failures_dir_for_config() {
+  runtime_path "${1}" "collect_dataset/failures"
+}
+
 issues_summary_file_for_config() {
   runtime_path "${1}" "issues-summary.txt"
 }
@@ -257,6 +265,8 @@ print_status() {
   echo "Warnings: $(warning_log_file_for_config "${config_path}")"
   echo "Errors: $(error_log_file_for_config "${config_path}")"
   echo "Issues summary: $(issues_summary_file_for_config "${config_path}")"
+  echo "Batch stdout/stderr logs: $(batch_logs_dir_for_config "${config_path}")"
+  echo "Batch failure summaries: $(batch_failures_dir_for_config "${config_path}")"
   echo "Manifest: $(manifest_file_for_config "${config_path}")"
   echo "Artifacts summary: $(artifacts_summary_file_for_config "${config_path}")"
   echo "Metrics: $(metrics_file_for_config "${config_path}")"

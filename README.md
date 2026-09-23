@@ -1,5 +1,5 @@
 > **This repository is only for educational purpose and can't be used on the original pokeRogue website.
-> The PokeRogue game is included as a git submodule (v1.11.6, last stable release) and must be hosted locally to use the bot.**
+> The PokeRogue game is included as a git submodule (v1.12.0.10, last stable release) and must be hosted locally to use the bot.**
 
 # PokeRogueBot
 This is a bot for the pokeRogue browser game. The Bot reads the current state of the game with the help of JavaScript out of the browser and reacts to it.

@@ -67,7 +67,7 @@ class UiHandlerService {
             "OptionSelectUiHandler",
         ),
         UiMode.MYSTERY_ENCOUNTER to UiHandlerTemplate(
-            46,
+            45,
             "MysteryEncounterUiHandler",
         )
     )

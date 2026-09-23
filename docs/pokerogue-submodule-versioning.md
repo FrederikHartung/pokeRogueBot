@@ -164,7 +164,7 @@ Empfohlene Loesung:
 
 Hinweis:
 
-- Fuer den aktuell verwendeten, auf `v1.11.6` basierten Bot-Stand ist dies derzeit `pnpm@10.24.0`.
+- Fuer den aktuell verwendeten, auf `v1.12.0.10` basierten Bot-Stand ist dies derzeit `pnpm@10.33.2`.
 - Trotzdem im Zweifel immer `pokerogue/package.json` als Source of Truth behandeln.
 
 Konkreter Ablauf:
@@ -252,6 +252,20 @@ Wichtig:
 
 - Diese Variante ist nicht automatisch fuer andere Nutzer reproduzierbar.
 - Sie eignet sich vor allem fuer serverseitige Tests oder Zwischenstaende.
+
+### Konkreter Anwendungsfall: `test/porubot/regressions/`
+
+Dieser Ordner im Fork ist die einzige Stelle im `pokerogue/`-Submodul, fuer die keine erneute Rueckfrage noetig ist (siehe `AGENTS.md`). Hintergrund und Abgrenzung:
+
+- Zweck: kleine, deterministische Tests, die eine frueher tatsaechlich aufgetretene Pipeline-/Collector-Abweichung fest nachstellen und als Regressionsschutz dauerhaft versionieren. Beispiele fuer bekannte Muster (dokumentiert in `docs/modifier-strategic-fixed-seed-pipeline.md` und `docs/modifier-dqn-migration-plan.md`):
+  - Boss-Welle (`waveIndex % 10 == 0`) pusht bewusst keine `SelectModifierPhase`
+  - Forced Switch tritt waehrend einer `toNextTurn()`-Wait-Loop auf, nicht nur davor
+  - Post-Victory: gleichzeitiges KO kann kurzzeitig `SwitchPhase` zeigen, obwohl der Kampf bereits entschieden ist
+  - Double-Battle `SelectTargetPhase`-Semantik und Struggle-Handling
+- Kein Zugriff auf `pokerogue/src/`, keine Aenderung bestehender Submodul-Dateien; ausschliesslich neue Testdateien in diesem Ordner.
+- Ausdruecklich NICHT fuer parametrisierte Datengenerierung (Seeds, Run-Count, DQN-Checkpoint-Pfade, grosse JSON-Output-Artefakte). Dafuer bleibt das bestehende Template-Harness im Hauptrepo (`scripts/90-dev/rl/templates/*.template.ts` -> zur Laufzeit gerendert nach `pokerogue/test/.external-rl/`) zustaendig, da diese Laeufe inhaerent pro Invocation parametrisiert sind und ihre Outputs nicht in den Fork committed werden sollen.
+- Wird ueber einen eigenen Vitest-Aufruf ausgefuehrt (z. B. `npm run rl:test:porubot:regressions` im Hauptrepo), nicht ueber ein blankes `pnpm test` im Submodul, damit diese Tests nicht ungewollt jedes Mal mitlaufen, wenn jemand die Upstream-Testsuite ausfuehrt.
+- `test/.external-rl/` ist zusaetzlich ueber eine versionierte `.gitignore`-Regel im Fork ausgeschlossen (vorher nur lokal ueber `.git/modules/pokerogue/info/exclude`, was auf einem frischen Checkout nicht reproduzierbar war).
 
 ## Option B: Versionierte Patch-Dateien im Hauptrepo
 

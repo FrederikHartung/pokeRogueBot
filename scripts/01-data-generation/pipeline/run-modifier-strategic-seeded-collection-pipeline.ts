@@ -1,4 +1,5 @@
 import {
+  createWriteStream,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -7,6 +8,7 @@ import {
 } from "node:fs";
 import path from "node:path";
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
+import { finished } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
 
 import { validateModifierStrategicPipelineConfig } from "../rl-config/run-config-contract.ts";
@@ -40,6 +42,7 @@ const manifestPath = resolvePathWithFallbacks(
 const artifactsSummaryPath = path.join(pipelineRoot, "artifacts-summary.json");
 const metricsPath = path.join(pipelineRoot, "collection-metrics.json");
 const phases = ["collect_dataset", "build_transitions", "archive_dataset"];
+const LOG_TAIL_LIMIT_CHARS = 12000;
 
 mkdirSync(pipelineRoot, { recursive: true });
 
@@ -94,6 +97,7 @@ async function main() {
       saveManifest(manifestPath, manifest);
       writeArtifactsSummary(manifest);
     } catch (error) {
+      manifest = loadManifest(manifestPath, configPath);
       manifest = markStepStatus(manifest, phaseName, "failed", String(error?.message ?? error));
       saveManifest(manifestPath, manifest);
       writeArtifactsSummary(manifest);
@@ -181,6 +185,12 @@ type Batch = {
   completed_at?: string | null;
   duration_ms?: number | null;
   error?: string | null;
+  stdout_log_path?: string | null;
+  stderr_log_path?: string | null;
+  failure_summary_path?: string | null;
+  exit_code?: number | null;
+  signal?: string | null;
+  error_excerpt?: string | null;
 };
 
 function loadManifest(filePath: string, activeConfigPath: string) {
@@ -222,6 +232,12 @@ function syncManifest(currentManifest: Record<string, unknown>, rootConfig: Reco
           completed_at: existing.completed_at ?? null,
           duration_ms: existing.duration_ms ?? null,
           error: existing.error ?? null,
+          stdout_log_path: existing.stdout_log_path ?? batch.stdout_log_path ?? null,
+          stderr_log_path: existing.stderr_log_path ?? batch.stderr_log_path ?? null,
+          failure_summary_path: existing.failure_summary_path ?? batch.failure_summary_path ?? null,
+          exit_code: existing.exit_code ?? null,
+          signal: existing.signal ?? null,
+          error_excerpt: existing.error_excerpt ?? null,
         };
   });
 
@@ -246,8 +262,12 @@ function buildBatches(rootConfig: Record<string, unknown>, seedList: string[], o
 
   const batchesDir = path.join(outputRoot, "collect_dataset", "batches");
   const configsDir = path.join(outputRoot, "collect_dataset", "configs");
+  const logsDir = path.join(outputRoot, "collect_dataset", "logs");
+  const failuresDir = path.join(outputRoot, "collect_dataset", "failures");
   mkdirSync(batchesDir, { recursive: true });
   mkdirSync(configsDir, { recursive: true });
+  mkdirSync(logsDir, { recursive: true });
+  mkdirSync(failuresDir, { recursive: true });
 
   const batches: Batch[] = [];
   for (const seed of seedList) {
@@ -266,11 +286,17 @@ function buildBatches(rootConfig: Record<string, unknown>, seedList: string[], o
         max_waves: maxWaves,
         output_path: path.join(batchesDir, `${batchId}.json`),
         run_config_path: path.join(configsDir, `${batchId}.json`),
+        stdout_log_path: path.join(logsDir, `${batchId}.stdout.log`),
+        stderr_log_path: path.join(logsDir, `${batchId}.stderr.log`),
+        failure_summary_path: path.join(failuresDir, `${batchId}.failure.txt`),
         status: "pending",
         started_at: null,
         completed_at: null,
         duration_ms: null,
         error: null,
+        exit_code: null,
+        signal: null,
+        error_excerpt: null,
       });
     }
   }
@@ -280,6 +306,98 @@ function buildBatches(rootConfig: Record<string, unknown>, seedList: string[], o
 
 function sanitizeSlug(value: string): string {
   return value.replaceAll(/[^a-zA-Z0-9._-]+/g, "-");
+}
+
+function normalizeLogChunk(chunk: string | Buffer) {
+  return Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk);
+}
+
+function appendLogTail(currentTail: string, nextChunk: string) {
+  const combined = currentTail + nextChunk;
+  if (combined.length <= LOG_TAIL_LIMIT_CHARS) {
+    return combined;
+  }
+  return combined.slice(-LOG_TAIL_LIMIT_CHARS);
+}
+
+function buildBatchFailureMessage(baseMessage: string, failureSummaryPath: string | null) {
+  if (!failureSummaryPath) {
+    return baseMessage;
+  }
+  return `${baseMessage}. See failure summary: ${failureSummaryPath}`;
+}
+
+function buildBatchErrorExcerpt({
+  error,
+  stdoutTail,
+  stderrTail,
+  stdoutLogPath,
+  stderrLogPath,
+  failureSummaryPath,
+  exitCode,
+  signal,
+}: {
+  error: unknown;
+  stdoutTail: string;
+  stderrTail: string;
+  stdoutLogPath: string | null;
+  stderrLogPath: string | null;
+  failureSummaryPath: string | null;
+  exitCode: number | null;
+  signal: string | null;
+}) {
+  const sections = [
+    `error=${String((error as { message?: string } | null)?.message ?? error)}`,
+    `exit_code=${exitCode ?? "unknown"}`,
+    `signal=${signal ?? "none"}`,
+    stdoutLogPath ? `stdout_log=${stdoutLogPath}` : null,
+    stderrLogPath ? `stderr_log=${stderrLogPath}` : null,
+    failureSummaryPath ? `failure_summary=${failureSummaryPath}` : null,
+    stderrTail.trim().length > 0 ? `stderr_tail:\n${stderrTail.trim()}` : null,
+    stdoutTail.trim().length > 0 ? `stdout_tail:\n${stdoutTail.trim()}` : null,
+  ].filter(Boolean);
+  return sections.join("\n\n").slice(0, LOG_TAIL_LIMIT_CHARS);
+}
+
+function writeBatchFailureSummary({
+  batch,
+  commandArgs,
+  error,
+  stdoutTail,
+  stderrTail,
+  stdoutLogPath,
+  stderrLogPath,
+  failureSummaryPath,
+  exitCode,
+  signal,
+}: {
+  batch: Batch;
+  commandArgs: string[];
+  error: unknown;
+  stdoutTail: string;
+  stderrTail: string;
+  stdoutLogPath: string | null;
+  stderrLogPath: string | null;
+  failureSummaryPath: string | null;
+  exitCode: number | null;
+  signal: string | null;
+}) {
+  if (!failureSummaryPath) {
+    return;
+  }
+  const sections = [
+    `batch_id: ${batch.id}`,
+    `seed: ${batch.seed}`,
+    `command: node ${commandArgs.join(" ")}`,
+    `exit_code: ${exitCode ?? "unknown"}`,
+    `signal: ${signal ?? "none"}`,
+    `error: ${String((error as { stack?: string; message?: string } | null)?.stack ?? (error as { message?: string } | null)?.message ?? error)}`,
+    stdoutLogPath ? `stdout_log: ${stdoutLogPath}` : null,
+    stderrLogPath ? `stderr_log: ${stderrLogPath}` : null,
+    stderrTail.trim().length > 0 ? `stderr_tail:\n${stderrTail.trim()}` : null,
+    stdoutTail.trim().length > 0 ? `stdout_tail:\n${stdoutTail.trim()}` : null,
+  ].filter(Boolean);
+  writeFileSync(failureSummaryPath, `${sections.join("\n\n")}\n`, "utf8");
 }
 
 async function runCollectPhase(currentManifest: Record<string, unknown>) {
@@ -303,39 +421,101 @@ async function runCollectPhase(currentManifest: Record<string, unknown>) {
     batchRef.completed_at = null;
     batchRef.duration_ms = null;
     batchRef.error = null;
+    batchRef.exit_code = null;
+    batchRef.signal = null;
+    batchRef.error_excerpt = null;
     saveManifest(manifestPath, manifestInput);
 
     writeFileSync(batch.run_config_path, `${JSON.stringify(buildBatchRunConfig(batch), null, 2)}\n`, "utf8");
+    if (batchRef.stdout_log_path) {
+      writeFileSync(batchRef.stdout_log_path, "", "utf8");
+    }
+    if (batchRef.stderr_log_path) {
+      writeFileSync(batchRef.stderr_log_path, "", "utf8");
+    }
 
     const startedAt = Date.now();
-    const child = spawn("node", buildBatchRunnerArgs(batch), {
+    const commandArgs = buildBatchRunnerArgs(batch);
+    const child = spawn("node", commandArgs, {
       cwd: repoRoot,
       env: process.env,
-      stdio: "inherit",
+      stdio: ["ignore", "pipe", "pipe"],
       detached: process.platform !== "win32",
+    });
+    const stdoutStream = createWriteStream(batchRef.stdout_log_path ?? path.join(pipelineRoot, `${batch.id}.stdout.log`), { flags: "a" });
+    const stderrStream = createWriteStream(batchRef.stderr_log_path ?? path.join(pipelineRoot, `${batch.id}.stderr.log`), { flags: "a" });
+    let stdoutTail = "";
+    let stderrTail = "";
+
+    child.stdout?.on("data", chunk => {
+      const text = normalizeLogChunk(chunk);
+      stdoutStream.write(text);
+      process.stdout.write(text);
+      stdoutTail = appendLogTail(stdoutTail, text);
+    });
+    child.stderr?.on("data", chunk => {
+      const text = normalizeLogChunk(chunk);
+      stderrStream.write(text);
+      process.stderr.write(text);
+      stderrTail = appendLogTail(stderrTail, text);
     });
 
     const promise = new Promise<void>((resolve, reject) => {
-      child.on("error", reject);
-      child.on("exit", code => {
+      child.on("error", error => {
+        const message = `${String(error?.stack ?? error)}\n`;
+        stderrStream.write(message);
+        stderrTail = appendLogTail(stderrTail, message);
+        reject(error);
+      });
+      child.on("exit", (code, signal) => {
+        batchRef.exit_code = code ?? 1;
+        batchRef.signal = signal ?? null;
         if ((code ?? 1) !== 0) {
-          reject(new Error(`Command failed (node ${buildBatchRunnerArgs(batch).join(" ")}) with exit code ${code ?? 1}`));
+          reject(new Error(`Command failed (node ${commandArgs.join(" ")}) with exit code ${code ?? 1}${signal ? ` signal=${signal}` : ""}`));
           return;
         }
         resolve();
       });
     })
+      .finally(async () => {
+        stdoutStream.end();
+        stderrStream.end();
+        await Promise.allSettled([finished(stdoutStream), finished(stderrStream)]);
+      })
       .then(() => {
         batchRef.status = "completed";
         batchRef.completed_at = new Date().toISOString();
         batchRef.duration_ms = Date.now() - startedAt;
         batchRef.error = null;
+        batchRef.error_excerpt = null;
       })
       .catch(error => {
         batchRef.status = "failed";
         batchRef.completed_at = new Date().toISOString();
         batchRef.duration_ms = Date.now() - startedAt;
-        batchRef.error = String(error?.message ?? error);
+        batchRef.error_excerpt = buildBatchErrorExcerpt({
+          error,
+          stdoutTail,
+          stderrTail,
+          stdoutLogPath: batchRef.stdout_log_path ?? null,
+          stderrLogPath: batchRef.stderr_log_path ?? null,
+          failureSummaryPath: batchRef.failure_summary_path ?? null,
+          exitCode: batchRef.exit_code ?? null,
+          signal: batchRef.signal ?? null,
+        });
+        batchRef.error = buildBatchFailureMessage(String(error?.message ?? error), batchRef.failure_summary_path ?? null);
+        writeBatchFailureSummary({
+          batch,
+          commandArgs,
+          error,
+          stdoutTail,
+          stderrTail,
+          stdoutLogPath: batchRef.stdout_log_path ?? null,
+          stderrLogPath: batchRef.stderr_log_path ?? null,
+          failureSummaryPath: batchRef.failure_summary_path ?? null,
+          exitCode: batchRef.exit_code ?? null,
+          signal: batchRef.signal ?? null,
+        });
         saveManifest(manifestPath, manifestInput);
 
         if (firstError == null) {

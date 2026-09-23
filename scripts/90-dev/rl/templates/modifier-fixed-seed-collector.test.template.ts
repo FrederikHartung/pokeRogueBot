@@ -20,7 +20,7 @@ import { UiMode } from "#enums/ui-mode";
 import type { CommandPhase } from "#phases/command-phase";
 import { ModifierSelectUiHandler } from "#ui/modifier-select-ui-handler";
 import { PartyUiMode } from "#ui/party-ui-handler";
-import { GameManager } from "#test/test-utils/game-manager";
+import { GameManager } from "#test/framework/game-manager";
 import Phaser from "phaser";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -196,6 +196,8 @@ const COMBAT_DQN_WORKER_SCRIPT = __COMBAT_DQN_WORKER_SCRIPT__;
 const STARTER_SPECIES = [SpeciesId.BULBASAUR, SpeciesId.CHARMANDER, SpeciesId.SQUIRTLE];
 const STEP_TIMEOUT_MS = __STEP_TIMEOUT_MS__;
 const MAX_COMBAT_TURNS_PER_WAVE = 200;
+const FORCE_NORMALIZE_IVS = process.env.POKEROGUE_MODIFIER_FORCE_NORMALIZE_IVS === "1";
+const FORCE_NORMALIZE_NATURES = process.env.POKEROGUE_MODIFIER_FORCE_NORMALIZE_NATURES === "1";
 const MOVE_ACTIONS = 4;
 const ACTION_DIM = 10;
 const WAVE_LIB_W1_STARTERS = [
@@ -826,6 +828,26 @@ function getActingPlayerPokemon(game: GameManager): any | undefined {
 function getPrimaryEnemyTarget(game: GameManager): any | undefined {
   const activeEnemies = game.scene.getEnemyField(true);
   return activeEnemies[0];
+}
+
+function isEffectivelyDoubleBattle(game: GameManager, battle?: { double?: boolean } | null): boolean {
+  if (battle?.double === true) {
+    return true;
+  }
+
+  const playerActives = game.scene.getPlayerField(true).filter((pokemon: any) => pokemon != null && !pokemon.isFainted?.()).length;
+  const enemyActives = game.scene.getEnemyField(true).filter((pokemon: any) => pokemon != null && !pokemon.isFainted?.()).length;
+
+  return playerActives > 1 || enemyActives > 1 || getCommandFieldIndexSafe(game) > 0;
+}
+
+function getMoveTargetIndexForSubmission(game: GameManager, moveIndex: number, targetIndex?: BattlerIndex): BattlerIndex | undefined {
+  const actingPokemon = getActingPlayerPokemon(game);
+  const selectedMove = actingPokemon?.getMoveset?.()?.[moveIndex]?.getMove?.();
+  if (selectedMove?.isMultiTarget?.()) {
+    return undefined;
+  }
+  return targetIndex;
 }
 
 function isEnemyBattlerIndex(targetIndex: BattlerIndex): boolean {
@@ -2185,7 +2207,7 @@ function queueMoveByIndexWithResolvedTargets(
 
 function selectMoveByIndex(game: GameManager, actionIndex: number, targetIndex?: BattlerIndex): void {
   queueMoveByIndex(game, actionIndex);
-  game.selectTarget(actionIndex, targetIndex);
+  game.selectTarget(actionIndex, getMoveTargetIndexForSubmission(game, actionIndex, targetIndex));
 }
 
 function queueDoubleTargetSelection(game: GameManager, action: DoubleSlotActionSnapshot): void {
@@ -2300,6 +2322,13 @@ function isGameTerminalPhase(game: GameManager): boolean {
     || game.isCurrentPhase("TitlePhase");
 }
 
+function isSelectModifierResolutionPhase(game: GameManager): boolean {
+  return game.isCurrentPhase("TrainerVictoryPhase")
+    || game.isCurrentPhase("MoneyRewardPhase")
+    || game.isCurrentPhase("ModifierRewardPhase")
+    || game.isCurrentPhase("EggLapsePhase");
+}
+
 function isContinuousEncounterContinuationPhase(game: GameManager): boolean {
   if (isGameTerminalPhase(game) || game.isCurrentPhase("SelectModifierPhase")) {
     return false;
@@ -2409,6 +2438,17 @@ function hasLoggedTerminalPhaseSince(game: GameManager, fromIndex: number): bool
   return false;
 }
 
+function hasLoggedAnyPhaseSince(game: GameManager, fromIndex: number, phaseNames: string[]): boolean {
+  const phaseLog = Array.isArray(game.phaseInterceptor.log) ? game.phaseInterceptor.log : [];
+  const wanted = new Set(phaseNames);
+  for (let index = Math.max(0, fromIndex); index < phaseLog.length; index += 1) {
+    if (wanted.has(String(phaseLog[index]))) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -2422,6 +2462,7 @@ async function waitForPromiseOrTerminal(
 ): Promise<"ok" | "terminal" | "timeout"> {
   let resolved = false;
   let failed = false;
+  let stuckTurnInitMessageSince: number | null = null;
 
   promise.then(() => {
     resolved = true;
@@ -2438,6 +2479,87 @@ async function waitForPromiseOrTerminal(
       continue;
     }
     if (normalizeCommandPhaseUiIfNeeded(game)) {
+      await sleep(25);
+      continue;
+    }
+    if (game.isCurrentPhase("TurnInitPhase") && game.scene.ui?.getMode?.() === UiMode.MESSAGE) {
+      if (stuckTurnInitMessageSince == null) {
+        stuckTurnInitMessageSince = Date.now();
+      } else if (Date.now() - stuckTurnInitMessageSince >= 250) {
+        console.error(
+          `[modifier-fixed-seed-promise-wait-recover-turn-init] wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} turn=${game.scene.currentBattle?.turn ?? "unknown"}`,
+        );
+        const recoverPromise = withTimeout(
+          game.phaseInterceptor.to("CommandPhase"),
+          STEP_TIMEOUT_MS,
+          "promise_wait_command_phase_recover",
+        );
+        let recoverResolved = false;
+        let recoverFailed = false;
+        recoverPromise.then(() => {
+          recoverResolved = true;
+        }).catch(() => {
+          recoverFailed = true;
+        });
+        const recoverStartedAt = Date.now();
+        while (Date.now() - recoverStartedAt < STEP_TIMEOUT_MS) {
+          const recoverLoggedTerminal = terminalPhaseLogStartIndex != null
+            && hasLoggedTerminalPhaseSince(game, terminalPhaseLogStartIndex);
+          if (resolveLearnMoveIfNeeded(game)) {
+            await sleep(25);
+            continue;
+          }
+          if (normalizeCommandPhaseUiIfNeeded(game)) {
+            await sleep(25);
+            continue;
+          }
+          if (advanceCurrentUiPromptIfPossible(game)) {
+            await sleep(25);
+            continue;
+          }
+          resolveOptionalCheckSwitchIfNeeded(game);
+          const recoverForcedSwitchStatus = resolveForcedSwitchIfNeeded(game);
+          if (recoverForcedSwitchStatus === "no_candidate") {
+            return "terminal";
+          }
+          if (isCombatTerminalPhase(game) || recoverLoggedTerminal) {
+            return "terminal";
+          }
+          if (isSuccessfulState?.(game) === true) {
+            return "ok";
+          }
+          if (game.isCurrentPhase("CommandPhase") && game.scene.ui?.getMode?.() === UiMode.COMMAND) {
+            return "ok";
+          }
+          if (recoverResolved) {
+            return "ok";
+          }
+          if (recoverFailed) {
+            return isCombatTerminalPhase(game) || recoverLoggedTerminal ? "terminal" : "timeout";
+          }
+          await sleep(25);
+        }
+        return isCombatTerminalPhase(game)
+          || (
+            terminalPhaseLogStartIndex != null
+            && hasLoggedTerminalPhaseSince(game, terminalPhaseLogStartIndex)
+          )
+          ? "terminal"
+          : "timeout";
+      }
+    } else {
+      stuckTurnInitMessageSince = null;
+    }
+    if (isVictorySafe(game) && game.isCurrentPhase("SwitchPhase") && game.scene.ui?.getMode?.() === UiMode.MESSAGE) {
+      const battle = game.scene.currentBattle as any;
+      if (battle && Object.prototype.hasOwnProperty.call(battle, "__collectorForcedSwitchQueued")) {
+        delete battle.__collectorForcedSwitchQueued;
+      }
+      game.endPhase();
+      await sleep(25);
+      continue;
+    }
+    if (advanceCurrentUiPromptIfPossible(game)) {
       await sleep(25);
       continue;
     }
@@ -2470,14 +2592,102 @@ async function waitForPromiseOrTerminal(
     : "timeout";
 }
 
+function isStableCommandInputState(game: GameManager): boolean {
+  return game.isCurrentPhase("CommandPhase") && game.scene.ui?.getMode?.() === UiMode.COMMAND;
+}
+
+function hasAdvancedToFreshBattleCommandState(game: GameManager, startingWaveIndex: number): boolean {
+  if (!isStableCommandInputState(game)) {
+    return false;
+  }
+  const currentWaveIndex = game.scene.currentBattle?.waveIndex ?? startingWaveIndex;
+  if (currentWaveIndex <= startingWaveIndex) {
+    return false;
+  }
+  return getCommandFieldIndexSafe(game) === 0;
+}
+
+function hasAdvancedToStableCommandState(
+  game: GameManager,
+  startingWaveIndex: number,
+  startingTurn: number,
+): boolean {
+  if (!isStableCommandInputState(game)) {
+    return false;
+  }
+  const currentWaveIndex = game.scene.currentBattle?.waveIndex ?? startingWaveIndex;
+  const currentTurn = game.scene.currentBattle?.turn ?? startingTurn;
+  return currentWaveIndex > startingWaveIndex || currentTurn > startingTurn;
+}
+
+function hasAdvancedToStableSingleBattleCommandState(
+  game: GameManager,
+  startingWaveIndex: number,
+  startingTurn: number,
+  phaseLogStartIndex: number,
+): boolean {
+  if (hasAdvancedToStableCommandState(game, startingWaveIndex, startingTurn)) {
+    return true;
+  }
+  if (!isStableCommandInputState(game)) {
+    return false;
+  }
+  return hasLoggedAnyPhaseSince(
+    game,
+    phaseLogStartIndex,
+    [
+      "SwitchSummonPhase",
+      "PostSummonPhase",
+      "TurnInitPhase",
+    ],
+  );
+}
+
 async function waitForCommandOrTerminalAfterForcedSwitch(game: GameManager, timeoutMs: number): Promise<"ok" | "terminal" | "timeout"> {
   const startedAt = Date.now();
+  let stuckSwitchMessageSince: number | null = null;
   while (Date.now() - startedAt < timeoutMs) {
     if (resolveLearnMoveIfNeeded(game)) {
       await sleep(25);
       continue;
     }
     if (normalizeCommandPhaseUiIfNeeded(game)) {
+      await sleep(25);
+      continue;
+    }
+    if (game.isCurrentPhase("SwitchPhase") && game.scene.ui?.getMode?.() === UiMode.MESSAGE) {
+      const battle = game.scene.currentBattle as any;
+      if (battle && Object.prototype.hasOwnProperty.call(battle, "__collectorForcedSwitchQueued")) {
+        if (isVictorySafe(game)) {
+          delete battle.__collectorForcedSwitchQueued;
+        }
+        game.endPhase();
+        await sleep(25);
+        continue;
+      }
+      if (stuckSwitchMessageSince == null) {
+        stuckSwitchMessageSince = Date.now();
+      } else if (Date.now() - stuckSwitchMessageSince >= 250) {
+        console.error(
+          `[modifier-fixed-seed-forced-switch-restart] wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} turn=${game.scene.currentBattle?.turn ?? "unknown"}`,
+        );
+        (game.scene.phaseManager.getCurrentPhase() as { start?: () => void } | undefined)?.start?.();
+        await sleep(25);
+        continue;
+      }
+    } else {
+      stuckSwitchMessageSince = null;
+    }
+    if (isVictorySafe(game) && game.isCurrentPhase("SwitchPhase") && game.scene.ui?.getMode?.() === UiMode.MESSAGE) {
+      const battle = game.scene.currentBattle as any;
+      if (battle && Object.prototype.hasOwnProperty.call(battle, "__collectorForcedSwitchQueued")) {
+        delete battle.__collectorForcedSwitchQueued;
+      }
+      game.endPhase();
+      await sleep(25);
+      continue;
+    }
+    if (advanceCurrentUiPromptIfPossible(game)) {
       await sleep(25);
       continue;
     }
@@ -2497,6 +2707,53 @@ async function waitForCommandOrTerminalAfterForcedSwitch(game: GameManager, time
   return isCombatTerminalPhase(game) ? "terminal" : "timeout";
 }
 
+async function waitForPostVictoryForcedSwitchResolution(
+  game: GameManager,
+  startingWaveIndex: number,
+  timeoutMs: number,
+): Promise<"ok" | "terminal" | "timeout"> {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    if (resolveLearnMoveIfNeeded(game)) {
+      await sleep(25);
+      continue;
+    }
+    if (normalizeCommandPhaseUiIfNeeded(game)) {
+      await sleep(25);
+      continue;
+    }
+    if (game.isCurrentPhase("SwitchPhase") && game.scene.ui?.getMode?.() === UiMode.MESSAGE) {
+      const battle = game.scene.currentBattle as any;
+      if (battle && Object.prototype.hasOwnProperty.call(battle, "__collectorForcedSwitchQueued")) {
+        delete battle.__collectorForcedSwitchQueued;
+      }
+      game.endPhase();
+      await sleep(25);
+      continue;
+    }
+    if (advanceCurrentUiPromptIfPossible(game)) {
+      await sleep(25);
+      continue;
+    }
+    resolveOptionalCheckSwitchIfNeeded(game);
+    const forcedSwitchStatus = resolveForcedSwitchIfNeeded(game);
+    if (forcedSwitchStatus === "no_candidate") {
+      return "terminal";
+    }
+    if (isGameTerminalPhase(game)) {
+      return "terminal";
+    }
+    if (game.isCurrentPhase("BattleEndPhase") || isSelectModifierResolutionPhase(game) || game.isCurrentPhase("SelectModifierPhase")) {
+      return "ok";
+    }
+    if (hasAdvancedToFreshBattleCommandState(game, startingWaveIndex)) {
+      return "ok";
+    }
+    await sleep(25);
+  }
+  return isGameTerminalPhase(game) ? "terminal" : "timeout";
+}
+
 async function advanceCombatAfterAction(game: GameManager): Promise<"ok" | "terminal" | "timeout"> {
   const terminalPhasesForTurnAdvance = [
     "GameOverPhase",
@@ -2506,23 +2763,34 @@ async function advanceCombatAfterAction(game: GameManager): Promise<"ok" | "term
     "SelectModifierPhase",
     "EggLapsePhase",
   ];
+  const startingWaveIndex = game.scene.currentBattle?.waveIndex ?? 0;
   const startingTurn = game.scene.currentBattle?.turn ?? 0;
   const endOfTurnPhaseLogStart = Array.isArray(game.phaseInterceptor.log) ? game.phaseInterceptor.log.length : 0;
   const endOfTurnStatus = await waitForPromiseOrTerminal(
     game,
     withTimeout(game.toEndOfTurn(), STEP_TIMEOUT_MS, "end of turn"),
     STEP_TIMEOUT_MS,
-    currentGame => {
-      const currentTurn = currentGame.scene.currentBattle?.turn ?? startingTurn;
-      return currentTurn > startingTurn
-        && currentGame.isCurrentPhase("CommandPhase")
-        && currentGame.scene.ui?.getMode?.() === UiMode.COMMAND;
-    },
+    currentGame => hasAdvancedToStableSingleBattleCommandState(
+      currentGame,
+      startingWaveIndex,
+      startingTurn,
+      endOfTurnPhaseLogStart,
+    ),
     endOfTurnPhaseLogStart,
   );
 
   if (endOfTurnStatus === "timeout" && game.isCurrentPhase("SwitchPhase")) {
     return waitForCommandOrTerminalAfterForcedSwitch(game, STEP_TIMEOUT_MS);
+  }
+  if (
+    endOfTurnStatus === "timeout"
+    && (
+      game.isCurrentPhase("BattleEndPhase")
+      || isSelectModifierResolutionPhase(game)
+      || game.isCurrentPhase("SelectModifierPhase")
+    )
+  ) {
+    return "ok";
   }
   if (endOfTurnStatus !== "ok") {
     return endOfTurnStatus;
@@ -2535,10 +2803,13 @@ async function advanceCombatAfterAction(game: GameManager): Promise<"ok" | "term
   if (switchResolveStatus === "no_candidate") {
     return "terminal";
   }
-  if (!hasRemainingPlayerTeam(game) || isVictorySafe(game)) {
+  if (!hasRemainingPlayerTeam(game)) {
     return "terminal";
   }
-  if (game.isCurrentPhase("CommandPhase")) {
+  if (isVictorySafe(game)) {
+    return waitForPostVictoryForcedSwitchResolution(game, startingWaveIndex, STEP_TIMEOUT_MS);
+  }
+  if (hasAdvancedToStableSingleBattleCommandState(game, startingWaveIndex, startingTurn, endOfTurnPhaseLogStart)) {
     return "ok";
   }
 
@@ -2546,6 +2817,7 @@ async function advanceCombatAfterAction(game: GameManager): Promise<"ok" | "term
   let nextTurnResolved = false;
   let nextTurnTerminal = false;
   let nextTurnFailed = false;
+  let stuckTurnInitMessageSince: number | null = null;
   const nextTurnPromise = game.toNextTurn(terminalPhasesForTurnAdvance)
     .then(result => {
       if (result === "terminal") {
@@ -2568,6 +2840,44 @@ async function advanceCombatAfterAction(game: GameManager): Promise<"ok" | "term
       await sleep(25);
       continue;
     }
+    if (game.isCurrentPhase("TurnInitPhase") && game.scene.ui?.getMode?.() === UiMode.MESSAGE) {
+      if (stuckTurnInitMessageSince == null) {
+        stuckTurnInitMessageSince = Date.now();
+      } else if (Date.now() - stuckTurnInitMessageSince >= 250) {
+        console.error(
+          `[modifier-fixed-seed-single-followup-recover-turn-init] wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} turn=${game.scene.currentBattle?.turn ?? "unknown"}`,
+        );
+        const recoverStatus = await waitForPromiseOrTerminal(
+          game,
+          withTimeout(
+            game.phaseInterceptor.to("CommandPhase"),
+            STEP_TIMEOUT_MS,
+            "single_followup_command_phase_recover",
+          ),
+          STEP_TIMEOUT_MS,
+        );
+        if (recoverStatus !== "ok") {
+          return recoverStatus;
+        }
+        await sleep(25);
+        continue;
+      }
+    } else {
+      stuckTurnInitMessageSince = null;
+    }
+    if (isVictorySafe(game) && game.isCurrentPhase("SwitchPhase") && game.scene.ui?.getMode?.() === UiMode.MESSAGE) {
+      const battle = game.scene.currentBattle as any;
+      if (battle && Object.prototype.hasOwnProperty.call(battle, "__collectorForcedSwitchQueued")) {
+        delete battle.__collectorForcedSwitchQueued;
+      }
+      game.endPhase();
+      await sleep(25);
+      continue;
+    }
+    if (advanceCurrentUiPromptIfPossible(game)) {
+      await sleep(25);
+      continue;
+    }
     resolveOptionalCheckSwitchIfNeeded(game);
     const forcedSwitchStatus = resolveForcedSwitchIfNeeded(game);
     if (forcedSwitchStatus === "no_candidate") {
@@ -2576,7 +2886,7 @@ async function advanceCombatAfterAction(game: GameManager): Promise<"ok" | "term
     if (nextTurnTerminal || isCombatTerminalPhase(game) || hasLoggedTerminalPhaseSince(game, phaseLogStart)) {
       return "terminal";
     }
-    if (game.isCurrentPhase("CommandPhase") && game.scene.ui?.getMode?.() === UiMode.COMMAND) {
+    if (hasAdvancedToStableSingleBattleCommandState(game, startingWaveIndex, startingTurn, phaseLogStart)) {
       return "ok";
     }
     if (nextTurnResolved) {
@@ -2598,6 +2908,7 @@ async function advanceCombatAfterAction(game: GameManager): Promise<"ok" | "term
 async function waitForDoubleTargetPhaseOrImmediateFollowup(
   game: GameManager,
   action: DoubleSlotActionSnapshot,
+  startingWaveIndex: number,
   startingTurn: number,
   timeoutMs: number,
 ): Promise<"select_target" | "ok" | "terminal" | "timeout"> {
@@ -2623,12 +2934,13 @@ async function waitForDoubleTargetPhaseOrImmediateFollowup(
     if (game.isCurrentPhase("SelectTargetPhase")) {
       return "select_target";
     }
-    if (game.isCurrentPhase("CommandPhase") && game.scene.ui?.getMode?.() === UiMode.COMMAND) {
+    if (isStableCommandInputState(game)) {
       const fieldIndex = getCommandFieldIndexSafe(game);
+      const currentWaveIndex = game.scene.currentBattle?.waveIndex ?? startingWaveIndex;
       const currentTurn = game.scene.currentBattle?.turn ?? startingTurn;
-      if (fieldIndex > action.acting_field_index || currentTurn > startingTurn) {
+      if (fieldIndex > action.acting_field_index || currentTurn > startingTurn || currentWaveIndex > startingWaveIndex) {
         console.error(
-          `[modifier-fixed-seed-double-target-shortcut] wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} field=${action.acting_field_index} next_field=${fieldIndex} turn=${currentTurn}`,
+          `[modifier-fixed-seed-double-target-shortcut] wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} start_wave=${startingWaveIndex} field=${action.acting_field_index} next_field=${fieldIndex} turn=${currentTurn}`,
         );
         return "ok";
       }
@@ -2647,6 +2959,7 @@ async function advanceDoubleCombatAfterAction(
   game: GameManager,
   action: DoubleSlotActionSnapshot,
 ): Promise<"ok" | "terminal" | "timeout"> {
+  const startingWaveIndex = game.scene.currentBattle?.waveIndex ?? 0;
   const startingTurn = game.scene.currentBattle?.turn ?? 0;
   const needsTargetSelection = action.action_kind === "move" && action.expects_select_target_phase === true;
 
@@ -2654,6 +2967,7 @@ async function advanceDoubleCombatAfterAction(
     const targetStatus = await waitForDoubleTargetPhaseOrImmediateFollowup(
       game,
       action,
+      startingWaveIndex,
       startingTurn,
       STEP_TIMEOUT_MS,
     );
@@ -2667,10 +2981,11 @@ async function advanceDoubleCombatAfterAction(
     if (targetResolutionStatus !== "ok") {
       return targetResolutionStatus;
     }
-    if (action.acting_field_index === 0 && game.isCurrentPhase("CommandPhase") && game.scene.ui.getMode() === UiMode.COMMAND) {
+    if (action.acting_field_index === 0 && isStableCommandInputState(game)) {
       const fieldIndex = getCommandFieldIndexSafe(game);
+      const currentWaveIndex = game.scene.currentBattle?.waveIndex ?? startingWaveIndex;
       const currentTurn = game.scene.currentBattle?.turn ?? startingTurn;
-      if (fieldIndex > 0 || currentTurn > startingTurn) {
+      if (fieldIndex > 0 || currentTurn > startingTurn || currentWaveIndex > startingWaveIndex) {
         return "ok";
       }
     }
@@ -2681,30 +2996,21 @@ async function advanceDoubleCombatAfterAction(
   }
 
   if (action.acting_field_index === 0) {
-    const fieldZeroFollowupStatus = await waitForDoubleFieldZeroFollowup(game, startingTurn, STEP_TIMEOUT_MS);
+    const fieldZeroFollowupStatus = await waitForDoubleFieldZeroFollowup(game, startingWaveIndex, startingTurn, STEP_TIMEOUT_MS);
     if (fieldZeroFollowupStatus === "terminal" || fieldZeroFollowupStatus === "timeout") {
       return fieldZeroFollowupStatus;
     }
     if (fieldZeroFollowupStatus === "partner_command") {
       return isCombatTerminalPhase(game) ? "terminal" : "ok";
     }
-    const currentTurn = game.scene.currentBattle?.turn ?? startingTurn;
-    const alreadyAdvancedToNextCommandTurn = currentTurn > startingTurn
-      && game.isCurrentPhase("CommandPhase")
-      && game.scene.ui?.getMode?.() === UiMode.COMMAND;
-    if (alreadyAdvancedToNextCommandTurn) {
+    if (hasAdvancedToStableCommandState(game, startingWaveIndex, startingTurn)) {
       return "ok";
     }
     const nextTurnStatus = await waitForPromiseOrTerminal(
       game,
       withTimeout(game.toNextTurn(), STEP_TIMEOUT_MS, "double_field0_to_next_turn"),
       STEP_TIMEOUT_MS,
-      currentGame => {
-        const nextTurn = currentGame.scene.currentBattle?.turn ?? startingTurn;
-        return nextTurn > startingTurn
-          && currentGame.isCurrentPhase("CommandPhase")
-          && currentGame.scene.ui?.getMode?.() === UiMode.COMMAND;
-      },
+      currentGame => hasAdvancedToStableCommandState(currentGame, startingWaveIndex, startingTurn),
     );
     if (nextTurnStatus !== "ok") {
       return nextTurnStatus;
@@ -2716,12 +3022,7 @@ async function advanceDoubleCombatAfterAction(
     game,
     withTimeout(game.toNextTurn(), STEP_TIMEOUT_MS, "double_to_next_turn"),
     STEP_TIMEOUT_MS,
-    currentGame => {
-      const currentTurn = currentGame.scene.currentBattle?.turn ?? startingTurn;
-      return currentTurn > startingTurn
-        && currentGame.isCurrentPhase("CommandPhase")
-        && currentGame.scene.ui?.getMode?.() === UiMode.COMMAND;
-    },
+    currentGame => hasAdvancedToStableCommandState(currentGame, startingWaveIndex, startingTurn),
   );
   if (nextTurnStatus !== "ok") {
     return nextTurnStatus;
@@ -2752,6 +3053,7 @@ async function waitForDoubleTargetSelectionResolution(
 
 async function waitForDoubleFieldZeroFollowup(
   game: GameManager,
+  startingWaveIndex: number,
   startingTurn: number,
   timeoutMs: number,
 ): Promise<"partner_command" | "turn_progressed" | "terminal" | "timeout"> {
@@ -2775,8 +3077,12 @@ async function waitForDoubleFieldZeroFollowup(
       return "terminal";
     }
 
-    if (game.isCurrentPhase("CommandPhase") && game.scene.ui.getMode() === UiMode.COMMAND) {
+    if (isStableCommandInputState(game)) {
       const fieldIndex = getCommandFieldIndexSafe(game);
+      const currentWaveIndex = game.scene.currentBattle?.waveIndex ?? startingWaveIndex;
+      if (currentWaveIndex > startingWaveIndex) {
+        return "turn_progressed";
+      }
       if (fieldIndex > 0) {
         return "partner_command";
       }
@@ -3430,7 +3736,14 @@ describe("modifier fixed seed collector", () => {
         }
 
         if (COLLECTOR_VARIANT === "strategic_fixed_seed") {
-          // Keep real seeded encounters for strategic data generation.
+          // Keep real seeded encounters for strategic data generation and
+          // avoid a train/serve mismatch from test-helper normalized IVs/natures.
+          if (!FORCE_NORMALIZE_IVS) {
+            game.override.normalizeIVs = false;
+          }
+          if (!FORCE_NORMALIZE_NATURES) {
+            game.override.normalizeNatures = false;
+          }
         }
 
         const random = createDeterministicRandom(`${SEED}::${runIndex}`);
@@ -3445,21 +3758,76 @@ describe("modifier fixed seed collector", () => {
         const runStartedAt = Date.now();
 
         try {
-          await game.classicMode.startBattle(STARTER_SPECIES);
+          await game.classicMode.startBattle(...STARTER_SPECIES);
           applyWaveLibW1StarterLayout(game);
 
           while (completedWaves < MAX_WAVES) {
             const combatTurns: CombatDecisionSnapshot[] = [];
             while (!game.isCurrentPhase("SelectModifierPhase")) {
+              if (isSelectModifierResolutionPhase(game)) {
+                await withTimeout(
+                  waitForSelectModifierPhaseReady(game, STEP_TIMEOUT_MS),
+                  STEP_TIMEOUT_MS,
+                  "post_battle_resolution_to_select_modifier_phase",
+                );
+                break;
+              }
               const currentBattle = game.scene.currentBattle;
               if (!currentBattle) {
                 terminationReason = "missing_current_battle";
                 break;
               }
+              if (isCombatTerminalPhase(game) && !game.isCurrentPhase("SelectModifierPhase")) {
+                if (game.isCurrentPhase("BattleEndPhase")) {
+                  const phaseManager = game.scene.phaseManager;
+                  const hasQueuedSelectModifier = phaseManager.hasPhaseOfType("SelectModifierPhase");
+                  const hasQueuedNextBattle = phaseManager.hasPhaseOfType("NewBattlePhase")
+                    || phaseManager.hasPhaseOfType("NextEncounterPhase")
+                    || phaseManager.hasPhaseOfType("NewBiomeEncounterPhase")
+                    || phaseManager.hasPhaseOfType("EncounterPhase");
+
+                  if (hasQueuedSelectModifier) {
+                    await withTimeout(
+                      waitForSelectModifierPhaseReady(game, STEP_TIMEOUT_MS),
+                      STEP_TIMEOUT_MS,
+                      "battle_end_to_select_modifier_phase",
+                    );
+                    break;
+                  }
+                  if (hasQueuedNextBattle) {
+                    await withTimeout(
+                      game.phaseInterceptor.to("CommandPhase"),
+                      STEP_TIMEOUT_MS,
+                      "battle_end_to_next_battle_command_phase",
+                    );
+                    continue;
+                  }
+                  if (isGameTerminalPhase(game)) {
+                    terminationReason = `combat_terminal:${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"}`;
+                    break;
+                  }
+                  terminationReason = `unexpected_post_battle_queue:${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"}`;
+                  break;
+                }
+                if (isSelectModifierResolutionPhase(game)) {
+                  await withTimeout(
+                    waitForSelectModifierPhaseReady(game, STEP_TIMEOUT_MS),
+                    STEP_TIMEOUT_MS,
+                    "post_battle_resolution_to_select_modifier_phase",
+                  );
+                  break;
+                }
+                if (game.isCurrentPhase("GameOverPhase") || game.isCurrentPhase("PostGameOverPhase") || game.isCurrentPhase("TitlePhase")) {
+                  terminationReason = "team_wipe_or_game_over";
+                } else {
+                  terminationReason = `combat_terminal:${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"}`;
+                }
+                break;
+              }
               if ((currentBattle.turn ?? 0) > MAX_COMBAT_TURNS_PER_WAVE) {
                 throw new Error(`step_timeout:combat_turn_limit:${MAX_COMBAT_TURNS_PER_WAVE}`);
               }
-              if (currentBattle.double) {
+              if (isEffectivelyDoubleBattle(game, currentBattle)) {
                 const battleWaveIndexBeforeAction = game.scene.currentBattle?.waveIndex ?? 0;
                 await waitForCombatCommandInputReady(game, STEP_TIMEOUT_MS);
                 const doubleState = buildDoubleCombatObservation(game);
@@ -3485,11 +3853,7 @@ describe("modifier fixed seed collector", () => {
                 );
                 executeDoubleSlotAction(game, selectedDoubleAction);
 
-                const advanceStatus = await withTimeout(
-                  advanceDoubleCombatAfterAction(game, selectedDoubleAction),
-                  STEP_TIMEOUT_MS,
-                  "advance_double_combat_after_action",
-                );
+                const advanceStatus = await advanceDoubleCombatAfterAction(game, selectedDoubleAction);
                 if (advanceStatus === "timeout") {
                   throw new Error(`step_timeout:advance_double_combat_after_action:${STEP_TIMEOUT_MS}`);
                 }
@@ -3558,11 +3922,11 @@ describe("modifier fixed seed collector", () => {
                     terminationReason = `unexpected_post_battle_queue:${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"}`;
                     break;
                   }
-                  if (game.isCurrentPhase("EggLapsePhase")) {
+                  if (isSelectModifierResolutionPhase(game)) {
                     await withTimeout(
                       waitForSelectModifierPhaseReady(game, STEP_TIMEOUT_MS),
                       STEP_TIMEOUT_MS,
-                      "egg_lapse_to_select_modifier_phase",
+                      "post_battle_resolution_to_select_modifier_phase",
                     );
                     break;
                   }
@@ -3575,13 +3939,6 @@ describe("modifier fixed seed collector", () => {
                 }
                 continue;
               }
-              if (!game.isCurrentPhase("CommandPhase")) {
-                await withTimeout(
-                  game.phaseInterceptor.to("CommandPhase"),
-                  STEP_TIMEOUT_MS,
-                  "single_to_command_phase",
-                );
-              }
               console.error(
                 `[modifier-fixed-seed-single] pre-command-ready wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} turn=${game.scene.currentBattle?.turn ?? "unknown"} phase=${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"} ui=${UiMode[game.scene.ui?.getMode?.() as number] ?? String(game.scene.ui?.getMode?.())}`,
               );
@@ -3589,6 +3946,9 @@ describe("modifier fixed seed collector", () => {
               console.error(
                 `[modifier-fixed-seed-single] post-command-ready wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} turn=${game.scene.currentBattle?.turn ?? "unknown"} phase=${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"} ui=${UiMode[game.scene.ui?.getMode?.() as number] ?? String(game.scene.ui?.getMode?.())}`,
               );
+              if (isEffectivelyDoubleBattle(game, game.scene.currentBattle)) {
+                continue;
+              }
               if (isCombatTerminalPhase(game)) {
                 if (game.isCurrentPhase("GameOverPhase") || game.isCurrentPhase("PostGameOverPhase") || game.isCurrentPhase("TitlePhase")) {
                   terminationReason = "team_wipe_or_game_over";
@@ -3662,7 +4022,7 @@ describe("modifier fixed seed collector", () => {
               );
               executeCombatAction(game, action);
 
-              const advanceStatus = await withTimeout(advanceCombatAfterAction(game), STEP_TIMEOUT_MS, "advance_combat_after_action");
+              const advanceStatus = await advanceCombatAfterAction(game);
               if (advanceStatus === "timeout") {
                 throw new Error(`step_timeout:advance_combat_after_action:${STEP_TIMEOUT_MS}`);
               }
@@ -3731,11 +4091,11 @@ describe("modifier fixed seed collector", () => {
                 terminationReason = `unexpected_post_battle_queue:${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"}`;
                 break;
               }
-                if (game.isCurrentPhase("EggLapsePhase")) {
+                if (isSelectModifierResolutionPhase(game)) {
                   await withTimeout(
                     waitForSelectModifierPhaseReady(game, STEP_TIMEOUT_MS),
                     STEP_TIMEOUT_MS,
-                    "egg_lapse_to_select_modifier_phase",
+                    "post_battle_resolution_to_select_modifier_phase",
                   );
                   break;
                 }
@@ -3838,8 +4198,6 @@ describe("modifier fixed seed collector", () => {
               console.error(errorStack);
             }
           }
-        } finally {
-          game.phaseInterceptor.restoreOg();
         }
 
         const waveReached = completedWaves;

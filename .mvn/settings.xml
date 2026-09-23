@@ -1,0 +1,16 @@
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+    <!--
+        Project-local Maven settings for pokeRogueBot.
+
+        Some machines have a global ~/.m2/settings.xml that mirrors all
+        traffic to an internal, unrelated company repository, which is
+        unreachable from outside that network and irrelevant to this
+        project's dependencies.
+
+        Picked up automatically via .mvn/maven.config (-s .mvn/settings.xml),
+        so plain `mvn ...` in this repo resolves against Maven Central
+        instead of any such mirror, without touching the global settings.
+    -->
+</settings>

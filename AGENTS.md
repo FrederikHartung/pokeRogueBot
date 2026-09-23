@@ -200,9 +200,15 @@ This is a Spring Boot application (version 3.5.3) written in mixed Java/Kotlin t
 
 **Game Integration:**
 
-- PokeRogue game is included as a git submodule in `pokerogue/`; der bot-kompatible Stand wird ueber den im Hauptrepo versionierten Submodul-Pointer festgelegt und ist aktuell ein auf `v1.11.6` basierter Custom-Fork-Stand
+- PokeRogue game is included as a git submodule in `pokerogue/`; der bot-kompatible Stand wird ueber den im Hauptrepo versionierten Submodul-Pointer festgelegt und ist aktuell ein auf `v1.12.0.10` basierter Custom-Fork-Stand
 - Code im `pokerogue/`-Submodul darf nicht ohne vorherige Rueckfrage und explizite Zustimmung angepasst werden
 - Aenderungen im `pokerogue/`-Submodul sind nur erlaubt, wenn sie vorher vom User freigegeben wurden und bestehende Spiel- und Phasenlogik nicht umbauen, ausser dies ist technisch zwingend notwendig
+- Stehende Ausnahme ohne erneute Rueckfrage: rein additive Testdateien unterhalb von `pokerogue/test/porubot/regressions/`, sofern
+  - keine bestehende Submodul-Datei veraendert wird,
+  - kein Code unterhalb von `pokerogue/src/` angefasst wird,
+  - und die Aenderung als Commit auf dem Fork-Branch versioniert wird (kein dirty Submodul-Stand)
+  - Zweck dieses Ordners: kleine, deterministische Regressionstests, die bekannte, frueher aufgetretene Pipeline-/Collector-Abweichungen (z. B. uebersprungene oder blockierte Phasenuebergaenge) fest nachstellen; siehe `docs/pokerogue-submodule-versioning.md`
+  - Parametrisierte Datengenerierung (Seeds, Run-Count, Checkpoint-Pfade, grosse Output-Artefakte) bleibt bewusst ausserhalb dieser Ausnahme und laeuft weiterhin ueber das bestehende Template-/`test/.external-rl/`-Harness im Hauptrepo
 - Bei Architektur- oder RL-Erweiterungen ist zunaechst zu pruefen, ob eine Loesung ohne permanente Submodul-Aenderung moeglich ist, z. B. ueber temporaere External-RL-Tests oder einen ergaenzenden Harness ausserhalb der Kernlogik
 - Ein `dirty` `pokerogue/`-Stand ist nicht reproduzierbar und reicht nicht fuer Remote-Server oder andere Nutzer; relevante Submodul-Aenderungen muessen versioniert werden
 - Bevorzugte Strategien fuer versionierte Submodul-Aenderungen:
