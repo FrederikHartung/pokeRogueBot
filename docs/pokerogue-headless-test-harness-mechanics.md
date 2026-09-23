@@ -295,6 +295,30 @@ Dafuer gibt es `regressions/replays/`: Tests, die einen realen Vorfall aus `data
 6. Auf das **Vorhandensein und die relative Reihenfolge** von Phasennamen in `game.phaseInterceptor.log` pruefen (`.toContain(...)`, `log.indexOf(a) > log.indexOf(b)`), nicht nur auf das Erreichen einer Endphase - die Reihenfolge selbst ist oft der eigentliche Regressionspunkt.
 7. Bei einem unerwarteten Hang: temporaeren `console.log(game.phaseInterceptor.log)` (oder gezielt vorher/nachher) direkt im eigenen Testfile einbauen, NIE in `pokerogue/src/` debuggen.
 
+## 6.2 Offener Befund (reproduziert, noch nicht root-gecauset): doppelte `CommandPhase` in einem Solo-Kampf
+
+Beim selben frischen Datengenerierungslauf (siehe 3.8-3.10) trat ein viertes, bisher **ungeloestes** `step_timeout:advance_combat_after_action`-Muster auf, strukturell anders als 3.7-3.10: keine Zwischenphase haengt sichtbar - `phase_name`/`ui_mode` sehen im finalen Debug-Snapshot gesund aus (`CommandPhase`/`COMMAND`).
+
+**Deterministisch reproduziert:** Seed `fresh-check-seed-2`, `run_index=0`, `max_waves=12`, Trainerkampf, Welle 8, Charmander als letztes lebendes Party-Mitglied bei ~16% HP, Runde 10. Reproduktionsbefehl:
+
+```bash
+POKEROGUE_COMBAT_DQN_PYTHON="$(pwd)/.venv/bin/python" node scripts/90-dev/rl/run-pokerogue-modifier-strategic-fixed-seed-collector.ts ./data/temp/rl/repro-wave12-seed2-run0.json fresh-check-seed-2 1 12
+```
+
+**Beobachtetes Log-Muster kurz vor dem Timeout** (aus `game.phaseInterceptor.log`/Konsole):
+
+```
+Start Phase: CommandPhase
+UI mode changed from MESSAGE (=0) to COMMAND (=2)!
+Start Phase: CommandPhase          <- zweite CommandPhase direkt danach
+UI mode changed from COMMAND (=2) to COMMAND (=2)!   <- No-op-Wechsel
+[15s spaeter: step_timeout:advance_combat_after_action]
+```
+
+Eine zweite `CommandPhase`-Instanz wird unmittelbar nach der ersten gestartet - ein Muster, das bislang nur fuer Doppelkaempfe bekannt und behandelt war (`getRecoverableDoublePartnerCommandFieldIndex` in `test/porubot/harness/battle-command-advance.ts`, greift explizit nur bei `currentBattle.double === true`). Hier ist `current_battle_double: false` - ein echter Solo-Kampf zeigt dasselbe Symptom, wofuer aktuell keine Behandlung existiert.
+
+**Noch offen:** warum PokeRogue (oder unser Harness) hier eine zweite `CommandPhase` queued/startet, statt die erste stehen zu lassen. Naechster Schritt fuer eine kuenftige Session: pruefen, ob `phaseManager`s interne Queue an dieser Stelle wirklich zwei separate `CommandPhase`-Instanzen enthaelt (z. B. durch Instrumentieren von `PhaseManager.shiftPhase`/`unshiftPhase` in einem temporaeren Testfile) oder ob es sich um einen Logging-Artefakt eines bereits vorhandenen Retry-Mechanismus im Harness handelt.
+
 ## 7. Pflegehinweis
 
 Diese Datei beschreibt **Mechanismen**, die sich mit Submodul-Updates (neue PokeRogue-Version) aendern koennen - insbesondere die konkreten Phasennamen und ihre Reihenfolge in Abschnitt 3. Nach jedem `pokerogue`-Versions-Bump:
