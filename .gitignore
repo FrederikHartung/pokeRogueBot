@@ -65,3 +65,6 @@ data/rl/training-runs/
 
 # Productive wave library runtime artifacts
 data/offline-wave-library/
+
+# Python bytecode cache
+__pycache__/
