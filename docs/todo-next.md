@@ -1,9 +1,5 @@
 # TODO Next Session
 
-Offener RL-Collector-Timeout (reproduziert, nicht root-gecauset):
-- Doppelte `CommandPhase` in einem Solo-(nicht Doppel-)Kampf, `step_timeout:advance_combat_after_action`. Deterministisch reproduzierbar mit Seed `fresh-check-seed-2`, Welle 8, Runde 10 (siehe Reproduktionsbefehl + Log-Ausschnitt in `docs/pokerogue-headless-test-harness-mechanics.md`, Abschnitt 6.2).
-- Naechster Schritt: mit `PhaseManager.shiftPhase`/`unshiftPhase` instrumentieren, ob wirklich zwei `CommandPhase`-Instanzen gequeued werden, oder ob es ein Logging-Artefakt eines bestehenden Retry-Mechanismus im Harness ist.
-
 Top-Prioritaet Datensatz-Organisation:
 - Trainingsdaten fuer Offline-RL sollen serverseitig nicht mehr nur als einzelner Run unter `data/rl/pipeline-runs/...` betrachtet werden, sondern als wiederverwendbarer Datenpool.
 - Vorschlag fuer die Zielstruktur:

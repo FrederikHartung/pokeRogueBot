@@ -221,6 +221,31 @@ Direkte Fortsetzung von 3.8, gefunden im selben frischen Collector-Lauf: ein gan
 **Belegt durch:**
 - `pokerogue/test/porubot/harness/battle-command-advance.test.ts` (Testfall "resolves an ordinary mid-battle forced switch after a faint").
 
+### 3.11 Ueberlappende `phaseInterceptor.to()`-Aufrufe werden zu "Zombie"-Treibern - die gemeinsame Ursache hinter mehreren Collector-Timeouts
+
+**Mechanismus** (`test/framework/phase-interceptor.ts`): `PhaseInterceptor.to()` geht davon aus, dass es immer nur **einen** Aufrufer gleichzeitig gibt:
+- Alle Aufrufe teilen sich **ein einziges `target`-Feld** - ein spaeterer `to(B)`-Aufruf ueberschreibt das Ziel eines noch laufenden `to(A)`.
+- Jeder Aufruf ruft `run(currentPhase)` (= `phase.start()`) auf, **ohne zu pruefen, ob ein anderer Aufruf diese Phase gerade schon ausfuehrt**.
+
+Der Collector laesst aber regelmaessig `to()`-Aufrufe unerledigt zurueck: den Hintergrund-`toNextTurn()` in `advanceCombatAfterAction`, der verworfen wird, sobald der Polling-Loop vorher einen stabilen Zustand erkennt; `waitForCommandPhaseAfterModifierAction` im Template; ueberholte Recovery-Pumpen. Diese warten im Zustand `interrupted` (`"PhaseInterceptor.to: Waiting for phase to end after being interrupted!"`) und werden aktiv, sobald die naechste `CommandPhase` endet - ab dann treiben **mehrere Aufrufe parallel** Phasen voran. Per Instrumentierung belegt: bis zu 3 gleichzeitig aktive Treiber und 25 Doppelstarts derselben Phasen-Instanz in einem einzigen 12-Wellen-Lauf (u. a. 10x `DamageAnimPhase`, 3x `SwitchSummonPhase`, 1x `SwitchPhase`).
+
+**Folgen - zwei Fehlerbilder, beide timing-abhaengig (daher "flaky"):**
+1. **Doppelstart → uebersprungene Phase.** Wird eine Phasen-Instanz zweimal gestartet, ruft sie auch zweimal `end()` auf, was die Queue zweimal shiftet und die **naechste gequeuete Phase stillschweigend ueberspringt**. Beobachtet: eine verlorene `FaintPhase` - das Pokemon faellt ohne Wechsel, die naechste `TurnInitPhase` oeffnet ueber `Pokemon.switchOut()` die Party-UI (siehe 3.10), und die Zombie-Treiber laufen parallel dazu endlose Runden weiter (im Extremfall `turn_index: 2208`, `"Rookidee is attempting to use a move with no targets"`).
+2. **Falscher Aufrufer loest aus → der echte jagt einer schon gelaufenen Phase hinterher.** Der Zombie uebernimmt ueber das geteilte `target` z. B. das Ziel `TurnEndPhase` von `toEndOfTurn()` und meldet dort `Stopping on completion of TurnEndPhase`. `toEndOfTurn()` selbst sucht danach eine `TurnEndPhase`, die nie wieder kommt, startet unterwegs jede Phase selbst und bleibt in der naechsten `CommandPhase` (wartet auf Eingabe) haengen → `step_timeout:advance_combat_after_action`, obwohl der finale Snapshot gesund aussieht (`CommandPhase`/`COMMAND`). Dasselbe Muster trifft die `SwitchSummonPhase`-Pumpe aus 3.8, wenn ein Zombie die Phase schon abgearbeitet hat.
+
+**Nebenbefund:** Die in jeder Runde geloggte "doppelte `CommandPhase`" (`Start Phase: CommandPhase` zweimal, `UI mode changed from COMMAND (=2) to COMMAND (=2)!`) ist genau ein solcher Doppelstart durch einen zweiten Treiber. Sie war der sichtbare Hinweis, nicht die Ursache (siehe 6.2).
+
+**Der Fix** (`pokerogue/test/porubot/harness/single-driver-phase-interceptor.ts`, `installSingleDriverPhaseInterceptor(game)`): ersetzt `to()` auf der jeweiligen `PhaseInterceptor`-Instanz zur Laufzeit (die Framework-Datei selbst bleibt unveraendert) durch eine Variante, bei der
+- **nur der juengste `to()`-Aufruf Phasen treibt** - aeltere, noch offene Aufrufe werden dauerhaft inaktiv (ihr Promise wird nie aufgeloest; sie melden also weder faelschlich "Ziel erreicht" noch werfen sie),
+- jeder Aufruf gegen sein **eigenes** Ziel prueft, nicht gegen das geteilte `target`-Feld,
+- eine **bereits laufende Phase nie ein zweites Mal gestartet** wird (bei einer schon laufenden Zielphase aus der `endBySetMode`-Liste, z. B. `CommandPhase`, wird stattdessen `checkMode()` nachgeholt).
+
+Der Collector (`scripts/90-dev/rl/templates/modifier-fixed-seed-collector.test.template.ts`) ruft `installSingleDriverPhaseInterceptor(game)` direkt nach `new GameManager(...)` auf. **Regel fuer neuen Collector-/Harness-Code:** jeder Code, der `to()`-Aufrufe ueberlappen oder unerledigt zuruecklassen kann, muss mit installiertem Single-Driver-Schutz laufen.
+
+**Belegt durch:**
+- `pokerogue/test/porubot/harness/single-driver-phase-interceptor.test.ts` (ohne Installation: Variante "move" haengt bis zum Timeout, Variante "switch" startet `SwitchSummonPhase` doppelt; mit Installation beide gruen).
+- Realer Repro (Seed `fresh-check-seed-2`, `max_waves=12`): vorher `step_timeout:advance_combat_after_action` in Welle 8, danach `max_waves_reached` (12/12 Wellen).
+
 ## 4. Was `phaseInterceptor.to(target)` tatsaechlich garantiert - und was nicht
 
 ```ts
@@ -295,29 +320,9 @@ Dafuer gibt es `regressions/replays/`: Tests, die einen realen Vorfall aus `data
 6. Auf das **Vorhandensein und die relative Reihenfolge** von Phasennamen in `game.phaseInterceptor.log` pruefen (`.toContain(...)`, `log.indexOf(a) > log.indexOf(b)`), nicht nur auf das Erreichen einer Endphase - die Reihenfolge selbst ist oft der eigentliche Regressionspunkt.
 7. Bei einem unerwarteten Hang: temporaeren `console.log(game.phaseInterceptor.log)` (oder gezielt vorher/nachher) direkt im eigenen Testfile einbauen, NIE in `pokerogue/src/` debuggen.
 
-## 6.2 Offener Befund (reproduziert, noch nicht root-gecauset): doppelte `CommandPhase` in einem Solo-Kampf
+## 6.2 Aufgeloest: "doppelte `CommandPhase` in einem Solo-Kampf"
 
-Beim selben frischen Datengenerierungslauf (siehe 3.8-3.10) trat ein viertes, bisher **ungeloestes** `step_timeout:advance_combat_after_action`-Muster auf, strukturell anders als 3.7-3.10: keine Zwischenphase haengt sichtbar - `phase_name`/`ui_mode` sehen im finalen Debug-Snapshot gesund aus (`CommandPhase`/`COMMAND`).
-
-**Deterministisch reproduziert:** Seed `fresh-check-seed-2`, `run_index=0`, `max_waves=12`, Trainerkampf, Welle 8, Charmander als letztes lebendes Party-Mitglied bei ~16% HP, Runde 10. Reproduktionsbefehl:
-
-```bash
-POKEROGUE_COMBAT_DQN_PYTHON="$(pwd)/.venv/bin/python" node scripts/90-dev/rl/run-pokerogue-modifier-strategic-fixed-seed-collector.ts ./data/temp/rl/repro-wave12-seed2-run0.json fresh-check-seed-2 1 12
-```
-
-**Beobachtetes Log-Muster kurz vor dem Timeout** (aus `game.phaseInterceptor.log`/Konsole):
-
-```
-Start Phase: CommandPhase
-UI mode changed from MESSAGE (=0) to COMMAND (=2)!
-Start Phase: CommandPhase          <- zweite CommandPhase direkt danach
-UI mode changed from COMMAND (=2) to COMMAND (=2)!   <- No-op-Wechsel
-[15s spaeter: step_timeout:advance_combat_after_action]
-```
-
-Eine zweite `CommandPhase`-Instanz wird unmittelbar nach der ersten gestartet - ein Muster, das bislang nur fuer Doppelkaempfe bekannt und behandelt war (`getRecoverableDoublePartnerCommandFieldIndex` in `test/porubot/harness/battle-command-advance.ts`, greift explizit nur bei `currentBattle.double === true`). Hier ist `current_battle_double: false` - ein echter Solo-Kampf zeigt dasselbe Symptom, wofuer aktuell keine Behandlung existiert.
-
-**Noch offen:** warum PokeRogue (oder unser Harness) hier eine zweite `CommandPhase` queued/startet, statt die erste stehen zu lassen. Naechster Schritt fuer eine kuenftige Session: pruefen, ob `phaseManager`s interne Queue an dieser Stelle wirklich zwei separate `CommandPhase`-Instanzen enthaelt (z. B. durch Instrumentieren von `PhaseManager.shiftPhase`/`unshiftPhase` in einem temporaeren Testfile) oder ob es sich um einen Logging-Artefakt eines bereits vorhandenen Retry-Mechanismus im Harness handelt.
+Frueher hier als offener, nicht root-gecausteter Befund gefuehrt (Seed `fresh-check-seed-2`, Welle 8, `step_timeout:advance_combat_after_action` bei gesund aussehendem `CommandPhase`/`COMMAND`-Snapshot). Ursache und Fix: siehe 3.11. Die doppelte `CommandPhase` im Log tritt in *jeder* Runde auf und war nur ein sichtbares Symptom konkurrierender `to()`-Treiber, nicht die eigentliche Haenge-Stelle.
 
 ## 7. Pflegehinweis
 

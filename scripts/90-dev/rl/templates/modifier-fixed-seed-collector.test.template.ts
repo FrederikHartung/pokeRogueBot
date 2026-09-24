@@ -54,6 +54,7 @@ import {
   waitForPromiseOrTerminal,
   withTimeout,
 } from "#test/porubot/harness/battle-command-advance";
+import { installSingleDriverPhaseInterceptor } from "#test/porubot/harness/single-driver-phase-interceptor";
 
 type ModifierPolicy = "random_executable";
 type CollectorVariant = "sanity_masking" | "strategic_fixed_seed";
@@ -2721,6 +2722,12 @@ describe("modifier fixed seed collector", () => {
 
       for (let attemptIndex = 0; attemptIndex < 2; attemptIndex += 1) {
         const game = new GameManager(phaserGame);
+        // This collector deliberately leaves earlier phaseInterceptor.to() calls
+        // pending (background toNextTurn(), recovery pumps, ...); without this,
+        // those turn into competing "zombie" phase drivers that double-start
+        // phases and skip queued ones - see
+        // docs/pokerogue-headless-test-harness-mechanics.md.
+        installSingleDriverPhaseInterceptor(game);
 
         game.override.seed(SEED);
 
