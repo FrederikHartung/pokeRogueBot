@@ -140,8 +140,11 @@ async function scenarioPipelineFailure(scenario: FailureScenario) {
     POKEROGUE_SKIP_PREFLIGHT: "1",
     POKEROGUE_TELEGRAM_DRY_RUN: "1",
   });
-  const botAutoStarted = start.output.includes("Telegram control bot was started automatically.");
-  if (start.status !== 0) {
+  // Scheitert der Lauf innerhalb der ersten Sekunde (z. B. Config-Fehler), meldet `start` das direkt mit Exit-Code 1,
+  // stoppt den Control-Bot selbst und gibt die Auto-Start-Meldung nicht aus. Beide Wege sind gueltig.
+  const exitedImmediately = start.status !== 0 && start.output.includes("Process exited immediately");
+  const botAutoStarted = exitedImmediately || start.output.includes("Telegram control bot was started automatically.");
+  if (start.status !== 0 && !exitedImmediately) {
     record(false, scenario.name, `start failed: ${lastLine(start.output)}`);
     return;
   }
@@ -172,7 +175,9 @@ async function scenarioPipelineFailure(scenario: FailureScenario) {
   record(
     failedChecks.length === 0,
     scenario.name,
-    failedChecks.length === 0 ? `expected "${scenario.expectedError}" handled` : `failed checks: ${failedChecks.join(", ")} (runtime: ${runtimeDir})`,
+    failedChecks.length === 0
+      ? `expected "${scenario.expectedError}" handled${exitedImmediately ? " (start reported immediate exit)" : ""}`
+      : `failed checks: ${failedChecks.join(", ")} (runtime: ${runtimeDir})`,
   );
 }
 
