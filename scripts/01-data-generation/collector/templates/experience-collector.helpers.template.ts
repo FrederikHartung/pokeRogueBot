@@ -23,7 +23,7 @@ import { SelectStarterPhase } from "#phases/select-starter-phase";
 import type { GameManager } from "#test/framework/game-manager";
 import { generateStarters } from "#test/utils/game-manager-utils";
 import { PartyUiMode } from "#enums/party-ui-mode";
-import { getPokemonSpeciesForm } from "#utils/pokemon-utils";
+import { speciesDataRegistry } from "#app/global-species-data-registry";
 
 const TERMINAL_ON_EGG_LAPSE = "__COLLECTOR_TERMINAL_ON_EGG_LAPSE__" === "true";
 const STEP_TIMEOUT_MS = Number("__COLLECTOR_STEP_TIMEOUT_MS__");
@@ -1057,7 +1057,9 @@ export function patchPokemonFromScenario(pokemon: any, member: any, player: bool
 
   pokemon.id = Number(member.id);
   pokemon.name = typeof member.name === "string" ? member.name : pokemon.name;
-  pokemon.species = getPokemonSpeciesForm(Number(member.species_id), 0);
+  // Immer die Spezies, nie ein Form-Objekt: getPokemonSpeciesForm(id, 0) liefert bei Spezies mit Formen
+  // (z. B. Pichu) ein PokemonSpeciesForm ohne getName(); die Form steuert pokemon.formIndex.
+  pokemon.species = speciesDataRegistry.getSpecies(Number(member.species_id));
   pokemon.formIndex = Number.isInteger(member.form_index) ? Number(member.form_index) : 0;
   pokemon.level = Number(member.level);
   // Szenarien speichern das Geschlecht als Enum-Namen ("MALE"); das Spiel erwartet den Enum-Wert.
@@ -1168,7 +1170,7 @@ export function applyScenarioMaterializedState(game: GameManager, scenario: any)
 }
 
 export function buildEnemyPokemonFromScenario(game: GameManager, member: any) {
-  const species = getPokemonSpeciesForm(Number(member.species_id), 0);
+  const species = speciesDataRegistry.getSpecies(Number(member.species_id));
   const level = Number(member.level);
   const enemyPokemon = game.scene.addEnemyPokemon(
     species,
