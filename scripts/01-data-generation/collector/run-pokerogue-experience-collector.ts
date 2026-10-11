@@ -481,7 +481,7 @@ describe("external combat collector", () => {
         for (const seedOverride of SEEDS) {
           for (let episodeIndex = 0; episodeIndex < EPISODES_PER_SEED; episodeIndex += 1) {
             const game = new GameManager(phaserGame);
-            try {
+            {
             applyScenarioOverrides(game, scenario, seedOverride);
 
             const teamSpecies = scenario.player_team.map(member => member.species_id);
@@ -625,8 +625,6 @@ describe("external combat collector", () => {
               totalEpisodes += 1;
               globalEpisodeIndex += 1;
               console.log(\`[collector-progress] episodes=\${totalEpisodes}/\${PLANNED_EPISODES} transitions=\${totalTransitions}\`);
-            } finally {
-              game.phaseInterceptor.restoreOg();
             }
           }
         }

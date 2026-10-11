@@ -1,6 +1,7 @@
 import { spawn, spawnSync as spawnSyncChild } from "node:child_process";
 import { createInterface } from "node:readline";
 import { getGameMode } from "#app/game-mode";
+import { Gender } from "#data/gender";
 import { allAbilities } from "#data/data-lists";
 import { BattleStyle } from "#enums/battle-style";
 import { BattleType } from "#enums/battle-type";
@@ -1059,8 +1060,12 @@ export function patchPokemonFromScenario(pokemon: any, member: any, player: bool
   pokemon.species = getPokemonSpeciesForm(Number(member.species_id), 0);
   pokemon.formIndex = Number.isInteger(member.form_index) ? Number(member.form_index) : 0;
   pokemon.level = Number(member.level);
-  if (member.gender != null) {
-    pokemon.gender = member.gender;
+  // Szenarien speichern das Geschlecht als Enum-Namen ("MALE"); das Spiel erwartet den Enum-Wert.
+  const genderValue = typeof member.gender === "string"
+    ? Gender[member.gender as keyof typeof Gender]
+    : member.gender;
+  if (Number.isInteger(genderValue)) {
+    pokemon.gender = genderValue as Gender;
   }
   pokemon.ivs = toStatArray(member.ivs);
 

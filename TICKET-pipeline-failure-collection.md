@@ -74,6 +74,13 @@ Befunde (Stand 2026-10-12):
 - Wave-Library und Szenarien sind auf dem Server aktuell (inhaltlich identisch), es gibt aber keinen Automatismus fuer den Sync.
 - Abdeckung der Szenarien (`generated-wave-library-v3-w1-24`, 311 Stueck): **kein einziger Doppelkampf**, 264 Szenarien in Waves 1-8, Waves 9-24 nur 1-7 Szenarien pro Wave, Trainer fast nur in den Rivalen-Waves 5 und 8 (dazu je einer in 15 und 17). Fuer die Stresskampagne erreicht die Combat-Pipeline damit weder Doppelkaempfe noch spaete Waves in nennenswertem Umfang.
 
+### C0. API-Drift seit v1.12.0.10 (Combat-Collector war nicht lauffaehig)
+
+- [x] `game.phaseInterceptor.restoreOg()` entfernt (Upstream `fb59f9c9`, ersatzlos gestrichen) im Combat-Collector.
+- [x] Geschlecht aus Szenarien (`"MALE"`) auf den Enum-Wert mappen; v1.12 liest `Gender[p.gender]` in `updateGameInfo` und stuerzte sonst mit `str.toLowerCase is not a function` ab.
+- [ ] Dieselbe `restoreOg`-Entfernung in den 22 Modifier-Mask-Test-Templates (`scripts/90-dev/rl/templates/modifier-*-mask.test.template.ts`, `modifier-item-suite`) und in `scripts/90-dev/tools/dump-pokerogue-starter-defaults.mjs`; danach `npm run rl:test:modifier:item-suite` pruefen.
+- [ ] Klaeren, wie solche Drift kuenftig frueh auffaellt: `typecheck:scripts` meldet bewusst nur Import-Fehler, und der Combat-Collector erzeugt seinen Testcode als String (nicht typgeprueft). Mindestens: nach jedem Submodul-Bump einen Combat-Smoke ausfuehren.
+
 ### C1. Fehler sammeln statt still kuerzen
 
 - [ ] Timeout bzw. Fehler einer Episode als technische Termination erfassen, inkl. Debug-Snapshot (Phase, UI-Modus, Wave, Party) und Repro-Infos (Szenario, Seed, Episoden-Index, Commits, Repro-Befehl).
