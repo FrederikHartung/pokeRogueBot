@@ -1,0 +1,26 @@
+{
+  "seed_prefix": "modifier-strategic-remote-scenario-timeout-s",
+  "seed_start_index": 1,
+  "seed_count": 1,
+  "output_root": "./pipeline-runs/modifier-strategic-seeded-remote-scenario-timeout",
+  "manifest_path": "./pipeline-runs/modifier-strategic-seeded-remote-scenario-timeout/manifest.json",
+  "collect": {
+    "runs_per_seed": 1,
+    "runs_per_instance": 1,
+    "parallelism": 1,
+    "max_waves": 1,
+    "modifier_policy": "random_executable",
+    "step_timeout_ms": 15000,
+    "run_process_timeout_ms": 3000,
+    "combat_dqn_device": "cpu"
+  },
+  "postprocess": {
+    "enabled": true,
+    "gamma": 0.99,
+    "output_path": "./pipeline-runs/modifier-strategic-seeded-remote-scenario-timeout/merged/modifier-strategic-training-transitions.jsonl"
+  },
+  "archive": {
+    "format": "tar.gz",
+    "output_path": "./pipeline-runs/modifier-strategic-seeded-remote-scenario-timeout/artifacts/modifier-strategic-seeded-runtime.tar.gz"
+  }
+}

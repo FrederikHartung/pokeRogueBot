@@ -1,0 +1,27 @@
+{
+  "seed_prefix": "modifier-strategic-remote-scenario-error-s",
+  "seed_start_index": 1,
+  "seed_count": 1,
+  "output_root": "./pipeline-runs/modifier-strategic-seeded-remote-scenario-error",
+  "manifest_path": "./pipeline-runs/modifier-strategic-seeded-remote-scenario-error/manifest.json",
+  "collect": {
+    "runs_per_seed": 1,
+    "runs_per_instance": 1,
+    "parallelism": 1,
+    "max_waves": 1,
+    "modifier_policy": "random_executable",
+    "step_timeout_ms": 15000,
+    "run_process_timeout_ms": 120000,
+    "combat_dqn_device": "cpu",
+    "combat_dqn_checkpoint": "./data/rl/models/scenario-missing-checkpoint.pt"
+  },
+  "postprocess": {
+    "enabled": true,
+    "gamma": 0.99,
+    "output_path": "./pipeline-runs/modifier-strategic-seeded-remote-scenario-error/merged/modifier-strategic-training-transitions.jsonl"
+  },
+  "archive": {
+    "format": "tar.gz",
+    "output_path": "./pipeline-runs/modifier-strategic-seeded-remote-scenario-error/artifacts/modifier-strategic-seeded-runtime.tar.gz"
+  }
+}

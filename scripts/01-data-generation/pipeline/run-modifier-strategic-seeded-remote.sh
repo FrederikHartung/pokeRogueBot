@@ -310,7 +310,12 @@ start_run() {
 
   rm -f "${PID_FILE}"
   check_dependencies
-  run_preflight_checks "${config_path}"
+  if [ "${POKEROGUE_SKIP_PREFLIGHT:-0}" = "1" ]; then
+    # Nur fuer Szenario-Tests (test-modifier-strategic-remote-scenarios.ts), nicht fuer echte Laeufe.
+    echo "POKEROGUE_SKIP_PREFLIGHT=1: skipping preflight checks."
+  else
+    run_preflight_checks "${config_path}"
+  fi
 
   local runtime_dir
   runtime_dir="$(runtime_dir_for_config "${config_path}")"
