@@ -127,11 +127,58 @@ Interpretation:
 
 - `collect_dataset`
   - fuehrt pro Seed-Batch den strategic fixed-seed Collector aus
-  - wenn ein Batch fehlschlaegt, werden parallel laufende weitere Batch-Prozesse kontrolliert beendet und die Pipeline faellt fast-fail aus
+  - Ist-Stand: wenn ein Batch fehlschlaegt (auch durch eine einzelne technische Termination), werden parallel laufende weitere Batch-Prozesse kontrolliert beendet und die Pipeline faellt fast-fail aus
+  - Zielbild: technische Fehler einzelner Runs werden gesammelt, die Pipeline laeuft weiter (siehe naechster Abschnitt)
 - `build_transitions`
   - baut aus allen Batch-Outputs die finalen Modifier-Transitions
 - `archive_dataset`
   - packt Runtime-Artefakte, Manifest, Metriken, Raw-Outputs und Transition-Datei als Archiv
+
+## Zielbild: Fehlerbehandlung (in Umsetzung)
+
+> Dieser Abschnitt beschreibt den angestrebten Zustand. Bis zur Umsetzung gilt fuer technische Fehler noch das fast-fail-Verhalten aus "Laufphasen".
+
+### Ziel
+
+Ein langer Lauf (z. B. `50 Seeds x 50 Runs`) soll auch dann durchlaufen, wenn einzelne Runs technisch scheitern. Am Ende sollen moeglichst viele saubere Trainingsdaten vorliegen und zusaetzlich **alle** technischen Fehler mit den Informationen, die zum Nachstellen noetig sind.
+
+### Begriffe
+
+- **Regulaeres Run-Ende:** `team_wipe_or_game_over`, `max_waves_reached` sowie `combat_terminal:GameOverPhase|PostGameOverPhase|TitlePhase`.
+- **Technische Termination:** jedes andere Run-Ende, z. B. `step_timeout:advance_combat_after_action`, ein Collector-Absturz innerhalb des Runs oder ein Ueberschreiten von `run_process_timeout_ms`. Der Run wird als `collector_run_technical_termination` markiert, zusammen mit dem konkreten Grund.
+- **Systemischer Fehler:** ein Fehler, der nicht an einem einzelnen Run haengt, sondern die ganze Pipeline betrifft (fehlender Checkpoint, ungueltige Config, fehlende Abhaengigkeiten).
+
+### Verhalten
+
+1. **Run-Ebene:** Endet ein Run technisch, wird er als technische Termination markiert und der Batch macht mit dem naechsten Run weiter. Es gibt keinen automatischen Retry.
+2. **Batch-Ebene:** Ein Batch gilt als abgeschlossen, auch wenn einzelne seiner Runs technisch gescheitert sind. Im Manifest stehen pro Batch die Anzahl regulaerer und technisch beendeter Runs.
+3. **Trainingsdaten:** Technisch beendete Runs fliessen **nicht** in `modifier-strategic-training-transitions.jsonl` ein. Ihre Belohnung haengt an der erreichten Wave, die durch den Abbruch verfaelscht ist, und wuerde das seed-lokale Rank-Signal verzerren. Das seed-lokale Postprocessing rechnet nur ueber die regulaeren Runs eines Seeds.
+4. **Fehlerdaten:** Jede technische Termination wird dauerhaft im Runtime-Ordner abgelegt (siehe "Laufartefakte im Zielbild"). Der Eintrag enthaelt alles, was zum Nachstellen noetig ist:
+   - das komplette Episoden-JSON inkl. `timeout_debug`, `error_debug`, `error_stack` und der bisherigen `steps`
+   - Seed, Run-Index, `decision_rng_seed`, `max_waves`, Step- und Prozess-Timeout, Combat-Checkpoint, Modifier-Policy
+   - Commit von Hauptrepo und `pokerogue/`-Submodul
+   - einen fertigen Befehl, der genau diesen Run lokal erneut ausfuehrt
+5. **Fehler-Signaturen:** Am Ende des Laufs werden alle technischen Terminations nach Signatur gruppiert (`termination_reason`, Phase, UI-Modus, Single/Double Battle). Pro Signatur: Anzahl, betroffene Seeds/Runs, Wave-Bereich und ein Beispiel-Repro.
+6. **Notausschalter fuer systemische Fehler:**
+   - Fehler, die schon vor oder beim Start des ersten Runs auftreten (Config, Checkpoint, Abhaengigkeiten), brechen die Pipeline weiterhin sofort ab.
+   - Zusaetzlich bricht die Pipeline ab, wenn zu viele Runs in Folge oder ein zu hoher Anteil aller Runs technisch scheitern. Die Schwellen sind konfigurierbar; der Abbruch wird als `collection_failed` mit Grund `technical_failure_threshold_exceeded` gemeldet.
+7. **Ergebnis und Meldung:** Ein Lauf mit einzelnen technischen Terminations endet als `completed`. `collection-metrics.json`, `status` des Helpers und die Telegram-Abschlussmeldung zeigen zusaetzlich die Anzahl technischer Terminations und Signaturen.
+
+### Laufartefakte im Zielbild
+
+Zusaetzlich zu den bestehenden Artefakten:
+
+- `collect_dataset/technical-failures/<seed>--run-<n>.json`: ein Eintrag pro technischer Termination (Inhalt siehe Punkt 4)
+- `technical-failure-signatures.json`: gruppierte Uebersicht (Punkt 5)
+- beides ist im Archiv `artifacts/modifier-strategic-seeded-runtime.tar.gz` enthalten
+
+### Weg von der Fehlermeldung zum Regressionstest
+
+1. Signatur aus `technical-failure-signatures.json` auswaehlen.
+2. Beispiel-Run mit dem Repro-Befehl lokal nachstellen.
+3. Ursache anhand von `timeout_debug` und `phaseInterceptor.log` eingrenzen (Vorgehen: `docs/pokerogue-headless-test-harness-mechanics.md`).
+4. Mechanismus als Replay-Test unter `pokerogue/test/porubot/regressions/replays/` festhalten, fixen, Test gruen.
+5. Den Repro-Run und einen neuen Stresslauf erneut ausfuehren; die Signatur darf nicht mehr auftreten.
 
 ## Laufartefakte
 
