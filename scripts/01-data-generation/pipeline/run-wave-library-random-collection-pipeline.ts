@@ -15,6 +15,17 @@ import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { validatePolicyConfig } from "../rl-config/policy-contract.ts";
 import { validateRandomCollectionPipelineConfig } from "../rl-config/run-config-contract.ts";
+import {
+  TechnicalFailureCircuitBreaker,
+  buildSignatureKey,
+  loadTechnicalFailures,
+  readGitCommits,
+  resolveCircuitBreakerConfig,
+  sanitizeFileStem,
+  shellQuote as shellQuoteArg,
+  writeTechnicalFailureFile,
+  writeTechnicalFailureSignatures,
+} from "./technical-failures.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,6 +55,10 @@ const manifestPath = resolvePathWithFallbacks(
 const artifactsSummaryPath = path.join(pipelineRoot, "artifacts-summary.json");
 const metricsPath = path.join(pipelineRoot, "collection-metrics.json");
 const phases = ["collect_dataset", "merge_dataset", "sanity_check", "archive_dataset"];
+const technicalFailuresDir = path.join(pipelineRoot, "collect_dataset", "technical-failures");
+const technicalFailureSignaturesPath = path.join(pipelineRoot, "collect_dataset", "technical-failure-signatures.json");
+const circuitBreakerConfig = resolveCircuitBreakerConfig(config.collect?.technical_failure_threshold);
+let cachedGitCommits = null;
 
 mkdirSync(pipelineRoot, { recursive: true });
 
@@ -102,6 +117,8 @@ async function main() {
       saveManifest(manifestPath, manifest);
       writeArtifactsSummary(manifest);
     } catch (error) {
+      // Die Phase hat Batch-Stände selbst ins Manifest geschrieben; nicht mit dem Stand vor der Phase ueberschreiben.
+      manifest = loadManifest(manifestPath, configPath);
       manifest = markStepStatus(manifest, phaseName, "failed", String(error?.message ?? error));
       saveManifest(manifestPath, manifest);
       writeArtifactsSummary(manifest);
@@ -243,6 +260,10 @@ function syncManifest(currentManifest, rootConfig, scenariosInput, outputRoot) {
           completed_at: existing.completed_at ?? null,
           duration_ms: existing.duration_ms ?? null,
           error: existing.error ?? null,
+          planned_episodes: existing.planned_episodes ?? null,
+          regular_episode_count: existing.regular_episode_count ?? null,
+          technical_termination_count: existing.technical_termination_count ?? null,
+          missing_episode_count: existing.missing_episode_count ?? null,
         };
   });
 
@@ -305,8 +326,15 @@ async function runCollectPhase(currentManifest, rootConfig, configDirInput, loca
   const pendingBatches = manifestInput.batches.filter(batch => batch.phase === "collect_dataset" && batch.status !== "completed");
   const collectConfig = rootConfig.collect ?? {};
   const parallelism = Math.max(1, Number(collectConfig.parallelism ?? rootConfig.parallelism ?? 1));
+  // Zaehlt nur Episoden dieses Aufrufs (siehe Modifier-Pipeline). Nach dem Ausloesen starten keine
+  // neuen Batches mehr; laufende Batches duerfen zu Ende laufen.
+  const circuitBreaker = new TechnicalFailureCircuitBreaker(circuitBreakerConfig);
 
+  try {
   await runWithConcurrency(pendingBatches, parallelism, async batch => {
+    if (circuitBreaker.tripped) {
+      return;
+    }
     const batchRef = manifestInput.batches.find(entry => entry.id === batch.id);
     batchRef.status = "running";
     batchRef.started_at = new Date().toISOString();
@@ -324,6 +352,12 @@ async function runCollectPhase(currentManifest, rootConfig, configDirInput, loca
     const startedAt = Date.now();
     try {
       await runCommandAsync("node", ["scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts", batch.run_config_path], repoRoot);
+      for (const outcome of recordCombatBatchTechnicalFailures(batchRef, collectorConfig)) {
+        circuitBreaker.record(outcome);
+      }
+      if (circuitBreaker.tripped) {
+        console.error(`[wave-library-random-collection] ${circuitBreaker.trippedReason}; no further batches will start`);
+      }
       batchRef.status = "completed";
       batchRef.completed_at = new Date().toISOString();
       batchRef.duration_ms = Date.now() - startedAt;
@@ -339,8 +373,95 @@ async function runCollectPhase(currentManifest, rootConfig, configDirInput, loca
 
     saveManifest(manifestPath, manifestInput);
   });
+  } finally {
+    writeTechnicalFailureSignatures(technicalFailureSignaturesPath, loadTechnicalFailures(technicalFailuresDir));
+  }
+
+  if (circuitBreaker.tripped) {
+    throw new Error(circuitBreaker.trippedReason);
+  }
+  // Kein einziger regulaerer Lauf: eher ein systemischer Fehler (Template, Abhaengigkeiten) als seltene
+  // Einzelfehler. Nicht als completed mit leerem Datensatz durchwinken.
+  if (circuitBreaker.totalRuns > 0 && circuitBreaker.technicalRuns === circuitBreaker.totalRuns) {
+    throw new Error(`no_regular_episodes_collected:technical=${circuitBreaker.technicalRuns}`);
+  }
 
   return manifestInput;
+}
+
+// Liest Zusammenfassung und technische Fehler eines Collector-Laufs, legt pro Fehler eine Failure-Datei ab
+// und liefert die Episodenergebnisse in Reihenfolge fuer den Notausschalter.
+function recordCombatBatchTechnicalFailures(batchRef, collectorConfig) {
+  const summaryPath = `${batchRef.output_path}.summary.json`;
+  const failuresPath = `${batchRef.output_path}.technical-failures.jsonl`;
+  if (!existsSync(summaryPath)) {
+    throw new Error(`Collector summary missing after successful exit: ${summaryPath}`);
+  }
+  const summary = JSON.parse(readFileSync(summaryPath, "utf8"));
+  const failures = existsSync(failuresPath)
+    ? readFileSync(failuresPath, "utf8").split("\n").filter(Boolean).map(line => JSON.parse(line))
+    : [];
+
+  for (const failure of failures) {
+    writeTechnicalFailureFile(technicalFailuresDir, buildCombatTechnicalFailure(batchRef, collectorConfig, failure));
+  }
+
+  batchRef.planned_episodes = Number(summary.planned_episodes ?? batchRef.episodes);
+  batchRef.regular_episode_count = Number(summary.regular_episodes ?? 0);
+  batchRef.technical_termination_count = failures.length;
+  batchRef.missing_episode_count = failures.reduce((sum, failure) => sum + Number(failure.missing_episodes ?? 0), 0);
+
+  if (Array.isArray(summary.episode_outcomes)) {
+    return [...summary.episode_outcomes, ...failures.filter(failure => failure.kind === "collector_process_failed").map(() => "technical")];
+  }
+  return [
+    ...Array.from({ length: batchRef.regular_episode_count }, () => "regular"),
+    ...failures.map(() => "technical"),
+  ];
+}
+
+function buildCombatTechnicalFailure(batchRef, collectorConfig, failure) {
+  const globalEpisodeIndex = Number.isInteger(failure.global_episode_index) ? failure.global_episode_index : null;
+  const failureId = sanitizeFileStem(`${batchRef.scenario_name}--episode-${globalEpisodeIndex ?? "unknown"}${failure.kind === "collector_process_failed" ? "--process" : ""}`);
+  const scenarioPath = failure.scenario_path ?? batchRef.scenario_path;
+  const reproCollectorConfig = {
+    ...collectorConfig,
+    scenario_files: [path.relative(repoRoot, scenarioPath)],
+    seeds: failure.seed_override != null ? [String(failure.seed_override)] : undefined,
+    episodes_per_seed: failure.kind === "collector_process_failed" ? Math.max(1, Number(failure.missing_episodes ?? 1)) : 1,
+    episode_index_offset: globalEpisodeIndex ?? batchRef.global_episode_start,
+    append_output: false,
+  };
+  delete reproCollectorConfig.output_path;
+  cachedGitCommits ??= readGitCommits(repoRoot);
+  const failureFilePath = path.join(technicalFailuresDir, `${failureId}.json`);
+
+  return {
+    schema_version: 1,
+    pipeline: "wave_library_random_collection",
+    failure_id: failureId,
+    batch_id: batchRef.id,
+    kind: String(failure.kind ?? "unknown"),
+    reason: String(failure.reason ?? "unknown"),
+    seed: failure.seed != null ? String(failure.seed) : null,
+    run_index: globalEpisodeIndex,
+    scenario: batchRef.scenario_name,
+    wave: Number.isInteger(failure.wave_index) ? failure.wave_index : batchRef.wave_index ?? null,
+    phase: typeof failure.phase === "string" ? failure.phase : null,
+    ui_mode: typeof failure.ui_mode === "string" ? failure.ui_mode : null,
+    is_double_battle: typeof failure.is_double_battle === "boolean" ? failure.is_double_battle : null,
+    repro: {
+      command: `node scripts/01-data-generation/pipeline/repro-technical-failure.ts ${shellQuoteArg(path.relative(repoRoot, failureFilePath))}`,
+      params: {
+        scenario_path: path.relative(repoRoot, scenarioPath),
+        global_episode_index: globalEpisodeIndex,
+        collector_config: reproCollectorConfig,
+      },
+    },
+    commits: cachedGitCommits,
+    recorded_at: new Date().toISOString(),
+    detail: failure,
+  };
 }
 
 function buildCollectorConfig({ rootConfig, configDir: configDirInput, dataRlDir: localDataRlDir, batch }) {
@@ -451,7 +572,17 @@ function runArchivePhase(currentManifest, rootConfig, configDirInput) {
   const archivePath = resolveArchivePath(archiveConfig, archiveFormat, archiveDir, configDirInput);
 
   if (archiveFormat === "tar.gz") {
-    runCommand("tar", ["-czf", archivePath, "-C", path.dirname(datasetPath), path.basename(datasetPath)], repoRoot);
+    // Technische Fehler gehoeren mit ins Archiv, damit sie lokal untersucht und nachgestellt werden koennen.
+    const failureEntries = ["collect_dataset/technical-failure-signatures.json", "collect_dataset/technical-failures"]
+      .filter(entry => existsSync(path.join(pipelineRoot, entry)));
+    runCommand("tar", [
+      "-czf",
+      archivePath,
+      "-C",
+      path.dirname(datasetPath),
+      path.basename(datasetPath),
+      ...(failureEntries.length > 0 ? ["-C", pipelineRoot, ...failureEntries] : []),
+    ], repoRoot);
   } else if (archiveFormat === "zip") {
     runCommand("zip", ["-j", archivePath, datasetPath], repoRoot);
   } else {
@@ -565,6 +696,9 @@ function buildCollectionMetrics(manifestInput) {
     failed_batches: batches.filter(batch => batch.status === "failed").length,
     total_episodes: batches.reduce((sum, batch) => sum + Number(batch.episodes ?? 0), 0),
     completed_episodes: completedBatches.reduce((sum, batch) => sum + Number(batch.episodes ?? 0), 0),
+    regular_episode_count: completedBatches.reduce((sum, batch) => sum + Number(batch.regular_episode_count ?? batch.episodes ?? 0), 0),
+    missing_episode_count: completedBatches.reduce((sum, batch) => sum + Number(batch.missing_episode_count ?? 0), 0),
+    ...buildTechnicalFailureMetrics(completedBatches),
     average_batch_duration_ms: batchDurations.length > 0
       ? Math.round(batchDurations.reduce((sum, value) => sum + value, 0) / batchDurations.length)
       : null,
@@ -575,6 +709,20 @@ function buildCollectionMetrics(manifestInput) {
       ? manifestInput.updated_at ?? null
       : null,
     steps: manifestInput.steps ?? {},
+  };
+}
+
+function buildTechnicalFailureMetrics(completedBatches) {
+  const technicalFailures = loadTechnicalFailures(technicalFailuresDir);
+  const technicalEpisodes = completedBatches.reduce((sum, batch) => sum + Number(batch.technical_termination_count ?? 0), 0);
+  const regularEpisodes = completedBatches.reduce((sum, batch) => sum + Number(batch.regular_episode_count ?? batch.episodes ?? 0), 0);
+  return {
+    technical_termination_count: technicalFailures.length,
+    technical_termination_ratio: regularEpisodes + technicalEpisodes > 0 ? technicalEpisodes / (regularEpisodes + technicalEpisodes) : null,
+    technical_failure_signature_count: new Set(technicalFailures.map(failure => buildSignatureKey(failure))).size,
+    technical_failures_dir: technicalFailuresDir,
+    technical_failure_signatures_path: existsSync(technicalFailureSignaturesPath) ? technicalFailureSignaturesPath : null,
+    technical_failure_threshold: circuitBreakerConfig,
   };
 }
 

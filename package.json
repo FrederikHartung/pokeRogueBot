@@ -19,6 +19,8 @@
     "rl:test:policy-contract": "node --test scripts/01-data-generation/rl-config/*.test.ts",
     "rl:test:modifier:strategic-contract": "node --test scripts/90-dev/rl/modifier-strategic-fixed-seed-contract.test.ts",
     "rl:test:modifier:strategic-postprocess": "node --test scripts/90-dev/rl/build-modifier-strategic-training-transitions.test.ts",
+    "rl:test:pipeline:technical-failures": "node --test scripts/01-data-generation/pipeline/technical-failures.test.ts",
+    "rl:test:combat:collector-replays": "node --test --test-concurrency=1 scripts/01-data-generation/collector/combat-collector-replays.test.ts",
     "rl:build:modifier:strategic-transitions": "node scripts/90-dev/rl/build-modifier-strategic-training-transitions.ts",
     "rl:pipeline:wave-lib:iterative": "node scripts/01-data-generation/pipeline/run-wave-library-iterative-pipeline.ts",
     "rl:pipeline:wave-lib:collect": "node scripts/01-data-generation/pipeline/run-wave-library-random-collection-pipeline.ts",

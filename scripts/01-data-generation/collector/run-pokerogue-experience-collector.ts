@@ -132,7 +132,12 @@ const rewardRemainingTeamHpRatioWinBonusScale = Number.isFinite(config.reward_re
 const terminalOnEggLapse = config.terminal_on_egg_lapse !== false;
 const criticalHpRatio = 0.1;
 const halfHpRatio = 0.5;
-const stepTimeoutMs = Number.isFinite(policy.step_timeout_ms) && policy.step_timeout_ms > 0
+// POKEROGUE_COMBAT_STEP_TIMEOUT_MS wie beim Modifier-Collector (POKEROGUE_MODIFIER_STEP_TIMEOUT_MS), z. B. um in
+// Tests gezielt Timeouts zu erzwingen; die Random-Policy hat kein eigenes step_timeout_ms.
+const envStepTimeoutMs = Number.parseInt(process.env.POKEROGUE_COMBAT_STEP_TIMEOUT_MS ?? "", 10);
+const stepTimeoutMs = Number.isInteger(envStepTimeoutMs) && envStepTimeoutMs > 0
+  ? envStepTimeoutMs
+  : Number.isFinite(policy.step_timeout_ms) && policy.step_timeout_ms > 0
   ? Number(policy.step_timeout_ms)
   : 15000;
 const envProgressPauseEnabled = process.env.COLLECTOR_PROGRESS_PAUSE === "1";
@@ -164,6 +169,10 @@ const stateVariants = Array.isArray(config.state_variants) && config.state_varia
   : [];
 const quietGameLogs = config.quiet_game_logs === true || process.env.COLLECTOR_QUIET_GAME_LOGS === "1";
 const plannedEpisodes = scenarios.length * seeds.length * episodesPerSeed;
+// Technisch beendete Episoden (Timeout, Exception) landen nicht im Datensatz, sondern als JSONL hier;
+// die Zusammenfassung (geplant/regulaer/technisch) liest die Pipeline nach dem Lauf.
+const technicalFailuresPath = `${outputPath}.technical-failures.jsonl`;
+const collectorSummaryPath = `${outputPath}.summary.json`;
 const helperSource = materializeCollectorHelperSource(
   readFileSync(collectorHelpersTemplatePath, "utf8"),
   terminalOnEggLapse,
@@ -176,6 +185,10 @@ mkdirSync(path.dirname(outputPath), { recursive: true });
 if (!appendOutput && existsSync(outputPath)) {
   unlinkSync(outputPath);
 }
+if (!appendOutput && existsSync(technicalFailuresPath)) {
+  unlinkSync(technicalFailuresPath);
+}
+rmSync(collectorSummaryPath, { force: true });
 
 const testSource = `
 import fs from "node:fs";
@@ -187,7 +200,6 @@ import { Stat } from "#enums/stat";
 import { StatusEffect } from "#enums/status-effect";
 import { TrainerSlot } from "#enums/trainer-slot";
 import { UiMode } from "#enums/ui-mode";
-import { getPokemonSpecies } from "#utils/pokemon-utils";
 import { GameManager } from "#test/framework/game-manager";
 import { PromptHandler } from "#test/helpers/prompt-handler";
 import { installSingleDriverPhaseInterceptor } from "#test/porubot/harness/single-driver-phase-interceptor";
@@ -256,6 +268,8 @@ const EPISODES_PER_SEED = ${episodesPerSeed};
 const MAX_STEPS_PER_EPISODE = ${maxStepsPerEpisode};
 const POLICY = ${JSON.stringify(policy)};
 const OUTPUT_PATH = ${JSON.stringify(outputPath)};
+const TECHNICAL_FAILURES_PATH = ${JSON.stringify(technicalFailuresPath)};
+const SUMMARY_PATH = ${JSON.stringify(collectorSummaryPath)};
 const TEST_TIMEOUT_MS = ${testTimeoutMs};
 const EPISODE_INDEX_OFFSET = ${episodeIndexOffset};
 const REWARD_SWITCH_PENALTY = ${rewardSwitchPenalty};
@@ -368,6 +382,27 @@ function currentWaveIndexSafe(game: GameManager, fallback: number = -1): number 
   return fallback;
 }
 
+function safeDiagnostic<T>(read: () => T, fallback: T): T {
+  try {
+    return read();
+  } catch {
+    return fallback;
+  }
+}
+
+function buildEpisodeDebugSnapshot(game: GameManager, stepIndex: number): Record<string, unknown> {
+  return {
+    step_index: stepIndex,
+    phase: safeDiagnostic(() => currentPhaseNameSafe(game), "unknown"),
+    ui_mode: safeDiagnostic(() => currentUiModeNameSafe(game), "unknown"),
+    wave: safeDiagnostic(() => currentWaveIndexSafe(game, -1), -1),
+    is_double_battle: safeDiagnostic(() => game.scene.currentBattle?.double ?? null, null),
+    player_party: safeDiagnostic(() => describePartyForDiagnostics(game), "unknown"),
+    party_ui: safeDiagnostic(() => describePartyUiHandlerForDiagnostics(game), "unknown"),
+    prompts: safeDiagnostic(() => describePromptQueueForDiagnostics(game), "unknown"),
+  };
+}
+
 function formatDuration(ms: number): string {
   const totalSeconds = Math.max(0, Math.round(ms / 1000));
   const hours = Math.floor(totalSeconds / 3600);
@@ -475,6 +510,8 @@ describe("external combat collector", () => {
     const runStartedAt = Date.now();
     let totalTransitions = 0;
     let totalEpisodes = 0;
+    let technicalEpisodes = 0;
+    const episodeOutcomes: Array<"regular" | "technical"> = [];
     let globalEpisodeIndex = EPISODE_INDEX_OFFSET;
     let nextProgressPausePercent = PROGRESS_PAUSE_PERCENT_STEP;
 
@@ -494,15 +531,20 @@ describe("external combat collector", () => {
             // advanceAfterAction laesst toEndOfTurn()/toNextTurn()-Aufrufe unerledigt zurueck; ohne Schutz treiben
             // mehrere to()-Aufrufe Phasen parallel (siehe docs/pokerogue-headless-test-harness-mechanics.md, 3.11).
             installSingleDriverPhaseInterceptor(game);
-            {
+            const episodeId = \`\${scenario.__scenario_name}::\${seedOverride ?? scenario.seed ?? "seedless"}::\${globalEpisodeIndex}\`;
+            const effectiveSeed = seedOverride ?? scenario.seed ?? "seedless";
+            // Transitions werden erst am Episodenende geschrieben: eine technisch beendete Episode
+            // (Timeout, Exception) landet so nicht halb im Datensatz.
+            const episodeRecords: string[] = [];
+            let technicalFailure: Record<string, unknown> | null = null;
+            let lastStepIndex = -1;
+            try {
             applyScenarioOverrides(game, scenario, seedOverride);
 
             const teamSpecies = scenario.player_team.map(member => member.species_id);
             await startScenarioBattle(game, scenario, teamSpecies);
             applyScenarioMaterializedState(game, scenario);
 
-            const episodeId = \`\${scenario.__scenario_name}::\${seedOverride ?? scenario.seed ?? "seedless"}::\${globalEpisodeIndex}\`;
-            const effectiveSeed = seedOverride ?? scenario.seed ?? "seedless";
             const episodeStateVariant = selectEpisodeStateVariant(globalEpisodeIndex);
             applyStateVariant(game, episodeStateVariant, episodeId);
             let previousAction: number | null = null;
@@ -510,6 +552,7 @@ describe("external combat collector", () => {
             let consecutiveSwitchCount = 0;
 
               for (let stepIndex = 0; stepIndex < MAX_STEPS_PER_EPISODE; stepIndex += 1) {
+              lastStepIndex = stepIndex;
               const state = buildObservation(game, scenario);
               const { action, actionSource } = await selectActionFromMask(state, state.action_mask, globalEpisodeIndex);
               if (action < 0) {
@@ -588,9 +631,7 @@ describe("external combat collector", () => {
                 timestamp: Date.now(),
               };
 
-              fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
-              fs.appendFileSync(OUTPUT_PATH, \`\${JSON.stringify(record)}\\n\`, { encoding: "utf8" });
-              totalTransitions += 1;
+              episodeRecords.push(JSON.stringify(record));
               if (action >= MOVE_ACTIONS) {
                 lastSwitchOriginPartyIndex = activePartyIndexBeforeAction >= 0 ? activePartyIndexBeforeAction : null;
                 consecutiveSwitchCount += 1;
@@ -630,20 +671,68 @@ describe("external combat collector", () => {
                   console.log(
                     \`[collector-timeout] episode=\${episodeId} step=\${stepIndex} phase=\${currentPhaseNameSafe(game)} ui_mode=\${currentUiModeNameSafe(game)} advance_status=\${advanceStatus} step_ms=\${stepMs} player_party="\${describePartyForDiagnostics(game)}" party_ui="\${describePartyUiHandlerForDiagnostics(game)}" prompts="\${describePromptQueueForDiagnostics(game)}"\`,
                   );
+                  technicalFailure = {
+                    kind: "collector_episode_timeout",
+                    reason: \`advance_timeout:\${currentPhaseNameSafe(game)}\`,
+                    ...buildEpisodeDebugSnapshot(game, stepIndex),
+                    advance_status: advanceStatus,
+                    step_ms: stepMs,
+                  };
                 }
                 break;
               }
             }
-
-              totalEpisodes += 1;
-              globalEpisodeIndex += 1;
-              console.log(\`[collector-progress] episodes=\${totalEpisodes}/\${PLANNED_EPISODES} transitions=\${totalTransitions}\`);
+            } catch (error) {
+              const message = error instanceof Error ? error.message : String(error);
+              console.log(\`[collector-episode-error] episode=\${episodeId} step=\${lastStepIndex} phase=\${currentPhaseNameSafe(game)} error=\${message}\`);
+              technicalFailure = {
+                kind: "collector_episode_error",
+                reason: \`exception:\${(message.split("\\n")[0] ?? "").slice(0, 200)}\`,
+                ...buildEpisodeDebugSnapshot(game, lastStepIndex),
+                error_message: message,
+                error_stack: error instanceof Error ? error.stack ?? null : null,
+              };
             }
+
+              if (technicalFailure) {
+                technicalEpisodes += 1;
+                episodeOutcomes.push("technical");
+                fs.mkdirSync(path.dirname(TECHNICAL_FAILURES_PATH), { recursive: true });
+                fs.appendFileSync(TECHNICAL_FAILURES_PATH, \`\${JSON.stringify({
+                  episode_id: episodeId,
+                  scenario: scenario.__scenario_name,
+                  scenario_path: scenario.__scenario_source_path,
+                  seed: effectiveSeed,
+                  seed_override: seedOverride,
+                  global_episode_index: globalEpisodeIndex,
+                  wave_index: scenario.wave_index ?? null,
+                  dropped_transitions: episodeRecords.length,
+                  ...technicalFailure,
+                })}\\n\`, { encoding: "utf8" });
+              } else {
+                episodeOutcomes.push("regular");
+                if (episodeRecords.length > 0) {
+                  fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
+                  fs.appendFileSync(OUTPUT_PATH, \`\${episodeRecords.join("\\n")}\\n\`, { encoding: "utf8" });
+                }
+                totalTransitions += episodeRecords.length;
+                totalEpisodes += 1;
+              }
+              globalEpisodeIndex += 1;
+              console.log(\`[collector-progress] episodes=\${totalEpisodes + technicalEpisodes}/\${PLANNED_EPISODES} regular=\${totalEpisodes} technical=\${technicalEpisodes} transitions=\${totalTransitions}\`);
           }
         }
       }
 
       console.log(\`Collected episodes: \${totalEpisodes}\`);
+      console.log(\`Technical episodes: \${technicalEpisodes}\`);
+      fs.writeFileSync(SUMMARY_PATH, JSON.stringify({
+        planned_episodes: PLANNED_EPISODES,
+        regular_episodes: totalEpisodes,
+        technical_episodes: technicalEpisodes,
+        transitions: totalTransitions,
+        episode_outcomes: episodeOutcomes,
+      }, null, 2), { encoding: "utf8" });
       console.log(\`Collected transitions: \${totalTransitions}\`);
       const totalRuntimeMs = Date.now() - runStartedAt;
       console.log(\`Collector runtime ms: \${totalRuntimeMs}\`);
@@ -688,20 +777,69 @@ try {
   // Cleanup is best-effort.
 }
 
-if (result.status !== 0 && !existsSync(outputPath)) {
-  process.exit(result.status ?? 1);
+// Fehlt die Zusammenfassung, ist der Vitest-Prozess vor dem Ende der Episodenschleife abgebrochen
+// (Test-Timeout, Absturz). Die nicht gelaufenen Episoden werden als ein technischer Fehler erfasst,
+// statt still zu fehlen. Ein Exit != 0 trotz Zusammenfassung (z. B. unbehandelte Rejections) ebenso.
+const collectorSummary = existsSync(collectorSummaryPath)
+  ? JSON.parse(readFileSync(collectorSummaryPath, "utf8"))
+  : null;
+if (collectorSummary == null || result.status !== 0) {
+  const recordedEpisodes = collectorSummary
+    ? Number(collectorSummary.regular_episodes) + Number(collectorSummary.technical_episodes)
+    : countRecordedEpisodes(outputPath) + countLines(technicalFailuresPath);
+  const failure = {
+    episode_id: `collector-process::${path.basename(outputPath)}`,
+    scenario: scenarios.length === 1 ? scenarios[0].__scenario_name : null,
+    scenario_path: scenarios.length === 1 ? scenarios[0].__scenario_source_path : null,
+    seed: seeds.length === 1 ? seeds[0] ?? scenarios[0]?.seed ?? null : null,
+    seed_override: seeds.length === 1 ? seeds[0] : null,
+    global_episode_index: episodeIndexOffset + recordedEpisodes,
+    wave_index: scenarios.length === 1 ? scenarios[0].wave_index ?? null : null,
+    kind: "collector_process_failed",
+    reason: collectorSummary == null
+      ? `vitest_aborted_before_summary:exit_${result.status ?? "none"}${result.signal ? `:${result.signal}` : ""}`
+      : `vitest_exit_${result.status ?? "none"}_after_summary`,
+    missing_episodes: Math.max(0, plannedEpisodes - recordedEpisodes),
+    exit_code: result.status ?? null,
+    signal: result.signal ?? null,
+  };
+  mkdirSync(path.dirname(technicalFailuresPath), { recursive: true });
+  writeFileSync(technicalFailuresPath, `${JSON.stringify(failure)}\n`, { encoding: "utf8", flag: "a" });
+  console.log(`[collector-process-failed] reason=${failure.reason} missing_episodes=${failure.missing_episodes}`);
+  if (collectorSummary == null) {
+    writeFileSync(collectorSummaryPath, JSON.stringify({
+      planned_episodes: plannedEpisodes,
+      regular_episodes: countRecordedEpisodes(outputPath),
+      technical_episodes: countLines(technicalFailuresPath),
+      transitions: countLines(outputPath),
+      episode_outcomes: null,
+      process_failed: true,
+    }, null, 2), { encoding: "utf8" });
+  }
 }
 
-if (existsSync(outputPath)) {
-  const lineCount = readFileSync(outputPath, "utf8")
-    .split("\n")
-    .filter(Boolean).length;
-  console.log("Collector output:", outputPath);
-  console.log("Transition lines:", lineCount);
+console.log("Collector output:", outputPath);
+console.log("Transition lines:", countLines(outputPath));
+console.log("Technical failures:", technicalFailuresPath, countLines(technicalFailuresPath));
+
+function countLines(filePath: string): number {
+  if (!existsSync(filePath)) {
+    return 0;
+  }
+  return readFileSync(filePath, "utf8").split("\n").filter(Boolean).length;
 }
 
-if (result.status !== 0) {
-  console.log("Vitest exited non-zero, but output exists. Continuing.");
+function countRecordedEpisodes(filePath: string): number {
+  if (!existsSync(filePath)) {
+    return 0;
+  }
+  const episodeIds = new Set<string>();
+  for (const line of readFileSync(filePath, "utf8").split("\n")) {
+    if (line) {
+      episodeIds.add(String(JSON.parse(line).episode_id));
+    }
+  }
+  return episodeIds.size;
 }
 
 function resolveScenarioPaths(runConfig, runConfigDir) {
