@@ -133,3 +133,66 @@ test("buildModifierStrategicTrainingTransitions rejects duplicate seed/run combi
     /Duplicate run identity detected/,
   );
 });
+
+function createAllTechnicalWorkerOutput(seed: string, runIndex: number) {
+  return {
+    schema_version: "unknown",
+    seed,
+    run_count: 1,
+    max_waves: 11,
+    collector_variant: "strategic_fixed_seed",
+    worker_id: "unknown",
+    starter_config_id: "unknown",
+    starter_species: [],
+    decision_rng_strategy: "seed_plus_run_index",
+    step_timeout_ms: 15000,
+    modifier_policy: "random_executable",
+    combat_dqn_checkpoint: "data/rl/models/example.pt",
+    combat_dqn_device: "cpu",
+    generated_at: "2026-10-12T00:00:00.000Z",
+    summary: {
+      average_wave_reached: null,
+      average_total_reward: null,
+      best_wave_reached: null,
+      worst_wave_reached: null,
+    },
+    episodes: [],
+    regular_run_count: 0,
+    technical_termination_count: 1,
+    technical_terminations: [
+      {
+        run_index: runIndex,
+        kind: "collector_run_process_timeout",
+        reason: "run_process_timeout_ms_exceeded:3000",
+        exit_code: null,
+        signal: "SIGKILL",
+        episode: null,
+      },
+    ],
+  };
+}
+
+test("buildModifierStrategicTrainingTransitions ignores technical terminations and seeds without regular runs", () => {
+  const regular = createWorkerOutput({ workerId: "w1", seed: "seed-a", runIndex: 0, waveReached: 5 });
+  const mixed = {
+    ...createWorkerOutput({ workerId: "w1", seed: "seed-a", runIndex: 1, waveReached: 3 }),
+    regular_run_count: 1,
+    technical_termination_count: 1,
+    technical_terminations: [
+      { run_index: 2, kind: "collector_run_technical_termination", reason: "step_timeout", exit_code: 0, signal: null, episode: null },
+    ],
+  };
+  const onlyTechnical = createAllTechnicalWorkerOutput("seed-b", 0);
+
+  const transitions = buildModifierStrategicTrainingTransitions([regular, mixed, onlyTechnical]);
+
+  assert.deepEqual(Array.from(new Set(transitions.map(entry => entry.seed))), ["seed-a"]);
+  assert.deepEqual(Array.from(new Set(transitions.map(entry => entry.run_index))).sort(), [0, 1]);
+  // Rang nur ueber die beiden regulaeren Runs von seed-a: der bessere Run bekommt 1, der schlechtere -1.
+  assert.equal(transitions.find(entry => entry.run_index === 0)?.rank_score, 1);
+  assert.equal(transitions.find(entry => entry.run_index === 1)?.rank_score, -1);
+});
+
+test("buildModifierStrategicTrainingTransitions returns no transitions when every run was technical", () => {
+  assert.deepEqual(buildModifierStrategicTrainingTransitions([createAllTechnicalWorkerOutput("seed-b", 0)]), []);
+});

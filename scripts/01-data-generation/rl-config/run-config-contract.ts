@@ -1,4 +1,5 @@
 import { validatePolicyConfig } from "./policy-contract.ts";
+import { resolveCircuitBreakerConfig } from "../pipeline/technical-failures.ts";
 
 function isPlainObject(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -172,7 +173,10 @@ function validateCollectorOverrides(value, context) {
 
 function validateRandomCollectionCollectConfig(value, context) {
   assertPlainObject(value, context, "collect config");
-  assertAllowedKeys(value, new Set(["episodes_per_instance", "batch_size", "parallelism", "collector", "policy"]), context, "collect config");
+  assertAllowedKeys(value, new Set(["episodes_per_instance", "batch_size", "parallelism", "collector", "policy", "technical_failure_threshold"]), context, "collect config");
+  if ("technical_failure_threshold" in value) {
+    resolveCircuitBreakerConfig(value.technical_failure_threshold);
+  }
   assertPositiveInteger(value.episodes_per_instance, context, "episodes_per_instance");
   assertPositiveInteger(value.batch_size, context, "batch_size");
   if ("parallelism" in value) {
@@ -256,10 +260,14 @@ function validateModifierStrategicCollectConfig(value, context) {
       "combat_dqn_checkpoint",
       "combat_dqn_device",
       "combat_dqn_python",
+      "technical_failure_threshold",
     ]),
     context,
     "modifier strategic collect config",
   );
+  if ("technical_failure_threshold" in value) {
+    resolveCircuitBreakerConfig(value.technical_failure_threshold);
+  }
 
   assertPositiveInteger(value.runs_per_seed, context, "runs_per_seed");
   assertPositiveInteger(value.runs_per_instance, context, "runs_per_instance");

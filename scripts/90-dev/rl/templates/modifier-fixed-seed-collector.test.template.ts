@@ -20,6 +20,7 @@ import type { CommandPhase } from "#phases/command-phase";
 import { ModifierSelectUiHandler } from "#ui/modifier-select-ui-handler";
 import { PartyUiMode } from "#enums/party-ui-mode";
 import { GameManager } from "#test/framework/game-manager";
+import { PromptHandler } from "#test/helpers/prompt-handler";
 import Phaser from "phaser";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
@@ -2721,6 +2722,14 @@ describe("modifier fixed seed collector", () => {
       let recordedEpisode: EpisodeRecord | null = null;
 
       for (let attemptIndex = 0; attemptIndex < 2; attemptIndex += 1) {
+        if (attemptIndex > 0) {
+          // Ein Retry legt einen zweiten GameManager im selben Test an. Seit v1.12 geht der Harness von einem
+          // GameManager pro Test aus; ohne dieses Aufraeumen wirft das statische PromptHandler-Intervall und
+          // die Spies verschachteln sich (gleiches Problem wie im Combat-Collector).
+          clearInterval(PromptHandler.runInterval);
+          PromptHandler.runInterval = undefined;
+          vi.restoreAllMocks();
+        }
         const game = new GameManager(phaserGame);
         // This collector deliberately leaves earlier phaseInterceptor.to() calls
         // pending (background toNextTurn(), recovery pumps, ...); without this,
