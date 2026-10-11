@@ -1,285 +1,138 @@
-# Build and Development Commands
+# AGENTS.md
 
-## Session Bootstrap Context (wichtig fuer neue Chats)
+Verbindliche Anweisungen fuer Agents (Claude Code, Codex u. a.) in diesem Repo. `CLAUDE.md` verweist hierher.
 
-- Wenn Kontext zu Projektziel, Status Quo oder Roadmap benoetigt wird, zuerst diese Dateien lesen:
+Das Projekt: ein Bot, der das Browserspiel PokeRogue automatisiert (Spring Boot, Kotlin, Selenium, JS-Bridge) und dessen Entscheidungen schrittweise auf RL (DQN, offline trainiert) umgestellt werden. Architektur: `docs/architecture.md`.
+
+## 1. Einstieg in eine neue Session
+
+- Vor nicht-trivialer Arbeit zuerst lesen:
   - `docs/project-context-status-quo-and-goal.md`
   - `docs/project-context-and-pokerogue-overview.md`
-- Diese beiden Dateien sind der bevorzugte Startpunkt fuer inhaltlichen Projektkontext.
-- Verbindliche Regel fuer neue Chats: Vor Implementierungsarbeit zuerst diese beiden Dateien einlesen, sofern der Task nicht rein trivial ist (z. B. reine Ein-Zeilen-Antwort ohne Projektbezug).
-- Danach bei Bedarf in Detaildocs verzweigen (z. B. `docs/combat-training-v1.md`, `docs/todo-next.md`).
-- Vor jeder Arbeit an der RL-Collector-/Datenpipeline oder an `pokerogue/test/porubot/regressions/` zuerst `docs/pokerogue-headless-test-harness-mechanics.md` lesen: zentrale Referenz fuer Phasen-/Prompt-Mechanik im Headless-Testharness und bekannte Timeout-Ursachen.
+- Danach bei Bedarf: `docs/todo-next.md` (aktueller Arbeitsstand), `docs/architecture.md`, thematische Detaildocs.
+- Vor jeder Arbeit an der RL-Collector-/Datenpipeline oder an `pokerogue/test/porubot/` zuerst `docs/pokerogue-headless-test-harness-mechanics.md` lesen (Phasen-/Prompt-Mechanik im Headless-Testharness, bekannte Timeout-Ursachen).
 
-## Remote Server Zugriff
+## 2. Harte Regeln
 
-- Dieses Repo ist oeffentlich: Server-IP, Hostname, SSH-User und Key-Pfade duerfen nicht in versionierte Dateien (Docs, Skripte, Defaults, Commit-Messages). Stattdessen Platzhalter wie `<REMOTE_USER>@<REMOTE_HOST>` bzw. die Env-Variablen unten verwenden.
-- Ein Remote-Server ist optional: nicht jeder Nutzer dieses Repos bzw. eines Forks hat einen. Konfiguriert ist er nur, wenn lokal `~/.config/pokeroguebot/remote.env` existiert (nicht versioniert) und `POKEROGUE_REMOTE_SSH_TARGET` sowie `POKEROGUE_REMOTE_SSH_KEY` setzt. Fehlt die Datei, keinen Server annehmen, sondern den User fragen.
-- Wenn der Agent beauftragt wird, etwas auf dem Remote-Server zu tun, und `remote.env` vorhanden ist, darf er ohne weitere Rueckfrage den Key in den ssh-agent laden und sich verbinden:
+### 2.1 Oeffentliches Repo: keine Secrets, keine Infrastruktur-Details
+
+- Das Repo ist oeffentlich. Server-IP, Hostname, SSH-User, Key-Pfade, Tokens und Chat-IDs gehoeren nie in versionierte Dateien (Docs, Skripte, Defaults, Configs, Commit-Messages). Stattdessen Platzhalter wie `<REMOTE_USER>@<REMOTE_HOST>` oder Env-Variablen verwenden.
+- Es wird nichts versioniert, was nicht ins Repo muss. Generierte Artefakte, Laufzeitdaten, Logs und temporaere Outputs werden ueber `.gitignore` ausgeschlossen.
+
+### 2.2 `pokerogue/`-Submodul
+
+- PokeRogue liegt als Submodul in `pokerogue/` (Custom-Fork auf Basis `v1.12.0.10`); der bot-kompatible Stand ist der im Hauptrepo versionierte Submodul-Pointer.
+- **Harte Grenze:** `pokerogue/src/` (Spiellogik und -struktur) wird nicht veraendert, damit kuenftige Upstream-Versionen ohne grundlegende Konflikte uebernommen werden koennen.
+- Jede andere Aenderung im Submodul nur nach Rueckfrage und expliziter Zustimmung, mit zwei stehenden Ausnahmen (ohne erneute Rueckfrage):
+  1. **`pokerogue/test/porubot/regressions/`**: rein additive, kleine, deterministische Regressionstests, die frueher aufgetretene Pipeline-/Collector-Abweichungen (z. B. uebersprungene oder blockierte Phasenuebergaenge) fest nachstellen.
+     - Parametrisierte Datengenerierung (Seeds, Run-Count, Checkpoint-Pfade, grosse Outputs) gehoert nicht hierher, sondern laeuft weiter ueber das Template-/`test/.external-rl/`-Harness im Hauptrepo.
+  2. **`pokerogue/test/porubot/harness/`**: additiver, generischer Phasen-/Prompt-Fahrcode (z. B. `PoruBattleHarness`): Phasenuebergaenge abwarten, Prompts beantworten, erzwungene Switches / Learn-Move / Target-Select / Struggle aufloesen.
+     - Keine Kenntnis von RL-Policy, DQN-Inferenz, Checkpoint-Pfaden oder Dateisystem-Output ueber `GameManager`/`PhaseInterceptor` hinaus. Diese Belange bleiben in `scripts/90-dev/rl/` und rufen die Harness auf.
+     - Zweck: Regressionstests und Collector-Template nutzen denselben, typgeprueften Code statt einer Nachbildung.
+     - Nicht-additive Aenderungen an bestehenden Harness-Funktionen brauchen weiterhin Rueckfrage.
+  - Fuer beide gilt: keine bestehende Submodul-Datei veraendern, nichts unter `pokerogue/src/` anfassen, Aenderung als Commit auf dem Fork-Branch versionieren.
+- Ein `dirty` Submodul-Stand ist nicht reproduzierbar (Remote-Server, andere Nutzer). Relevante Aenderungen ueber den Fork oder ueber Patch-Dateien unter `patches/pokerogue/` versionieren. Workflow inkl. Hook-Fallstricken: `docs/pokerogue-submodule-versioning.md`.
+- Bei Architektur- oder RL-Erweiterungen zuerst eine Loesung ohne permanente Submodul-Aenderung suchen (temporaere External-RL-Tests, Harness ausserhalb der Kernlogik).
+- Nicht von grundlegenden Bugs im Submodul ausgehen, solange keine konkreten Belege aus Tests, Logs oder reproduzierbaren Fehlern vorliegen. Liegt ein Bug sehr wahrscheinlich dort: erst Ursache eingrenzen und benennen, dann einen moeglichst kleinen Fix vorschlagen.
+- Neue Erkenntnisse zur Harness-Mechanik in `docs/pokerogue-headless-test-harness-mechanics.md` festhalten, nicht nur im Test-Code.
+
+### 2.3 Combat-RL-State-Schema
+
+- Fuer Offline-Training von Kampf- und Switch-Entscheidungen gibt es genau einen verbindlichen State-Contract: `docs/rl-schema/combat-transition.schema.json`, Beispiel in `docs/rl-schema/combat-transition.example.json`.
+- Bei Schema-Aenderungen im selben Arbeitsschritt alle Consumer pruefen und anpassen: Collector, Dataset-Sanity-Checks, Offline-Training, Inferenz-/Eval-Skripte, Doku. Kein stiller Drift zwischen Schema, erzeugten JSONL-Daten und Python-/Node-Skripten.
+
+### 2.4 JS-Bridge-Typisierung
+
+- In `src/main/ts/` `any` vermeiden und explizite Typen aus dem Submodul oder lokale Typen verwenden. Starke Typisierung macht Drift nach Submodul-Updates frueh sichtbar.
+- Ist `any` ausnahmsweise noetig, das vor der Implementierung hinterfragen und mit konkreter technischer Begruendung im Code dokumentieren.
+- Source of truth ist `src/main/ts/`; `src/main/js/` ist generiert.
+
+## 3. Zusammenarbeit
+
+- Schreibt der User Deutsch, auf Deutsch antworten; englische Fachbegriffe nur, wo sie deutlich ueblicher oder praeziser sind.
+- Kurz, klar, operativ: zuerst Ergebnis oder Fazit, dann knappe Einordnung.
+- Bei Fragen nach einem Vorgehen direkt den konkreten Befehl, Pfad oder Copy/Paste-Block liefern.
+- Bei Logs, Trainingslaeufen, Benchmarks, Remote-Runs und Live-Verhalten erst den Ist-Zustand verifizieren, dann bewerten.
+- Belegte Befunde (Code, Logs, Dateien) klar von Vermutungen trennen.
+- Bei Live-Bot-Problemen UI-/Browser-Verhalten und Logs gemeinsam interpretieren, nicht nur aus Logmustern schliessen.
+- Neue Defaults, Checkpoints, Startbefehle oder Workflows: relevante Doku im selben Arbeitsschritt nachziehen (siehe Abschnitt 8).
+
+## 4. RL, Benchmarks und Daten
+
+- `loss` und andere Trainingsmetriken nie isoliert als Qualitaetsbeweis darstellen. Immer trennen zwischen Trainingsstabilitaet, Offline-Benchmark und Live-Verhalten.
+- Wirkt ein Training instabil, zuerst konservative Hyperparameter-Anpassungen statt grosser Architekturwechsel.
+- Jeder ausgefuehrte Benchmark wird in `docs/benchmark-history.md` dokumentiert.
+- Bei neuen Checkpoints oder neuem Live-Default `docs/todo-next.md` und die passende RL-/Pipeline-Doku pruefen.
+- Zielgroessen wie "erzeuge X Episoden" sind pragmatisch: etwa `+-5 %` Abweichung ist in Ordnung, wenn die Daten dadurch sauber ueber Wellen bzw. Seeds verteilt bleiben. Verteilungsqualitaet geht vor exakter Zahl.
+- Datenhygiene:
+  - Bei Wave-Library-, Dataset- und Pipeline-Artefakten auf semantische Duplikate, bug-induzierte Eintraege und veraltete Outputs achten.
+  - Kurzlebige Dateien nach `data/temp/` statt in produktive Datenpfade (`npm run dev:clean` raeumt auf).
+  - Bereinigungen an produktiven Datensaetzen oder Wave-Lib-Eintraegen nur gezielt und nachvollziehbar, danach betroffene Dateien kurz validieren.
+
+## 5. Remote-Server (optional)
+
+- Nicht jeder Nutzer dieses Repos bzw. eines Forks hat einen Remote-Server. Konfiguriert ist er nur, wenn lokal `~/.config/pokeroguebot/remote.env` existiert (nicht versioniert) und `POKEROGUE_REMOTE_SSH_TARGET` sowie `POKEROGUE_REMOTE_SSH_KEY` setzt. Fehlt die Datei, keinen Server annehmen, sondern fragen.
+- Wird der Agent beauftragt, etwas auf dem Server zu tun, und `remote.env` ist vorhanden, darf er ohne weitere Rueckfrage den Key laden und sich verbinden:
   - `source ~/.config/pokeroguebot/remote.env && eval "$POKEROGUE_REMOTE_SSH_ADD_CMD"` (optional gesetzt; laedt den Key nicht-interaktiv, z. B. unter macOS mit der Passphrase aus dem Schluesselbund)
   - `source ~/.config/pokeroguebot/remote.env && ssh -i "$POKEROGUE_REMOTE_SSH_KEY" "$POKEROGUE_REMOTE_SSH_TARGET" '<befehl>'`
-  - Schlaegt das Laden des Keys fehl (z. B. weil die Passphrase noch nicht im Schluesselbund liegt), den User bitten, einmalig interaktiv `ssh-add --apple-use-keychain <key>` auszufuehren. Passphrasen nie selbst eingeben oder erfragen.
-  - Die Erlaubnis gilt fuer das Verbinden und den erteilten Auftrag. Destruktive oder schwer umkehrbare Aktionen auf dem Server (Daten loeschen, laufende Pipelines stoppen, Systemkonfiguration aendern) weiterhin vorher bestaetigen lassen.
-- Auf dem Server muessen dieselben Variablen in `~/.config/pokeroguebot/telegram.env` gesetzt sein (wird von den Remote-Helpern vor dem Pipeline-Start gesourct), damit der vorbereitete `scp`-Download-Befehl in `collection-metrics.json` und in der Telegram-Abschlussmeldung die echte Adresse enthaelt; ohne sie erscheinen Platzhalter.
+  - Schlaegt das Laden des Keys fehl, den User bitten, einmalig interaktiv `ssh-add --apple-use-keychain <key>` auszufuehren. Passphrasen nie selbst eingeben oder erfragen.
+  - Die Erlaubnis gilt fuer das Verbinden und den erteilten Auftrag. Destruktive oder schwer umkehrbare Aktionen auf dem Server (Daten loeschen, laufende Pipelines stoppen, Systemkonfiguration aendern) vorher bestaetigen lassen.
+- Auf dem Server muessen `POKEROGUE_REMOTE_SSH_TARGET` und `POKEROGUE_REMOTE_SSH_KEY` (Key-Pfad auf dem lokalen Rechner) in `~/.config/pokeroguebot/telegram.env` stehen. Die Remote-Helper sourcen die Datei vor dem Start; sonst enthaelt der vorbereitete `scp`-Befehl in `collection-metrics.json` und in der Telegram-Meldung nur Platzhalter.
+- Remote-Laeufe end-to-end begleiten: Startbefehl, Status-/Log-Hinweise, Artefaktpfade, `scp`-Befehl, kurze Validierung des heruntergeladenen Ergebnisses (vorhanden/entpackt, grob konsistent, wichtige Metriken).
 
-## Preferred Collaboration Style
+### Remote-Helper (laufen auf dem Server im Repo-Clone)
 
-- Wenn der User auf Deutsch schreibt, antworte standardmaessig auf Deutsch. Englische Fachbegriffe nur dort verwenden, wo sie technisch deutlich ueblicher oder praeziser sind.
-- Bei Logs, Trainingslaeufen, Benchmarks, Remote-Runs und Live-Bot-Verhalten zuerst den Ist-Zustand lokal verifizieren und erst danach bewerten oder Schlussfolgerungen ziehen.
-- Wenn der User nach einem Vorgehen fragt, moeglichst direkt den konkreten Befehl, Pfad oder einen kurzen Copy/Paste-Block liefern statt nur abstrakt zu erklaeren.
-- Wenn neue Defaults, Checkpoints, Startbefehle oder Arbeitsablaeufe eingefuehrt werden, relevante Doku im selben Arbeitsschritt mitziehen.
-- Antworten sollen eher kurz, klar und operativ sein: zuerst Ergebnis oder Fazit, dann knappe Einordnung.
-- Bei Unsicherheit sauber trennen zwischen:
-  - direkt belegten Befunden aus Code, Logs oder Dateien
-  - plausiblen technischen Vermutungen oder Hypothesen
+| Zweck | Helper | Doku |
+|---|---|---|
+| Modifier-Daten aus strategic fixed-seed Runs (aktueller Fokus) | `scripts/01-data-generation/pipeline/run-modifier-strategic-seeded-remote.sh` | `docs/modifier-strategic-seeded-remote.md` |
+| Combat-Daten aus der Wave-Library | `scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh` | `docs/wave-library-random-collection-remote.md` |
+| Wave-Library-Bootstrap | `scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh` | `docs/combat-training-wave-library-v2.md` |
+| Offline-DQN-Training | `scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh` | `docs/combat-training-wave-library-v2.md` |
+| DQN-Benchmark-Vergleich | `scripts/03-benchmark/eval/run-dqn-benchmark-compare-remote.sh` | `docs/benchmark-history.md` |
 
-## RL / Benchmark Workflow Norms
+- Gemeinsame Subkommandos: `start`, `status`, `logs`, `last`, `issues`, `notify-test`, `stop` (einige zusaetzlich `start-smoke` u. ae.). Vor einem grossen Lauf nach Code- oder Submodul-Updates zuerst einen Smoke-Lauf machen.
+- Jeder neue oder groesser ueberarbeitete Remote-Helper bietet `telegram-control-start`, `telegram-control-status` und `telegram-control-stop` an. Bei neuen Pipeline-Versionen pruefen, dass diese Kommandos noch vorhanden sind. Telegram-Setup: `docs/telegram-notifications.md`.
 
-- `loss` oder andere Trainingsmetriken niemals isoliert als Qualitaetsbeweis darstellen.
-- Immer sauber unterscheiden zwischen:
-  - Trainingsstabilitaet
-  - Offline-Benchmark
-  - Live-Verhalten des Bots
-- Wenn ein Trainingslauf instabil wirkt, zunaechst konservative Hyperparameter-Anpassungen bevorzugen statt grosse Architekturwechsel.
-- Wenn ein Benchmark ausgefuehrt wird, muss der Lauf in `docs/benchmark-history.md` dokumentiert werden.
-- Bei neuen Checkpoints oder neuem Live-Default auch `docs/todo-next.md` und thematisch passende RL-/Pipeline-Doku auf Aktualitaet pruefen.
+## 6. Befehle
 
-## Remote / Live-Run Support Norms
+**Live-Bot (Maven):**
+- Build: `mvn clean compile` (baut die JS-Bridge automatisch in der `generate-sources`-Phase)
+- Tests: `mvn test`, einzeln `mvn test -Dtest=ClassName`
+- Starten: `mvn spring-boot:run` (Main-Klasse `com.sfh.pokeRogueBot.Application`)
+- Paket: `mvn clean package`
+- Voraussetzung: lokales PokeRogue unter `http://localhost:8000/` (`cd pokerogue && npm run start:dev`), Spielsprache Englisch
 
-- Bei Remote-Datengenerierung, Training oder Benchmarking moeglichst end-to-end unterstuetzen:
-  - Startbefehl
-  - Status/Log-Hinweise
-  - Artefaktpfade
-  - Download-/`scp`-Befehl
-  - kurze Validierung oder fachliche Einordnung des Ergebnisses
-- Bei heruntergeladenen Artefakten nach Moeglichkeit kurz pruefen:
-  - Datei vorhanden / entpackt
-  - grobe Konsistenz
-  - wichtige Metriken oder Auffaelligkeiten
-- Bei Live-Bot-Problemen UI-/Browser-Verhalten und Logs gemeinsam interpretieren; nicht vorschnell nur aus Logmustern auf die Ursache schliessen.
-- Wenn der Bug sehr wahrscheinlich im `pokerogue/`-Submodul liegt:
-  - Ursache zuerst klar eingrenzen und benennen
-  - erst danach einen moeglichst kleinen Fix im Submodul vorschlagen oder umsetzen
-- Wenn fuer einen Remote-Pfad ein Telegram-Control-Bot vorgesehen ist, sollen neue oder groesser ueberarbeitete Pipeline-Helper moeglichst dieselben drei Kommandos anbieten:
-  - `telegram-control-start`
-  - `telegram-control-status`
-  - `telegram-control-stop`
-- Bei neuen Pipeline-Versionen aktiv pruefen, ob diese Telegram-Control-Kommandos weiterhin vorhanden sind oder nachgezogen werden muessen, damit der Remote-Betrieb konsistent bleibt.
+**JS-Bridge:**
+- `npm install`, dann `npm run build:js` (Typecheck + esbuild; nur Build: `node build-js.mjs`)
+- Nur Typecheck: `npm run typecheck:js-bridge`
+- Volle Typaufloesung braucht die Submodul-Dependencies: `cd pokerogue && pnpm install`
 
-## Data Hygiene
+**Skripte und Pipeline (Node/TypeScript):**
+- `npm run typecheck:scripts`: prueft alle `scripts/**/*.ts` gegen die `#alias/*`-Pfad-Map der Root-`tsconfig.json` (siehe 7.)
+- `npm run rl:test:porubot:regressions`: Regressionstests im Submodul (vitest)
+- `npm run rl:test:policy-contract`, `npm run rl:test:modifier:strategic-contract`, `npm run rl:test:modifier:item-suite`: Contract- und Masking-Tests
+- Lokale Pipeline-Laeufe: `npm run rl:pipeline:modifier:strategic:collect -- <config>`, `npm run rl:pipeline:wave-lib:collect -- <config>`
 
-- Bei Wave-Library-, Dataset- und Pipeline-Artefakten aktiv auf semantische Duplikate, Bug-induzierte Eintraege und veraltete lokale Outputs achten.
-- Kurzlebige, lokal nuetzliche, aber schnell veraltende Dateien sollen bevorzugt in einen klaren Temp-/nicht versionierten Datenbereich wandern statt produktive Datenpfade zu vermuellen.
-- Bereinigungen an produktiven Datensaetzen oder Wave-Lib-Eintraegen nur gezielt und nachvollziehbar vornehmen; nach Aenderungen die betroffenen Dateien kurz validieren.
+**Training und Eval (Python):**
+- Repo-venv unter `.venv/` verwenden; die Remote-Helper nutzen sie automatisch.
+- Training: `npm run rl:train:dqn:wave-lib:v3` (bzw. `python3 scripts/02-training/offline-dqn/train_dqn_offline.py --config <config>`)
+- Eval: `npm run rl:eval:compare -- <args>`
+- Dataset pruefen: `npm run rl:check:dataset`, `npm run rl:report:dataset`
 
-**Maven Commands:**
+**Submodul:**
+- Patches: `bash scripts/ops/apply-pokerogue-patches.sh check|apply`
+- Haengt `git submodule update --init --recursive` auf `waiting: update-packages`, ist es meist der `lefthook`-`post-checkout`-Hook mit fehlendem `pnpm`: `corepack`/`pnpm` im Submodul vorbereiten und den Checkout ggf. mit `LEFTHOOK=0` wiederholen.
 
-- Build project: `mvn clean compile` (automatically triggers JS bridge build via exec-maven-plugin)
-- Run tests: `mvn test`
-- Run application: `mvn spring-boot:run`
-- Package JAR: `mvn clean package`
+## 7. Konventionen fuer Code
 
-**JS Bridge Build (standalone):**
+- Neue Skripte im Hauptrepo, besonders unter `scripts/`, in TypeScript schreiben. Werden bestehende kritische RL-/Pipeline-Skripte groesser angefasst, nach TypeScript migrieren statt plain JavaScript auszubauen.
+- Neue TS-Dateien oder Alias-Imports (`#test/*`, `#app/*`, ...): im selben Schritt pruefen, dass `paths`-Eintrag im zustaendigen `tsconfig` und Typ-Dependencies (Node, Vitest) vorhanden sind.
+- Nach jeder Aenderung an `#alias/*`-Imports in `scripts/` und nach jedem Bump des Submodul-Pointers `npm run typecheck:scripts` ausfuehren. Hintergrund: vitest prueft keine Typen; ein falscher Alias-Import wird zur Laufzeit still `undefined` (siehe `PartyUiMode`-Vorfall in `docs/pokerogue-headless-test-harness-mechanics.md`). `__PLACEHOLDER__`-Tokens in `*.template.ts` werden dabei bewusst ignoriert.
+- Live-Bot: neuer Code in Kotlin. Nur noch die heuristischen Neurons sind Java; Hinweise zur Migration (Lombok) in `docs/architecture.md`.
+- Tests: Kotlin mit JUnit 5 und MockK.
 
-- Install dependencies: `npm install`
-- Build JS bridge files: `npm run build:js` or `node build-js.mjs`
-- This compiles `src/main/ts/*.ts` → `src/main/js/*.js` via esbuild
-- Maven runs this automatically during `generate-sources` phase
+## 8. Diese Datei pflegen
 
-**Test Commands:**
-
-- Run all tests: `mvn test`
-- Run specific test class: `mvn test -Dtest=ClassName`
-- Run tests with specific profile: `mvn test -Dspring.profiles.active=test`
-
-**Application Execution:**
-
-- Main class: `com.sfh.pokeRogueBot.Application` (Kotlin)
-- Spring Boot application - runs via `mvn spring-boot:run` or by running the Application class in IDE
-- Local PokeRogue frontend - start from the `pokerogue/` submodule via `npm run start:dev` (expects `http://localhost:8000/`)
-
-## Project Architecture
-
-This is a Spring Boot application (version 3.5.3) written in mixed Java/Kotlin that automates playing the PokeRogue browser game.
-
-### Technology Stack
-
-- **Runtime:** Java 21, Kotlin 2.1.0
-- **Framework:** Spring Boot 3.5.5 with Spring Retry
-- **Browser Automation:** Selenium WebDriver (Chrome)
-- **JS Bridge Build:** esbuild (TypeScript → IIFE JavaScript)
-- **Testing:** JUnit 5, MockK (for Kotlin), Spring Boot Test
-- **Build:** Maven with mixed Java/Kotlin compilation + esbuild for JS bridge
-
-### Core Architecture Components
-
-**Bot Control Flow (src/main/kotlin/com/sfh/pokeRogueBot/bot/):**
-
-- `SimpleBot`: Main bot controller managing run lifecycle, error handling, and save slot management
-- `WaveRunner`: Handles individual wave/battle phases
-- Bot runs continuously until max runs reached or all save slots exhausted
-
-**Brain System (src/main/kotlin/com/sfh/pokeRogueBot/service/):**
-
-- `Brain`: Central decision-making service coordinating all neurons
-- `ShortTermMemory`: Tracks recent phases to detect action loops
-- `LongTermMemory`: Persistent knowledge about items and game elements
-- Memory system prevents the bot from getting stuck in infinite loops
-
-**Neural Decision System (src/main/java|kotlin/com/sfh/pokeRogueBot/neurons/):**
-
-- `CombatNeuron`: Attack selection for single/double battles
-- `SwitchPokemonNeuron`: Pokemon switching decisions
-- `ModifierRLNeuron`: RL-basierte Modifier-/Item-Entscheidungen (DQN-gestuetzt)
-- `CapturePokemonNeuron`: Pokemon capture decisions with pokeball selection
-- `LearnMoveNeuron`: Move learning decisions
-
-**Browser Integration (src/main/kotlin/com/sfh/pokeRogueBot/browser/):**
-
-- `BrowserClient`/`ChromeBrowserClient`: Selenium WebDriver wrapper
-- `JsClient`: JavaScript execution for reading game state
-- `ImageClient`: Screenshot capture for debugging
-- JavaScript bridge reads game state without modifying it
-
-**JavaScript Bridge (src/main/ts/ → src/main/js/):**
-
-- TypeScript source files in `src/main/ts/` are compiled to plain JS in `src/main/js/` via esbuild
-- `src/main/ts/enums.ts` imports PokeRogue enums (AbilityId, Nature, PokemonType, BiomeId, etc.) directly from the `pokerogue/` submodule
-- Bridge files use `import type` to reference PokeRogue game classes (Pokemon, Move, BattleScene, etc.) for IDE autocomplete and compile-time checks — these are fully erased by esbuild and produce zero runtime code
-- Fuer die JS-Bridge ist es sehr wichtig, in `src/main/ts/` die Verwendung von `any` wenn irgend moeglich zu vermeiden und stattdessen immer explizite Typen aus dem Submodul oder lokale Typen zu verwenden
-- Wenn `any` in der JS-Bridge ausnahmsweise doch notwendig ist, muss dies vor der Implementierung aktiv hinterfragt und mit einer konkreten technischen Begruendung dokumentiert werden
-- Hintergrund dieser Regel: starke Typisierung soll Drift frueh sichtbar machen und stille Fehler nach Aenderungen im `pokerogue`-Submodul vermeiden
-- The `tsconfig.json` mirrors all of PokeRogue's path aliases (`#app/*`, `#field/*`, `#data/*`, `#modifiers/*`, etc.) so transitive type resolution works
-- esbuild bundles each TS file into a self-contained IIFE (no import/export/require in output)
-- The generated JS is injected into the browser by Selenium and attached to `window.poru.*` namespace
-- This namespace organization (e.g., `window.poru.uihandler`, `window.poru.util`) makes debugging easier
-- Developers and users can manually call functions in the browser console for testing: `window.poru.uihandler.getUiHandler(15)`
-- **Source of truth is `src/main/ts/`** — the `src/main/js/*.js` files are generated output (gitignored)
-- To rebuild after editing TS files: `node build-js.mjs` (or `mvn compile` triggers it automatically)
-
-**Phase System (src/main/kotlin/com/sfh/pokeRogueBot/phase/):**
-
-- `Phase`: Abstract base for all game states
-- `PhaseProcessor`: Handles phase transitions and actions
-- `PhaseProvider`: Dependency injection for phase management
-- 30+ concrete phase implementations in `impl/` package handle specific game states
-
-**Game State Models (src/main/java/com/sfh/pokeRogueBot/model/):**
-
-- `browser/gamejson/`: Game state data structures from JavaScript
-- `browser/pokemonjson/`: Pokemon-specific data models
-- `decisions/`: Decision objects for various game choices
-- `modifier/`: Item/modifier system with 25+ modifier types
-- `run/`: Run tracking and save slot management
-
-### Configuration System
-
-**Application Configuration (src/main/resources/):**
-
-- `application.yml`: Default configuration
-- `application-default.yml`: Local overrides (not tracked in git)
-- Configurable Chrome profile, target URL, timing parameters
-- Extensive wait time configuration for different game phases
-
-**Key Configuration Areas:**
-
-- Browser settings (Chrome profile, target URL)
-- Timing configuration (wait times for different phases)
-- Bot behavior (max runs, retry policies)
-- Starter Pokemon selection
-
-## Development Notes
-
-- Es sollen keine Dateien versioniert oder committed werden, die nicht auf GitHub bzw. nicht ins Repository muessen.
-- Generierte Artefakte, lokale Laufzeitdaten, temporäre Outputs, Logs und andere nur lokal oder serverseitig relevante Dateien sollen konsequent ueber `.gitignore` aus Git herausgehalten werden.
-- Fuer neue Skripte im Hauptrepo, besonders im RL-/Pipeline-Bereich unter `scripts/`, soll TypeScript bevorzugt werden.
-- Wenn bestehende kritische RL-/Pipeline-Skripte groesser angefasst werden, ist eine Migration nach TypeScript gegenueber weiterem Ausbau in plain JavaScript zu bevorzugen.
-- Wenn neue TypeScript-Dateien oder neue TS-Imports eingefuehrt werden, muss aktiv geprueft werden, ob die benoetigten Alias-Pfade, Typdefinitionen und das passende `tsconfig`-Setup bereits existieren.
-- Falls neue Alias-Imports verwendet werden (z. B. `#test/*`, `#app/*` oder vergleichbare Submodul-Pfade), soll im selben Arbeitsschritt geprueft und bei Bedarf ergaenzt werden:
-  - passender `paths`-Eintrag im zustaendigen `tsconfig`
-  - benoetigte Typ-Dependencies wie Node-/Vitest-Typen
-  - kurze Verifikation, dass VS Code bzw. `tsc` die neuen Imports wirklich aufloesen kann
-- Verbindliches Kommando dafuer: `npm run typecheck:scripts` (siehe `scripts/90-dev/check-script-imports.sh`). Prueft alle `scripts/**/*.ts` gegen die vollstaendige `#alias/*`-Pfad-Map in der Root-`tsconfig.json` und schlaegt gezielt nur bei echten Import-Fehlern fehl (fehlendes Modul, fehlender Export) - `__PLACEHOLDER__`-Tokens in `*.template.ts`-Dateien werden dabei bewusst ignoriert
-  - Hintergrund: `vitest` fuehrt vor dem Testlauf keine Typpruefung durch, daher wird ein falscher `#alias/*`-Import (z. B. nach einem Rename/Move im `pokerogue`-Submodul) nicht als Fehler sichtbar, sondern der importierte Wert wird zur Laufzeit still `undefined` - siehe den `PartyUiMode`-Vorfall in `docs/pokerogue-headless-test-harness-mechanics.md`
-  - Dieses Kommando nach jeder Aenderung an `#alias/*`-Imports in `scripts/` ausfuehren, insbesondere nach einem Bump des `pokerogue`-Submodul-Pointers
-
-**Language Usage:**
-
-- Main application logic: Java
-- Entry point and utilities: Kotlin
-- Tests: Mixed Java/Kotlin with MockK for Kotlin testing
-
-**Game Integration:**
-
-- PokeRogue game is included as a git submodule in `pokerogue/`; der bot-kompatible Stand wird ueber den im Hauptrepo versionierten Submodul-Pointer festgelegt und ist aktuell ein auf `v1.12.0.10` basierter Custom-Fork-Stand
-- Code im `pokerogue/`-Submodul darf nicht ohne vorherige Rueckfrage und explizite Zustimmung angepasst werden
-- Aenderungen im `pokerogue/`-Submodul sind nur erlaubt, wenn sie vorher vom User freigegeben wurden und bestehende Spiel- und Phasenlogik nicht umbauen, ausser dies ist technisch zwingend notwendig
-- Stehende Ausnahme ohne erneute Rueckfrage: rein additive Testdateien unterhalb von `pokerogue/test/porubot/regressions/`, sofern
-  - keine bestehende Submodul-Datei veraendert wird,
-  - kein Code unterhalb von `pokerogue/src/` angefasst wird,
-  - und die Aenderung als Commit auf dem Fork-Branch versioniert wird (kein dirty Submodul-Stand)
-  - Zweck dieses Ordners: kleine, deterministische Regressionstests, die bekannte, frueher aufgetretene Pipeline-/Collector-Abweichungen (z. B. uebersprungene oder blockierte Phasenuebergaenge) fest nachstellen; siehe `docs/pokerogue-submodule-versioning.md`
-  - Mechanismus-Hintergrund (Prompt-Queue-Semantik, Phasen-Reihenfolge, warum diese Abweichungen ueberhaupt auftreten) ist zentral in `docs/pokerogue-headless-test-harness-mechanics.md` dokumentiert; neue Erkenntnisse dort und nicht nur im Test-Code festhalten
-  - Parametrisierte Datengenerierung (Seeds, Run-Count, Checkpoint-Pfade, grosse Output-Artefakte) bleibt bewusst ausserhalb dieser Ausnahme und laeuft weiterhin ueber das bestehende Template-/`test/.external-rl/`-Harness im Hauptrepo
-- Stehende Ausnahme ohne erneute Rueckfrage: additiver, generischer Phasen-/Prompt-Fahrcode unterhalb von `pokerogue/test/porubot/harness/` (z. B. eine `PoruBattleHarness`-Klasse/Modul), sofern
-  - er ausschliesslich generische Spiel-Interaktionslogik enthaelt (Phasenuebergaenge abwarten, Prompts beantworten, erzwungene Switches/Learn-Move/Target-Select/Struggle-Faelle aufloesen) und ueber `GameManager`/`PhaseInterceptor` hinaus keine Kenntnis von RL-Policy, DQN-Inferenz, Checkpoint-Pfaden oder Dateisystem-Output hat,
-  - keine bestehende Submodul-Datei veraendert und kein Code unterhalb von `pokerogue/src/` angefasst wird,
-  - die Aenderung als Commit auf dem Fork-Branch versioniert wird (kein dirty Submodul-Stand),
-  - Zweck dieses Ordners: einmal implementierte, typgeprüfte Phasen-Fahrlogik, die sowohl von `test/porubot/regressions/` als auch vom Hauptrepo-Collector-Template per Import genutzt wird, damit Regressions-/Replay-Tests denselben Code pruefen, der in der echten Pipeline laeuft, statt einer separaten Nachbildung
-  - Pipeline-spezifische Belange (Seed-/Run-Bookkeeping, DQN-Policy-Aufruf, Checkpoint-Pfade, JSONL-Output) bleiben bewusst im Hauptrepo (`scripts/90-dev/rl/`) und werden von dort aus gegen die Harness-Klasse aufgerufen, nicht in die Harness verschoben
-  - Aenderungen an bestehenden Funktionen innerhalb von `harness/` (nicht rein additiv) benoetigen weiterhin Rueckfrage, ebenso jede Erweiterung des Ordners um Code, der eine der obigen Bedingungen verletzt
-- Harte Grenze, die auch durch obige Ausnahmen nicht aufgeweicht wird: Spiellogik und -struktur des eigentlichen PokeRogue-Spiels (`pokerogue/src/`) duerfen nicht veraendert werden, damit zukuenftige Upstream-Versionen weiterhin ohne grundlegende Konflikte uebernommen werden koennen
-- Bei Architektur- oder RL-Erweiterungen ist zunaechst zu pruefen, ob eine Loesung ohne permanente Submodul-Aenderung moeglich ist, z. B. ueber temporaere External-RL-Tests oder einen ergaenzenden Harness ausserhalb der Kernlogik
-- Ein `dirty` `pokerogue/`-Stand ist nicht reproduzierbar und reicht nicht fuer Remote-Server oder andere Nutzer; relevante Submodul-Aenderungen muessen versioniert werden
-- Bevorzugte Strategien fuer versionierte Submodul-Aenderungen:
-  - eigener Fork des Submoduls fuer laengerfristige oder fuer andere Nutzer relevante Aenderungen
-  - versionierte Patch-Dateien unter `patches/pokerogue/` fuer kleine oder experimentelle Anpassungen
-- Verbindliche Referenz fuer den empfohlenen Fork-/Patch-Workflow:
-  - `docs/pokerogue-submodule-versioning.md`
-- Verbindliche Referenz fuer den operativen Submodul-Update-Workflow inklusive Hook-Fallstricken:
-  - `docs/pokerogue-submodule-versioning.md`
-- Wenn Patch-Dateien verwendet werden, den Helper nutzen:
-  - `bash scripts/ops/apply-pokerogue-patches.sh check`
-  - `bash scripts/ops/apply-pokerogue-patches.sh apply`
-- Wenn `git submodule update --init --recursive` sichtbar auf `waiting: update-packages` haengt, zuerst an den `lefthook`-`post-checkout`-Hook und fehlendes `pnpm` denken; dann `corepack`/`pnpm` im Submodul manuell vorbereiten und den erneuten Checkout bei Bedarf mit `LEFTHOOK=0` ausfuehren
-- Es ist nicht von grundlegenden Bugs im `pokerogue/`-Submodul auszugehen, solange nicht konkrete Belege aus Tests, Logs oder reproduzierbaren Laufzeitfehlern dafuer vorliegen
-- The submodule is used at build time: JS bridge TypeScript files import enum definitions from `pokerogue/src/enums/` and use `import type` for game classes (Pokemon, BattleScene, Move, etc.) from the submodule source
-- For full type resolution in the bridge files, install the pokerogue submodule's dependencies: `cd pokerogue && pnpm install` (resolves transitive types like Phaser)
-- Requires local PokeRogue instance at `http://localhost:8000/`
-- JavaScript-based state reading, Selenium for interactions
-- English language requirement for game
-
-**Error Handling:**
-
-- Comprehensive exception hierarchy in `model/exception/`
-- Automatic save-and-restart on errors
-- Screenshot capture for debugging special encounters
-- Save slot rotation to handle corrupted saves
-
-**Testing Strategy:**
-
-- Unit tests for neurons, services, and phase logic
-- Integration tests for file management
-- MockK used for Kotlin component testing
-- Spring Boot test framework integration
-- Wenn ein Benchmark ausgefuehrt wird, muss der Lauf in `docs/benchmark-history.md` dokumentiert werden
-
-**Combat RL State Schema:**
-
-- Fuer Offline-Training von Pokemon-Kaempfen und Switch-Entscheidungen gibt es genau einen verbindlichen State-Contract.
-- Die feste Dokumentationsstelle dafuer ist `docs/rl-schema/combat-transition.schema.json`.
-- Das dazu passende Beispiel muss in `docs/rl-schema/combat-transition.example.json` gepflegt werden.
-- Wenn das Combat-/Switch-State-Schema geaendert wird, muessen mit grosser Sorgfalt alle Consumer im selben Arbeitsschritt geprueft und bei Bedarf angepasst werden.
-- Dazu gehoeren insbesondere Collector, Dataset-Sanity-Checks, Offline-Training, Inferenz/Eval-Skripte und die zugehoerige Dokumentation.
-- Es darf kein stiller Drift zwischen dokumentiertem Schema, erzeugten JSONL-Daten und Python-/Node-Skripten entstehen.
-- Wenn der User fuer Offline-RL-Datengenerierung eine Zielgroesse wie "erzeuge X Episoden" nennt, ist das als pragmatischer Zielwert zu verstehen und muss nicht exakt getroffen werden.
-- Eine Abweichung von etwa `+-5%` ist akzeptabel, wenn die Datengenerierung dadurch sauber ueber viele Wellen bzw. Seeds pro Welle verteilt bleibt.
-- In solchen Faellen soll Verteilungsqualitaet ueber Wellen/Seeds wichtiger gewichtet werden als das exakte Treffen einer einzelnen absoluten Episodenzahl.
-
-**Java to Kotlin Migration Guidelines:**
-
-- When migrating Java classes to Kotlin, prioritize classes that use Lombok annotations (@Data, @Getter, @Setter)
-- Kotlin cannot access Lombok-generated methods at compile time, leading to compilation errors
-- If a Kotlin class needs to access fields/methods from a Java class with Lombok, migrate the Java class to Kotlin first
-- Use Kotlin data classes to replace Java classes with @Data annotation
-- Use Kotlin properties with getter/setter syntax instead of Lombok-generated methods
-- When encountering "Cannot access field" or "Unresolved reference" errors for setter/getter methods, migrate the target Java class to Kotlin
+- AGENTS.md enthaelt Regeln, Workflows und Befehle. Beschreibungen, die schnell veralten (Architektur, Pipeline-Details, Status), gehoeren in `docs/` und werden hier nur verlinkt.
+- Wer Versionen, Pfade, Defaults, Befehle, Remote-Helper oder Submodul-Ausnahmen aendert, prueft im selben Arbeitsschritt, ob AGENTS.md (und `docs/architecture.md`) noch stimmt.
+- Neue dauerhafte Regeln des Users hier im passenden Abschnitt eintragen, nicht ans Ende haengen, und Dopplungen vermeiden.
