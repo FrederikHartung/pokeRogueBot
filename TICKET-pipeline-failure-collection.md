@@ -64,7 +64,10 @@ Hintergrund: Heute wirft der Runner bei jeder technischen Termination (`run-poke
 - [ ] Remote verifizieren: `quick-smoke`, Szenario-Tests, ein Lauf mit mehreren Seeds.
 - [ ] Diese Ticket-Datei loeschen.
 
+## Entscheidungen
+
+- **Notausschalter-Defaults:** Abbruch bei 5 technischen Terminations in Folge oder bei mehr als 20 % technischen Terminations, sobald mindestens 20 Runs abgeschlossen sind. Beide Schwellen in der Config ueberschreibbar.
+
 ## Offene Fragen
 
-- Defaults fuer den Notausschalter (z. B. 5 technische Terminations in Folge oder > 20 % nach mindestens 20 Runs)?
-- Sind technische Terminations bei gleichem Seed/Run-Index deterministisch reproduzierbar oder (wie frueher die Zombie-Treiber-Timeouts) timingabhaengig? Davon haengt ab, ob spaeter ein optionaler Retry sinnvoll ist.
+- **Reproduzierbarkeit:** Treten technische Terminations bei gleichem Seed, Run-Index und `decision_rng_seed` deterministisch wieder auf, oder sind sie (wie frueher die Zombie-Treiber-Timeouts) timingabhaengig? Klaert sich bei der Umsetzung von Abschnitt 4. Davon haengt ab, ob spaeter ein optionaler Retry sinnvoll ist.
