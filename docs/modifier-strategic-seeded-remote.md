@@ -63,6 +63,28 @@ bash scripts/01-data-generation/pipeline/run-modifier-strategic-seeded-remote.sh
 
 Exit-Code `0` bei `QUICK SMOKE OK`, sonst `1`. Laeuft gerade ein Collection-Run, bricht `quick-smoke` ab.
 
+## Szenario-Smoke-Tests
+
+Prueft die Sonderfaelle, die `quick-smoke` im Normalbetrieb nicht abdeckt (ca. 1,5 min):
+
+```bash
+node scripts/01-data-generation/pipeline/test-modifier-strategic-remote-scenarios.ts [bot|failure|all]
+```
+
+| Gruppe | Szenario | Erwartung |
+|---|---|---|
+| `bot` | `bot-already-running` | eigener Control-Bot laeuft: `quick-smoke` meldet `OK control-bot-already-running`, Exit `0`, und laesst den Bot laufen |
+| `bot` | `bot-foreign-running` | Control-Bot eines anderen Helpers (Wave-Library) laeuft: `quick-smoke` meldet `FAIL control-bot-foreign-running`, Exit `1`, startet keinen zweiten Bot und laesst den fremden laufen |
+| `failure` | `pipeline-timeout` | detached `start` mit `run_process_timeout_ms: 3000` (`data/rl/modifier-strategic-seeded-remote-scenario-timeout.json`) |
+| `failure` | `pipeline-error` | detached `start` mit fehlendem Combat-Checkpoint (`data/rl/modifier-strategic-seeded-remote-scenario-error.json`) |
+
+Bei den `failure`-Szenarien wird jeweils geprueft: `collect_dataset` und der Batch stehen im Manifest auf `failed`, Failure-Summary und `error_excerpt` enthalten den erwarteten Fehler, die `collection_failed`-Meldung wurde als Dry-Run gebaut, und der automatisch gestartete Control-Bot ist danach wieder gestoppt. Scheitert ein Lauf innerhalb der ersten Sekunde (Config-Fehler), meldet `start` das direkt mit `Process exited immediately` und Exit `1`; auch das ist ein gueltiger Ausgang.
+
+Hinweise:
+
+- Voraussetzung: kein Collection-Run und kein Control-Bot aktiv, sonst bricht das Skript ab. Es stoppt nur Bots, die es selbst gestartet hat, und stellt die aktive Config des Helpers am Ende wieder her.
+- Die `failure`-Szenarien nutzen `POKEROGUE_SKIP_PREFLIGHT=1` fuer `start`. Dieser Schalter ist nur fuer Tests gedacht, nicht fuer echte Laeufe.
+
 ## Vorbereitete Configs
 
 - Quick-Smoke: `data/rl/modifier-strategic-seeded-remote-quick-smoke.json`
