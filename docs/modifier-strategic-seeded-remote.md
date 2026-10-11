@@ -32,6 +32,7 @@ Remote-Helper:
 ```bash
 bash scripts/01-data-generation/pipeline/run-modifier-strategic-seeded-remote.sh start
 bash scripts/01-data-generation/pipeline/run-modifier-strategic-seeded-remote.sh start-smoke
+bash scripts/01-data-generation/pipeline/run-modifier-strategic-seeded-remote.sh quick-smoke
 bash scripts/01-data-generation/pipeline/run-modifier-strategic-seeded-remote.sh status
 bash scripts/01-data-generation/pipeline/run-modifier-strategic-seeded-remote.sh logs
 bash scripts/01-data-generation/pipeline/run-modifier-strategic-seeded-remote.sh issues
@@ -41,8 +42,30 @@ bash scripts/01-data-generation/pipeline/run-modifier-strategic-seeded-remote.sh
 bash scripts/01-data-generation/pipeline/run-modifier-strategic-seeded-remote.sh stop
 ```
 
+## Quick-Smoke vs. Smoke
+
+| | `quick-smoke` | `start-smoke` |
+|---|---|---|
+| Dauer | ca. 45 s | ca. 8-9 min |
+| Ausfuehrung | Vordergrund, wartet auf Ergebnis | detached im Hintergrund |
+| Preflight (Contract-/Determinismus-Tests, `--prepare-only`) | nein | ja |
+| Run | 1 Run bis Wave 1 | 1 Run bis max. Wave 15 |
+| Telegram-Notification | nur Dry-Run (gebaut, nicht gesendet) | wird gesendet |
+| Zweck | Funktionscheck: Server, Telegram, Spiel, DQN, Pipeline-Phasen | fachliche Pruefung nach Code- oder Submodul-Updates |
+
+`quick-smoke` prueft der Reihe nach und gibt pro Schritt `OK`/`FAIL` aus:
+
+1. `telegram-reachable`: Bot-Token und Netzwerk per Telegram `getMe` (sendet nichts)
+2. `control-bot-started`: startet den Control-Bot, falls er nicht laeuft (`control-bot-already-running`, wenn schon aktiv; `FAIL`, wenn ein Control-Bot einer anderen Pipeline laeuft)
+3. `pipeline-run`: kompletter Pipeline-Lauf mit `data/rl/modifier-strategic-seeded-remote-quick-smoke.json`; der Runtime-Ordner wird vorher geleert
+4. `notification-dry-run`: die Abschlussmeldung wurde gebaut, aber wegen `POKEROGUE_TELEGRAM_DRY_RUN=1` nicht gesendet (Inhalt steht im Log)
+5. `control-bot-stopped`: stoppt den Control-Bot wieder, sofern der Quick-Smoke ihn selbst gestartet hat
+
+Exit-Code `0` bei `QUICK SMOKE OK`, sonst `1`. Laeuft gerade ein Collection-Run, bricht `quick-smoke` ab.
+
 ## Vorbereitete Configs
 
+- Quick-Smoke: `data/rl/modifier-strategic-seeded-remote-quick-smoke.json`
 - Smoke: `data/rl/modifier-strategic-seeded-remote-smoke.json`
 - Remote-Batch: `data/rl/modifier-strategic-seeded-remote-10seeds-20runs-wave30.json`
 - Groesserer Batch: `data/rl/modifier-strategic-seeded-remote-50seeds-50runs-wave30.json`

@@ -263,6 +263,8 @@ Hinweise:
 - Fehlt die Datei oder sind Token/Chat-ID nicht gesetzt, laeuft die Pipeline trotzdem weiter.
 - Fehlen `POKEROGUE_REMOTE_SSH_TARGET`/`POKEROGUE_REMOTE_SSH_KEY`, enthaelt der `scp`-Befehl in `collection-metrics.json` und in der Abschlussmeldung nur Platzhalter.
 - Ein Fehler beim Senden einer Benachrichtigung stoppt die Pipeline nicht.
+- `POKEROGUE_TELEGRAM_DRY_RUN=1` baut die Meldung komplett und schreibt sie ins Log, sendet sie aber nicht (genutzt von `quick-smoke`).
+- `node scripts/04-automation/telegram/check-telegram-bot.ts` prueft Token und Erreichbarkeit per `getMe`, ohne etwas zu senden und ohne einem laufenden Control-Bot `getUpdates` streitig zu machen.
 - `POKEROGUE_TELEGRAM_POLL_INTERVAL_SECONDS` wird von den Remote-Helpern jetzt auch dann direkt aus `telegram.env` gelesen, wenn die aktuelle Shell die Datei nicht vorher manuell mit `source` geladen hat.
 
 ## Telegram-Statusabfrage vom iPhone

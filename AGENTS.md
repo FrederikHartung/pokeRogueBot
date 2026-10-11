@@ -90,7 +90,7 @@ Das Projekt: ein Bot, der das Browserspiel PokeRogue automatisiert (Spring Boot,
 | Offline-DQN-Training | `scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh` | `docs/combat-training-wave-library-v2.md` |
 | DQN-Benchmark-Vergleich | `scripts/03-benchmark/eval/run-dqn-benchmark-compare-remote.sh` | `docs/benchmark-history.md` |
 
-- Gemeinsame Subkommandos: `start`, `status`, `logs`, `last`, `issues`, `notify-test`, `stop` (einige zusaetzlich `start-smoke` u. ae.). Vor einem grossen Lauf nach Code- oder Submodul-Updates zuerst einen Smoke-Lauf machen.
+- Gemeinsame Subkommandos: `start`, `status`, `logs`, `last`, `issues`, `notify-test`, `stop` (einige zusaetzlich `start-smoke`, der Modifier-Helper `quick-smoke`). Vor einem grossen Lauf nach Code- oder Submodul-Updates zuerst einen Smoke-Lauf machen.
 
 ### Ablauf, wenn der User einen Pipeline-Lauf beauftragt
 
@@ -98,12 +98,14 @@ Das Projekt: ein Bot, der das Browserspiel PokeRogue automatisiert (Spring Boot,
 2. **Ist-Zustand pruefen (nur lesend):** Repo- und Submodul-Commit auf dem Server gegen lokal `origin/develop`, laufende Pipelines (`status` der Helper), laufende Telegram-Control-Bots (`pgrep -af telegram-control`).
 3. **Server aktualisieren**, falls er hinter `origin/develop` liegt: `git pull --ff-only`, `LEFTHOOK=0 git submodule update --init --recursive`, im Submodul `corepack pnpm install --frozen-lockfile`, im Hauptrepo `npm install`, dann `npm run typecheck:scripts`. Laeuft gerade eine Pipeline, nicht aktualisieren, sondern erst fragen.
 4. **Telegram-Control-Bot:** Pro Bot-Token darf nur ein Control-Bot laufen, weil Telegram `getUpdates` nur an einen Abnehmer liefert. Ein laufender Bot einer anderen Pipeline (oder ein alter Prozess mit Code von vor dem Update) wird ueber den `telegram-control-stop` seines Helpers beendet, sofern zu dieser Pipeline kein Lauf mehr aktiv ist. Die Helper pruefen bei `start` nur ihren eigenen Bot und erkennen fremde nicht. Den Bot fuer den neuen Lauf nicht manuell starten: `start`/`start-smoke` startet ihn automatisch, wenn `telegram.env` existiert, und stoppt ihn nach Laufende wieder.
-5. **Starten**, nach Code- oder Submodul-Updates zuerst `start-smoke`. Dann Status, Log-Pfad und erwartete Telegram-Meldungen an den User melden.
+5. **Funktionscheck:** `quick-smoke` (ca. 45 s, Vordergrund; prueft Telegram, Control-Bot, einen Run bis Wave 1 und die Notification als Dry-Run). Aktuell nur im Modifier-Helper vorhanden.
+6. **Starten**, nach Code- oder Submodul-Updates zuerst `start-smoke` (ca. 8-9 min, mit Contract-/Determinismus-Tests). Dann Status, Log-Pfad und erwartete Telegram-Meldungen an den User melden.
 
 Fallstricke auf dem Server:
 - nvm wird nur in interaktiven Shells geladen. Bei nicht-interaktivem `ssh` sonst `/usr/bin/node` v18; das Submodul braucht Node >= 24.9. Daher jedem Remote-Befehl `source ~/.nvm/nvm.sh >/dev/null;` voranstellen.
 - Die Pipelines ueberspringen Phasen, die im Manifest schon `completed` sind. Ein Lauf mit derselben Config wie ein frueherer abgeschlossener Lauf tut nichts ausser einer Erfolgsmeldung. Alten Runtime-Ordner vorher umbenennen (nicht loeschen) oder eine neue Config bzw. einen neuen `output_root` verwenden.
 - `start` fuehrt vorher Preflight-Tests im Vordergrund aus (mehrere Minuten). Den SSH-Aufruf dafuer im Hintergrund laufen lassen oder mit langem Timeout, und den Fortschritt ueber einen separaten `status`-Aufruf pruefen.
+- Beim Warten auf einen Remote-Prozess nicht per `pgrep -f <muster>` innerhalb eines SSH-Befehls pruefen, der dasselbe Muster enthaelt: `pgrep` findet sonst die eigene Shell und meldet den Prozess als laufend. Stattdessen den `status` des Helpers bzw. den Manifest-Stand pruefen.
 - Jeder neue oder groesser ueberarbeitete Remote-Helper bietet `telegram-control-start`, `telegram-control-status` und `telegram-control-stop` an. Bei neuen Pipeline-Versionen pruefen, dass diese Kommandos noch vorhanden sind. Telegram-Setup: `docs/telegram-notifications.md`.
 
 ## 6. Befehle
