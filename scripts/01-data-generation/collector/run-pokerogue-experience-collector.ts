@@ -189,7 +189,8 @@ import { TrainerSlot } from "#enums/trainer-slot";
 import { UiMode } from "#enums/ui-mode";
 import { getPokemonSpecies } from "#utils/pokemon-utils";
 import { GameManager } from "#test/framework/game-manager";
-import { afterAll, beforeAll, describe, it } from "vitest";
+import { PromptHandler } from "#test/helpers/prompt-handler";
+import { afterAll, beforeAll, describe, it, vi } from "vitest";
 import {
   applyScenarioOverrides,
   applyStateVariant,
@@ -480,6 +481,14 @@ describe("external combat collector", () => {
       for (const scenario of SCENARIOS) {
         for (const seedOverride of SEEDS) {
           for (let episodeIndex = 0; episodeIndex < EPISODES_PER_SEED; episodeIndex += 1) {
+            // Seit v1.12 geht der Harness von einem GameManager pro Test aus. Der Collector legt pro Episode
+            // einen neuen an (auf derselben globalen Szene) und muss deshalb selbst aufraeumen, was sonst
+            // zwischen zwei Tests passiert: das statische PromptHandler-Intervall (afterEach-Hook in
+            // test/setup/vitest.setup.ts) und die Spies auf Szene/UI (restoreMocks: true in vitest.config.ts).
+            // Ohne das wirft die zweite Episode bzw. die Spies verschachteln sich (Stack Overflow).
+            clearInterval(PromptHandler.runInterval);
+            PromptHandler.runInterval = undefined;
+            vi.restoreAllMocks();
             const game = new GameManager(phaserGame);
             {
             applyScenarioOverrides(game, scenario, seedOverride);
