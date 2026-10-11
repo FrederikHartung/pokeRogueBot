@@ -80,6 +80,8 @@ Befunde (Stand 2026-10-12):
 - [x] Geschlecht aus Szenarien (`"MALE"`) auf den Enum-Wert mappen; v1.12 liest `Gender[p.gender]` in `updateGameInfo` und stuerzte sonst mit `str.toLowerCase is not a function` ab.
 - [x] Mehrere Episoden pro Batch: seit v1.12 geht der Harness von einem `GameManager` pro Test aus. Der Collector raeumt jetzt vor jeder Episode das statische `PromptHandler.runInterval` und die Spies (`vi.restoreAllMocks()`) selbst auf. Vorher ging ab der zweiten Episode jedes Batches alles verloren (bei `batch_size: 50` also 49 von 50 Episoden), ohne dass die Pipeline das bemerkte.
 - [x] Einzel-/Doppelkampf: der Collector gab `scenario.battle_style` (Spieleinstellung `SET`/`SWITCH`) an `game.override.battleStyle(...)`, das seit v1.12 `"single"`/`"double"` erwartet. Der ungueltige Wert liess das Spiel Doppelkaempfe selbst auswuerfeln, die der Collector als Einzelkampf behandelte und in einen Timeout lief (Basistest: 13 von 52 Episoden). Jetzt: `is_double_fight` -> `"single"`/`"double"`, `SET`/`SWITCH` -> `game.scene.battleStyle`.
+- [x] Spezies statt Form: `getPokemonSpeciesForm(id, 0)` lieferte bei Spezies mit Formen (z. B. Pichu) ein Form-Objekt ohne `getName()`; beim Neuzeichnen des Gegnernamens (z. B. Stat-Aenderung) unbehandelte Rejection und Haenger in `DamageAnimPhase`. Jetzt `speciesDataRegistry.getSpecies(id)`. Repro `wild-w13-1d5b683f8692`: vorher 6/6 Timeouts, danach 6/6 regulaer.
+- [ ] Toten Import `getPokemonSpecies` aus `#utils/pokemon-utils` in `run-pokerogue-experience-collector.ts` entfernen (existiert in v1.12 nicht mehr).
 - [ ] Pipeline: "Vitest exited non-zero, but output exists. Continuing." darf nicht mehr still weiterlaufen, sondern muss als technischer Fehler mit fehlenden Episoden erfasst werden (gehoert zu C1). Ausserdem pruefen, ob Manifest/Metriken geplante statt tatsaechlich gesammelte Episoden zaehlen (Basistest meldete 52/52, tatsaechlich 26).
 - [ ] Modifier-Collector pruefen: legt er bei einem Retry (`retry_count`/`attemptIndex`) im selben Test einen zweiten `GameManager` an? Dann trifft ihn dasselbe Problem.
 - [ ] Mechanismus in `docs/pokerogue-headless-test-harness-mechanics.md` als neues Unterkapitel dokumentieren und als Regressionstest unter `pokerogue/test/porubot/regressions/` festhalten (zwei Episoden mit je eigenem `GameManager` in einem Test).
@@ -95,8 +97,9 @@ Befunde (Stand 2026-10-12):
 
 ### C2. Single-Driver-Schutz
 
-- [ ] `installSingleDriverPhaseInterceptor(game)` nach `new GameManager(...)` im Combat-Collector einbauen.
-- [ ] Wirkung mit Vorher-/Nachher-Lauf belegen (erst nach C1, damit Timeouts ueberhaupt sichtbar sind).
+- [x] `installSingleDriverPhaseInterceptor(game)` nach `new GameManager(...)` im Combat-Collector eingebaut.
+- [x] Wirkung belegt (lokal, Repro `wild-w2-11610b8af6ec`, jeweils mit Species-Fix): ohne Schutz 7/8 Episoden Timeout bei gesunder `CommandPhase`, mit Schutz 0/6.
+- [ ] Repro-Faelle `wild-w2-11610b8af6ec` (Signatur A) und `wild-w13-1d5b683f8692` (Signatur B) als Replay-Tests unter `pokerogue/test/porubot/regressions/replays/` festhalten.
 
 ### C3. Wave-Library-Sync
 
