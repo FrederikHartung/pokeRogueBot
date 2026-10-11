@@ -13,8 +13,12 @@
 ## Remote Server Zugriff
 
 - Dieses Repo ist oeffentlich: Server-IP, Hostname, SSH-User und Key-Pfade duerfen nicht in versionierte Dateien (Docs, Skripte, Defaults, Commit-Messages). Stattdessen Platzhalter wie `<REMOTE_USER>@<REMOTE_HOST>` bzw. die Env-Variablen unten verwenden.
-- Die echten Verbindungsdaten liegen lokal (nicht versioniert) in `~/.config/pokeroguebot/remote.env` mit `POKEROGUE_REMOTE_SSH_TARGET` und `POKEROGUE_REMOTE_SSH_KEY`. Verbindung:
-  - `source ~/.config/pokeroguebot/remote.env && ssh -i "$POKEROGUE_REMOTE_SSH_KEY" "$POKEROGUE_REMOTE_SSH_TARGET"`
+- Ein Remote-Server ist optional: nicht jeder Nutzer dieses Repos bzw. eines Forks hat einen. Konfiguriert ist er nur, wenn lokal `~/.config/pokeroguebot/remote.env` existiert (nicht versioniert) und `POKEROGUE_REMOTE_SSH_TARGET` sowie `POKEROGUE_REMOTE_SSH_KEY` setzt. Fehlt die Datei, keinen Server annehmen, sondern den User fragen.
+- Wenn der Agent beauftragt wird, etwas auf dem Remote-Server zu tun, und `remote.env` vorhanden ist, darf er ohne weitere Rueckfrage den Key in den ssh-agent laden und sich verbinden:
+  - `source ~/.config/pokeroguebot/remote.env && eval "$POKEROGUE_REMOTE_SSH_ADD_CMD"` (optional gesetzt; laedt den Key nicht-interaktiv, z. B. unter macOS mit der Passphrase aus dem Schluesselbund)
+  - `source ~/.config/pokeroguebot/remote.env && ssh -i "$POKEROGUE_REMOTE_SSH_KEY" "$POKEROGUE_REMOTE_SSH_TARGET" '<befehl>'`
+  - Schlaegt das Laden des Keys fehl (z. B. weil die Passphrase noch nicht im Schluesselbund liegt), den User bitten, einmalig interaktiv `ssh-add --apple-use-keychain <key>` auszufuehren. Passphrasen nie selbst eingeben oder erfragen.
+  - Die Erlaubnis gilt fuer das Verbinden und den erteilten Auftrag. Destruktive oder schwer umkehrbare Aktionen auf dem Server (Daten loeschen, laufende Pipelines stoppen, Systemkonfiguration aendern) weiterhin vorher bestaetigen lassen.
 - Auf dem Server muessen dieselben Variablen in `~/.config/pokeroguebot/telegram.env` gesetzt sein (wird von den Remote-Helpern vor dem Pipeline-Start gesourct), damit der vorbereitete `scp`-Download-Befehl in `collection-metrics.json` und in der Telegram-Abschlussmeldung die echte Adresse enthaelt; ohne sie erscheinen Platzhalter.
 
 ## Preferred Collaboration Style
