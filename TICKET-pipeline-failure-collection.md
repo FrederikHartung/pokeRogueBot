@@ -64,6 +64,45 @@ Hintergrund: Heute wirft der Runner bei jeder technischen Termination (`run-poke
 - [ ] Remote verifizieren: `quick-smoke`, Szenario-Tests, ein Lauf mit mehreren Seeds.
 - [ ] Diese Ticket-Datei loeschen.
 
+## Teil Combat: wave-library-random-collection Pipeline
+
+Befunde (Stand 2026-10-12):
+
+- `run-pokerogue-experience-collector.ts:390-458` nutzt dasselbe Muster unerledigter `toEndOfTurn()`/`toNextTurn()`-Aufrufe, das im Modifier-Collector die Zombie-Treiber-Timeouts verursacht hat, aber ohne `installSingleDriverPhaseInterceptor`.
+- Ein Timeout setzt `timeoutTruncated` und beendet die Episode still; sie landet ohne Debug-Daten als `truncated` im Datensatz.
+- Kein Beleg, dass der Combat-Collector seit dem Submodul-Bump auf v1.12.0.10 gelaufen ist (Basis-Smoke siehe unten).
+- Wave-Library und Szenarien sind auf dem Server aktuell (inhaltlich identisch), es gibt aber keinen Automatismus fuer den Sync.
+
+### C1. Fehler sammeln statt still kuerzen
+
+- [ ] Timeout bzw. Fehler einer Episode als technische Termination erfassen, inkl. Debug-Snapshot (Phase, UI-Modus, Wave, Party) und Repro-Infos (Szenario, Seed, Episoden-Index, Commits, Repro-Befehl).
+- [ ] Technisch beendete Episoden aus dem Datensatz herausnehmen, Pipeline laeuft weiter.
+- [ ] Signatur-Gruppierung, Failure-Dateien und Notausschalter (gleiche Defaults) als gemeinsames Modul mit der Modifier-Pipeline nutzen.
+- [ ] Metriken, `status`/`issues` des Helpers und Telegram-Meldungen analog zur Modifier-Pipeline erweitern.
+
+### C2. Single-Driver-Schutz
+
+- [ ] `installSingleDriverPhaseInterceptor(game)` nach `new GameManager(...)` im Combat-Collector einbauen.
+- [ ] Wirkung mit Vorher-/Nachher-Lauf belegen (erst nach C1, damit Timeouts ueberhaupt sichtbar sind).
+
+### C3. Wave-Library-Sync
+
+- [ ] Lokaler Befehl: Hash-Vergleich der Wave-Library lokal vs. Server, bei Abweichung kopieren und Szenarien auf dem Server neu erzeugen.
+- [ ] Preflight-Warnung im Combat-Helper, wenn die Szenarien aelter sind als die Wave-Library.
+- [ ] `AGENTS.md`, Ablauf "Pipeline-Lauf beauftragt": Wave-Library-Sync als Pruefschritt fuer Combat-Laeufe.
+
+### C4. Smoke- und Szenario-Tests
+
+- [ ] `quick-smoke` fuer den Combat-Helper (analog Modifier).
+- [ ] Szenario-Tests fuer den Combat-Helper (Bot-Sonderfaelle, Timeout, Fehlerabbruch).
+- [ ] Pruefen, ob die Pipeline `seeds`/`episodes_per_seed` an den Collector durchreicht (Voraussetzung fuer die Stresskampagne).
+
+## Teil Server-Hygiene
+
+- [ ] Moeglichkeit schaffen, den Server nach einem langen Pipeline-Lauf von temporaeren Daten zu bereinigen (Runtime-Ordner unter `data/rl/pipeline-runs/`, Batch-Outputs, `pokerogue/test/.external-rl/`-Reste, alte Smoke-/Szenario-Ordner), ohne Dataset-Pools, Checkpoints und noch nicht heruntergeladene Archive zu verlieren.
+- [ ] Umsetzung als Skript mit Trockenlauf (zeigt, was geloescht wuerde, und den freiwerdenden Platz) und anschliessender Ausfuehrung; ggf. durch einen Claude-Skill ausgeloest.
+- [ ] Festlegen, was als "temporaer" gilt und was nur nach Rueckfrage geloescht werden darf.
+
 ## Entscheidungen
 
 - **Notausschalter-Defaults:** Abbruch bei 5 technischen Terminations in Folge oder bei mehr als 20 % technischen Terminations, sobald mindestens 20 Runs abgeschlossen sind. Beide Schwellen in der Config ueberschreibbar.
