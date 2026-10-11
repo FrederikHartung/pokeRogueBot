@@ -1274,8 +1274,12 @@ export function applyScenarioOverrides(game: GameManager, scenario: any, seedOve
   if (Number.isFinite(waveIndex)) {
     game.override.startingWave(waveIndex);
   }
+  // `override.battleStyle` steuert seit v1.12 Einzel- vs. Doppelkampf ("single"/"double"). Ein ungueltiger
+  // Wert faellt dort in den default-Zweig, und das Spiel wuerfelt Doppelkaempfe per Seed selbst aus.
+  game.override.battleStyle(scenario.is_double_fight === true ? "double" : "single");
+  // Die Spieleinstellung SET/SWITCH (Wechsel-Angebot nach KO) ist davon unabhaengig.
   if (battleStyle != null) {
-    game.override.battleStyle(battleStyle);
+    game.scene.battleStyle = battleStyle;
   }
   game.override.battleType(battleType);
   if (trainerType != null) {
