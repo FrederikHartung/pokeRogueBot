@@ -219,9 +219,10 @@ Der sehr kurze Ende-zu-Ende-Smoke dafuer ist:
 Vor einem serverseitigen V3-Lauf mit neuen lokalen Wave-Lib-Eintraegen:
 
 ```bash
-scp -i '/Users/frederikhartung/.ssh/id_rsa_github_privat' \
-  '/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/offline-wave-library/productive-wave-snapshots-v1.jsonl' \
-  'SFH-Frederik@152.53.176.72:/home/SFH-Frederik/repos/pokeRogueBot/data/offline-wave-library/productive-wave-snapshots-v1.jsonl'
+source ~/.config/pokeroguebot/remote.env
+scp -i "${POKEROGUE_REMOTE_SSH_KEY}" \
+  'data/offline-wave-library/productive-wave-snapshots-v1.jsonl' \
+  "${POKEROGUE_REMOTE_SSH_TARGET}:~/repos/pokeRogueBot/data/offline-wave-library/productive-wave-snapshots-v1.jsonl"
 ```
 
 ## Delta-Top-ups fuer neue Szenarien

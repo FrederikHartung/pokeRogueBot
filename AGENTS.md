@@ -12,8 +12,10 @@
 
 ## Remote Server Zugriff
 
-- Fuer Zugriffe auf den Remote-Server per `ssh` oder `scp` ist folgende Verbindung zu verwenden:
-  - `ssh -i ~/.ssh/id_rsa_github_privat SFH-Frederik@152.53.176.72`
+- Dieses Repo ist oeffentlich: Server-IP, Hostname, SSH-User und Key-Pfade duerfen nicht in versionierte Dateien (Docs, Skripte, Defaults, Commit-Messages). Stattdessen Platzhalter wie `<REMOTE_USER>@<REMOTE_HOST>` bzw. die Env-Variablen unten verwenden.
+- Die echten Verbindungsdaten liegen lokal (nicht versioniert) in `~/.config/pokeroguebot/remote.env` mit `POKEROGUE_REMOTE_SSH_TARGET` und `POKEROGUE_REMOTE_SSH_KEY`. Verbindung:
+  - `source ~/.config/pokeroguebot/remote.env && ssh -i "$POKEROGUE_REMOTE_SSH_KEY" "$POKEROGUE_REMOTE_SSH_TARGET"`
+- Auf dem Server muessen dieselben Variablen in `~/.config/pokeroguebot/telegram.env` gesetzt sein (wird von den Remote-Helpern vor dem Pipeline-Start gesourct), damit der vorbereitete `scp`-Download-Befehl in `collection-metrics.json` und in der Telegram-Abschlussmeldung die echte Adresse enthaelt; ohne sie erscheinen Platzhalter.
 
 ## Preferred Collaboration Style
 

@@ -766,7 +766,7 @@ Ubuntu-Setup-Kurzpfad fuer spaetere Server:
   - Zielordner auf dem Server:
     - `mkdir -p ~/repos/pokeRogueBot/data/offline-wave-library`
   - Beispiel vom lokalen Mac:
-    - `scp -i ~/.ssh/id_rsa_github_privat /Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/offline-wave-library/productive-wave-snapshots-v1.jsonl SFH-Frederik@152.53.176.72:~/repos/pokeRogueBot/data/offline-wave-library/`
+    - `scp -i ~/.ssh/<REMOTE_SSH_KEY> /Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/offline-wave-library/productive-wave-snapshots-v1.jsonl <REMOTE_USER>@<REMOTE_HOST>:~/repos/pokeRogueBot/data/offline-wave-library/`
 - Systempakete installieren:
   - `sudo apt update`
   - `sudo apt install -y nodejs npm python3-pip python3-venv`

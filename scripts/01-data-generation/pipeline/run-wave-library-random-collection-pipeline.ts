@@ -762,8 +762,8 @@ function buildScpDownloadCommand(downloadPath) {
     return null;
   }
 
-  const sshTarget = process.env.POKEROGUE_REMOTE_SSH_TARGET ?? "SFH-Frederik@152.53.176.72";
-  const sshKeyPath = process.env.POKEROGUE_REMOTE_SSH_KEY ?? "/Users/frederikhartung/.ssh/id_rsa_github_privat";
+  const sshTarget = process.env.POKEROGUE_REMOTE_SSH_TARGET ?? "<REMOTE_USER>@<REMOTE_HOST>";
+  const sshKeyPath = process.env.POKEROGUE_REMOTE_SSH_KEY ?? "~/.ssh/<REMOTE_SSH_KEY>";
   const localImportDir = process.env.POKEROGUE_COLLECTION_LOCAL_IMPORT_DIR ?? "/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/data/rl/combat/";
   return `scp -i ${shellQuote(sshKeyPath)} ${shellQuote(`${sshTarget}:${downloadPath}`)} ${shellQuote(localImportDir)}`;
 }

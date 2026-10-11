@@ -180,7 +180,7 @@ Transitions: 123456
 Dataset size: 850.42 MB
 Archive size: 121.08 MB
 Total runtime: 1h 34m
-Download: /home/SFH-Frederik/repos/pokeRogueBot/data/rl/pipeline-runs/.../artifacts/random-valid-action-w1-24.tar.gz
+Download: /home/<REMOTE_USER>/repos/pokeRogueBot/data/rl/pipeline-runs/.../artifacts/random-valid-action-w1-24.tar.gz
 ```
 
 Offline-DQN-Training abgeschlossen:
@@ -191,7 +191,7 @@ State: training completed
 Dataset rows: 271234
 Epochs: 50/50
 Total runtime: 2h 14m
-Checkpoint: /home/SFH-Frederik/repos/pokeRogueBot/data/rl/models/dqn-combat-wave-library-random-valid-action-v3-w1-24-50ep.pt
+Checkpoint: /home/<REMOTE_USER>/repos/pokeRogueBot/data/rl/models/dqn-combat-wave-library-random-valid-action-v3-w1-24-50ep.pt
 Mean loss: start=0.418221 end=0.097331 best=0.092441
 
 Epoch losses:
@@ -233,6 +233,10 @@ export POKEROGUE_TELEGRAM_BOT_NAME='<DEIN_BOT_NAME>'
 export POKEROGUE_TELEGRAM_BOT_USERNAME='<DEIN_BOT_USERNAME_BOT>'
 export POKEROGUE_TELEGRAM_BOT_TOKEN='<DEIN_BOT_TOKEN>'
 export POKEROGUE_TELEGRAM_CHAT_ID='<DEINE_CHAT_ID>'
+# fuer den vorbereiteten scp-Download-Befehl (Repo ist oeffentlich, daher nicht im Code hinterlegt)
+# der Befehl wird spaeter auf dem lokalen Mac ausgefuehrt -> absoluter Key-Pfad auf dem Mac
+export POKEROGUE_REMOTE_SSH_TARGET='<REMOTE_USER>@<REMOTE_HOST>'
+export POKEROGUE_REMOTE_SSH_KEY='/Users/<LOCAL_USER>/.ssh/<REMOTE_SSH_KEY>'
 EOF
 chmod 600 ~/.config/pokeroguebot/telegram.env
 ```
@@ -257,6 +261,7 @@ Hinweise:
 
 - Das Remote-Skript laedt `~/.config/pokeroguebot/telegram.env` automatisch, falls die Datei existiert.
 - Fehlt die Datei oder sind Token/Chat-ID nicht gesetzt, laeuft die Pipeline trotzdem weiter.
+- Fehlen `POKEROGUE_REMOTE_SSH_TARGET`/`POKEROGUE_REMOTE_SSH_KEY`, enthaelt der `scp`-Befehl in `collection-metrics.json` und in der Abschlussmeldung nur Platzhalter.
 - Ein Fehler beim Senden einer Benachrichtigung stoppt die Pipeline nicht.
 - `POKEROGUE_TELEGRAM_POLL_INTERVAL_SECONDS` wird von den Remote-Helpern jetzt auch dann direkt aus `telegram.env` gelesen, wenn die aktuelle Shell die Datei nicht vorher manuell mit `source` geladen hat.
 
