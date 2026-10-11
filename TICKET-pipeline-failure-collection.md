@@ -72,6 +72,7 @@ Befunde (Stand 2026-10-12):
 - Ein Timeout setzt `timeoutTruncated` und beendet die Episode still; sie landet ohne Debug-Daten als `truncated` im Datensatz.
 - Kein Beleg, dass der Combat-Collector seit dem Submodul-Bump auf v1.12.0.10 gelaufen ist (Basis-Smoke siehe unten).
 - Wave-Library und Szenarien sind auf dem Server aktuell (inhaltlich identisch), es gibt aber keinen Automatismus fuer den Sync.
+- Abdeckung der Szenarien (`generated-wave-library-v3-w1-24`, 311 Stueck): **kein einziger Doppelkampf**, 264 Szenarien in Waves 1-8, Waves 9-24 nur 1-7 Szenarien pro Wave, Trainer fast nur in den Rivalen-Waves 5 und 8 (dazu je einer in 15 und 17). Fuer die Stresskampagne erreicht die Combat-Pipeline damit weder Doppelkaempfe noch spaete Waves in nennenswertem Umfang.
 
 ### C1. Fehler sammeln statt still kuerzen
 
@@ -90,6 +91,10 @@ Befunde (Stand 2026-10-12):
 - [ ] Lokaler Befehl: Hash-Vergleich der Wave-Library lokal vs. Server, bei Abweichung kopieren und Szenarien auf dem Server neu erzeugen.
 - [ ] Preflight-Warnung im Combat-Helper, wenn die Szenarien aelter sind als die Wave-Library.
 - [ ] `AGENTS.md`, Ablauf "Pipeline-Lauf beauftragt": Wave-Library-Sync als Pruefschritt fuer Combat-Laeufe.
+
+### C3a. Szenario-Abdeckung
+
+- [ ] Klaeren, wie Doppelkaempfe und spaetere Waves in die Combat-Pipeline kommen: mehr Live-Runs mit aktivierter Wave-Library-Sammlung, Doppelkampf-Snapshots aus der Modifier-Pipeline ableiten, oder synthetische Szenarien per Override.
 
 ### C4. Smoke- und Szenario-Tests
 
