@@ -190,6 +190,7 @@ import { UiMode } from "#enums/ui-mode";
 import { getPokemonSpecies } from "#utils/pokemon-utils";
 import { GameManager } from "#test/framework/game-manager";
 import { PromptHandler } from "#test/helpers/prompt-handler";
+import { installSingleDriverPhaseInterceptor } from "#test/porubot/harness/single-driver-phase-interceptor";
 import { afterAll, beforeAll, describe, it, vi } from "vitest";
 import {
   applyScenarioOverrides,
@@ -490,6 +491,9 @@ describe("external combat collector", () => {
             PromptHandler.runInterval = undefined;
             vi.restoreAllMocks();
             const game = new GameManager(phaserGame);
+            // advanceAfterAction laesst toEndOfTurn()/toNextTurn()-Aufrufe unerledigt zurueck; ohne Schutz treiben
+            // mehrere to()-Aufrufe Phasen parallel (siehe docs/pokerogue-headless-test-harness-mechanics.md, 3.11).
+            installSingleDriverPhaseInterceptor(game);
             {
             applyScenarioOverrides(game, scenario, seedOverride);
 
