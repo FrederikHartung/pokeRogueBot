@@ -42,6 +42,12 @@ const message = buildMessage({
   trainingSummary,
 });
 
+if (isEnabled(process.env.POKEROGUE_TELEGRAM_DRY_RUN)) {
+  console.log(`Telegram dry run for event: ${cli.event} (message built, not sent)`);
+  console.log(message);
+  process.exit(0);
+}
+
 await sendTelegramMessageWithRetry({
   token,
   chatId,

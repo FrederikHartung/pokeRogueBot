@@ -5,6 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 DEFAULT_CONFIG="${REPO_ROOT}/data/rl/modifier-strategic-seeded-remote-10seeds-20runs-wave30.json"
 SMOKE_CONFIG="${REPO_ROOT}/data/rl/modifier-strategic-seeded-remote-smoke.json"
+QUICK_SMOKE_CONFIG="${REPO_ROOT}/data/rl/modifier-strategic-seeded-remote-quick-smoke.json"
 CONTROL_DIR="${REPO_ROOT}/data/rl/pipeline-runs/modifier-strategic-seeded-remote-control"
 PID_FILE="${CONTROL_DIR}/remote-modifier-strategic-seeded.pid"
 ACTIVE_CONFIG_FILE="${CONTROL_DIR}/active-config.txt"
@@ -23,6 +24,7 @@ usage() {
 Usage:
   scripts/01-data-generation/pipeline/run-modifier-strategic-seeded-remote.sh start [config_path]
   scripts/01-data-generation/pipeline/run-modifier-strategic-seeded-remote.sh start-smoke
+  scripts/01-data-generation/pipeline/run-modifier-strategic-seeded-remote.sh quick-smoke
   scripts/01-data-generation/pipeline/run-modifier-strategic-seeded-remote.sh status
   scripts/01-data-generation/pipeline/run-modifier-strategic-seeded-remote.sh logs
   scripts/01-data-generation/pipeline/run-modifier-strategic-seeded-remote.sh last
@@ -492,12 +494,104 @@ telegram_control_stop() {
   echo "Stop signal sent."
 }
 
+# Schneller Funktionscheck im Vordergrund (ca. 1 min): Telegram-Erreichbarkeit, Control-Bot starten,
+# ein Run bis Wave 1 ohne Preflight-Tests, Notification nur als Dry-Run, Control-Bot wieder stoppen.
+# Ersetzt nicht start-smoke (Contract-/Determinismus-Tests, mehrere Waves).
+quick_smoke() {
+  local failed=0
+  local results=()
+  record() {
+    results+=("$1 $2")
+    if [ "$1" = "FAIL" ]; then
+      failed=1
+    fi
+  }
+
+  if is_running; then
+    echo "A strategic modifier collection run is active; quick-smoke would interfere. Aborting." >&2
+    exit 1
+  fi
+
+  check_dependencies >/dev/null
+  if [ ! -f "${TELEGRAM_ENV_FILE}" ]; then
+    echo "Telegram env file not found: ${TELEGRAM_ENV_FILE}" >&2
+    exit 1
+  fi
+
+  if (set +u; source "${TELEGRAM_ENV_FILE}" && node scripts/04-automation/telegram/check-telegram-bot.ts); then
+    record OK "telegram-reachable"
+  else
+    record FAIL "telegram-reachable"
+  fi
+
+  local started_control=0
+  local foreign_pids
+  foreign_pids="$(pgrep -f "run-telegram-control-bot.mjs" | grep -v -x "$(cat "${TELEGRAM_CONTROL_PID_FILE}" 2>/dev/null || echo none)" || true)"
+  if is_telegram_control_running; then
+    record OK "control-bot-already-running"
+  elif [ -n "${foreign_pids}" ]; then
+    record FAIL "control-bot-foreign-running (PIDs: $(echo ${foreign_pids}); stop it via its helper first)"
+  else
+    (telegram_control_start_internal) || true
+    started_control=1
+    sleep 3
+    if is_telegram_control_running && grep -q "Telegram control bot started" "${CONTROL_DIR}/telegram-control.log"; then
+      record OK "control-bot-started"
+    else
+      record FAIL "control-bot-started (log: ${CONTROL_DIR}/telegram-control.log)"
+    fi
+  fi
+
+  local runtime_dir
+  runtime_dir="$(runtime_dir_for_config "${QUICK_SMOKE_CONFIG}")"
+  rm -rf "${runtime_dir}"
+  mkdir -p "${runtime_dir}"
+  local log_file
+  log_file="$(log_file_for_config "${QUICK_SMOKE_CONFIG}")"
+  local started_at=${SECONDS}
+  if (set +u; export PATH="${VENV_BIN_DIR}:${PATH}" POKEROGUE_TELEGRAM_DRY_RUN=1 && source "${TELEGRAM_ENV_FILE}" \
+      && npm run rl:pipeline:modifier:strategic:collect -- "${QUICK_SMOKE_CONFIG}") >"${log_file}" 2>&1; then
+    record OK "pipeline-run ($((SECONDS - started_at))s, $(grep -o "finished run 1/1 .*" "${log_file}" | head -1))"
+  else
+    record FAIL "pipeline-run (log: ${log_file})"
+  fi
+
+  if grep -q "Telegram dry run for event: collection_completed" "${log_file}"; then
+    record OK "notification-dry-run"
+  else
+    record FAIL "notification-dry-run"
+  fi
+
+  if [ "${started_control}" -eq 1 ]; then
+    (telegram_control_stop) >/dev/null || true
+    sleep 2
+    if pgrep -f "run-telegram-control-bot.mjs.*${CONTROL_DIR}" >/dev/null; then
+      record FAIL "control-bot-stopped"
+    else
+      record OK "control-bot-stopped"
+    fi
+  fi
+
+  echo "Quick smoke results:"
+  printf '  %s\n' "${results[@]}"
+  echo "Log: ${log_file}"
+  if [ "${failed}" -eq 1 ]; then
+    echo "QUICK SMOKE FAILED"
+    exit 1
+  fi
+  echo "QUICK SMOKE OK"
+}
+
 case "${1:-}" in
   start)
     start_run "${2:-${DEFAULT_CONFIG}}"
     ;;
   start-smoke)
     start_run "${SMOKE_CONFIG}"
+    ;;
+  quick-smoke)
+    cd "${REPO_ROOT}"
+    quick_smoke
     ;;
   status)
     print_status
