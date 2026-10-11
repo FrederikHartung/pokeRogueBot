@@ -136,7 +136,7 @@ Interpretation:
 
 ## Zielbild: Fehlerbehandlung (in Umsetzung)
 
-> Dieser Abschnitt beschreibt den angestrebten Zustand. Bis zur Umsetzung gilt fuer technische Fehler noch das fast-fail-Verhalten aus "Laufphasen".
+> Dieser Abschnitt beschreibt den angestrebten Zustand. Umsetzungsstand (Feature-Branch `feature/pipeline-failure-collection`): Punkte 1-6 sind umgesetzt, Punkt 7 nur fuer `collection-metrics.json`. `status`/`issues` des Helpers, Telegram-Meldungen und die Szenario-Tests folgen.
 
 ### Ziel
 
@@ -161,7 +161,9 @@ Ein langer Lauf (z. B. `50 Seeds x 50 Runs`) soll auch dann durchlaufen, wenn ei
 5. **Fehler-Signaturen:** Am Ende des Laufs werden alle technischen Terminations nach Signatur gruppiert (`termination_reason`, Phase, UI-Modus, Single/Double Battle). Pro Signatur: Anzahl, betroffene Seeds/Runs, Wave-Bereich und ein Beispiel-Repro.
 6. **Notausschalter fuer systemische Fehler:**
    - Fehler, die schon vor oder beim Start des ersten Runs auftreten (Config, Checkpoint, Abhaengigkeiten), brechen die Pipeline weiterhin sofort ab.
-   - Zusaetzlich bricht die Pipeline ab, wenn zu viele Runs in Folge oder ein zu hoher Anteil aller Runs technisch scheitern. Die Schwellen sind konfigurierbar; der Abbruch wird als `collection_failed` mit Grund `technical_failure_threshold_exceeded` gemeldet.
+   - Zusaetzlich bricht die Pipeline ab, wenn zu viele Runs in Folge oder ein zu hoher Anteil aller Runs technisch scheitern. Der Abbruch wird als `collection_failed` mit Grund `technical_failure_threshold_exceeded` gemeldet.
+   - Schwellen in `collect.technical_failure_threshold`, Defaults: `{ "max_consecutive": 5, "max_ratio": 0.2, "min_runs_for_ratio": 20 }` (5 in Folge oder mehr als 20 % ab 20 Runs). Gezaehlt wird pro Pipeline-Aufruf, damit ein Neustart nach einem Fix nicht sofort wieder ausloest.
+   - Scheitert jeder Run eines Aufrufs technisch, endet `collect_dataset` mit `no_regular_runs_collected` statt mit einem leeren Datensatz.
 7. **Ergebnis und Meldung:** Ein Lauf mit einzelnen technischen Terminations endet als `completed`. `collection-metrics.json`, `status` des Helpers und die Telegram-Abschlussmeldung zeigen zusaetzlich die Anzahl technischer Terminations und Signaturen.
 
 ### Laufartefakte im Zielbild
@@ -169,15 +171,16 @@ Ein langer Lauf (z. B. `50 Seeds x 50 Runs`) soll auch dann durchlaufen, wenn ei
 Zusaetzlich zu den bestehenden Artefakten:
 
 - `collect_dataset/technical-failures/<seed>--run-<n>.json`: ein Eintrag pro technischer Termination (Inhalt siehe Punkt 4)
-- `technical-failure-signatures.json`: gruppierte Uebersicht (Punkt 5)
+- `collect_dataset/technical-failure-signatures.json`: gruppierte Uebersicht (Punkt 5)
+- Batch-Outputs enthalten neben `episodes[]` (nur regulaere Runs) die Felder `regular_run_count`, `technical_termination_count` und `technical_terminations[]`
 - beides ist im Archiv `artifacts/modifier-strategic-seeded-runtime.tar.gz` enthalten
 
 ### Weg von der Fehlermeldung zum Regressionstest
 
 1. Signatur aus `technical-failure-signatures.json` auswaehlen.
-2. Beispiel-Run mit dem Repro-Befehl lokal nachstellen.
+2. Beispiel-Run mit dem Repro-Befehl lokal nachstellen: `node scripts/01-data-generation/pipeline/repro-technical-failure.ts <failure.json> [--repeat N]`. `--repeat` zeigt, ob der Fehler deterministisch wieder auftritt. Der direkte Runner-Aufruf steht in `repro.params.direct_command`.
 3. Ursache anhand von `timeout_debug` und `phaseInterceptor.log` eingrenzen (Vorgehen: `docs/pokerogue-headless-test-harness-mechanics.md`).
-4. Mechanismus als Replay-Test unter `pokerogue/test/porubot/regressions/replays/` festhalten, fixen, Test gruen.
+4. Mechanismus als Replay-Test festhalten, fixen, Test gruen. Liegt der Fehler im Spiel bzw. Harness, unter `pokerogue/test/porubot/regressions/replays/`; liegt er im Collector-Code dieses Repos, als Test gegen den echten Collector (Beispiel: `scripts/01-data-generation/collector/combat-collector-replays.test.ts`). Gegenprobe: mit zurueckgenommenem Fix muss der Test rot werden.
 5. Den Repro-Run und einen neuen Stresslauf erneut ausfuehren; die Signatur darf nicht mehr auftreten.
 
 ## Laufartefakte

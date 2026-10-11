@@ -126,6 +126,9 @@ Fallstricke auf dem Server:
 - `npm run typecheck:scripts`: prueft alle `scripts/**/*.ts` gegen die `#alias/*`-Pfad-Map der Root-`tsconfig.json` (siehe 7.)
 - `npm run rl:test:porubot:regressions`: Regressionstests im Submodul (vitest)
 - `npm run rl:test:policy-contract`, `npm run rl:test:modifier:strategic-contract`, `npm run rl:test:modifier:item-suite`: Contract- und Masking-Tests
+- `npm run rl:test:pipeline:technical-failures`: Fehlererfassung beider Pipelines (Signaturen, Notausschalter)
+- `npm run rl:test:combat:collector-replays`: Replays frueherer Combat-Collector-Timeouts gegen den echten Collector (ca. 1 min)
+- Technischen Fehler aus einem Pipeline-Lauf nachstellen: `node scripts/01-data-generation/pipeline/repro-technical-failure.ts <collect_dataset/technical-failures/...json> [--repeat N]`
 - Lokale Pipeline-Laeufe: `npm run rl:pipeline:modifier:strategic:collect -- <config>`, `npm run rl:pipeline:wave-lib:collect -- <config>`
 
 **Training und Eval (Python):**

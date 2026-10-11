@@ -11,36 +11,48 @@ Verbindliches Zielbild: `docs/modifier-strategic-seeded-remote.md`, Abschnitt "Z
 
 Hintergrund: Heute wirft der Runner bei jeder technischen Termination (`run-pokerogue-modifier-strategic-fixed-seed-collector.ts:211`), die Pipeline beendet alle Batches, und das Episoden-JSON mit `timeout_debug` wird beim Aufraeumen des Temp-Ordners `pokerogue/test/.external-rl/<runId>/` geloescht.
 
+## Naechster Schritt (13.10.2026): Stresskampagne
+
+Voraussetzung: Teile 1-4, C0-C2 sind umgesetzt und lokal getestet (siehe Haken unten). Ablauf:
+
+1. Server auf `feature/pipeline-failure-collection` aktualisieren (Ablauf in `AGENTS.md`, Abschnitt 5), `npm run rl:test:pipeline:technical-failures` und `npm run rl:test:combat:collector-replays` auf dem Server laufen lassen.
+2. Modifier: `quick-smoke`; Szenario-Test `pipeline-timeout` vorher auf das neue Verhalten anpassen (Teil 6).
+3. **Combat-Stresslauf:** alle 311 Szenarien von `generated-wave-library-v3-w1-24`, mehrere Episoden pro Szenario (z. B. 8), `parallelism` 3. Vorher C4 (`seeds`/`episodes_per_seed`) pruefen; die Szenarien haben keinen eigenen Seed, Vielfalt entsteht ueber die Episodenzahl.
+4. **Modifier-Stresslauf:** viele Seeds mit gestaffelten `max_waves` (z. B. 10, 20, 30, 50), damit auch spaete Waves, Doppelkaempfe und Bosse erreicht werden. Laufzeit vorher anhand des Smoke-Laufs abschaetzen.
+5. Auswertung: `technical-failure-signatures.json` beider Laeufe, pro Signatur ein Repro mit `--repeat` (beantwortet die offene Frage zur Reproduzierbarkeit), dann Fix plus Replay-Test mit Gegenprobe wie bei C2.
+6. Danach Server-Hygiene (Teil unten) fuer die Runtime-Ordner der Stresslaeufe.
+
 ## Noetige Aenderungen
 
 ### 1. Collector-Runner (`scripts/90-dev/rl/run-pokerogue-modifier-strategic-fixed-seed-collector.ts`)
 
-- [ ] Bei technischer Termination nicht mehr werfen, sondern den Run als `collector_run_technical_termination` (mit konkretem Grund) markieren und mit dem naechsten Run weitermachen.
-- [ ] Ebenso fuer Run-Fehler auf Prozessebene: `run_process_timeout_ms` ueberschritten (`collector_run_process_timeout`), Exit-Code != 0 (`collector_run_failed`), fehlende oder ungueltige Run-Ausgabe. Dabei vorhandene Teildaten (Run-JSON, stdout/stderr-Auszug) mitnehmen.
-- [ ] Das Episoden-JSON jedes technisch beendeten Runs **vor** dem Aufraeumen des Temp-Ordners an einen Pfad ausserhalb von `.external-rl/` sichern (vom Pipeline-Skript vorgegeben).
-- [ ] Batch-Ausgabe erweitern: regulaere Episoden wie bisher, technisch beendete Runs getrennt (z. B. `technical_terminations[]`), plus Zaehler.
-- [ ] Exit-Code des Runners: `0`, solange der Batch selbst lief (auch mit technischen Terminations); `!= 0` nur bei systemischen Fehlern (Config, Checkpoint, Template, Abhaengigkeiten).
+- [x] Bei technischer Termination nicht mehr werfen, sondern den Run als `collector_run_technical_termination` (mit konkretem Grund) markieren und mit dem naechsten Run weitermachen.
+- [x] Ebenso fuer Run-Fehler auf Prozessebene: `run_process_timeout_ms` ueberschritten (`collector_run_process_timeout`), Exit-Code != 0 (`collector_run_failed`), fehlende oder ungueltige Run-Ausgabe. Dabei vorhandene Teildaten (Run-JSON, stdout/stderr-Auszug) mitnehmen.
+- [x] Das Episoden-JSON jedes technisch beendeten Runs **vor** dem Aufraeumen des Temp-Ordners an einen Pfad ausserhalb von `.external-rl/` sichern (vom Pipeline-Skript vorgegeben). Umgesetzt ueber `technical_terminations[].episode` in der Batch-Ausgabe; die Pipeline schreibt daraus die Failure-Datei.
+- [x] Batch-Ausgabe erweitern: regulaere Episoden wie bisher, technisch beendete Runs getrennt (z. B. `technical_terminations[]`), plus Zaehler.
+- [x] Exit-Code des Runners: `0`, solange der Batch selbst lief (auch mit technischen Terminations); `!= 0` nur bei systemischen Fehlern (Config, Checkpoint, Template, Abhaengigkeiten).
 
 ### 2. Pipeline (`scripts/01-data-generation/pipeline/run-modifier-strategic-seeded-collection-pipeline.ts`)
 
-- [ ] Batch-Status: `completed` auch mit technischen Terminations; im Manifest pro Batch `regular_run_count` und `technical_termination_count`.
-- [ ] Pro technischer Termination `collect_dataset/technical-failures/<seed>--run-<n>.json` schreiben mit: Episoden-JSON, Seed, Run-Index, `decision_rng_seed`, `max_waves`, Timeouts, Checkpoint, Modifier-Policy, Commits von Hauptrepo und Submodul, Repro-Befehl.
-- [ ] `technical-failure-signatures.json` am Ende von `collect_dataset` erzeugen (Gruppierung nach `termination_reason`, Phase, UI-Modus, Single/Double; Anzahl, Seeds/Runs, Wave-Bereich, Beispiel-Repro).
-- [ ] Notausschalter: Abbruch bei zu vielen technischen Terminations in Folge oder bei zu hoher Quote; Schwellen in der Config (z. B. `collect.technical_failure_threshold`), sinnvolle Defaults festlegen; Fehlergrund `technical_failure_threshold_exceeded`.
-- [ ] Bestehendes fast-fail fuer systemische Fehler (Runner-Exit != 0) beibehalten.
-- [ ] `build_transitions`: nur regulaere Episoden verwenden; seed-lokales Rank-Signal nur ueber regulaere Runs; Seeds ohne regulaeren Run sauber ueberspringen.
-- [ ] `collection-metrics.json`: `technical_termination_count`, `technical_failure_signature_count`, Anteil technischer Terminations.
-- [ ] Archiv: `technical-failures/` und `technical-failure-signatures.json` mitpacken.
+- [x] Batch-Status: `completed` auch mit technischen Terminations; im Manifest pro Batch `regular_run_count` und `technical_termination_count`.
+- [x] Pro technischer Termination `collect_dataset/technical-failures/<seed>--run-<n>.json` schreiben mit: Episoden-JSON, Seed, Run-Index, `decision_rng_seed`, `max_waves`, Timeouts, Checkpoint, Modifier-Policy, Commits von Hauptrepo und Submodul, Repro-Befehl.
+- [x] `technical-failure-signatures.json` am Ende von `collect_dataset` erzeugen (Gruppierung nach `termination_reason`, Phase, UI-Modus, Single/Double; Anzahl, Seeds/Runs, Wave-Bereich, Beispiel-Repro).
+- [x] Notausschalter: Abbruch bei zu vielen technischen Terminations in Folge oder bei zu hoher Quote; Schwellen in der Config (z. B. `collect.technical_failure_threshold`), sinnvolle Defaults festlegen; Fehlergrund `technical_failure_threshold_exceeded`. Gezaehlt wird pro Aufruf. Zusaetzlich: scheitert jeder Run, endet `collect_dataset` mit `no_regular_runs_collected`.
+- [x] Bestehendes fast-fail fuer systemische Fehler (Runner-Exit != 0) beibehalten.
+- [x] `build_transitions`: nur regulaere Episoden verwenden; seed-lokales Rank-Signal nur ueber regulaere Runs; Seeds ohne regulaeren Run sauber ueberspringen.
+- [x] `collection-metrics.json`: `technical_termination_count`, `technical_failure_signature_count`, Anteil technischer Terminations.
+- [x] Archiv: `technical-failures/` und `technical-failure-signatures.json` mitpacken.
 
 ### 3. Contract und Tests
 
-- [ ] `scripts/90-dev/rl/modifier-strategic-fixed-seed-contract.ts`: neue Config-Felder (Schwellen) und neue Batch-Ausgabe-Felder aufnehmen.
-- [ ] `npm run rl:test:modifier:strategic-contract` und `rl:test:modifier:strategic-postprocess` anpassen bzw. erweitern (Postprocessing ignoriert technische Runs; Seed ohne regulaeren Run).
-- [ ] Unit-Test fuer die Signatur-Gruppierung und den Notausschalter.
+- [x] `scripts/90-dev/rl/modifier-strategic-fixed-seed-contract.ts`: neue Config-Felder (Schwellen) und neue Batch-Ausgabe-Felder aufnehmen.
+- [x] `npm run rl:test:modifier:strategic-contract` und `rl:test:modifier:strategic-postprocess` anpassen bzw. erweitern (Postprocessing ignoriert technische Runs; Seed ohne regulaeren Run).
+- [x] Unit-Test fuer die Signatur-Gruppierung und den Notausschalter.
 
 ### 4. Repro-Faehigkeit
 
-- [ ] Repro-Befehl definieren und implementieren, der genau einen Run (Seed + Run-Index + `decision_rng_seed`) lokal erneut ausfuehrt.
+- [x] Repro-Befehl definieren und implementieren, der genau einen Run (Seed + Run-Index + `decision_rng_seed`) lokal erneut ausfuehrt.
+- [x] Gemeinsames Werkzeug fuer beide Pipelines: `node scripts/01-data-generation/pipeline/repro-technical-failure.ts <failure.json> [--repeat N]`, Ergebnis in `data/temp/rl/repro/<id>.result.json`. Lokal getestet (Combat: mit erzwungenem Timeout 1/1 technisch, ohne 2/2 regulaer).
 - [ ] Pruefen, ob ein Run mit diesen Parametern auch bei langen Runs bis zum Fehlerzeitpunkt identisch ablaeuft (der Contract-Test belegt Determinismus bisher nur fuer kurze Runs). Falls nicht: aufgezeichnete Aktionen fuer das Nachspielen verwenden.
 
 ### 5. Telegram und Remote-Helper
@@ -51,7 +63,7 @@ Hintergrund: Heute wirft der Runner bei jeder technischen Termination (`run-poke
 
 ### 6. Smoke- und Szenario-Tests
 
-- [ ] `test-modifier-strategic-remote-scenarios.ts`, Szenario `pipeline-timeout`: Erwartung umstellen auf "Pipeline `completed`, technische Termination erfasst, Failure-Datei mit Repro-Infos vorhanden, Notification `collection_completed` (Dry-Run) mit Fehlerzahl".
+- [ ] **Bricht derzeit:** `test-modifier-strategic-remote-scenarios.ts`, Szenario `pipeline-timeout`: Erwartung umstellen auf "Pipeline `completed`, technische Termination erfasst, Failure-Datei mit Repro-Infos vorhanden, Notification `collection_completed` (Dry-Run) mit Fehlerzahl". Achtung: mit `run_process_timeout_ms: 3000` scheitert jeder Run, das ergibt jetzt `no_regular_runs_collected`. Entweder `no_regular_runs_collected` als Erwartung uebernehmen oder die Config so waehlen, dass nur ein Teil der Runs scheitert (der Timeout gilt global fuer alle Runs).
 - [ ] Szenario `pipeline-error` (fehlender Checkpoint) bleibt fast-fail.
 - [ ] Neues Szenario fuer den Notausschalter.
 - [ ] `quick-smoke` und `start-smoke` weiterhin gruen.
@@ -81,25 +93,28 @@ Befunde (Stand 2026-10-12):
 - [x] Mehrere Episoden pro Batch: seit v1.12 geht der Harness von einem `GameManager` pro Test aus. Der Collector raeumt jetzt vor jeder Episode das statische `PromptHandler.runInterval` und die Spies (`vi.restoreAllMocks()`) selbst auf. Vorher ging ab der zweiten Episode jedes Batches alles verloren (bei `batch_size: 50` also 49 von 50 Episoden), ohne dass die Pipeline das bemerkte.
 - [x] Einzel-/Doppelkampf: der Collector gab `scenario.battle_style` (Spieleinstellung `SET`/`SWITCH`) an `game.override.battleStyle(...)`, das seit v1.12 `"single"`/`"double"` erwartet. Der ungueltige Wert liess das Spiel Doppelkaempfe selbst auswuerfeln, die der Collector als Einzelkampf behandelte und in einen Timeout lief (Basistest: 13 von 52 Episoden). Jetzt: `is_double_fight` -> `"single"`/`"double"`, `SET`/`SWITCH` -> `game.scene.battleStyle`.
 - [x] Spezies statt Form: `getPokemonSpeciesForm(id, 0)` lieferte bei Spezies mit Formen (z. B. Pichu) ein Form-Objekt ohne `getName()`; beim Neuzeichnen des Gegnernamens (z. B. Stat-Aenderung) unbehandelte Rejection und Haenger in `DamageAnimPhase`. Jetzt `speciesDataRegistry.getSpecies(id)`. Repro `wild-w13-1d5b683f8692`: vorher 6/6 Timeouts, danach 6/6 regulaer.
-- [ ] Toten Import `getPokemonSpecies` aus `#utils/pokemon-utils` in `run-pokerogue-experience-collector.ts` entfernen (existiert in v1.12 nicht mehr).
-- [ ] Pipeline: "Vitest exited non-zero, but output exists. Continuing." darf nicht mehr still weiterlaufen, sondern muss als technischer Fehler mit fehlenden Episoden erfasst werden (gehoert zu C1). Ausserdem pruefen, ob Manifest/Metriken geplante statt tatsaechlich gesammelte Episoden zaehlen (Basistest meldete 52/52, tatsaechlich 26).
-- [ ] Modifier-Collector pruefen: legt er bei einem Retry (`retry_count`/`attemptIndex`) im selben Test einen zweiten `GameManager` an? Dann trifft ihn dasselbe Problem.
+- [x] Toten Import `getPokemonSpecies` aus `#utils/pokemon-utils` in `run-pokerogue-experience-collector.ts` entfernen (existiert in v1.12 nicht mehr).
+- [x] Pipeline: "Vitest exited non-zero, but output exists. Continuing." darf nicht mehr still weiterlaufen, sondern muss als technischer Fehler mit fehlenden Episoden erfasst werden (gehoert zu C1). Ausserdem pruefen, ob Manifest/Metriken geplante statt tatsaechlich gesammelte Episoden zaehlen (Basistest meldete 52/52, tatsaechlich 26). Jetzt `collector_process_failed` mit `missing_episodes`; Manifest/Metriken fuehren `regular_episode_count` und `missing_episode_count` (`completed_episodes` bleibt die geplante Zahl abgeschlossener Batches).
+- [x] Modifier-Collector pruefen: legt er bei einem Retry (`retry_count`/`attemptIndex`) im selben Test einen zweiten `GameManager` an? Dann trifft ihn dasselbe Problem. Ja (Retry bei transientem Mystery-Encounter-Startfehler); raeumt jetzt vor dem zweiten Versuch wie der Combat-Collector auf.
 - [ ] Mechanismus in `docs/pokerogue-headless-test-harness-mechanics.md` als neues Unterkapitel dokumentieren und als Regressionstest unter `pokerogue/test/porubot/regressions/` festhalten (zwei Episoden mit je eigenem `GameManager` in einem Test).
 - [ ] Dieselbe `restoreOg`-Entfernung in den 22 Modifier-Mask-Test-Templates (`scripts/90-dev/rl/templates/modifier-*-mask.test.template.ts`, `modifier-item-suite`) und in `scripts/90-dev/tools/dump-pokerogue-starter-defaults.mjs`; danach `npm run rl:test:modifier:item-suite` pruefen.
 - [ ] Klaeren, wie solche Drift kuenftig frueh auffaellt: `typecheck:scripts` meldet bewusst nur Import-Fehler, und der Combat-Collector erzeugt seinen Testcode als String (nicht typgeprueft). Mindestens: nach jedem Submodul-Bump einen Combat-Smoke ausfuehren.
 
 ### C1. Fehler sammeln statt still kuerzen
 
-- [ ] Timeout bzw. Fehler einer Episode als technische Termination erfassen, inkl. Debug-Snapshot (Phase, UI-Modus, Wave, Party) und Repro-Infos (Szenario, Seed, Episoden-Index, Commits, Repro-Befehl).
-- [ ] Technisch beendete Episoden aus dem Datensatz herausnehmen, Pipeline laeuft weiter.
-- [ ] Signatur-Gruppierung, Failure-Dateien und Notausschalter (gleiche Defaults) als gemeinsames Modul mit der Modifier-Pipeline nutzen.
-- [ ] Metriken, `status`/`issues` des Helpers und Telegram-Meldungen analog zur Modifier-Pipeline erweitern.
+- [x] Timeout bzw. Fehler einer Episode als technische Termination erfassen, inkl. Debug-Snapshot (Phase, UI-Modus, Wave, Party) und Repro-Infos (Szenario, Seed, Episoden-Index, Commits, Repro-Befehl).
+- [x] Technisch beendete Episoden aus dem Datensatz herausnehmen, Pipeline laeuft weiter.
+- [x] Signatur-Gruppierung, Failure-Dateien und Notausschalter (gleiche Defaults) als gemeinsames Modul mit der Modifier-Pipeline nutzen.
+- [x] Metriken (`collection-metrics.json`) erweitert.
+- [ ] `status`/`issues` des Helpers und Telegram-Meldungen analog zur Modifier-Pipeline erweitern (zusammen mit Teil 5).
+- [x] Nebenbefund behoben: Bei einem Fehler in `collect_dataset` ueberschrieb die Combat-Pipeline das Manifest mit dem Stand vor der Phase (Batch-Status gingen verloren). Laedt es jetzt wie die Modifier-Pipeline neu.
+- [x] Lokal verifiziert: w2+w13 je 3 Episoden -> 6/6 regulaer, 0 technisch, Pipeline `completed`. Mit `POKEROGUE_COMBAT_STEP_TIMEOUT_MS=50` -> 4 Failure-Dateien mit Repro, 3 Signaturen, Notausschalter loest aus (`consecutive=3>=3`, Test-Config), Step `failed`, Batch-Zaehler im Manifest korrekt.
 
 ### C2. Single-Driver-Schutz
 
 - [x] `installSingleDriverPhaseInterceptor(game)` nach `new GameManager(...)` im Combat-Collector eingebaut.
 - [x] Wirkung belegt (lokal, Repro `wild-w2-11610b8af6ec`, jeweils mit Species-Fix): ohne Schutz 7/8 Episoden Timeout bei gesunder `CommandPhase`, mit Schutz 0/6.
-- [ ] Repro-Faelle `wild-w2-11610b8af6ec` (Signatur A) und `wild-w13-1d5b683f8692` (Signatur B) als Replay-Tests unter `pokerogue/test/porubot/regressions/replays/` festhalten.
+- [x] Repro-Faelle `wild-w2-11610b8af6ec` (Signatur A) und `wild-w13-1d5b683f8692` (Signatur B) als Replay-Tests festhalten. Nicht im Submodul, weil beide Fehler im Collector-Code dieses Repos lagen: ein Submodul-Test mit nachgebautem Turn-Advance lief auch ohne Schutz gruen und wurde verworfen. Stattdessen `scripts/01-data-generation/collector/combat-collector-replays.test.ts` (`npm run rl:test:combat:collector-replays`) gegen den echten Collector. Gegenprobe: ohne Single-Driver-Schutz w2 5/6 Timeouts bei `CommandPhase`, mit `getPokemonSpeciesForm` w13 4/4 Timeouts in `DamageAnimPhase` plus unbehandelte Rejection; mit Fixes beide gruen.
 
 ### C3. Wave-Library-Sync
 
@@ -129,4 +144,4 @@ Befunde (Stand 2026-10-12):
 
 ## Offene Fragen
 
-- **Reproduzierbarkeit:** Treten technische Terminations bei gleichem Seed, Run-Index und `decision_rng_seed` deterministisch wieder auf, oder sind sie (wie frueher die Zombie-Treiber-Timeouts) timingabhaengig? Klaert sich bei der Umsetzung von Abschnitt 4. Davon haengt ab, ob spaeter ein optionaler Retry sinnvoll ist.
+- **Reproduzierbarkeit:** Befund Combat: die Szenarien haben keinen Seed, jede Episode wuerfelt neu; ein Repro ist dort nur statistisch (`--repeat`). Treten technische Terminations bei gleichem Seed, Run-Index und `decision_rng_seed` deterministisch wieder auf, oder sind sie (wie frueher die Zombie-Treiber-Timeouts) timingabhaengig? Klaert sich bei der Umsetzung von Abschnitt 4. Davon haengt ab, ob spaeter ein optionaler Retry sinnvoll ist.

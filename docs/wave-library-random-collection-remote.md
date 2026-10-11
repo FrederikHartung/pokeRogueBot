@@ -119,6 +119,16 @@ Bei aktivem Runtime-Cleanup liegt dort dann zusaetzlich:
 - `runtime-debug/runtime-debug.tar.gz`
 - `runtime-debug/runtime-debug-metadata.json`
 
+## Technische Fehler
+
+Eine Episode, die nicht regulaer endet (Sieg, Niederlage, `max_steps_per_episode`), sondern durch Timeout oder Exception, gilt als technische Termination. Der Collector schreibt ihre Transitions nicht in den Datensatz, sondern einen Eintrag mit Debug-Snapshot (Phase, UI-Modus, Wave, Party, Prompt-Queue) nach `<batch>.jsonl.technical-failures.jsonl`. Bricht der Vitest-Prozess selbst ab oder endet mit Exit != 0, erfasst er das als `collector_process_failed` mit der Zahl fehlender Episoden. `<batch>.jsonl.summary.json` haelt geplante, regulaere und technische Episoden fest.
+
+Die Pipeline laeuft weiter und legt pro Fehler `collect_dataset/technical-failures/<szenario>--episode-<n>.json` an (Repro-Parameter, Commits, Rohdaten), am Ende `collect_dataset/technical-failure-signatures.json`. Beides kommt mit ins Archiv. Notausschalter, Defaults und Repro-Befehl sind dieselben wie in der Modifier-Pipeline (gemeinsames Modul `scripts/01-data-generation/pipeline/technical-failures.ts`, siehe `docs/modifier-strategic-seeded-remote.md`, Abschnitt "Zielbild: Fehlerbehandlung"); die Schwellen stehen hier in `collect.technical_failure_threshold`.
+
+Einschraenkung beim Nachstellen: Die generierten Szenarien haben keinen eigenen Seed, jede Episode wuerfelt neu. Ein Repro ist deshalb statistisch (`--repeat N`), nicht exakt.
+
+Fuer Tests laesst sich der Step-Timeout per `POKEROGUE_COMBAT_STEP_TIMEOUT_MS` ueberschreiben (z. B. `50`, um Timeouts zu erzwingen).
+
 ## Metrikmodell
 
 `collection-metrics.json` ist das verbindliche Modell fuer Abschlussmetriken und Telegram-Zusammenfassung.
