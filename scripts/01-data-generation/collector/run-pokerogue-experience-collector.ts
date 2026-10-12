@@ -208,6 +208,7 @@ import { afterAll, beforeAll, describe, it, vi } from "vitest";
 import {
   applyScenarioOverrides,
   applyStateVariant,
+  buildBattleContext,
   applyScenarioMaterializedState,
   buildObservation,
   clearStalePromptsForForcedSwitch,
@@ -543,12 +544,16 @@ describe("external combat collector", () => {
             const episodeRecords: string[] = [];
             let technicalFailure: Record<string, unknown> | null = null;
             let lastStepIndex = -1;
+            const battleMessageCursor = { index: 0 };
             try {
             applyScenarioOverrides(game, scenario, seedOverride);
 
             const teamSpecies = scenario.player_team.map(member => member.species_id);
             await startScenarioBattle(game, scenario, teamSpecies);
             applyScenarioMaterializedState(game, scenario);
+            // Kampfmeldungen fuer kontextbasierte Policies erst ab hier: die Intro-Meldungen nennen den vom Spiel
+            // gewuerfelten Gegner, bevor der Collector ihn durch den Szenario-Gegner ersetzt.
+            battleMessageCursor.index = Array.isArray(game.textInterceptor?.logs) ? game.textInterceptor.logs.length : 0;
 
             const episodeStateVariant = selectEpisodeStateVariant(globalEpisodeIndex);
             applyStateVariant(game, episodeStateVariant, episodeId);
@@ -559,7 +564,11 @@ describe("external combat collector", () => {
               for (let stepIndex = 0; stepIndex < MAX_STEPS_PER_EPISODE; stepIndex += 1) {
               lastStepIndex = stepIndex;
               const state = buildObservation(game, scenario);
-              const { action, actionSource } = await selectActionFromMask(state, state.action_mask, globalEpisodeIndex);
+              const policyExtras: Record<string, unknown> = { episode_id: episodeId, step_index: stepIndex };
+              if (POLICY.include_battle_context === true) {
+                policyExtras.battle_context = buildBattleContext(game, battleMessageCursor);
+              }
+              const { action, actionSource } = await selectActionFromMask(state, state.action_mask, globalEpisodeIndex, policyExtras);
               if (action < 0) {
                 break;
               }

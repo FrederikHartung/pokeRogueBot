@@ -25,6 +25,9 @@ import { generateStarters } from "#test/utils/game-manager-utils";
 import { PartyUiMode } from "#enums/party-ui-mode";
 import { speciesDataRegistry } from "#app/global-species-data-registry";
 import { resolveLearnMoveIfNeeded } from "#test/porubot/harness/battle-command-advance";
+import { PokemonType } from "#enums/pokemon-type";
+import { WeatherType } from "#enums/weather-type";
+import { TerrainType } from "#data/terrain";
 
 const TERMINAL_ON_EGG_LAPSE = "__COLLECTOR_TERMINAL_ON_EGG_LAPSE__" === "true";
 const STEP_TIMEOUT_MS = Number("__COLLECTOR_STEP_TIMEOUT_MS__");
@@ -132,6 +135,107 @@ export function describePromptQueueForDiagnostics(game: GameManager): string {
       String(prompt?.awaitingActionInput === true),
     ].join(":"))
     .join("|");
+}
+
+// Lesbarer Kampfkontext fuer Policies, die wie ein Spieler entscheiden (z. B. eine Claude-Session pro Kampf).
+// Enthaelt nur, was ein Spieler auf dem Bildschirm sieht: eigenes Team komplett, vom Gegner nur Spezies, Level,
+// Typen, HP in Prozent, Status und Werteveraenderungen (keine Attacken, keine Faehigkeit, kein Team).
+// Wird nur bei policy.include_battle_context an den externen Worker geschickt, nie in die Transitions geschrieben.
+const BATTLE_STAT_NAMES = ["ATK", "DEF", "SPATK", "SPDEF", "SPD", "ACC", "EVA"];
+
+function contextSafe<T>(read: () => T, fallback: T): T {
+  try {
+    return read();
+  } catch {
+    return fallback;
+  }
+}
+
+function describeTypes(pokemon: any): string[] {
+  return contextSafe(() => (pokemon.getTypes() as number[]).map(type => PokemonType[type] ?? String(type)), []);
+}
+
+function describeStatus(pokemon: any): string | null {
+  const effect = pokemon?.status?.effect;
+  return effect == null || effect === StatusEffect.NONE ? null : (StatusEffect[effect] ?? String(effect));
+}
+
+function describeStatStages(pokemon: any): Record<string, number> {
+  const stages = contextSafe(() => pokemon.getStatStages() as number[], []);
+  const result: Record<string, number> = {};
+  stages.forEach((value, index) => {
+    if (value !== 0) {
+      result[BATTLE_STAT_NAMES[index] ?? String(index)] = value;
+    }
+  });
+  return result;
+}
+
+function describeSpecies(pokemon: any): string {
+  return contextSafe(() => pokemon.species.getName(pokemon.formIndex), pokemon?.name ?? "unknown");
+}
+
+export function buildBattleContext(game: GameManager, messageCursor: { index: number }): Record<string, unknown> {
+  const battle = game.scene.currentBattle as any;
+  const party = game.scene.getPlayerParty();
+  const enemy = game.scene.getEnemyPokemon() as any;
+  const arena = game.scene.arena as any;
+  const logs: string[] = Array.isArray((game as any).textInterceptor?.logs) ? (game as any).textInterceptor.logs : [];
+  const newMessages = logs
+    .slice(messageCursor.index)
+    .map(text => String(text).replace(/@\w{.*?}/g, "").replace(/\$/g, " ").replace(/\s+/g, " ").trim())
+    // Unuebersetzte i18n-Schluessel (z. B. "dialogue:rivalFemale.encounter.1") sieht kein Spieler.
+    .filter(text => text.length > 0 && !/^[a-zA-Z]+:[\w.]+$/.test(text));
+  messageCursor.index = logs.length;
+
+  const enemyParty = Array.isArray(battle?.enemyParty) ? battle.enemyParty : [];
+  return {
+    wave: battle?.waveIndex ?? null,
+    turn: battle?.turn ?? null,
+    battle_type: battle?.trainer ? "trainer" : "wild",
+    trainer: battle?.trainer ? contextSafe(() => battle.trainer.getName(), "trainer") : null,
+    enemy_pokemon_remaining: battle?.trainer ? enemyParty.filter((member: any) => !member.isFainted()).length : null,
+    weather: arena?.weather ? (WeatherType[arena.weather.weatherType] ?? null) : null,
+    terrain: arena?.terrain ? (TerrainType[arena.terrain.terrainType] ?? null) : null,
+    new_messages: newMessages,
+    player_party: party.map((member: any, slot: number) => ({
+      slot,
+      species: describeSpecies(member),
+      level: member.level,
+      hp: member.hp,
+      max_hp: contextSafe(() => member.getMaxHp(), null),
+      status: describeStatus(member),
+      fainted: member.isFainted(),
+      active: member.isOnField(),
+      types: describeTypes(member),
+      ability: contextSafe(() => member.getAbility().name, null),
+      stat_stages: member.isOnField() ? describeStatStages(member) : {},
+      moves: contextSafe(() => member.getMoveset().filter((move: any) => move != null).map((move: any, moveSlot: number) => {
+        const data = move.getMove();
+        const ppMax = move.getMovePp();
+        return {
+          slot: moveSlot,
+          name: data.name,
+          type: PokemonType[data.type] ?? String(data.type),
+          category: MoveCategory[data.category] ?? String(data.category),
+          power: data.power > 0 ? data.power : null,
+          accuracy: data.accuracy > 0 ? data.accuracy : null,
+          pp: `${Math.max(0, ppMax - (move.ppUsed ?? 0))}/${ppMax}`,
+        };
+      }), []),
+    })),
+    enemy_active: enemy
+      ? {
+        species: describeSpecies(enemy),
+        level: enemy.level,
+        hp_percent: Math.round((enemy.hp / Math.max(1, enemy.getMaxHp())) * 100),
+        status: describeStatus(enemy),
+        types: describeTypes(enemy),
+        stat_stages: describeStatStages(enemy),
+        boss: contextSafe(() => enemy.isBoss(), false),
+      }
+      : null,
+  };
 }
 
 export function isCollectorEpisodeTerminalPhase(game: GameManager): boolean {
@@ -1476,12 +1580,17 @@ function getOrStartPersistentExternalPolicyWorker(policyConfig: any): any {
   return worker;
 }
 
-async function runPersistentExternalPolicy(policyConfig: any, state: any, actionMask: number[]): Promise<number> {
+async function runPersistentExternalPolicy(
+  policyConfig: any,
+  state: any,
+  actionMask: number[],
+  extras: Record<string, unknown> = {},
+): Promise<number> {
   const worker = getOrStartPersistentExternalPolicyWorker(policyConfig);
   const timeoutMs = Number.isFinite(policyConfig?.timeout_ms) && policyConfig.timeout_ms > 0
     ? policyConfig.timeout_ms
     : 5000;
-  const payload = JSON.stringify({ state, action_mask: actionMask }) + "\n";
+  const payload = JSON.stringify({ ...extras, state, action_mask: actionMask }) + "\n";
 
   return await withTimeout(
     new Promise<number>((resolve, reject) => {
@@ -1502,9 +1611,14 @@ async function runPersistentExternalPolicy(policyConfig: any, state: any, action
   );
 }
 
-async function runExternalPolicy(policyConfig: any, state: any, actionMask: number[]): Promise<number> {
+async function runExternalPolicy(
+  policyConfig: any,
+  state: any,
+  actionMask: number[],
+  extras: Record<string, unknown> = {},
+): Promise<number> {
   if (policyConfig?.persistent === true) {
-    return runPersistentExternalPolicy(policyConfig, state, actionMask);
+    return runPersistentExternalPolicy(policyConfig, state, actionMask, extras);
   }
 
   if (!Array.isArray(policyConfig?.command) || policyConfig.command.length === 0) {
@@ -1587,6 +1701,8 @@ export async function selectActionFromMask(
   state: any,
   actionMask: number[],
   globalEpisodeIndex: number,
+  // Zusatzfelder fuer externe Worker (episode_id, step_index, battle_context); der DQN-Worker ignoriert sie.
+  policyExtras: Record<string, unknown> = {},
 ): Promise<{ action: number; actionSource: string }> {
   const valid = actionMask
     .map((value, index) => ({ value, index }))
@@ -1626,7 +1742,7 @@ export async function selectActionFromMask(
   }
 
   if (POLICY.type === "external_command") {
-    const action = await runExternalPolicy(POLICY, state, actionMask);
+    const action = await runExternalPolicy(POLICY, state, actionMask, policyExtras);
     if (valid.includes(action)) {
       const actionSource = Array.isArray(POLICY.command)
         && POLICY.command.some((part: string) => String(part).includes("dqn_policy_infer"))

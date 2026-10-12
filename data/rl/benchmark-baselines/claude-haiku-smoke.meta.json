@@ -1,0 +1,21 @@
+{
+  "label": "claude-haiku-smoke",
+  "model": "haiku",
+  "context_mode": "battle",
+  "prompt_version": "battle-session-v1",
+  "collector_config": "data/rl/collector-run-benchmarked-wave-library-v3-full.json",
+  "battles_planned": 26,
+  "battles_regular": 26,
+  "technical_failures": 0,
+  "transitions": 99,
+  "decisions": 99,
+  "notional_cost_usd": 0.04475475000000001,
+  "avg_decision_ms": 2326,
+  "commits": {
+    "repo": "12d5c783b896442162d1c263763e730016561638",
+    "submodule": "46b5ebbb418fadd32419a6438ee669683cc787be"
+  },
+  "started_at": "2026-10-12T17:42:29.407Z",
+  "completed_at": "2026-10-12T17:45:02.986Z",
+  "runtime_ms": 153579
+}

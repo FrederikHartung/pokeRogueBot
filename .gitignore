@@ -68,3 +68,6 @@ data/offline-wave-library/
 
 # Python bytecode cache
 __pycache__/
+# Gespeicherte Benchmark-Laeufe (z. B. Claude-Session-Baseline): JSONL lokal/Server, nur die Meta-Datei wird versioniert
+/data/rl/benchmark-baselines/*.jsonl
+/data/rl/benchmark-baselines/*/

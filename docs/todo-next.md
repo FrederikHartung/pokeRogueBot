@@ -263,6 +263,11 @@ Verbindlicher Schema-Hinweis:
 - Umsetzungsplan Phase 4:
 - Live-Sonderfaelle absichern: `tryToCatch`, keine legalen Moves, Forced Switch, leere Gegnerparty, invalide Action-Mask, aktiver Slotwechsel nach KO
 
+Späterer Ausbau: Trainingsdaten mit der Claude-Session-Policy (Roadmap, nicht Teil des Benchmark-Slices)
+- Die Claude-Session-Policy (`docs/claude-session-benchmark-policy.md`, eine `claude -p`-Session pro Kampf, Entscheidungen wie ein Spieler mit Kampfverlauf) ist zunaechst nur als vierte Benchmark-Baseline gedacht.
+- Idee fuer spaeter, eher zum Ausprobieren: mit derselben Policy Combat-Trainingsdaten erzeugen und z. B. als eigenen Usecase im Dataset-Pool (`combat-v3/claude-session/...`) neben `random-only` ablegen.
+- Vorher klaeren: Verbrauch im Claude-Plan bei Tausenden Episoden, Laufzeit (lokal, ausserhalb einer Claude-Code-Session), ob die Daten das Offline-Training ueberhaupt verbessern (Verteilungsverschiebung gegenueber Random-Daten), und Transitions mit Begruendung als Zusatzfeld fuer spaetere Analysen.
+
 Späterer Ausbau: Double Battles als eigener RL-Pfad
 - aktuell werden Double Battles bewusst aus der Wave-Lib-Materialisierung gefiltert und im Live-DQN-Pfad hart auf Heuristik zurueckgefallen
 - Grund: der bestehende Combat-RL-Contract ist klar auf Single Battles zugeschnitten
