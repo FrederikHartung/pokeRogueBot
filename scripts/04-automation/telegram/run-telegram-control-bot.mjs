@@ -467,6 +467,11 @@ function buildRandomCollectionStatusBlock(run) {
     lines.push(`${run.kind === "modifier_strategic_collection" ? "Seeds" : "Scenarios"}: ${scenarioCount}`);
   }
 
+  const outcomes = summarizeTechnicalFailures(manifest);
+  if (outcomes != null) {
+    lines.push(`Regular: ${outcomes.regular}, technical failures: ${outcomes.technical} (${(outcomes.ratio * 100).toFixed(1)} %)`);
+  }
+
   if (state === "running") {
     const eta = summarizeEta(manifest);
     if (eta != null) {
@@ -483,6 +488,27 @@ function buildRandomCollectionStatusBlock(run) {
   }
 
   return lines.join("\n");
+}
+
+// Batch-Zaehler aus der Fehlererfassung (scripts/01-data-generation/pipeline/technical-failures.ts):
+// Modifier zaehlt Runs (regular_run_count), Combat Episoden (regular_episode_count).
+function summarizeTechnicalFailures(manifest) {
+  const batches = Array.isArray(manifest?.batches) ? manifest.batches : [];
+  let regular = 0;
+  let technical = 0;
+  let seen = false;
+  for (const batch of batches) {
+    if (batch?.technical_termination_count == null) {
+      continue;
+    }
+    seen = true;
+    regular += Number(batch.regular_run_count ?? batch.regular_episode_count ?? 0);
+    technical += Number(batch.technical_termination_count ?? 0);
+  }
+  if (!seen || regular + technical === 0) {
+    return null;
+  }
+  return { regular, technical, ratio: technical / (regular + technical) };
 }
 
 function buildTrainingStatusBlock(run) {

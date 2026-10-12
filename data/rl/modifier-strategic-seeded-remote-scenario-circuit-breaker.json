@@ -1,0 +1,29 @@
+{
+  "seed_prefix": "modifier-strategic-remote-scenario-circuit-breaker-s",
+  "seed_start_index": 1,
+  "seed_count": 3,
+  "output_root": "./pipeline-runs/modifier-strategic-seeded-remote-scenario-circuit-breaker",
+  "manifest_path": "./pipeline-runs/modifier-strategic-seeded-remote-scenario-circuit-breaker/manifest.json",
+  "collect": {
+    "runs_per_seed": 1,
+    "runs_per_instance": 1,
+    "parallelism": 1,
+    "max_waves": 1,
+    "modifier_policy": "random_executable",
+    "step_timeout_ms": 15000,
+    "run_process_timeout_ms": 3000,
+    "combat_dqn_device": "cpu",
+    "technical_failure_threshold": {
+      "max_consecutive": 2
+    }
+  },
+  "postprocess": {
+    "enabled": true,
+    "gamma": 0.99,
+    "output_path": "./pipeline-runs/modifier-strategic-seeded-remote-scenario-circuit-breaker/merged/modifier-strategic-training-transitions.jsonl"
+  },
+  "archive": {
+    "format": "tar.gz",
+    "output_path": "./pipeline-runs/modifier-strategic-seeded-remote-scenario-circuit-breaker/artifacts/modifier-strategic-seeded-runtime.tar.gz"
+  }
+}

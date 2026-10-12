@@ -273,18 +273,38 @@ print_status() {
   echo "Artifacts summary: $(artifacts_summary_file_for_config "${config_path}")"
   echo "Metrics: $(metrics_file_for_config "${config_path}")"
 
-  python3 - "$(manifest_file_for_config "${config_path}")" "$(metrics_file_for_config "${config_path}")" <<'PY'
+  python3 - "$(manifest_file_for_config "${config_path}")" "$(metrics_file_for_config "${config_path}")" "${runtime_dir}" <<'PY'
 import json
 import os
 import sys
 
 manifest_path = sys.argv[1]
 metrics_path = sys.argv[2]
+runtime_dir = sys.argv[3]
 if os.path.exists(manifest_path):
     manifest = json.load(open(manifest_path, "r", encoding="utf-8"))
     steps = manifest.get("steps", {})
     current = next((name for name, step in steps.items() if step.get("status") == "running"), None)
     print(f"Current phase: {current or 'none'}")
+    failed_step = next(((name, step) for name, step in steps.items() if step.get("status") == "failed"), None)
+    if failed_step:
+        print(f"Failed phase: {failed_step[0]}: {failed_step[1].get('error')}")
+    # Live aus dem Manifest bzw. dem Failure-Ordner; collection-metrics.json wird erst nach einer Phase geschrieben.
+    batches = manifest.get("batches", [])
+    regular = sum(int(batch.get("regular_run_count") or 0) for batch in batches)
+    technical = sum(int(batch.get("technical_termination_count") or 0) for batch in batches)
+    failures_dir = os.path.join(runtime_dir, "collect_dataset", "technical-failures")
+    failure_files = len([name for name in os.listdir(failures_dir) if name.endswith(".json")]) if os.path.isdir(failures_dir) else 0
+    ratio = f" ({technical / (regular + technical) * 100:.1f} %)" if regular + technical > 0 else ""
+    print(f"Runs so far: regular {regular}, technical {technical}{ratio}")
+    if failure_files:
+        print(f"Technical failures: {failures_dir} ({failure_files} files)")
+    signatures_path = os.path.join(runtime_dir, "collect_dataset", "technical-failure-signatures.json")
+    if os.path.exists(signatures_path):
+        signatures = json.load(open(signatures_path, "r", encoding="utf-8"))
+        print(f"Failure signatures: {signatures_path} ({signatures.get('signature_count', 0)})")
+        for signature in signatures.get("signatures", [])[:5]:
+            print(f"  {signature['count']}x {signature['signature']}")
 if os.path.exists(metrics_path):
     metrics = json.load(open(metrics_path, "r", encoding="utf-8"))
     print(f"Seeds: {metrics.get('seed_count', '?')}")
