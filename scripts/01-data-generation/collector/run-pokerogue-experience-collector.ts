@@ -203,6 +203,7 @@ import { UiMode } from "#enums/ui-mode";
 import { GameManager } from "#test/framework/game-manager";
 import { PromptHandler } from "#test/helpers/prompt-handler";
 import { installSingleDriverPhaseInterceptor } from "#test/porubot/harness/single-driver-phase-interceptor";
+import { resolveLearnMoveIfNeeded } from "#test/porubot/harness/battle-command-advance";
 import { afterAll, beforeAll, describe, it, vi } from "vitest";
 import {
   applyScenarioOverrides,
@@ -397,6 +398,7 @@ function buildEpisodeDebugSnapshot(game: GameManager, stepIndex: number): Record
     ui_mode: safeDiagnostic(() => currentUiModeNameSafe(game), "unknown"),
     wave: safeDiagnostic(() => currentWaveIndexSafe(game, -1), -1),
     is_double_battle: safeDiagnostic(() => game.scene.currentBattle?.double ?? null, null),
+    player_active_trapped: safeDiagnostic(() => game.scene.getPlayerPokemon()?.isTrapped() ?? null, null),
     player_party: safeDiagnostic(() => describePartyForDiagnostics(game), "unknown"),
     party_ui: safeDiagnostic(() => describePartyUiHandlerForDiagnostics(game), "unknown"),
     prompts: safeDiagnostic(() => describePromptQueueForDiagnostics(game), "unknown"),
@@ -471,6 +473,9 @@ async function advanceAfterAction(game: GameManager): Promise<"ok" | "terminal" 
   const startedAt = Date.now();
   while (Date.now() - startedAt < STEP_TIMEOUT_MS) {
     resolveOptionalCheckSwitchIfNeeded(game);
+    if (resolveLearnMoveIfNeeded(game)) {
+      console.log(\`[collector-learn-move] ui_mode=\${currentUiModeNameSafe(game)}\`);
+    }
     const forcedSwitchStatus = resolveForcedSwitchIfNeeded(game);
     if (forcedSwitchStatus === "no_candidate") {
       return "terminal";
@@ -677,6 +682,9 @@ describe("external combat collector", () => {
                     ...buildEpisodeDebugSnapshot(game, stepIndex),
                     advance_status: advanceStatus,
                     step_ms: stepMs,
+                    action,
+                    action_kind: action >= MOVE_ACTIONS ? "switch" : "move",
+                    action_mask: state.action_mask,
                   };
                 }
                 break;

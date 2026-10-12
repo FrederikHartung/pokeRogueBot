@@ -10,6 +10,9 @@
 // - Signatur B, `wild-w13-1d5b683f8692`: Gegner Pichu bekam ein Form-Objekt statt der Spezies
 //   (getPokemonSpeciesForm), getName() fehlte beim Neuzeichnen des Namens, Haenger in DamageAnimPhase.
 //   Vorher 6/6 Timeouts, mit speciesDataRegistry.getSpecies 6/6 regulaer.
+// - Signatur C, `wild-w16-31b95ce4e94d` (Combat-Stresslauf 13.10.): Zubat setzt Mean Look ein, die Aktionsmaske
+//   erlaubte trotzdem Wechsel; das Spiel lehnt den Wechsel ab und bleibt in der CommandPhase. Vorher 5-6/8 Timeouts
+//   (alle mit Wechselaktion und isTrapped() === true), mit Trapping-Pruefung in der Maske 8/8 regulaer.
 //
 // Die Szenarien haben keinen eigenen Seed, jede Episode wuerfelt neu. Mehrere Episoden pro Szenario
 // machen den Test trotzdem trennscharf: bei der vorherigen Fehlerquote waere ein gruener Lauf Zufall.
@@ -87,5 +90,13 @@ test("replay wild-w13-1d5b683f8692: Pichu keeps a species with getName(), no Dam
   assert.equal(summary.regular_episodes, 4);
   assert.equal(summary.technical_episodes, 0);
   assert.ok(summary.transitions > 0);
+  assert.deepEqual(unhandledErrors, []);
+});
+
+test("replay wild-w16-31b95ce4e94d: no switch offered while trapped by Mean Look (signature C)", () => {
+  const { summary, failures, unhandledErrors } = runCollectorReplay("wild-w16-31b95ce4e94d", 8);
+  assert.deepEqual(failures, [], `technical failures: ${describeFailures(failures)}`);
+  assert.equal(summary.regular_episodes, 8);
+  assert.equal(summary.technical_episodes, 0);
   assert.deepEqual(unhandledErrors, []);
 });

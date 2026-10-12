@@ -120,6 +120,15 @@ Befunde (Stand 2026-10-12):
 - [x] Wirkung belegt (lokal, Repro `wild-w2-11610b8af6ec`, jeweils mit Species-Fix): ohne Schutz 7/8 Episoden Timeout bei gesunder `CommandPhase`, mit Schutz 0/6.
 - [x] Repro-Faelle `wild-w2-11610b8af6ec` (Signatur A) und `wild-w13-1d5b683f8692` (Signatur B) als Replay-Tests festhalten. Nicht im Submodul, weil beide Fehler im Collector-Code dieses Repos lagen: ein Submodul-Test mit nachgebautem Turn-Advance lief auch ohne Schutz gruen und wurde verworfen. Stattdessen `scripts/01-data-generation/collector/combat-collector-replays.test.ts` (`npm run rl:test:combat:collector-replays`) gegen den echten Collector. Gegenprobe: ohne Single-Driver-Schutz w2 5/6 Timeouts bei `CommandPhase`, mit `getPokemonSpeciesForm` w13 4/4 Timeouts in `DamageAnimPhase` plus unbehandelte Rejection; mit Fixes beide gruen.
 
+### C5. Befunde aus dem Combat-Stresslauf (13.10.)
+
+Lauf `combat-stress-v1`: 311 Szenarien x 8 Episoden, 2.482 regulaer, 6 technisch (0,2 %), 2 Signaturen, ca. 65 min. Pipeline lief wie gewuenscht durch.
+
+- [x] **Signatur C** (5x, `wild-w16-31b95ce4e94d`, Timeout bei `CommandPhase`/`COMMAND`): Zubat setzt Mean Look ein, die Aktionsmaske erlaubte trotzdem Wechsel; das Spiel lehnt den Wechsel ab und bleibt in der CommandPhase. Beleg: lokal 5/8 Timeouts, alle mit Wechselaktion und `isTrapped() === true`. Fix: Maske sperrt Wechsel, wenn das aktive Pokemon gefangen ist (Combat-Helper und Modifier-Collector; `canSwitch`-Feature und State-Schema unveraendert). Danach 8/8 regulaer; Replay-Test in `combat-collector-replays.test.ts`.
+- [x] **Signatur D** (1x, `trainer-w8-aa571629a69f`, Timeout in `LearnMovePhase`/`CONFIRM`): der Combat-Collector beantwortete Learn-Move-Abfragen nie (Level-Up mit vollem Moveset mitten im Trainerkampf). Mechanismus durch den Submodul-Regressionstest `learn-move-phase-requires-active-servicing.test.ts` belegt. Fix: Warteschleifen rufen `resolveLearnMoveIfNeeded` aus dem Harness auf und loggen `[collector-learn-move]`. Lokal nicht gezielt ausloesbar (0/16), deshalb kein eigener Replay-Test.
+- [x] Debug-Snapshot erweitert: Aktion, Aktionsart und Maske beim Timeout sowie `player_active_trapped`.
+- [ ] Live-Bot pruefen: beruecksichtigt die Wechsel-Logik bzw. die DQN-Maske im Live-Bot `isTrapped()`?
+
 ### C3. Wave-Library-Sync
 
 - [ ] Lokaler Befehl: Hash-Vergleich der Wave-Library lokal vs. Server, bei Abweichung kopieren und Szenarien auf dem Server neu erzeugen.

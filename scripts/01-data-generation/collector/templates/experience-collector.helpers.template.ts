@@ -24,6 +24,7 @@ import type { GameManager } from "#test/framework/game-manager";
 import { generateStarters } from "#test/utils/game-manager-utils";
 import { PartyUiMode } from "#enums/party-ui-mode";
 import { speciesDataRegistry } from "#app/global-species-data-registry";
+import { resolveLearnMoveIfNeeded } from "#test/porubot/harness/battle-command-advance";
 
 const TERMINAL_ON_EGG_LAPSE = "__COLLECTOR_TERMINAL_ON_EGG_LAPSE__" === "true";
 const STEP_TIMEOUT_MS = Number("__COLLECTOR_STEP_TIMEOUT_MS__");
@@ -296,6 +297,10 @@ export async function waitForPromiseOrTerminal(
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
     resolveOptionalCheckSwitchIfNeeded(game);
+    // Level-Up mit neuer Attacke bei vollem Moveset fragt per CONFIRM/SUMMARY nach; ohne Antwort haengt LearnMovePhase.
+    if (resolveLearnMoveIfNeeded(game)) {
+      console.log(`[collector-learn-move] ui_mode=${currentUiModeNameSafe(game)}`);
+    }
     const forcedSwitchStatus = resolveForcedSwitchIfNeeded(game);
     if (forcedSwitchStatus === "no_candidate") {
       return "terminal";
@@ -342,6 +347,10 @@ export async function waitForCommandOrTerminalAfterForcedSwitch(
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
     resolveOptionalCheckSwitchIfNeeded(game);
+    // Level-Up mit neuer Attacke bei vollem Moveset fragt per CONFIRM/SUMMARY nach; ohne Antwort haengt LearnMovePhase.
+    if (resolveLearnMoveIfNeeded(game)) {
+      console.log(`[collector-learn-move] ui_mode=${currentUiModeNameSafe(game)}`);
+    }
     const forcedSwitchStatus = resolveForcedSwitchIfNeeded(game);
     if (forcedSwitchStatus === "no_candidate") {
       return "terminal";
@@ -699,6 +708,14 @@ function inferScenarioTrainerBattle(scenario: any): boolean {
   return scenario?.trainer != null;
 }
 
+function isActiveTrappedSafe(pokemon: { isTrapped?: () => boolean } | null | undefined): boolean {
+  try {
+    return pokemon?.isTrapped?.() === true;
+  } catch {
+    return false;
+  }
+}
+
 export function buildObservation(game: GameManager, scenario: any) {
   const player = game.scene.getPlayerPokemon();
   const enemy = game.scene.getEnemyPokemon();
@@ -790,6 +807,7 @@ export function buildObservation(game: GameManager, scenario: any) {
     expectedIncomingDamage: number;
     survivesOneHit: boolean;
   }> = [];
+  const activeTrapped = isActiveTrappedSafe(player);
   const partySlots = Array.from({ length: 6 }, (_, slot) => {
     const member = party[slot];
     if (!member) {
@@ -841,7 +859,9 @@ export function buildObservation(game: GameManager, scenario: any) {
     const slotSpeedAdvantage = speedOrderAdvantage(member, enemy);
     const survivesOneHit = expectedIncomingDamage < hpRatio;
     const canThreatenKoBucket = koTurnsBucket(bestDamageIntoEnemy, enemyHpRatio);
-    actionMask[MOVE_ACTIONS + slot] = canSwitch ? 1 : 0;
+    // Gefangene Pokemon (Mean Look, Wrap, Shadow Tag, ...) koennen nicht wechseln: das Spiel lehnt den Wechsel ab und
+    // bleibt in der CommandPhase. Nur die Maske sperrt den Wechsel; canSwitch bleibt Bank-Feature (State-Schema unveraendert).
+    actionMask[MOVE_ACTIONS + slot] = canSwitch && !activeTrapped ? 1 : 0;
     if (canSwitch) {
       const bestEffectiveness = member.getMoveset()
         .slice(0, 4)

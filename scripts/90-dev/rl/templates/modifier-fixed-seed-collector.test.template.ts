@@ -930,6 +930,14 @@ function buildDoubleCombatObservation(game: GameManager): Record<string, unknown
   };
 }
 
+function isActiveTrappedSafe(pokemon: { isTrapped?: () => boolean } | null | undefined): boolean {
+  try {
+    return pokemon?.isTrapped?.() === true;
+  } catch {
+    return false;
+  }
+}
+
 function buildCombatObservation(game: GameManager): Record<string, unknown> {
   const player = game.scene.getPlayerPokemon();
   const enemy = game.scene.getEnemyPokemon();
@@ -1016,6 +1024,7 @@ function buildCombatObservation(game: GameManager): Record<string, unknown> {
     expectedIncomingDamage: number;
   }> = [];
 
+  const activeTrapped = isActiveTrappedSafe(player);
   const partySlots = Array.from({ length: 6 }, (_, slot) => {
     const member = party[slot];
     if (!member) {
@@ -1058,7 +1067,9 @@ function buildCombatObservation(game: GameManager): Record<string, unknown> {
     const survivesOneHit = expectedIncomingDamage < hpRatio;
     const canThreatenKoBucket = koTurnsBucket(bestDamageIntoEnemy, enemyHpRatio);
 
-    actionMask[MOVE_ACTIONS + slot] = canSwitch ? 1 : 0;
+    // Gefangene Pokemon (Mean Look, Wrap, Shadow Tag, ...) koennen nicht wechseln: das Spiel lehnt den Wechsel ab und
+    // bleibt in der CommandPhase. Nur die Maske sperrt den Wechsel; canSwitch bleibt Bank-Feature (State-Schema unveraendert).
+    actionMask[MOVE_ACTIONS + slot] = canSwitch && !activeTrapped ? 1 : 0;
     if (canSwitch) {
       const bestEffectiveness = member.getMoveset().slice(0, 4).reduce((best: number, move: any) => {
         const moveData = move.getMove();
