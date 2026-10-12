@@ -66,7 +66,8 @@ Das Projekt: ein Bot, der das Browserspiel PokeRogue automatisiert (Spring Boot,
 - Zielgroessen wie "erzeuge X Episoden" sind pragmatisch: etwa `+-5 %` Abweichung ist in Ordnung, wenn die Daten dadurch sauber ueber Wellen bzw. Seeds verteilt bleiben. Verteilungsqualitaet geht vor exakter Zahl.
 - Datenhygiene:
   - Bei Wave-Library-, Dataset- und Pipeline-Artefakten auf semantische Duplikate, bug-induzierte Eintraege und veraltete Outputs achten.
-  - Kurzlebige Dateien nach `data/temp/` statt in produktive Datenpfade (`npm run dev:clean` raeumt auf).
+  - Kurzlebige Dateien nach `data/temp/` statt in produktive Datenpfade.
+  - Aufraeumen nach Pipeline-Laeufen (lokal und auf dem Server): `npm run ops:clean:pipeline-temp` zeigt im Trockenlauf, was geloescht wuerde; geloescht wird erst mit `-- --apply`, Rohdaten abgeschlossener Laeufe nur mit `--include-raw`, ganze Laeufe unter `data/temp/rl/pipeline-runs/` nur mit `--runtime <name>`. Auf dem Server vorher den User bestaetigen lassen (Skill `server-cleanup`). Achtung: `npm run dev:clean` loescht pauschal alles unter `data/rl/pipeline-runs/`, inklusive Control-Ordnern laufender Helper.
   - Bereinigungen an produktiven Datensaetzen oder Wave-Lib-Eintraegen nur gezielt und nachvollziehbar, danach betroffene Dateien kurz validieren.
 
 ## 5. Remote-Server (optional)

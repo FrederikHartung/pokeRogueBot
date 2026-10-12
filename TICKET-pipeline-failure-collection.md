@@ -15,6 +15,10 @@ Hintergrund: Heute wirft der Runner bei jeder technischen Termination (`run-poke
 
 Voraussetzung: Teile 1-4, C0-C2 sind umgesetzt und lokal getestet (siehe Haken unten). Ablauf:
 
+Stand 13.10.: Schritte 1 und 2 erledigt (Server auf `85de32c`, Unit-/Replay-Tests, `quick-smoke` und alle Szenario-Tests gruen). Combat-Stresslauf `data/temp/rl/combat-stress-v1.json` (311 Szenarien x 8 Episoden) gestartet; Modifier-Configs `data/temp/rl/modifier-stress-v1-wave10.json` (40 Seeds x 2 Runs) und `modifier-stress-v1-wave50.json` (30 Seeds x 2 Runs) liegen auf dem Server bereit.
+
+Befund: Der Modifier-Smoke brauchte ca. 16 s pro Wave. Mit `run_process_timeout_ms: 300000` (u. a. `modifier-strategic-seeded-remote-50seeds-50runs-wave30.json`) wuerde ein Run, der regulaer bis Wave ~20 kommt, als `collector_run_process_timeout` zaehlen. Die Stress-Configs nutzen 15 bzw. 40 min. Die produktiven Configs vor dem naechsten grossen Lauf anpassen.
+
 1. Server auf `feature/pipeline-failure-collection` aktualisieren (Ablauf in `AGENTS.md`, Abschnitt 5), `npm run rl:test:pipeline:technical-failures` und `npm run rl:test:combat:collector-replays` auf dem Server laufen lassen.
 2. Modifier: `quick-smoke`; Szenario-Test `pipeline-timeout` vorher auf das neue Verhalten anpassen (Teil 6).
 3. **Combat-Stresslauf:** alle 311 Szenarien von `generated-wave-library-v3-w1-24`, mehrere Episoden pro Szenario (z. B. 8), `parallelism` 3. Vorher C4 (`seeds`/`episodes_per_seed`) pruefen; die Szenarien haben keinen eigenen Seed, Vielfalt entsteht ueber die Episodenzahl.
@@ -57,16 +61,16 @@ Voraussetzung: Teile 1-4, C0-C2 sind umgesetzt und lokal getestet (siehe Haken u
 
 ### 5. Telegram und Remote-Helper
 
-- [ ] `scripts/04-automation/telegram/send-pipeline-notification.mjs`: Abschlussmeldung zeigt Anzahl technischer Terminations und Signaturen; Abbruchmeldung zeigt `technical_failure_threshold_exceeded`.
-- [ ] `run-modifier-strategic-seeded-remote.sh`: `status` und `issues` zeigen technische Terminations und den Pfad zu `technical-failure-signatures.json`.
-- [ ] Telegram-Control-Bot (`run-telegram-control-bot.mjs`): Status-Antwort um technische Terminations ergaenzen.
+- [x] `scripts/04-automation/telegram/send-pipeline-notification.mjs`: Abschlussmeldung zeigt Anzahl technischer Terminations und Signaturen; Abbruchmeldung zeigt `technical_failure_threshold_exceeded`.
+- [x] `run-modifier-strategic-seeded-remote.sh`: `status` und `issues` zeigen technische Terminations und den Pfad zu `technical-failure-signatures.json`. Umgesetzt in `status` beider Helper (live aus Manifest und Failure-Ordner, Top-5-Signaturen); `issues` unveraendert.
+- [x] Telegram-Control-Bot (`run-telegram-control-bot.mjs`): Status-Antwort um technische Terminations ergaenzen.
 
 ### 6. Smoke- und Szenario-Tests
 
-- [ ] **Bricht derzeit:** `test-modifier-strategic-remote-scenarios.ts`, Szenario `pipeline-timeout`: Erwartung umstellen auf "Pipeline `completed`, technische Termination erfasst, Failure-Datei mit Repro-Infos vorhanden, Notification `collection_completed` (Dry-Run) mit Fehlerzahl". Achtung: mit `run_process_timeout_ms: 3000` scheitert jeder Run, das ergibt jetzt `no_regular_runs_collected`. Entweder `no_regular_runs_collected` als Erwartung uebernehmen oder die Config so waehlen, dass nur ein Teil der Runs scheitert (der Timeout gilt global fuer alle Runs).
-- [ ] Szenario `pipeline-error` (fehlender Checkpoint) bleibt fast-fail.
-- [ ] Neues Szenario fuer den Notausschalter.
-- [ ] `quick-smoke` und `start-smoke` weiterhin gruen.
+- [x] `test-modifier-strategic-remote-scenarios.ts`, Szenario `pipeline-timeout`: Erwartung umstellen auf "Pipeline `completed`, technische Termination erfasst, Failure-Datei mit Repro-Infos vorhanden, Notification `collection_completed` (Dry-Run) mit Fehlerzahl". Achtung: mit `run_process_timeout_ms: 3000` scheitert jeder Run, das ergibt jetzt `no_regular_runs_collected`. Entweder `no_regular_runs_collected` als Erwartung uebernehmen oder die Config so waehlen, dass nur ein Teil der Runs scheitert (der Timeout gilt global fuer alle Runs).
+- [x] Szenario `pipeline-error` (fehlender Checkpoint) bleibt fast-fail.
+- [x] Neues Szenario fuer den Notausschalter.
+- [x] `quick-smoke` weiterhin gruen (13.10. auf dem Server). `start-smoke` steht noch aus.
 
 ### 7. Doku und Abschluss
 
@@ -106,7 +110,7 @@ Befunde (Stand 2026-10-12):
 - [x] Technisch beendete Episoden aus dem Datensatz herausnehmen, Pipeline laeuft weiter.
 - [x] Signatur-Gruppierung, Failure-Dateien und Notausschalter (gleiche Defaults) als gemeinsames Modul mit der Modifier-Pipeline nutzen.
 - [x] Metriken (`collection-metrics.json`) erweitert.
-- [ ] `status`/`issues` des Helpers und Telegram-Meldungen analog zur Modifier-Pipeline erweitern (zusammen mit Teil 5).
+- [x] `status`/`issues` des Helpers und Telegram-Meldungen analog zur Modifier-Pipeline erweitern (zusammen mit Teil 5).
 - [x] Nebenbefund behoben: Bei einem Fehler in `collect_dataset` ueberschrieb die Combat-Pipeline das Manifest mit dem Stand vor der Phase (Batch-Status gingen verloren). Laedt es jetzt wie die Modifier-Pipeline neu.
 - [x] Lokal verifiziert: w2+w13 je 3 Episoden -> 6/6 regulaer, 0 technisch, Pipeline `completed`. Mit `POKEROGUE_COMBAT_STEP_TIMEOUT_MS=50` -> 4 Failure-Dateien mit Repro, 3 Signaturen, Notausschalter loest aus (`consecutive=3>=3`, Test-Config), Step `failed`, Batch-Zaehler im Manifest korrekt.
 
@@ -134,9 +138,13 @@ Befunde (Stand 2026-10-12):
 
 ## Teil Server-Hygiene
 
-- [ ] Moeglichkeit schaffen, den Server nach einem langen Pipeline-Lauf von temporaeren Daten zu bereinigen (Runtime-Ordner unter `data/rl/pipeline-runs/`, Batch-Outputs, `pokerogue/test/.external-rl/`-Reste, alte Smoke-/Szenario-Ordner), ohne Dataset-Pools, Checkpoints und noch nicht heruntergeladene Archive zu verlieren.
-- [ ] Umsetzung als Skript mit Trockenlauf (zeigt, was geloescht wuerde, und den freiwerdenden Platz) und anschliessender Ausfuehrung; ggf. durch einen Claude-Skill ausgeloest.
-- [ ] Festlegen, was als "temporaer" gilt und was nur nach Rueckfrage geloescht werden darf.
+- [x] Moeglichkeit schaffen, den Server nach einem langen Pipeline-Lauf von temporaeren Daten zu bereinigen (Runtime-Ordner unter `data/rl/pipeline-runs/`, Batch-Outputs, `pokerogue/test/.external-rl/`-Reste, alte Smoke-/Szenario-Ordner), ohne Dataset-Pools, Checkpoints und noch nicht heruntergeladene Archive zu verlieren.
+- [x] Umsetzung als Skript mit Trockenlauf (zeigt, was geloescht wuerde, und den freiwerdenden Platz) und anschliessender Ausfuehrung; ggf. durch einen Claude-Skill ausgeloest.
+- [x] Festlegen, was als "temporaer" gilt und was nur nach Rueckfrage geloescht werden darf.
+
+- Umgesetzt: `scripts/04-automation/maintenance/clean-pipeline-temp-data.ts` (`npm run ops:clean:pipeline-temp`), Skill `.claude/skills/server-cleanup/`. Ohne Optionen: `.external-rl`-Reste sowie Smoke-, Szenario-, Replay- und Repro-Ausgaben; `--include-raw`: Rohdaten abgeschlossener Laeufe; `--runtime <name>`: ganzer Lauf unter `data/temp/rl/pipeline-runs/`. Sperre, solange Pipelines laufen.
+- [ ] Auf dem Server nach den Stresslaeufen einsetzen (Schritt 6).
+- Befund Platzbedarf (13.10.): Repo-Clone 17 GB, davon `.venv` 7 GB, `.git/modules` 5,5 GB, Dataset-Pool combat-v3 1,9 GB; Pipeline-Laufdaten nur ca. 40 MB. 78 GB frei.
 
 ## Entscheidungen
 
