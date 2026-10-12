@@ -1,0 +1,21 @@
+{
+  "label": "claude-haiku-v3-full",
+  "model": "haiku",
+  "context_mode": "battle",
+  "prompt_version": "battle-session-v1",
+  "collector_config": "data/rl/collector-run-benchmarked-wave-library-v3-full.json",
+  "battles_planned": 311,
+  "battles_regular": 311,
+  "technical_failures": 0,
+  "transitions": 1348,
+  "decisions": 1348,
+  "notional_cost_usd": 0.5923495700000003,
+  "avg_decision_ms": 2286,
+  "commits": {
+    "repo": "f002de3121981903d1e27cdf330e50fbba472aa8",
+    "submodule": "46b5ebbb418fadd32419a6438ee669683cc787be"
+  },
+  "started_at": "2026-10-12T18:12:00.186Z",
+  "completed_at": "2026-10-12T18:28:15.336Z",
+  "runtime_ms": 975150
+}

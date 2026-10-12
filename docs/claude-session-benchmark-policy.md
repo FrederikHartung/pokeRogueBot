@@ -62,6 +62,14 @@ Smoke-Lauf 2026-10-12 (`claude-haiku-smoke`, Haiku 5.5, Kontextmodus `battle`, 2
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | 26 | 0 | 24 | 0.923 | 8.75 | 3.81 | 99 | 8 | 2 min 34 s | 2,3 s | 0,045 $ |
 
-Nicht direkt mit dem Full-Benchmark vergleichbar (andere Stichprobe, 26 statt 311 Szenarien). Hochrechnung fuer den vollen Lauf (311 Kaempfe): grob 1.200 Entscheidungen, 30-40 min bei `parallelism` 3-4, rechnerisch etwa 0,50 $.
+Nicht direkt mit dem Full-Benchmark vergleichbar (andere Stichprobe, 26 statt 311 Szenarien).
+
+Voller Lauf 2026-10-12 (`claude-haiku-v3-full`, alle 311 Szenarien, `parallelism` 4):
+
+| Kaempfe | technisch | Win Rate | Avg Reward | Avg Turns | Entscheidungen | Laufzeit | Ø pro Entscheidung | rechnerische Kosten |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 311 | 0 | 0.916 | 9.04 | 4.33 | 1348 | 16 min 15 s | 2,3 s | 0,59 $ |
+
+Vergleich mit `random`, `always_move_0` und den DQN-Checkpoints: `docs/benchmark-history.md`, Run 19.
 
 Beobachtungen aus den Transkripten: das Modell nutzt Typvorteile (Wechsel auf Squirtle gegen Feuer), reagiert auf Meldungen im Verlauf ("Attack fell" -> spezielle statt physischer Attacke) und kennt bekannte Gegnerattacken aus frueheren Zuegen.
