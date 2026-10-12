@@ -17,6 +17,20 @@ Voraussetzung: Teile 1-4, C0-C2 sind umgesetzt und lokal getestet (siehe Haken u
 
 Stand 13.10.: Schritte 1 und 2 erledigt (Server auf `85de32c`, Unit-/Replay-Tests, `quick-smoke` und alle Szenario-Tests gruen). Combat-Stresslauf `data/temp/rl/combat-stress-v1.json` (311 Szenarien x 8 Episoden) gestartet; Modifier-Configs `data/temp/rl/modifier-stress-v1-wave10.json` (40 Seeds x 2 Runs) und `modifier-stress-v1-wave50.json` (30 Seeds x 2 Runs) liegen auf dem Server bereit.
 
+Ergebnis Stresskampagne (13.10., alle auf dem Server, Laufzeiten ca. 65/68/40 min):
+
+| Lauf | Umfang | regulaer | technisch | Bemerkung |
+|---|---|---|---|---|
+| `combat-stress-v1` | 311 Szenarien x 8 Episoden | 2.482 | 6 (0,2 %), 2 Signaturen | Signaturen C und D, beide behoben (siehe C5) |
+| `modifier-stress-v1-wave10` | 40 Seeds x 2 Runs | 80 | 0 | Code-Stand vor den C/D-Fixes; Wave im Schnitt 9,3, max. 11 |
+| `modifier-stress-v1-wave50` | 30 Seeds x 2 Runs, `parallelism` 4 | 60 | 0 | Stand `3faf784`; alle Runs Team-Wipe zwischen Wave 7 und 15; 393 Kampfzuege in Doppelkaempfen |
+
+Erkenntnisse:
+- Seit den Fixes von C0-C2 traten in 2.628 Episoden bzw. Runs nur zwei neue Fehlerbilder auf, beide szenariospezifisch und deterministisch genug zum Belegen.
+- Spaete Waves erreicht keine der beiden Pipelines nennenswert: der Modifier-Lauf endet mit Random-Modifier-Policy meist um Wave 10 durch Team-Wipe. Fuer Abdeckung spaeter Waves braucht es eine staerkere Policy oder Startzustaende in spaeteren Waves (C3a).
+- Der Server war mit `parallelism` 3 nur zu ca. 20 % ausgelastet; 4 lief problemlos.
+- Offen: Schritt 6 (Aufraeumen, Trockenlauf zeigt 269 MB Rohdaten) und Entscheidung, ob die Stress-Datensaetze als Trainingsdaten behalten werden.
+
 Befund: Der Modifier-Smoke brauchte ca. 16 s pro Wave. Mit `run_process_timeout_ms: 300000` (u. a. `modifier-strategic-seeded-remote-50seeds-50runs-wave30.json`) wuerde ein Run, der regulaer bis Wave ~20 kommt, als `collector_run_process_timeout` zaehlen. Die Stress-Configs nutzen 15 bzw. 40 min. Die produktiven Configs vor dem naechsten grossen Lauf anpassen.
 
 1. Server auf `feature/pipeline-failure-collection` aktualisieren (Ablauf in `AGENTS.md`, Abschnitt 5), `npm run rl:test:pipeline:technical-failures` und `npm run rl:test:combat:collector-replays` auf dem Server laufen lassen.
