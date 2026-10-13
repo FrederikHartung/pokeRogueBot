@@ -1,0 +1,57 @@
+{
+  "schema_version": "modifier-v1",
+  "decision_stage": "reward",
+  "state": {
+    "run": {
+      "wave_index": 7,
+      "money": 1340,
+      "reroll_cost": 250,
+      "reroll_count": 0,
+      "lock_rarities": 0,
+      "shop_available": 1,
+      "waves_until_next_trainer": 1,
+      "waves_until_next_fixed_battle": 1,
+      "waves_until_next_boss": 3
+    },
+    "party_slots": [
+      { "present": 1, "fainted": 0, "hp_ratio": 0.42, "level": 14, "level_ratio_to_cap": 0.7, "status": 0, "types": [11, 3], "move_count": 4, "min_pp_ratio": 0.6, "held_item_stacks": 1, "can_evolve_by_item": 0 },
+      { "present": 1, "fainted": 0, "hp_ratio": 1.0, "level": 13, "level_ratio_to_cap": 0.65, "status": 3, "types": [9], "move_count": 4, "min_pp_ratio": 0.8, "held_item_stacks": 0, "can_evolve_by_item": 0 },
+      { "present": 1, "fainted": 1, "hp_ratio": 0.0, "level": 12, "level_ratio_to_cap": 0.6, "status": 0, "types": [10], "move_count": 3, "min_pp_ratio": 1.0, "held_item_stacks": 0, "can_evolve_by_item": 0 },
+      { "present": 0, "fainted": 0, "hp_ratio": 0.0, "level": 0, "level_ratio_to_cap": 0.0, "status": 0, "types": [], "move_count": 0, "min_pp_ratio": 0.0, "held_item_stacks": 0, "can_evolve_by_item": 0 },
+      { "present": 0, "fainted": 0, "hp_ratio": 0.0, "level": 0, "level_ratio_to_cap": 0.0, "status": 0, "types": [], "move_count": 0, "min_pp_ratio": 0.0, "held_item_stacks": 0, "can_evolve_by_item": 0 },
+      { "present": 0, "fainted": 0, "hp_ratio": 0.0, "level": 0, "level_ratio_to_cap": 0.0, "status": 0, "types": [], "move_count": 0, "min_pp_ratio": 0.0, "held_item_stacks": 0, "can_evolve_by_item": 0 }
+    ],
+    "inventory": {
+      "pokeball_counts": [5, 0, 0, 0, 0],
+      "persistent_modifier_stacks": {
+        "EXP_SHARE": 0,
+        "EXP_CHARM": 0,
+        "SUPER_EXP_CHARM": 0,
+        "AMULET_COIN": 0,
+        "CANDY_JAR": 0,
+        "BERRY_POUCH": 0,
+        "HEALING_CHARM": 0,
+        "CATCHING_CHARM": 0,
+        "LOCK_CAPSULE": 0,
+        "MEGA_BRACELET": 0,
+        "DYNAMAX_BAND": 0,
+        "TERA_ORB": 0
+      },
+      "lure_waves_remaining": 0,
+      "temp_battle_booster_waves_remaining": 0
+    }
+  },
+  "candidates": [
+    { "kind": "take_reward", "mask": 1, "reward_index": 0, "item_id": "POKEBALL", "item_family": "ball", "tier": 0, "upgrade_count": 0, "cost": 0 },
+    { "kind": "take_reward", "mask": 0, "mask_reason": "blocked_by_offline_modifier_policy:tm_replace_move_todo", "reward_index": 1, "item_id": "TM_COMMON", "item_family": "tm", "variant": { "move_id": 89 }, "tier": 0, "upgrade_count": 0, "cost": 0, "target_party_index": 0 },
+    { "kind": "take_reward", "mask": 1, "reward_index": 1, "item_id": "TM_COMMON", "item_family": "tm", "variant": { "move_id": 89 }, "tier": 0, "upgrade_count": 0, "cost": 0, "target_party_index": 2 },
+    { "kind": "take_reward", "mask": 1, "reward_index": 2, "item_id": "BERRY", "item_family": "berry", "variant": { "berry_type": "SITRUS" }, "tier": 0, "upgrade_count": 0, "cost": 0, "target_party_index": 0, "target_current_stacks": 0, "target_max_stacks": 3 },
+    { "kind": "take_reward", "mask": 1, "reward_index": 2, "item_id": "BERRY", "item_family": "berry", "variant": { "berry_type": "SITRUS" }, "tier": 0, "upgrade_count": 0, "cost": 0, "target_party_index": 1, "target_current_stacks": 0, "target_max_stacks": 3 },
+    { "kind": "take_reward", "mask": 0, "mask_reason": "fainted_target", "reward_index": 2, "item_id": "BERRY", "item_family": "berry", "variant": { "berry_type": "SITRUS" }, "tier": 0, "upgrade_count": 0, "cost": 0, "target_party_index": 2, "target_current_stacks": 0, "target_max_stacks": 3 },
+    { "kind": "reroll", "mask": 1, "tier": -1, "cost": 250 },
+    { "kind": "toggle_lock_rarities", "mask": 0, "mask_reason": "requires_lock_capsule", "tier": -1, "cost": 0 },
+    { "kind": "skip", "mask": 0, "mask_reason": "skip_while_free_reward", "tier": -1, "cost": 0 }
+  ],
+  "selected_candidate_index": 3,
+  "immediate_reward": 0.0
+}

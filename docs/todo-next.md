@@ -11,6 +11,8 @@ Top-Prioritaet Datensatz-Organisation:
 - darunter spaeter zusaetzlich ein gemeinsamer Merge-Bereich:
 - `data/rl/dataset-pools/combat-v3/merged/`
 - Die Versionsachse (`combat-v3`, spaeter `combat-v4`) soll den State-/Pipeline-Contract repraesentieren.
+- Entwurf fuer `combat-v4` (State-Erweiterung, Policy-Entscheidung bei Forced Switch und Wechselangebot, Migrationsplan): `docs/combat-state-v4-draft.md`.
+- Entwurf fuer `modifier-v1` (State, zweistufiger Action-Space, Freischaltungen, Credit, Live-Fallback fuer `SKIP`): `docs/modifier-state-v1-draft.md`.
 - Die Usecase-Achse (`random-only`, `rival`, `doubles`, spaeter optional `wave8-focus`, `trainer-only`, `wild-only`) soll gezieltes Nachsammeln fuer konkrete Schwachstellen erlauben.
 - Solange sich State-Contract, Action-Semantik und relevante Collector-/Reward-Semantik nicht aendern, muessen bestehende `random-only`-Datensaetze nicht neu erzeugt werden.
 - Wenn sich der Combat-State oder die Sammlungssemantik fachlich aendert, beginnt ein neuer Versionswurzelpfad statt stilles Vermischen alter und neuer Daten.
