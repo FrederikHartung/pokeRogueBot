@@ -565,3 +565,9 @@ Kurzfazit:
 - Das beste DQN (`main`) bleibt bei Win Rate (`+0.026`) und Avg Reward (`+0.34`) vorne; Haiku liegt etwa auf Hoehe von `conservative`.
 - 24 der 26 Haiku-Niederlagen fallen in Waves `7-12`, wie bei den anderen Policies der schwierigste Bereich des Sets.
 - Einschraenkungen: Die Szenarien haben keinen Seed, jede Zeile ist eine Stichprobe; die DQN-/`random`-Werte sind sieben Monate alt und mit dem Collector-Stand vor der Fehlererfassung erzeugt. Haiku sieht im Kontextmodus `battle` mehr als das DQN (Attacken, Typen, Kampfmeldungen), der Vergleich zeigt also Policy plus Informationsstand.
+
+Nachtrag 2026-10-13, Einzelvergleich Haiku gegen DQN main:
+
+- Die Einzeldaten des DQN-`main`-Laufs vom Maerz waren nicht mehr vorhanden (der Remote-Benchmark ueberschreibt `eval-dqn-benchmarked.jsonl` pro Checkpoint). `main` daher auf dem Server mit dem aktuellen Collector neu gespielt (`3.5 min`, `parallelism` 3): `310/311` Kaempfe, Win Rate `0.929`, Avg Reward `9.1543`, Avg Turns `6.38`, Truncated `0.000`, `1979` Transitions; `1` technischer Fehler (`wild-w6-66cfee77fee6`, `collector_episode_timeout` / `advance_timeout:CommandPhase`).
+- Auf den `310` gemeinsamen Szenarien: beide gewinnen `281`, beide verlieren `19`, nur DQN gewinnt `7`, nur Haiku gewinnt `3`.
+- `9` der `10` Unterschiede sind Rivalenkaempfe gegen Ivy in Wave `8` (`33` Szenarien, Haiku `10` Siege, DQN `14`). Der Gegner wechselt dort bedrohte Pokemon aus, sodass Haikus Angriff den eingewechselten Flug-Typ trifft. Haiku haelt Pflanze faelschlich fuer sehr effektiv gegen Flug und nutzt praktisch nie Status-Attacken (`2` von `1348` Entscheidungen). Das DQN setzt in diesen Kaempfen in `38 %` der Zuege `Growl` ein und kommt mit der Heilung durch Grassy Terrain laenger durch.
