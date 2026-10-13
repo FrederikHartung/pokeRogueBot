@@ -93,4 +93,14 @@ class JsService(private val jsClient: JsClient) {
         return jsClient.executeCommandAndGetResult("return window.poru.util.resetStarterToDefault();").toString()
             .toBoolean()
     }
+
+    /**
+     * combat-v4-Observation aus der JS-Bridge (src/main/ts/combat.ts). `requestJson` enthaelt Entscheidungsart und
+     * Verlauf; die Antwort ist `{"ok": true, "observation": {...}}` oder `{"ok": false, "error": "..."}`.
+     */
+    fun getCombatObservationJson(requestJson: String): String {
+        val requestLiteral = GSON.toJson(requestJson)
+        return jsClient.executeCommandAndGetResult("return window.poru.combat.getObservationJson($requestLiteral);")
+            .toString()
+    }
 }

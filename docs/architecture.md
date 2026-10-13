@@ -31,6 +31,7 @@ Alle Pfade relativ zu `src/main/kotlin/com/sfh/pokeRogueBot/`.
 - `phase/`: `Phase` (abstrakte Basis), `PhaseProcessor`, `PhaseProvider`, konkrete Phasen in `impl/`
 - `model/`: `browser/` (Game-State aus JS), `decisions/`, `modifier/`, `run/` (Runs, Save-Slots), `exception/` (Exception-Hierarchie), `rl/` u. a.
 - `rl/`: RL-Basis, Agent, Pipeline fuer die Modifier-Entscheidungen
+- `service/combat/`: Combat-Policies (`CombatPolicyMode`: heuristic, random, `dqn`). `DqnCombatSwitchPolicy` holt den combat-v4-State ueber `CombatObservationClient` aus der JS-Bridge, fuehrt den Entscheidungsverlauf (`CombatDecisionHistoryTracker`) und fragt den persistenten Python-Worker (`DqnInferenceWorkerClient`). Kotlin berechnet keine State-Features selbst (`docs/combat-state-v4.md`).
 
 Fehlerbehandlung: Bei Fehlern speichert der Bot und startet neu; Save-Slots rotieren, um kaputte Saves zu umgehen; Sonder-Encounter werden per Screenshot festgehalten.
 
@@ -40,7 +41,8 @@ Fehlerbehandlung: Bei Fehlern speichert der Bot und startet neu; Save-Slots roti
 - `src/main/ts/enums.ts` importiert PokeRogue-Enums (`AbilityId`, `Nature`, `PokemonType`, `BiomeId`, ...) direkt aus `pokerogue/src/enums/`.
 - Spielklassen (`Pokemon`, `Move`, `BattleScene`, ...) werden nur per `import type` referenziert; esbuild entfernt das vollstaendig.
 - `tsconfig.json` spiegelt alle Pfad-Aliase von PokeRogue (`#app/*`, `#field/*`, `#data/*`, `#modifiers/*`, ...), damit transitive Typen aufloesen. Fuer volle Typaufloesung (z. B. Phaser): `cd pokerogue && pnpm install`.
-- esbuild bundelt jede TS-Datei zu einer eigenstaendigen IIFE ohne `import`/`export`/`require`.
+- esbuild bundelt jede TS-Datei auf oberster Ebene zu einer eigenstaendigen IIFE ohne `import`/`export`/`require`. Module unter `src/main/ts/lib/` sind keine eigenen Einstiegspunkte, sondern werden mitgebuendelt.
+- `src/main/ts/lib/combat-observation.ts` ist der einzige Builder fuer den Combat-State (combat-v4). Die Bridge (`combat.ts`, `window.poru.combat`) und beide Collector-Templates nutzen ihn; die Collector-Runner kopieren ihn neben den generierten Test (Alias `#bot-ts/*` in der Root-`tsconfig.json`).
 - Selenium injiziert die Bridge in den Browser unter `window.poru.*` (z. B. `window.poru.uihandler`, `window.poru.util`). Die Bridge liest den Spielzustand nur, sie veraendert ihn nicht.
 - Manuell testbar in der Browser-Konsole, z. B. `window.poru.uihandler.getUiHandler(15)`.
 

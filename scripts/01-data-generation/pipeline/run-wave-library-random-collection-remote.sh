@@ -8,6 +8,9 @@ HUNDRED_EP_CONFIG="${REPO_ROOT}/data/rl/wave-library-random-collection-remote-10
 SMOKE_CONFIG="${REPO_ROOT}/data/rl/wave-library-random-collection-remote-smoke.json"
 V3_CONFIG="${REPO_ROOT}/data/rl/wave-library-random-collection-remote-v3-50ep.json"
 V3_SMOKE_CONFIG="${REPO_ROOT}/data/rl/wave-library-random-collection-remote-v3-smoke.json"
+# combat-v4 (docs/combat-state-v4.md): der Collector schreibt nur noch v4-Transitions; die v3-Configs brechen deshalb ab.
+V4_CONFIG="${REPO_ROOT}/data/rl/wave-library-random-collection-remote-v4-50ep.json"
+V4_SMOKE_CONFIG="${REPO_ROOT}/data/rl/wave-library-random-collection-remote-v4-smoke.json"
 CONTROL_DIR="${REPO_ROOT}/data/rl/pipeline-runs/wave-library-random-collection-remote-control"
 PID_FILE="${CONTROL_DIR}/remote-random-collection.pid"
 ACTIVE_CONFIG_FILE="${CONTROL_DIR}/active-config.txt"
@@ -29,6 +32,8 @@ Usage:
   scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-smoke
   scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-v3
   scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-v3-smoke
+  scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-v4
+  scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-v4-smoke
   scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh status
   scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh logs
   scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh last
@@ -669,6 +674,12 @@ case "${1:-}" in
     ;;
   start-v3-smoke)
     start_run "${V3_SMOKE_CONFIG}"
+    ;;
+  start-v4)
+    start_run "${V4_CONFIG}"
+    ;;
+  start-v4-smoke)
+    start_run "${V4_SMOKE_CONFIG}"
     ;;
   start-100)
     start_run "${HUNDRED_EP_CONFIG}"

@@ -26,6 +26,87 @@
     "enemy_best_damage_into_active_bucket": 2,
     "active_survives_next_hit": 1,
     "enemy_survives_best_hit": 1,
+    "decision_kind": 0,
+    "last_action_was_switch": 0,
+    "consecutive_switch_bucket": 0,
+    "battle_turn_bucket": 2,
+    "active": {
+      "status": 0,
+      "stat_stages": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "volatile": {
+        "confused": 0,
+        "seeded": 0,
+        "substitute": 0,
+        "trapped": 0,
+        "locked_into_move": 0,
+        "taunted": 0,
+        "infatuated": 0,
+        "drowsy": 0,
+        "perish_song": 0
+      }
+    },
+    "enemy": {
+      "status": 0,
+      "stat_stages": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "volatile": {
+        "confused": 0,
+        "seeded": 0,
+        "substitute": 0,
+        "trapped": 0,
+        "locked_into_move": 0,
+        "taunted": 0,
+        "infatuated": 0,
+        "drowsy": 0,
+        "perish_song": 0
+      },
+      "types": [
+        11,
+        2
+      ],
+      "remaining_team_count": 2,
+      "team_hp_ratio": 0.79
+    },
+    "field": {
+      "weather": 0,
+      "terrain": 3,
+      "trick_room": 0,
+      "player_side": {
+        "spikes_layers": 0,
+        "toxic_spikes_layers": 0,
+        "stealth_rock": 0,
+        "sticky_web": 0,
+        "reflect": 0,
+        "light_screen": 0,
+        "aurora_veil": 0,
+        "tailwind": 0
+      },
+      "enemy_side": {
+        "spikes_layers": 0,
+        "toxic_spikes_layers": 0,
+        "stealth_rock": 1,
+        "sticky_web": 0,
+        "reflect": 0,
+        "light_screen": 0,
+        "aurora_veil": 0,
+        "tailwind": 0
+      }
+    },
     "moves": [
       {
         "available": 1,
@@ -42,7 +123,11 @@
         "estimated_ko_turns_bucket": 3,
         "accuracy_bucket": 3,
         "uses_best_offense_stat": 1,
-        "target_immunity_risk": 0
+        "target_immunity_risk": 0,
+        "estimated_damage_ratio": 0.15,
+        "pp_ratio": 0.8,
+        "effect_category": 0,
+        "effect_still_useful": 1
       },
       {
         "available": 1,
@@ -59,7 +144,11 @@
         "estimated_ko_turns_bucket": 1,
         "accuracy_bucket": 3,
         "uses_best_offense_stat": 1,
-        "target_immunity_risk": 0
+        "target_immunity_risk": 0,
+        "estimated_damage_ratio": 1.1,
+        "pp_ratio": 0.8,
+        "effect_category": 0,
+        "effect_still_useful": 1
       },
       {
         "available": 1,
@@ -76,7 +165,11 @@
         "estimated_ko_turns_bucket": 0,
         "accuracy_bucket": 3,
         "uses_best_offense_stat": 0,
-        "target_immunity_risk": 0
+        "target_immunity_risk": 0,
+        "estimated_damage_ratio": 0.0,
+        "pp_ratio": 0.8,
+        "effect_category": 2,
+        "effect_still_useful": 1
       },
       {
         "available": 0,
@@ -93,18 +186,125 @@
         "estimated_ko_turns_bucket": 0,
         "accuracy_bucket": 0,
         "uses_best_offense_stat": 0,
-        "target_immunity_risk": 0
+        "target_immunity_risk": 0,
+        "estimated_damage_ratio": 0.0,
+        "pp_ratio": 0.15,
+        "effect_category": 2,
+        "effect_still_useful": 1
       }
     ],
     "party_slots": [
-      { "present": 1, "active": 1, "fainted": 0, "hp_ratio": 0.73, "level": 16, "types": [12, 3], "best_damage_into_enemy_bucket": 3, "expected_incoming_damage_bucket": 2, "speed_advantage_bucket": 2, "survives_one_hit": 1, "can_threaten_ko_bucket": 2 },
-      { "present": 1, "active": 0, "fainted": 0, "hp_ratio": 0.64, "level": 15, "types": [9], "best_damage_into_enemy_bucket": 2, "expected_incoming_damage_bucket": 2, "speed_advantage_bucket": 1, "survives_one_hit": 1, "can_threaten_ko_bucket": 3 },
-      { "present": 1, "active": 0, "fainted": 0, "hp_ratio": 1.0, "level": 15, "types": [6, 2], "best_damage_into_enemy_bucket": 4, "expected_incoming_damage_bucket": 1, "speed_advantage_bucket": 2, "survives_one_hit": 1, "can_threaten_ko_bucket": 1 },
-      { "present": 0, "active": 0, "fainted": 0, "hp_ratio": 0.0, "level": 0, "types": [], "best_damage_into_enemy_bucket": 0, "expected_incoming_damage_bucket": 0, "speed_advantage_bucket": 1, "survives_one_hit": 0, "can_threaten_ko_bucket": 0 },
-      { "present": 0, "active": 0, "fainted": 0, "hp_ratio": 0.0, "level": 0, "types": [], "best_damage_into_enemy_bucket": 0, "expected_incoming_damage_bucket": 0, "speed_advantage_bucket": 1, "survives_one_hit": 0, "can_threaten_ko_bucket": 0 },
-      { "present": 0, "active": 0, "fainted": 0, "hp_ratio": 0.0, "level": 0, "types": [], "best_damage_into_enemy_bucket": 0, "expected_incoming_damage_bucket": 0, "speed_advantage_bucket": 1, "survives_one_hit": 0, "can_threaten_ko_bucket": 0 }
+      {
+        "present": 1,
+        "active": 1,
+        "fainted": 0,
+        "hp_ratio": 0.73,
+        "level": 16,
+        "types": [
+          12,
+          3
+        ],
+        "best_damage_into_enemy_bucket": 3,
+        "expected_incoming_damage_bucket": 2,
+        "speed_advantage_bucket": 2,
+        "survives_one_hit": 1,
+        "can_threaten_ko_bucket": 2,
+        "status": 0,
+        "is_last_switch_origin": 0
+      },
+      {
+        "present": 1,
+        "active": 0,
+        "fainted": 0,
+        "hp_ratio": 0.64,
+        "level": 15,
+        "types": [
+          9
+        ],
+        "best_damage_into_enemy_bucket": 2,
+        "expected_incoming_damage_bucket": 2,
+        "speed_advantage_bucket": 1,
+        "survives_one_hit": 1,
+        "can_threaten_ko_bucket": 3,
+        "status": 1,
+        "is_last_switch_origin": 0
+      },
+      {
+        "present": 1,
+        "active": 0,
+        "fainted": 0,
+        "hp_ratio": 1.0,
+        "level": 15,
+        "types": [
+          6,
+          2
+        ],
+        "best_damage_into_enemy_bucket": 4,
+        "expected_incoming_damage_bucket": 1,
+        "speed_advantage_bucket": 2,
+        "survives_one_hit": 1,
+        "can_threaten_ko_bucket": 1,
+        "status": 0,
+        "is_last_switch_origin": 0
+      },
+      {
+        "present": 0,
+        "active": 0,
+        "fainted": 0,
+        "hp_ratio": 0.0,
+        "level": 0,
+        "types": [],
+        "best_damage_into_enemy_bucket": 0,
+        "expected_incoming_damage_bucket": 0,
+        "speed_advantage_bucket": 1,
+        "survives_one_hit": 0,
+        "can_threaten_ko_bucket": 0,
+        "status": 0,
+        "is_last_switch_origin": 0
+      },
+      {
+        "present": 0,
+        "active": 0,
+        "fainted": 0,
+        "hp_ratio": 0.0,
+        "level": 0,
+        "types": [],
+        "best_damage_into_enemy_bucket": 0,
+        "expected_incoming_damage_bucket": 0,
+        "speed_advantage_bucket": 1,
+        "survives_one_hit": 0,
+        "can_threaten_ko_bucket": 0,
+        "status": 0,
+        "is_last_switch_origin": 0
+      },
+      {
+        "present": 0,
+        "active": 0,
+        "fainted": 0,
+        "hp_ratio": 0.0,
+        "level": 0,
+        "types": [],
+        "best_damage_into_enemy_bucket": 0,
+        "expected_incoming_damage_bucket": 0,
+        "speed_advantage_bucket": 1,
+        "survives_one_hit": 0,
+        "can_threaten_ko_bucket": 0,
+        "status": 0,
+        "is_last_switch_origin": 0
+      }
     ],
-    "action_mask": [1, 1, 1, 0, 0, 1, 1, 0, 0, 0]
+    "action_mask": [
+      1,
+      1,
+      1,
+      0,
+      0,
+      1,
+      1,
+      0,
+      0,
+      0
+    ]
   },
   "action": 5,
   "reward": 0.18,
@@ -133,6 +333,87 @@
     "enemy_best_damage_into_active_bucket": 2,
     "active_survives_next_hit": 1,
     "enemy_survives_best_hit": 0,
+    "decision_kind": 0,
+    "last_action_was_switch": 1,
+    "consecutive_switch_bucket": 1,
+    "battle_turn_bucket": 2,
+    "active": {
+      "status": 1,
+      "stat_stages": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "volatile": {
+        "confused": 0,
+        "seeded": 0,
+        "substitute": 0,
+        "trapped": 0,
+        "locked_into_move": 0,
+        "taunted": 0,
+        "infatuated": 0,
+        "drowsy": 0,
+        "perish_song": 0
+      }
+    },
+    "enemy": {
+      "status": 0,
+      "stat_stages": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "volatile": {
+        "confused": 0,
+        "seeded": 0,
+        "substitute": 0,
+        "trapped": 0,
+        "locked_into_move": 0,
+        "taunted": 0,
+        "infatuated": 0,
+        "drowsy": 0,
+        "perish_song": 0
+      },
+      "types": [
+        11,
+        2
+      ],
+      "remaining_team_count": 2,
+      "team_hp_ratio": 0.62
+    },
+    "field": {
+      "weather": 0,
+      "terrain": 3,
+      "trick_room": 0,
+      "player_side": {
+        "spikes_layers": 0,
+        "toxic_spikes_layers": 0,
+        "stealth_rock": 0,
+        "sticky_web": 0,
+        "reflect": 0,
+        "light_screen": 0,
+        "aurora_veil": 0,
+        "tailwind": 0
+      },
+      "enemy_side": {
+        "spikes_layers": 0,
+        "toxic_spikes_layers": 0,
+        "stealth_rock": 1,
+        "sticky_web": 0,
+        "reflect": 0,
+        "light_screen": 0,
+        "aurora_veil": 0,
+        "tailwind": 0
+      }
+    },
     "moves": [
       {
         "available": 1,
@@ -149,7 +430,11 @@
         "estimated_ko_turns_bucket": 3,
         "accuracy_bucket": 3,
         "uses_best_offense_stat": 1,
-        "target_immunity_risk": 0
+        "target_immunity_risk": 0,
+        "estimated_damage_ratio": 0.15,
+        "pp_ratio": 0.8,
+        "effect_category": 0,
+        "effect_still_useful": 1
       },
       {
         "available": 1,
@@ -166,7 +451,11 @@
         "estimated_ko_turns_bucket": 1,
         "accuracy_bucket": 3,
         "uses_best_offense_stat": 1,
-        "target_immunity_risk": 0
+        "target_immunity_risk": 0,
+        "estimated_damage_ratio": 1.1,
+        "pp_ratio": 0.8,
+        "effect_category": 0,
+        "effect_still_useful": 1
       },
       {
         "available": 1,
@@ -183,7 +472,11 @@
         "estimated_ko_turns_bucket": 0,
         "accuracy_bucket": 3,
         "uses_best_offense_stat": 0,
-        "target_immunity_risk": 0
+        "target_immunity_risk": 0,
+        "estimated_damage_ratio": 0.0,
+        "pp_ratio": 0.8,
+        "effect_category": 2,
+        "effect_still_useful": 1
       },
       {
         "available": 0,
@@ -200,25 +493,133 @@
         "estimated_ko_turns_bucket": 0,
         "accuracy_bucket": 0,
         "uses_best_offense_stat": 0,
-        "target_immunity_risk": 0
+        "target_immunity_risk": 0,
+        "estimated_damage_ratio": 0.0,
+        "pp_ratio": 0.15,
+        "effect_category": 2,
+        "effect_still_useful": 1
       }
     ],
     "party_slots": [
-      { "present": 1, "active": 1, "fainted": 0, "hp_ratio": 0.69, "level": 15, "types": [9], "best_damage_into_enemy_bucket": 4, "expected_incoming_damage_bucket": 2, "speed_advantage_bucket": 0, "survives_one_hit": 1, "can_threaten_ko_bucket": 1 },
-      { "present": 1, "active": 0, "fainted": 0, "hp_ratio": 0.73, "level": 16, "types": [12, 3], "best_damage_into_enemy_bucket": 3, "expected_incoming_damage_bucket": 2, "speed_advantage_bucket": 2, "survives_one_hit": 1, "can_threaten_ko_bucket": 2 },
-      { "present": 1, "active": 0, "fainted": 0, "hp_ratio": 1.0, "level": 15, "types": [6, 2], "best_damage_into_enemy_bucket": 4, "expected_incoming_damage_bucket": 1, "speed_advantage_bucket": 2, "survives_one_hit": 1, "can_threaten_ko_bucket": 1 },
-      { "present": 0, "active": 0, "fainted": 0, "hp_ratio": 0.0, "level": 0, "types": [], "best_damage_into_enemy_bucket": 0, "expected_incoming_damage_bucket": 0, "speed_advantage_bucket": 1, "survives_one_hit": 0, "can_threaten_ko_bucket": 0 },
-      { "present": 0, "active": 0, "fainted": 0, "hp_ratio": 0.0, "level": 0, "types": [], "best_damage_into_enemy_bucket": 0, "expected_incoming_damage_bucket": 0, "speed_advantage_bucket": 1, "survives_one_hit": 0, "can_threaten_ko_bucket": 0 },
-      { "present": 0, "active": 0, "fainted": 0, "hp_ratio": 0.0, "level": 0, "types": [], "best_damage_into_enemy_bucket": 0, "expected_incoming_damage_bucket": 0, "speed_advantage_bucket": 1, "survives_one_hit": 0, "can_threaten_ko_bucket": 0 }
+      {
+        "present": 1,
+        "active": 1,
+        "fainted": 0,
+        "hp_ratio": 0.69,
+        "level": 15,
+        "types": [
+          9
+        ],
+        "best_damage_into_enemy_bucket": 4,
+        "expected_incoming_damage_bucket": 2,
+        "speed_advantage_bucket": 0,
+        "survives_one_hit": 1,
+        "can_threaten_ko_bucket": 1,
+        "status": 1,
+        "is_last_switch_origin": 0
+      },
+      {
+        "present": 1,
+        "active": 0,
+        "fainted": 0,
+        "hp_ratio": 0.73,
+        "level": 16,
+        "types": [
+          12,
+          3
+        ],
+        "best_damage_into_enemy_bucket": 3,
+        "expected_incoming_damage_bucket": 2,
+        "speed_advantage_bucket": 2,
+        "survives_one_hit": 1,
+        "can_threaten_ko_bucket": 2,
+        "status": 0,
+        "is_last_switch_origin": 1
+      },
+      {
+        "present": 1,
+        "active": 0,
+        "fainted": 0,
+        "hp_ratio": 1.0,
+        "level": 15,
+        "types": [
+          6,
+          2
+        ],
+        "best_damage_into_enemy_bucket": 4,
+        "expected_incoming_damage_bucket": 1,
+        "speed_advantage_bucket": 2,
+        "survives_one_hit": 1,
+        "can_threaten_ko_bucket": 1,
+        "status": 0,
+        "is_last_switch_origin": 0
+      },
+      {
+        "present": 0,
+        "active": 0,
+        "fainted": 0,
+        "hp_ratio": 0.0,
+        "level": 0,
+        "types": [],
+        "best_damage_into_enemy_bucket": 0,
+        "expected_incoming_damage_bucket": 0,
+        "speed_advantage_bucket": 1,
+        "survives_one_hit": 0,
+        "can_threaten_ko_bucket": 0,
+        "status": 0,
+        "is_last_switch_origin": 0
+      },
+      {
+        "present": 0,
+        "active": 0,
+        "fainted": 0,
+        "hp_ratio": 0.0,
+        "level": 0,
+        "types": [],
+        "best_damage_into_enemy_bucket": 0,
+        "expected_incoming_damage_bucket": 0,
+        "speed_advantage_bucket": 1,
+        "survives_one_hit": 0,
+        "can_threaten_ko_bucket": 0,
+        "status": 0,
+        "is_last_switch_origin": 0
+      },
+      {
+        "present": 0,
+        "active": 0,
+        "fainted": 0,
+        "hp_ratio": 0.0,
+        "level": 0,
+        "types": [],
+        "best_damage_into_enemy_bucket": 0,
+        "expected_incoming_damage_bucket": 0,
+        "speed_advantage_bucket": 1,
+        "survives_one_hit": 0,
+        "can_threaten_ko_bucket": 0,
+        "status": 0,
+        "is_last_switch_origin": 0
+      }
     ],
-    "action_mask": [1, 1, 1, 0, 0, 1, 1, 0, 0, 0]
+    "action_mask": [
+      1,
+      1,
+      1,
+      0,
+      0,
+      1,
+      1,
+      0,
+      0,
+      0
+    ]
   },
   "done": false,
   "meta": {
     "seed": "000123",
     "wave": 5,
     "battle_type": "single",
-    "action_source": "model"
+    "action_source": "model",
+    "state_schema_version": "combat-v4"
   },
   "timestamp": 1772937000000
 }

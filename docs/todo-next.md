@@ -10,8 +10,8 @@ Top-Prioritaet Datensatz-Organisation:
 - `data/rl/dataset-pools/combat-v3/doubles/run-2026-03-22-20ep/`
 - darunter spaeter zusaetzlich ein gemeinsamer Merge-Bereich:
 - `data/rl/dataset-pools/combat-v3/merged/`
-- Die Versionsachse (`combat-v3`, spaeter `combat-v4`) soll den State-/Pipeline-Contract repraesentieren.
-- Entwurf fuer `combat-v4` (State-Erweiterung, Policy-Entscheidung bei Forced Switch und Wechselangebot, Migrationsplan): `docs/combat-state-v4-draft.md`.
+- Die Versionsachse (`combat-v3`, ab jetzt `combat-v4`) soll den State-/Pipeline-Contract repraesentieren.
+- `combat-v4` ist umgesetzt (State-Erweiterung, eigene Entscheidungen fuer Zwangswechsel und Wechselangebot, gemeinsamer State-Builder fuer Collector und Live-Bot): `docs/combat-state-v4.md`. Naechster Schritt: Server-Smoke, Datengenerierung in `data/rl/dataset-pools/combat-v4/random-only/`, Training mit `feature_schema_version: 7`, Benchmark gegen v3-`main` (siehe dort Abschnitt 9).
 - Entwurf fuer `modifier-v1` (State, zweistufiger Action-Space, Freischaltungen, Credit, Live-Fallback fuer `SKIP`): `docs/modifier-state-v1-draft.md`.
 - Die Usecase-Achse (`random-only`, `rival`, `doubles`, spaeter optional `wave8-focus`, `trainer-only`, `wild-only`) soll gezieltes Nachsammeln fuer konkrete Schwachstellen erlauben.
 - Solange sich State-Contract, Action-Semantik und relevante Collector-/Reward-Semantik nicht aendern, muessen bestehende `random-only`-Datensaetze nicht neu erzeugt werden.
@@ -173,7 +173,7 @@ Prioritaetswechsel fuer die naechste Session:
 - Hauptziel ist jetzt nicht mehr nur `random_move`-Stabilisierung, sondern die produktive Nutzung des aktuell trainierten Combat-/Switch-DQN im Live-Bot.
 - Die JS-Bridge bleibt dabei Voraussetzung und Guardrail, ist aber nicht mehr das alleinige Leitprojekt fuer die naechste Session.
 - Spring-Boot-Anwendung und lokales Spiel lassen sich aktuell starten, und der Live-Bot kommt bereits wieder durch die fruehen Spielphasen.
-- Der Kotlin-Livepfad hat bereits einen `DQN`-Policy-Modus (`CombatPolicyMode.DQN` + `DqnCombatSwitchPolicy`) sowie den Live-State-Builder fuer den Offline-Combat-Contract.
+- Der Kotlin-Livepfad hat einen `DQN`-Policy-Modus (`CombatPolicyMode.DQN` + `DqnCombatSwitchPolicy`); den combat-v4-State liefert seit der v4-Umstellung die JS-Bridge (`window.poru.combat`, gemeinsamer Builder `src/main/ts/lib/combat-observation.ts`), nicht mehr ein eigener Kotlin-Builder.
 - Der vorhandene DQN-Pfad ist jetzt erstmals live verdrahtet:
 - Runtime-Default ist jetzt `dqn`
 - Default-Checkpoint zeigt jetzt auf `data/rl/models/dqn-combat-wave-library-random-valid-action-6800-stable.pt` aus `Run 18`
@@ -199,7 +199,7 @@ Prioritaetswechsel fuer die naechste Session:
 - `random_move` waehlt in `CommandPhase` wieder pro Turn eine frische zufaellige legale Attacke statt eine gecachte Altentscheidung zu wiederholen
 - zentrale Bridge-Dateien wurden bereits auf den aktuellen Submodul-Stand nachgezogen (`util.ts`, `wave.ts`, `uihandler.ts`, `poke.ts`)
 - `CombatPolicyMode` kann bereits zwischen `heuristic`, `random_move`, `random_move_or_switch` und `dqn` umschalten
-- `DqnCombatSwitchPolicy` kann den Live-`WaveDto` bereits in den Offline-State-Contract ueberfuehren und Aktion-Masks anwenden
+- `DqnCombatSwitchPolicy` holt den combat-v4-State aus der JS-Bridge, fuehrt den Entscheidungsverlauf (`CombatDecisionHistoryTracker`) und nutzt bei v4-Checkpoints eigene Entscheidungsarten fuer Zwangswechsel und Wechselangebot
 - `DqnInferenceWorkerClient` haelt jetzt einen persistenten lokalen Python-Inferenzprozess fuer Live-DQN-Entscheidungen offen
 - Capture ist per Config standardmaessig deaktiviert, damit der Live-Bot aktuell nicht auf Schwachschlagen + Pokeball wechselt
 - erste Drift-/Contract-Guardrails fuer die Bridge sind bereits vorhanden:
@@ -223,7 +223,7 @@ Verbindlicher Schema-Hinweis:
 - Das Beispiel in `docs/rl-schema/combat-transition.example.json` muss dazu konsistent bleiben.
 - Bei jeder State-Schema-Aenderung muessen Collector, Sanity-Checks, Training, Inferenz/Eval und Doku im selben Schritt angepasst und geprueft werden.
 
-0.1. Offline-Combat-State pragmatisch auf `v3` erweitern
+0.1. Offline-Combat-State pragmatisch auf `v3` erweitern (erledigt; Nachfolger `combat-v4`, siehe `docs/combat-state-v4.md`)
 - Ziel: das DQN soll Attack- und Switch-Entscheidungen nicht mehr fast nur ueber grobe `power_bucket`-/Typvorteilsignale lernen.
 - Geplanter Minimalumfang fuer `v3`:
 - pro Move zusaetzliche Damage-/Risiko-Features wie `damage_class_bucket`, `estimated_damage_ratio_bucket`, `estimated_ko_turns_bucket`, `accuracy_bucket`, `uses_best_offense_stat`
@@ -270,7 +270,7 @@ Folgearbeiten aus der Fehlersammlung in beiden Pipelines (offen nach dem Merge v
 - Mehrere `GameManager` pro Test (Collector-Aufraeumen von `PromptHandler.runInterval` und Spies): Mechanismus in `docs/pokerogue-headless-test-harness-mechanics.md` als Unterkapitel und als Regressionstest unter `pokerogue/test/porubot/regressions/` festhalten.
 - `restoreOg()`-Entfernung auch in den 22 Modifier-Mask-Test-Templates (`scripts/90-dev/rl/templates/modifier-*-mask.test.template.ts`, `modifier-item-suite`) und in `scripts/90-dev/tools/dump-pokerogue-starter-defaults.mjs`; danach `npm run rl:test:modifier:item-suite`.
 - API-Drift nach Submodul-Bumps frueh erkennen: der Combat-Collector erzeugt seinen Testcode als String (nicht typgeprueft); mindestens nach jedem Bump `npm run rl:test:combat:collector-replays` und einen Combat-Smoke ausfuehren.
-- Live-Bot: beruecksichtigt die Wechsel-Logik bzw. die DQN-Maske `isTrapped()` (Signatur C)?
+- Live-Bot: die DQN-Maske beruecksichtigt `isTrapped()` seit combat-v4 (gemeinsamer Builder); offen bleibt, ob die heuristischen Fallback-Pfade es ebenfalls tun (Signatur C).
 - Wave-Library-Sync: Hash-Vergleich lokal vs. Server mit Kopieren und Neuerzeugen der Szenarien, Preflight-Warnung im Combat-Helper bei veralteten Szenarien, Pruefschritt im `AGENTS.md`-Ablauf fuer Combat-Laeufe.
 - Szenario-Abdeckung: die 311 V3-Szenarien enthalten keinen Doppelkampf und kaum Waves ueber 8; klaeren, ob ueber mehr Live-Runs, Doppelkampf-Snapshots aus der Modifier-Pipeline oder synthetische Szenarien.
 - Combat-Helper: `quick-smoke` und Szenario-Tests (Bot-Sonderfaelle, Timeout, Fehlerabbruch) analog zum Modifier-Helper; pruefen, ob die Pipeline `seeds`/`episodes_per_seed` an den Collector durchreicht.
@@ -287,7 +287,7 @@ Späterer Ausbau: Double Battles als eigener RL-Pfad
 - Grund: der bestehende Combat-RL-Contract ist klar auf Single Battles zugeschnitten
 - Blocker fuer echtes Double-DQN:
 - der aktuelle Transition-Contract erlaubt nur `battle_type = single`
-- `CombatPolicySupport.buildOfflineCombatState(...)` gibt fuer Double Battles aktuell `null` zurueck
+- der combat-v4-Builder und die Bridge (`window.poru.combat`) lehnen Double Battles ab
 - `DqnCombatSwitchPolicy` faellt bei `isDoubleFight` absichtlich auf Heuristik zurueck
 - fuer Double Battles braucht es voraussichtlich einen separaten State-/Action-Contract mit zwei aktiven eigenen Mons, zwei Gegnern, Zielwahl und potenziell zwei Aktionen pro Turn
 - Empfehlung:

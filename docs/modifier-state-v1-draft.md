@@ -86,7 +86,7 @@ Die Kandidatenliste hat je Entscheidung eine andere Laenge, und Item x Ziel x At
 - Ausgabe: ein Wert pro Kandidat; gewaehlt wird das Maximum ueber `mask = 1`.
 - Ziel fuer Phase 1: Regression auf den post-hoc Credit (Monte-Carlo-Wert). Bootstrapping (DQN-Target) erst, wenn der Credit stabil ist.
 
-Live laeuft das Modell wie das Combat-DQN ueber einen persistenten Python-Worker; Kotlin baut keine Features mehr selbst, sondern bekommt State und Kandidaten fertig aus der JS-Bridge (gemeinsamer Builder, siehe `docs/combat-state-v4-draft.md` Abschnitt 5).
+Live laeuft das Modell wie das Combat-DQN ueber einen persistenten Python-Worker; Kotlin baut keine Features mehr selbst, sondern bekommt State und Kandidaten fertig aus der JS-Bridge (gemeinsamer Builder, siehe `docs/combat-state-v4.md` Abschnitt 5).
 
 ## 5. Credit und Reward
 

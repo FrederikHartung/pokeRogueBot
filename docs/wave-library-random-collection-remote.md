@@ -43,6 +43,8 @@ bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remo
 bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-smoke
 bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-v3
 bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-v3-smoke
+bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-v4
+bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-v4-smoke
 bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh status
 bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh logs
 bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh issues
@@ -66,6 +68,10 @@ Vorbereitete Configs:
 - Remote `100` Episoden pro Szenario: `data/rl/wave-library-random-collection-remote-100ep.json`
 - Remote V3 `50` Episoden pro Szenario: `data/rl/wave-library-random-collection-remote-v3-50ep.json`
 - Remote V3 Kurz-Smoke: `data/rl/wave-library-random-collection-remote-v3-smoke.json`
+- Remote V4 `50` Episoden pro Szenario: `data/rl/wave-library-random-collection-remote-v4-50ep.json`
+- Remote V4 Kurz-Smoke: `data/rl/wave-library-random-collection-remote-v4-smoke.json` (ein Trainer- und ein Wildkampf, damit das Wechselangebot vorkommt)
+
+Seit combat-v4 (`docs/combat-state-v4.md`) schreibt der Collector nur noch v4-Transitions. Configs mit `dataset_pool.combat_version` ungleich `combat-v4` brechen deshalb schon vor dem Sammeln ab; `start-v3`/`start-v3-smoke` sind nur noch fuer die Doku vorhandener v3-Pools relevant.
 
 ## Konfigurationsmodell
 
@@ -199,7 +205,7 @@ Fuer den Random-Collection-Remote-Helper gibt es jetzt dieselben Telegram-Contro
 - `telegram-control-status`
 - `telegram-control-stop`
 
-Wenn `telegram.env` vorhanden ist und ein Lauf ueber `start`, `start-100`, `start-smoke`, `start-v3` oder `start-v3-smoke` gestartet wird, wird der Telegram-Control-Bot automatisch mitgestartet und nach Laufende wieder gestoppt.
+Wenn `telegram.env` vorhanden ist und ein Lauf ueber `start`, `start-100`, `start-smoke`, `start-v3`, `start-v3-smoke`, `start-v4` oder `start-v4-smoke` gestartet wird, wird der Telegram-Control-Bot automatisch mitgestartet und nach Laufende wieder gestoppt.
 
 Empfohlene Retention-Regel:
 
@@ -211,7 +217,13 @@ Empfohlene Retention-Regel:
 - fehlgeschlagene Laeufe (Notausschalter `technical_failure_threshold_exceeded`, `no_regular_runs_collected` oder systemischer Fehler; einzelne technische Fehler lassen den Lauf `completed` enden):
   - Runtime-Ordner komplett liegen lassen, bis der Fehler untersucht ist, danach mit `npm run ops:clean:pipeline-temp` aufraeumen
 
-## V3-Startpunkt
+## V4-Startpunkt
+
+Gleiches Szenario-Set wie V3 (`311` Szenarien, Waves `1-24`, `50` Episoden pro Szenario), aber combat-v4-State, eigene Entscheidungen fuer Zwangswechsel und Wechselangebot (`check_switch_decisions`) und Pool `data/rl/dataset-pools/combat-v4/random-only/`. Vor dem grossen Lauf `start-v4-smoke`.
+
+Episoden enthalten mehr Transitions als unter V3, weil Zwangswechsel und Wechselangebot eigene Transitions sind; "Avg Turns" in der Eval zaehlt nur Kampfzuege.
+
+## V3-Startpunkt (historisch)
 
 Fuer den naechsten breiteren Datensatzpfad ist jetzt eine V3-Variante vorbereitet:
 

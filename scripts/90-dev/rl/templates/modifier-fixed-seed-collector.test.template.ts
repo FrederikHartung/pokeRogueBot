@@ -58,6 +58,23 @@ import {
   withTimeout,
 } from "#test/porubot/harness/battle-command-advance";
 import { installSingleDriverPhaseInterceptor } from "#test/porubot/harness/single-driver-phase-interceptor";
+import {
+  setSwitchDecisionProvider,
+  type SwitchDecisionKind,
+  type SwitchDecisionResult,
+} from "#test/porubot/harness/switch-decision";
+import {
+  buildCombatObservation as buildSharedCombatObservation,
+  canBuildCombatObservation,
+  type CombatDecisionHistory,
+  type CombatObservation,
+  contextFromHistory,
+  type DecisionKind,
+  emptyCombatDecisionHistory,
+  findActivePartySlotIndex as findActiveSlotInObservation,
+  resolveActivePlayerPokemon,
+  updateCombatDecisionHistory,
+} from "#bot-ts/combat-observation";
 
 type ModifierPolicy = "random_executable";
 type CollectorVariant = "sanity_masking" | "strategic_fixed_seed";
@@ -540,9 +557,10 @@ function getOrStartPersistentExternalPolicyWorker(policyConfig: {
     }
     try {
       const payload = JSON.parse(line);
-      const action = payload?.action;
-      if (Number.isInteger(action)) {
-        pending.resolve(action);
+      // Inferenz: {"action": n}; describe: {"feature_schema_version": n}.
+      const value = Number.isInteger(payload?.action) ? payload.action : payload?.feature_schema_version;
+      if (Number.isInteger(value)) {
+        pending.resolve(value);
         return;
       }
       pending.reject(new Error(typeof payload?.error === "string" ? payload.error : "Combat DQN worker returned invalid payload"));
@@ -620,23 +638,41 @@ async function runPersistentExternalPolicy(
   );
 }
 
+function combatDqnPolicyConfig() {
+  return {
+    command: [
+      COMBAT_DQN_PYTHON,
+      COMBAT_DQN_WORKER_SCRIPT,
+      "--checkpoint",
+      COMBAT_DQN_CHECKPOINT,
+      "--device",
+      COMBAT_DQN_DEVICE,
+    ],
+    persistent: true,
+    timeout_ms: STEP_TIMEOUT_MS,
+  };
+}
+
 async function inferCombatActionWithDqn(state: Record<string, unknown>, actionMask: number[]): Promise<number> {
-  return await runPersistentExternalPolicy(
-    {
-      command: [
-        COMBAT_DQN_PYTHON,
-        COMBAT_DQN_WORKER_SCRIPT,
-        "--checkpoint",
-        COMBAT_DQN_CHECKPOINT,
-        "--device",
-        COMBAT_DQN_DEVICE,
-      ],
-      persistent: true,
-      timeout_ms: STEP_TIMEOUT_MS,
-    },
-    state,
-    actionMask,
-  );
+  return await runPersistentExternalPolicy(combatDqnPolicyConfig(), state, actionMask);
+}
+
+let combatDqnFeatureSchemaVersion: Promise<number> | null = null;
+
+/** Feature-Version des Combat-Checkpoints (6 = combat-v3, 7 = combat-v4), einmal pro Prozess vom Worker erfragt. */
+function getCombatDqnFeatureSchemaVersion(): Promise<number> {
+  if (!combatDqnFeatureSchemaVersion) {
+    const worker = getOrStartPersistentExternalPolicyWorker(combatDqnPolicyConfig());
+    combatDqnFeatureSchemaVersion = withTimeout(
+      new Promise<number>((resolve, reject) => {
+        worker.pending.push({ resolve, reject });
+        worker.child.stdin.write(JSON.stringify({ describe: true }) + "\n", "utf8");
+      }),
+      STEP_TIMEOUT_MS,
+      "combat dqn describe",
+    );
+  }
+  return combatDqnFeatureSchemaVersion;
 }
 
 function buildBattlerSnapshot(pokemon: any): BattlerSnapshot {
@@ -940,215 +976,93 @@ function isActiveTrappedSafe(pokemon: { isTrapped?: () => boolean } | null | und
   }
 }
 
-function buildCombatObservation(game: GameManager): Record<string, unknown> {
-  const player = game.scene.getPlayerPokemon();
-  const enemy = game.scene.getEnemyPokemon();
-  if (!player || !enemy) {
-    throw new Error("Missing active battlers while building combat observation");
+// combat-v4-Observation aus dem gemeinsamen Builder (src/main/ts/lib/combat-observation.ts), wie im Szenario-Collector
+// und in der JS-Bridge des Live-Bots. Der Verlauf (letzte Entscheidung ein Wechsel, Wechselkette, Herkunfts-Slot) gilt
+// pro Kampf und wird beim Wellenwechsel zurueckgesetzt.
+const COMBAT_V4_FEATURE_SCHEMA_VERSION = 7;
+
+interface CombatDecisionTracker {
+  history: CombatDecisionHistory;
+  waveIndex: number;
+  /** Combat-Turn-Snapshots der Wechsel-Entscheidungen aus dem Harness-Hook; die Kampfschleife haengt sie an. */
+  switchSnapshots: CombatDecisionSnapshot[];
+}
+
+const combatDecisionTracker: CombatDecisionTracker = {
+  history: emptyCombatDecisionHistory(),
+  waveIndex: -1,
+  switchSnapshots: [],
+};
+
+function resetCombatDecisionTracker(): void {
+  combatDecisionTracker.history = emptyCombatDecisionHistory();
+  combatDecisionTracker.waveIndex = -1;
+  combatDecisionTracker.switchSnapshots = [];
+}
+
+function currentCombatHistory(game: GameManager): CombatDecisionHistory {
+  const waveIndex = game.scene.currentBattle?.waveIndex ?? -1;
+  if (waveIndex !== combatDecisionTracker.waveIndex) {
+    combatDecisionTracker.history = emptyCombatDecisionHistory();
+    combatDecisionTracker.waveIndex = waveIndex;
   }
+  return combatDecisionTracker.history;
+}
 
-  const playerTypes = player.getTypes(true, true).filter((type: number) => Number.isInteger(type) && type >= 0).slice(0, 2);
-  const enemyTypes = enemy.getTypes(true, true).filter((type: number) => Number.isInteger(type) && type >= 0).slice(0, 2);
-  const moveSet = player.getMoveset().slice(0, 4);
-  const playerHpRatio = toHpRatio(player.hp, player.getMaxHp());
-  const enemyHpRatio = toHpRatio(enemy.hp, enemy.getMaxHp());
-  const speedAdvantage = speedOrderAdvantage(player, enemy);
-  const knownEnemyPriorityThreat = enemyHasKnownPriorityThreat(enemy);
-  const bestKnownEnemyPriority = getBestKnownEnemyPriority(enemy);
+function buildCombatObservation(game: GameManager, decisionKind: DecisionKind = 0): Record<string, unknown> {
+  const observation = buildSharedCombatObservation(game.scene, contextFromHistory(currentCombatHistory(game), decisionKind));
+  return observation as unknown as Record<string, unknown>;
+}
 
-  const activeBestMoveEffectiveness = moveSet.reduce((best: number, move: any) => {
-    const moveData = move.getMove();
-    const [usable] = move.isUsable(player, false, true);
-    if (!usable) return best;
-    const effectiveness = enemy.getMoveEffectiveness(player, moveData, false, true);
-    return Math.max(best, Number.isFinite(effectiveness) ? effectiveness : 1);
-  }, 0);
+function recordCombatDecision(game: GameManager, state: Record<string, unknown>, decisionKind: DecisionKind, action: number): void {
+  const activeSlot = findActiveSlotInObservation({ party_slots: state.party_slots as CombatObservation["party_slots"] });
+  combatDecisionTracker.history = updateCombatDecisionHistory(currentCombatHistory(game), decisionKind, action, activeSlot);
+}
 
-  const activeBestDamageRatio = moveSet.reduce((best: number, move: any) => {
-    const moveData = move.getMove();
-    const [usable] = move.isUsable(player, false, true);
-    if (!usable) return best;
-    const effectiveness = enemy.getMoveEffectiveness(player, moveData, false, true);
-    const stab = playerTypes.includes(moveData.type) ? 1 : 0;
-    return Math.max(best, estimateDamageRatio(player, enemy, moveData, effectiveness, stab));
-  }, 0);
+function drainSwitchDecisionSnapshots(): CombatDecisionSnapshot[] {
+  return combatDecisionTracker.switchSnapshots.splice(0);
+}
 
-  const enemyBestDamageIntoActive = enemy.getMoveset().slice(0, 4).reduce((best: number, move: any) => {
-    const moveData = move.getMove();
-    const [usable] = move.isUsable(enemy, false, true);
-    if (!usable) return best;
-    const effectiveness = player.getMoveEffectiveness(enemy, moveData, false, true);
-    const enemyStab = enemyTypes.includes(moveData.type) ? 1 : 0;
-    return Math.max(best, estimateDamageRatio(enemy, player, moveData, effectiveness, enemyStab));
-  }, 0);
-
-  const moves = moveSet.map((move: any) => {
-    const moveData = move.getMove();
-    const ppMax = move.getMovePp();
-    const ppUsed = Number.isFinite(move.ppUsed) ? move.ppUsed : 0;
-    const ppLeft = Math.max(0, ppMax - ppUsed);
-    const ppRatio = ppMax > 0 ? ppLeft / ppMax : 0;
-    const effectiveness = enemy.getMoveEffectiveness(player, moveData, false, true);
-    const stab = playerTypes.includes(moveData.type) ? 1 : 0;
-    const [usable] = move.isUsable(player, false, true);
-    const actsFirst = usable && actsFirstIfUsed(player, enemy, moveData, bestKnownEnemyPriority);
-    const estimatedDamageRatio = estimateDamageRatio(player, enemy, moveData, effectiveness, stab);
-    return {
-      available: usable ? 1 : 0,
-      power_bucket: powerBucket(Number.isFinite(moveData.power) ? moveData.power : 0),
-      effectiveness_bucket: effectivenessBucket(Number.isFinite(effectiveness) ? effectiveness : 1),
-      stab,
-      pp_low: ppLeft > 0 && ppRatio <= 0.2 ? 1 : 0,
-      priority_bucket: priorityBucket(Number.isFinite(moveData.priority) ? moveData.priority : 0),
-      acts_first_if_used: actsFirst ? 1 : 0,
-      can_ko_before_enemy_moves: actsFirst && estimatedDamageRatio >= enemyHpRatio ? 1 : 0,
-      move_kind_bucket: moveKindBucket(moveData),
-      damage_class_bucket: damageClassBucket(moveData.category),
-      estimated_damage_ratio_bucket: damageRatioBucket(estimatedDamageRatio),
-      estimated_ko_turns_bucket: koTurnsBucket(estimatedDamageRatio, enemyHpRatio),
-      accuracy_bucket: accuracyBucket(Number.isFinite(moveData.accuracy) ? moveData.accuracy : 100),
-      uses_best_offense_stat: usesBestOffenseStat(player, enemy, moveData) ? 1 : 0,
-      target_immunity_risk: effectiveness <= 0 ? 1 : 0,
-    };
-  });
-
-  const activeHasAnyFirstStrikeMove = moves.some(move => move.acts_first_if_used === 1);
-  const actionMask = Array.from({ length: ACTION_DIM }, () => 0);
-  for (let index = 0; index < moves.length; index += 1) {
-    actionMask[index] = moves[index]!.available;
+/**
+ * Harness-Hook (switch-decision.ts): Zwangswechsel nach K.O. und Wechselangebot zu Kampfbeginn entscheidet das
+ * Combat-DQN, sofern der Checkpoint den combat-v4-State kennt. null = Harness-Standard (erster gueltiger Slot bzw.
+ * ablehnen): bei v3-Checkpoints, Doppelkaempfen, nach dem Sieg und ohne aktiven Gegner.
+ */
+async function decideSwitchWithCombatDqn(game: GameManager, kind: SwitchDecisionKind): Promise<SwitchDecisionResult> {
+  if (game.scene.currentBattle?.double || !canBuildCombatObservation(game.scene) || isVictorySafe(game)) {
+    return null;
   }
-
-  const party = game.scene.getPlayerParty();
-  const switchableMembers: Array<{
-    hpRatio: number;
-    bestEffectiveness: number;
-    bestDamageIntoEnemy: number;
-    expectedIncomingDamage: number;
-  }> = [];
-
-  const activeTrapped = isActiveTrappedSafe(player);
-  const partySlots = Array.from({ length: 6 }, (_, slot) => {
-    const member = party[slot];
-    if (!member) {
-      return {
-        present: 0,
-        active: 0,
-        fainted: 0,
-        hp_ratio: 0,
-        level: 0,
-        types: [],
-        best_damage_into_enemy_bucket: 0,
-        expected_incoming_damage_bucket: 0,
-        speed_advantage_bucket: 1,
-        survives_one_hit: 0,
-        can_threaten_ko_bucket: 0,
-      };
-    }
-
-    const hpRatio = toHpRatio(member.hp, member.getMaxHp());
-    const types = member.getTypes(true, true).filter((type: number) => Number.isInteger(type) && type >= 0).slice(0, 2);
-    const canSwitch = !member.isOnField() && !member.isFainted() && member.isAllowedInBattle();
-    const bestDamageIntoEnemy = member.getMoveset().slice(0, 4).reduce((best: number, move: any) => {
-      const moveData = move.getMove();
-      const [usable] = move.isUsable(member, false, true);
-      if (!usable) return best;
-      const effectiveness = enemy.getMoveEffectiveness(member, moveData, false, true);
-      const memberTypes = member.getTypes(true, true).filter((type: number) => Number.isInteger(type) && type >= 0).slice(0, 2);
-      const stab = memberTypes.includes(moveData.type) ? 1 : 0;
-      return Math.max(best, estimateDamageRatio(member, enemy, moveData, effectiveness, stab));
-    }, 0);
-    const expectedIncomingDamage = enemy.getMoveset().slice(0, 4).reduce((best: number, move: any) => {
-      const moveData = move.getMove();
-      const [usable] = move.isUsable(enemy, false, true);
-      if (!usable) return best;
-      const effectiveness = member.getMoveEffectiveness(enemy, moveData, false, true);
-      const stab = enemyTypes.includes(moveData.type) ? 1 : 0;
-      return Math.max(best, estimateDamageRatio(enemy, member, moveData, effectiveness, stab));
-    }, 0);
-    const slotSpeedAdvantage = speedOrderAdvantage(member, enemy);
-    const survivesOneHit = expectedIncomingDamage < hpRatio;
-    const canThreatenKoBucket = koTurnsBucket(bestDamageIntoEnemy, enemyHpRatio);
-
-    // Gefangene Pokemon (Mean Look, Wrap, Shadow Tag, ...) koennen nicht wechseln: das Spiel lehnt den Wechsel ab und
-    // bleibt in der CommandPhase. Nur die Maske sperrt den Wechsel; canSwitch bleibt Bank-Feature (State-Schema unveraendert).
-    actionMask[MOVE_ACTIONS + slot] = canSwitch && !activeTrapped ? 1 : 0;
-    if (canSwitch) {
-      const bestEffectiveness = member.getMoveset().slice(0, 4).reduce((best: number, move: any) => {
-        const moveData = move.getMove();
-        const [usable] = move.isUsable(member, false, true);
-        if (!usable) return best;
-        const effectiveness = enemy.getMoveEffectiveness(member, moveData, false, true);
-        return Math.max(best, Number.isFinite(effectiveness) ? effectiveness : 1);
-      }, 0);
-      switchableMembers.push({
-        hpRatio,
-        bestEffectiveness,
-        bestDamageIntoEnemy,
-        expectedIncomingDamage,
-      });
-    }
-
-    return {
-      present: 1,
-      active: member.isOnField() ? 1 : 0,
-      fainted: member.isFainted() ? 1 : 0,
-      hp_ratio: hpRatio,
-      level: member.level,
-      types,
-      best_damage_into_enemy_bucket: damageRatioBucket(bestDamageIntoEnemy),
-      expected_incoming_damage_bucket: damageRatioBucket(expectedIncomingDamage),
-      speed_advantage_bucket: slotSpeedAdvantage,
-      survives_one_hit: survivesOneHit ? 1 : 0,
-      can_threaten_ko_bucket: canThreatenKoBucket,
-    };
-  });
-
-  const aliveBenchCount = switchableMembers.length;
-  const healthyBenchCount = switchableMembers.filter(member => member.hpRatio > 0.5).length;
-  const bestSwitchEffectiveness = switchableMembers.reduce((best, member) => Math.max(best, member.bestEffectiveness), 0);
-  const lowestSwitchHp = switchableMembers.length > 0
-    ? switchableMembers.reduce((lowest, member) => Math.min(lowest, member.hpRatio), 1)
-    : 1;
-  const worstSwitchRiskBucket = switchableMembers.length === 0
-    ? 0
-    : lowestSwitchHp <= 0.25 ? 3 : lowestSwitchHp <= 0.5 ? 2 : lowestSwitchHp <= 0.75 ? 1 : 0;
-  const battle = game.scene.currentBattle as any;
-  const isTrainerBattle = battle?.trainer != null;
-  const hasLegalSwitch = aliveBenchCount > 0;
-  const activeHpCritical = playerHpRatio <= 0.25;
-  const benchHasHealthierSwitch = switchableMembers.some(member => member.hpRatio > playerHpRatio + 0.15);
-  const benchHasBetterMatchupThanActive = bestSwitchEffectiveness > activeBestMoveEffectiveness;
-  const activeCanFinishEnemy = enemyHpRatio <= 0.25 && activeBestMoveEffectiveness >= 1.0;
-
-  return {
-    wave_index: game.scene.currentBattle.waveIndex,
-    player_hp_ratio: playerHpRatio,
-    enemy_hp_ratio: enemyHpRatio,
-    player_hp_bucket: hpBucket(playerHpRatio),
-    enemy_hp_bucket: hpBucket(enemyHpRatio),
-    hp_diff_bucket: hpDiffBucket(playerHpRatio - enemyHpRatio),
-    level_gap_bucket: levelGapBucket(player.level - enemy.level),
-    is_trainer_battle: isTrainerBattle ? 1 : 0,
-    has_legal_switch: hasLegalSwitch ? 1 : 0,
-    active_hp_critical: activeHpCritical ? 1 : 0,
-    bench_has_healthier_switch: benchHasHealthierSwitch ? 1 : 0,
-    bench_has_better_matchup_than_active: benchHasBetterMatchupThanActive ? 1 : 0,
-    active_can_finish_enemy: activeCanFinishEnemy ? 1 : 0,
-    alive_bench_count_bucket: countBucket(aliveBenchCount),
-    healthy_bench_count_bucket: countBucket(healthyBenchCount),
-    best_switch_matchup_bucket: effectivenessBucket(bestSwitchEffectiveness),
-    worst_switch_risk_bucket: worstSwitchRiskBucket,
-    speed_order_advantage: speedAdvantage,
-    enemy_has_known_priority_threat: knownEnemyPriorityThreat ? 1 : 0,
-    active_has_any_first_strike_move: activeHasAnyFirstStrikeMove ? 1 : 0,
-    active_best_damage_bucket: damageRatioBucket(activeBestDamageRatio),
-    enemy_best_damage_into_active_bucket: damageRatioBucket(enemyBestDamageIntoActive),
-    active_survives_next_hit: enemyBestDamageIntoActive < playerHpRatio ? 1 : 0,
-    enemy_survives_best_hit: activeBestDamageRatio < enemyHpRatio ? 1 : 0,
-    moves,
-    party_slots: partySlots,
-    action_mask: actionMask,
-  };
+  if ((await getCombatDqnFeatureSchemaVersion()) < COMBAT_V4_FEATURE_SCHEMA_VERSION) {
+    return null;
+  }
+  const decisionKind: DecisionKind = kind === "forced_switch" ? 1 : 2;
+  const state = buildCombatObservation(game, decisionKind);
+  const actionMask = state.action_mask as number[];
+  if (!actionMask.some(value => value === 1)) {
+    return null;
+  }
+  const { action, actionSource } = await selectCombatActionFromMask(state, actionMask);
+  if (action < MOVE_ACTIONS) {
+    return null;
+  }
+  const activePokemon = resolveActivePlayerPokemon(game.scene);
+  const enemyPokemon = game.scene.getEnemyPokemon();
+  if (activePokemon && enemyPokemon) {
+    combatDecisionTracker.switchSnapshots.push(
+      buildCombatDecisionSnapshot(
+        game,
+        state,
+        action,
+        actionSource,
+        buildBattlerSnapshot(activePokemon),
+        buildBattlerSnapshot(enemyPokemon),
+      ),
+    );
+  }
+  recordCombatDecision(game, state, decisionKind, action);
+  const slot = action - MOVE_ACTIONS;
+  const partySlots = state.party_slots as Array<{ active: number }>;
+  return decisionKind === 2 && partySlots[slot]?.active === 1 ? "stay" : slot;
 }
 
 function buildMoveSnapshot(move: any): MoveSnapshot {
@@ -1918,7 +1832,11 @@ function selectSingleBattleLoopGuardAction(combatTurns: CombatDecisionSnapshot[]
     return null;
   }
 
-  const allRecentActionsAreSwitches = recentTurns.every(turn => !turn.is_double_battle && turn.selected_action >= MOVE_ACTIONS);
+  const allRecentActionsAreSwitches = recentTurns.every(
+    turn => !turn.is_double_battle
+      && turn.selected_action >= MOVE_ACTIONS
+      && Number((turn.state as Record<string, unknown>)?.decision_kind ?? 0) === 0,
+  );
   if (!allRecentActionsAreSwitches) {
     return null;
   }
@@ -2759,6 +2677,8 @@ describe("modifier fixed seed collector", () => {
         // phases and skip queued ones - see
         // docs/pokerogue-headless-test-harness-mechanics.md.
         installSingleDriverPhaseInterceptor(game);
+        resetCombatDecisionTracker();
+        setSwitchDecisionProvider(game, decideSwitchWithCombatDqn);
 
         game.override.seed(SEED);
 
@@ -3043,6 +2963,8 @@ describe("modifier fixed seed collector", () => {
                 action,
                 actionSource,
               );
+              combatTurns.push(...drainSwitchDecisionSnapshots());
+              recordCombatDecision(game, combatState, 0, action);
               combatTurns.push(
                 buildCombatDecisionSnapshot(
                   game,
@@ -3163,6 +3085,7 @@ describe("modifier fixed seed collector", () => {
               }
 
               const modifierDecision = buildModifierDecisionSnapshot(game);
+              combatTurns.push(...drainSwitchDecisionSnapshots());
               expect(MODIFIER_POLICY).toBe("random_executable");
               const selectedAction = pickRandomExecutableAction(modifierDecision, random);
               selectedModifierActionForDebug = selectedAction;

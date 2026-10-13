@@ -44,6 +44,15 @@ const config = validateRandomCollectionPipelineConfig(JSON.parse(readFileSync(co
 });
 const configDir = path.dirname(configPath);
 const dataRlDir = path.join(repoRoot, "data", "rl");
+// Der Collector erzeugt combat-v4-Transitions (docs/combat-state-v4.md). Ein Pool mit anderer Versionsachse wuerde v3- und
+// v4-Daten mischen; deshalb vor dem Sammeln abbrechen statt erst beim Ablegen.
+const COLLECTOR_COMBAT_VERSION = "combat-v4";
+if (config.dataset_pool != null && config.dataset_pool.combat_version !== COLLECTOR_COMBAT_VERSION) {
+  throw new Error(
+    `dataset_pool.combat_version is ${String(config.dataset_pool.combat_version)}, but the collector writes ${COLLECTOR_COMBAT_VERSION} `
+    + "transitions; use a combat-v4 config (e.g. data/rl/wave-library-random-collection-remote-v4-50ep.json)",
+  );
+}
 const pipelineRoot = resolvePathWithFallbacks(
   config.output_root ?? "./pipeline-runs/wave-library-random-collection",
   [configDir, dataRlDir, repoRoot],

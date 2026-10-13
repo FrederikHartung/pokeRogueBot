@@ -12,7 +12,6 @@ import { GameModes } from "#enums/game-modes";
 import { MoveCategory } from "#enums/move-category";
 import { MoveUseMode } from "#enums/move-use-mode";
 import { Nature } from "#enums/nature";
-import { Stat } from "#enums/stat";
 import { StatusEffect } from "#enums/status-effect";
 import { TrainerSlot } from "#enums/trainer-slot";
 import { TrainerType } from "#enums/trainer-type";
@@ -24,13 +23,50 @@ import type { GameManager } from "#test/framework/game-manager";
 import { generateStarters } from "#test/utils/game-manager-utils";
 import { PartyUiMode } from "#enums/party-ui-mode";
 import { speciesDataRegistry } from "#app/global-species-data-registry";
-import { resolveLearnMoveIfNeeded } from "#test/porubot/harness/battle-command-advance";
+import {
+  clearStalePromptsForForcedSwitch,
+  resolveForcedSwitchIfNeeded,
+  resolveLearnMoveIfNeeded,
+  resolveOptionalCheckSwitchIfNeeded,
+} from "#test/porubot/harness/battle-command-advance";
+import { setSwitchDecisionProvider } from "#test/porubot/harness/switch-decision";
 import { PokemonType } from "#enums/pokemon-type";
 import { WeatherType } from "#enums/weather-type";
 import { TerrainType } from "#data/terrain";
 import type { CommandUiHandler } from "#ui/command-ui-handler";
 import type { PartyUiHandler } from "#ui/party-ui-handler";
 import { sendOutFromPartyUi } from "#test/porubot/harness/party-send-out";
+import {
+  accuracyBucket,
+  actsFirstIfUsed,
+  assertCombatObservationEnumParity,
+  bucketByThresholds,
+  buildCombatObservation,
+  canBuildCombatObservation,
+  type CombatDecisionHistory,
+  type CombatObservation,
+  contextFromHistory,
+  countBucket,
+  damageClassBucket,
+  damageRatioBucket,
+  type DecisionKind,
+  effectivenessBucket,
+  emptyCombatDecisionHistory,
+  estimateDamageRatio,
+  getBestKnownEnemyPriority,
+  getEffectiveSpeed,
+  getHpRatio,
+  hpBucket,
+  hpDiffBucket,
+  koTurnsBucket,
+  levelGapBucket,
+  moveKindBucket,
+  powerBucket,
+  priorityBucket,
+  speedOrderAdvantage,
+  updateCombatDecisionHistory,
+  usesBestOffenseStat,
+} from "#bot-ts/combat-observation";
 
 const TERMINAL_ON_EGG_LAPSE = "__COLLECTOR_TERMINAL_ON_EGG_LAPSE__" === "true";
 const STEP_TIMEOUT_MS = Number("__COLLECTOR_STEP_TIMEOUT_MS__");
@@ -250,56 +286,10 @@ export function isCollectorEpisodeTerminalPhase(game: GameManager): boolean {
     || (TERMINAL_ON_EGG_LAPSE && game.isCurrentPhase("EggLapsePhase"));
 }
 
-export function clearStalePromptsForForcedSwitch(game: GameManager): void {
-  const interceptor = game.phaseInterceptor as any;
-  if (!Array.isArray(interceptor?.prompts) || interceptor.prompts.length === 0) {
-    return;
-  }
-
-  while (interceptor.prompts.length > 0 && interceptor.prompts[0]?.phaseTarget === "CheckSwitchPhase") {
-    interceptor.prompts.shift();
-  }
-}
-
-export function resolveForcedSwitchIfNeeded(game: GameManager): "not_switch_phase" | "selected" | "no_candidate" {
-  const battle = game.scene.currentBattle as any;
-  if (!game.isCurrentPhase("SwitchPhase")) {
-    if (battle && Object.prototype.hasOwnProperty.call(battle, "__collectorForcedSwitchQueued")) {
-      delete battle.__collectorForcedSwitchQueued;
-    }
-    return "not_switch_phase";
-  }
-  clearStalePromptsForForcedSwitch(game);
-  const party = game.scene.getPlayerParty();
-  const nextIndex = party.findIndex(member => !member.isFainted() && !member.isOnField() && member.isAllowedInBattle());
-  if (nextIndex >= 0) {
-    if (game.scene.ui?.getMode?.() === UiMode.PARTY) {
-      sendOutFromPartyUi(game, nextIndex);
-    } else if (battle?.__collectorForcedSwitchQueued !== nextIndex) {
-      game.onNextPrompt("SwitchPhase", UiMode.PARTY, () => {
-        sendOutFromPartyUi(game, nextIndex);
-      });
-      if (battle) {
-        battle.__collectorForcedSwitchQueued = nextIndex;
-      }
-    }
-    return "selected";
-  }
-  return "no_candidate";
-}
-
-export function resolveOptionalCheckSwitchIfNeeded(game: GameManager): "not_check_switch" | "skipped" {
-  if (!game.isCurrentPhase("CheckSwitchPhase")) {
-    return "not_check_switch";
-  }
-  if (game.scene.ui?.getMode?.() !== UiMode.CONFIRM) {
-    return "not_check_switch";
-  }
-  game.setMode(UiMode.MESSAGE);
-  game.endPhase();
-  clearStalePromptsForForcedSwitch(game);
-  return "skipped";
-}
+// Zwangswechsel und Wechselangebot laufen ueber die Harness, damit der Entscheidungs-Hook (switch-decision.ts) auch
+// hier greift: ohne registrierten Provider erster gueltiger Slot bzw. Angebot ablehnen, mit Provider die Policy.
+export { clearStalePromptsForForcedSwitch, resolveForcedSwitchIfNeeded, resolveOptionalCheckSwitchIfNeeded };
+export { setSwitchDecisionProvider };
 
 const TERMINAL_PHASE_NAMES = [
   "GameOverPhase",
@@ -557,17 +547,16 @@ export function countAlivePlayerTeamMembers(game: GameManager): number {
     .length;
 }
 
-export function findActivePartySlotIndex(observation: any): number {
+export function findActivePartySlotIndex(observation: { party_slots?: Array<{ active?: number }> }): number {
   const partySlots = Array.isArray(observation?.party_slots) ? observation.party_slots : [];
-  for (let idx = 0; idx < partySlots.length; idx += 1) {
-    if (partySlots[idx]?.active === 1) {
-      return idx;
-    }
-  }
-  return -1;
+  return partySlots.findIndex(slot => slot?.active === 1);
 }
 
-export function deriveTerminalNextState(state: any, enemyTeamDefeated: boolean, playerTeamDefeated: boolean) {
+export function deriveTerminalNextState<T extends { action_mask: number[] }>(
+  state: T & { player_hp_ratio: number; enemy_hp_ratio: number; player_hp_bucket: number; enemy_hp_bucket: number },
+  enemyTeamDefeated: boolean,
+  playerTeamDefeated: boolean,
+): T {
   const terminalMask = Array.from({ length: ACTION_DIM }, () => 0);
   return {
     ...state,
@@ -579,31 +568,59 @@ export function deriveTerminalNextState(state: any, enemyTeamDefeated: boolean, 
   };
 }
 
+export function countFaintedPlayerPokemon(game: GameManager): number {
+  return game.scene.getPlayerParty().filter(member => !!member && member.isFainted()).length;
+}
+
+export function countFaintedEnemyPokemon(game: GameManager): number {
+  const enemyParty = Array.isArray(game.scene.currentBattle?.enemyParty) ? game.scene.currentBattle.enemyParty : [];
+  return enemyParty.filter(member => !!member && member.isFainted()).length;
+}
+
+/**
+ * Reward einer Entscheidung bis zur naechsten (combat-v4, docs/combat-state-v4.md Abschnitt 3):
+ * - Schritt-Strafe und Grund-Wechselstrafe nur fuer command (decision_kind 0); ein Wechselangebot kostet keinen Zug.
+ * - Ketten- und Rueckwechsel-Strafe fuer freiwillige Wechsel (command und check_switch); forced_switch ist strafenfrei.
+ * - "bleiben" beim Wechselangebot (aktiver Slot) ist kein Wechsel.
+ * - K.O.-Bonus/-Strafe je neu besiegtem Pokemon im Fenster (Zaehler statt aktiver Pokemon, damit K.O.s mitten im Kampf
+ *   nicht durch den Nachfolger auf dem Feld verdeckt werden).
+ * Die Verlaufswerte (lastActionWasSwitch, consecutiveSwitchCount, lastSwitchOriginPartyIndex) sind die vor der
+ * Entscheidung und stehen damit auch im State der Entscheidung.
+ */
 export function computeTransitionReward(input: {
+  decisionKind: number;
   action: number;
-  previousAction: number | null;
+  activePartyIndexBeforeAction: number;
+  lastActionWasSwitch: boolean;
   consecutiveSwitchCount: number;
   lastSwitchOriginPartyIndex: number | null;
   enemyTeamHpBeforeAction: number;
   nextEnemyTeamHp: number;
   playerTeamHpBeforeAction: number;
   nextPlayerTeamHp: number;
-  enemyFainted: boolean;
-  playerFainted: boolean;
+  enemyFaints: number;
+  playerFaints: number;
   enemyTeamDefeated: boolean;
   playerTeamDefeated: boolean;
   alivePlayerTeamMembers: number;
 }): number {
-  let reward = REWARD_STEP_PENALTY;
+  const isCommand = input.decisionKind === 0;
+  const switchTargetIndex = input.action - MOVE_ACTIONS;
+  const isVoluntarySwitch = input.action >= MOVE_ACTIONS
+    && input.decisionKind !== 1
+    && !(input.decisionKind === 2 && switchTargetIndex === input.activePartyIndexBeforeAction);
+
+  let reward = isCommand ? REWARD_STEP_PENALTY : 0;
   const enemyTeamHpDamage = Math.max(0, input.enemyTeamHpBeforeAction - input.nextEnemyTeamHp);
   const playerTeamHpLoss = Math.max(0, input.playerTeamHpBeforeAction - input.nextPlayerTeamHp);
   reward += enemyTeamHpDamage * REWARD_ENEMY_TEAM_HP_DAMAGE_SCALE;
   reward += playerTeamHpLoss * REWARD_PLAYER_TEAM_HP_LOSS_SCALE;
 
-  if (input.action >= MOVE_ACTIONS) {
-    const switchTargetIndex = input.action - MOVE_ACTIONS;
-    reward += REWARD_SWITCH_PENALTY;
-    if (input.previousAction != null && input.previousAction >= MOVE_ACTIONS) {
+  if (isVoluntarySwitch) {
+    if (isCommand) {
+      reward += REWARD_SWITCH_PENALTY;
+    }
+    if (input.lastActionWasSwitch) {
       reward += REWARD_CONSECUTIVE_SWITCH_PENALTY;
       reward += input.consecutiveSwitchCount * REWARD_CONSECUTIVE_SWITCH_PENALTY_SCALE;
     }
@@ -612,8 +629,8 @@ export function computeTransitionReward(input: {
     }
   }
 
-  if (input.enemyFainted) reward += REWARD_ENEMY_FAINT_BONUS;
-  if (input.playerFainted) reward += REWARD_PLAYER_FAINT_PENALTY;
+  reward += Math.max(0, input.enemyFaints) * REWARD_ENEMY_FAINT_BONUS;
+  reward += Math.max(0, input.playerFaints) * REWARD_PLAYER_FAINT_PENALTY;
   if (input.enemyTeamDefeated) {
     reward += REWARD_ENEMY_TEAM_DEFEAT_BONUS;
     reward += input.alivePlayerTeamMembers * REWARD_ALIVE_TEAM_MEMBER_WIN_BONUS;
@@ -628,200 +645,48 @@ export function deriveTerminalOutcome(input: {
   enemyTeamDefeated: boolean;
   playerTeamDefeated: boolean;
   timeoutTruncated: boolean;
-  done: boolean;
-  stepIndex: number;
-  maxStepsPerEpisode: number;
-}): "win" | "loss" | "timeout" | "truncated" | null {
-  const maxStepsTruncated = !input.enemyTeamDefeated
-    && !input.playerTeamDefeated
-    && !input.timeoutTruncated
-    && input.done
-    && input.stepIndex === input.maxStepsPerEpisode - 1;
-
+  maxStepsTruncated: boolean;
+  battleEnded?: boolean;
+}): "win" | "loss" | "timeout" | "truncated" | "battle_ended" | null {
   return input.enemyTeamDefeated
     ? "win"
     : input.playerTeamDefeated
     ? "loss"
     : input.timeoutTruncated
     ? "timeout"
-    : maxStepsTruncated
+    : input.maxStepsTruncated
     ? "truncated"
+    : input.battleEnded
+    ? "battle_ended"
     : null;
 }
 
-export function getHpRatio(hp: number, maxHp: number): number {
-  if (maxHp <= 0) return 0;
-  return Math.max(0, Math.min(1, hp / maxHp));
-}
-
-export function bucketByThresholds(value: number, thresholds: number[]): number {
-  for (let idx = 0; idx < thresholds.length; idx += 1) {
-    if (value <= thresholds[idx]) {
-      return idx;
-    }
-  }
-  return thresholds.length;
-}
-
-export function hpBucket(hpRatio: number): number {
-  return bucketByThresholds(hpRatio, [0.05, 0.2, 0.4, 0.6, 0.8]);
-}
-
-export function hpDiffBucket(diff: number): number {
-  return bucketByThresholds(diff, [-0.6, -0.25, -0.1, 0.1, 0.25, 0.6]);
-}
-
-export function levelGapBucket(levelGap: number): number {
-  return bucketByThresholds(levelGap, [-15, -7, -2, 2, 7, 15]);
-}
-
-export function powerBucket(power: number): number {
-  if (power <= 0) return 0;
-  if (power <= 40) return 1;
-  if (power <= 70) return 2;
-  if (power <= 100) return 3;
-  return 4;
-}
-
-export function effectivenessBucket(effectiveness: number): number {
-  if (effectiveness <= 0) return 0;
-  if (effectiveness <= 0.5) return 1;
-  if (effectiveness <= 1.0) return 2;
-  if (effectiveness <= 2.0) return 3;
-  return 4;
-}
-
-export function countBucket(value: number): number {
-  if (value <= 0) return 0;
-  if (value === 1) return 1;
-  if (value <= 3) return 2;
-  return 3;
-}
-
-export function damageClassBucket(category: number): number {
-  if (category === MoveCategory.PHYSICAL) return 0;
-  if (category === MoveCategory.SPECIAL) return 1;
-  return 2;
-}
-
-export function moveKindBucket(moveData: any): number {
-  const category = moveData?.category;
-  const power = Number.isFinite(moveData?.power) ? moveData.power : 0;
-  const priority = Number.isFinite(moveData?.priority) ? moveData.priority : 0;
-  if (category === MoveCategory.STATUS || power <= 0) return 0;
-  if (priority > 0) return 2;
-  return 1;
-}
-
-export function priorityBucket(priority: number): number {
-  if (priority < 0) return 0;
-  if (priority === 0) return 1;
-  return 2;
-}
-
-export function damageRatioBucket(damageRatio: number): number {
-  if (damageRatio <= 0) return 0;
-  if (damageRatio < 0.25) return 1;
-  if (damageRatio < 0.5) return 2;
-  if (damageRatio < 1.0) return 3;
-  return 4;
-}
-
-export function koTurnsBucket(damageRatio: number, targetHpRatio: number): number {
-  if (damageRatio <= 0 || targetHpRatio <= 0) return 0;
-  if (damageRatio >= targetHpRatio) return 1;
-  if ((damageRatio * 2) >= targetHpRatio) return 2;
-  return 3;
-}
-
-export function accuracyBucket(accuracy: number): number {
-  if (accuracy <= 0) return 0;
-  if (accuracy < 75) return 1;
-  if (accuracy < 90) return 2;
-  return 3;
-}
-
-export function getEffectiveSpeed(pokemon: any, opponent: any): number {
-  if (typeof pokemon?.getEffectiveStat === "function") {
-    const speed = pokemon.getEffectiveStat(Stat.SPD, opponent);
-    if (Number.isFinite(speed)) {
-      return speed;
-    }
-  }
-  if (typeof pokemon?.getStat === "function") {
-    const speed = pokemon.getStat(Stat.SPD, false);
-    if (Number.isFinite(speed)) {
-      return speed;
-    }
-  }
-  return 0;
-}
-
-export function speedOrderAdvantage(player: any, enemy: any): number {
-  const playerSpeed = getEffectiveSpeed(player, enemy);
-  const enemySpeed = getEffectiveSpeed(enemy, player);
-  if (playerSpeed > enemySpeed) return 2;
-  if (playerSpeed < enemySpeed) return 0;
-  return 1;
-}
-
-export function getBestKnownEnemyPriority(enemy: any): number {
-  return enemy.getMoveset()
-    .slice(0, 4)
-    .reduce((best: number, move: any) => {
-      const moveData = move.getMove?.();
-      const ppMax = typeof move.getMovePp === "function" ? move.getMovePp() : 0;
-      const ppUsed = Number.isFinite(move?.ppUsed) ? move.ppUsed : 0;
-      const ppLeft = Math.max(0, ppMax - ppUsed);
-      const priority = Number.isFinite(moveData?.priority) ? moveData.priority : 0;
-      return ppLeft > 0 ? Math.max(best, priority) : best;
-    }, 0);
-}
-
-export function enemyHasKnownPriorityThreat(enemy: any): boolean {
-  return getBestKnownEnemyPriority(enemy) > 0;
-}
-
-export function actsFirstIfUsed(player: any, enemy: any, moveData: any, bestEnemyPriority: number): boolean {
-  const priority = Number.isFinite(moveData?.priority) ? moveData.priority : 0;
-  if (priority > bestEnemyPriority) return true;
-  if (priority < bestEnemyPriority) return false;
-  return getEffectiveSpeed(player, enemy) > getEffectiveSpeed(enemy, player);
-}
-
-export function estimateDamageRatio(user: any, target: any, moveData: any, effectiveness: number, stab: number): number {
-  const power = Number.isFinite(moveData?.power) ? moveData.power : 0;
-  if (power <= 0 || moveData?.category === MoveCategory.STATUS || !Number.isFinite(effectiveness) || effectiveness <= 0) {
-    return 0;
-  }
-
-  const attackStat = moveData?.category === MoveCategory.SPECIAL
-    ? user.getEffectiveStat(Stat.SPATK, target)
-    : user.getEffectiveStat(Stat.ATK, target);
-  const defenseStatRaw = moveData?.category === MoveCategory.SPECIAL
-    ? target.getEffectiveStat(Stat.SPDEF, user)
-    : target.getEffectiveStat(Stat.DEF, user);
-  const defenseStat = Math.max(1, Number.isFinite(defenseStatRaw) ? defenseStatRaw : 1);
-  const level = Math.max(1, Number.isFinite(user?.level) ? user.level : 1);
-
-  const estimated = (((2 * level) / 5 + 2) * power * (attackStat / defenseStat)) / 50;
-  const accuracy = Number.isFinite(moveData?.accuracy) ? Math.max(1, Math.min(100, moveData.accuracy)) / 100 : 1;
-  const modifier = effectiveness * (stab ? 1.5 : 1.0) * accuracy;
-  const targetMaxHp = Math.max(1, typeof target.getMaxHp === "function" ? target.getMaxHp() : 1);
-  return Math.max(0, (estimated * modifier) / targetMaxHp);
-}
-
-export function usesBestOffenseStat(user: any, target: any, moveData: any): boolean {
-  if (moveData?.category === MoveCategory.STATUS) {
-    return false;
-  }
-  const attack = user.getEffectiveStat(Stat.ATK, target);
-  const specialAttack = user.getEffectiveStat(Stat.SPATK, target);
-  if (moveData?.category === MoveCategory.PHYSICAL) {
-    return attack >= specialAttack;
-  }
-  return specialAttack >= attack;
-}
+// Die Observation kommt aus dem gemeinsamen Builder (src/main/ts/lib/combat-observation.ts), den auch der strategische
+// Collector und die JS-Bridge des Live-Bots verwenden. Der Runner kopiert ihn beim Materialisieren neben diesen Helper.
+export {
+  accuracyBucket,
+  actsFirstIfUsed,
+  bucketByThresholds,
+  countBucket,
+  damageClassBucket,
+  damageRatioBucket,
+  effectivenessBucket,
+  estimateDamageRatio,
+  getBestKnownEnemyPriority,
+  getEffectiveSpeed,
+  getHpRatio,
+  hpBucket,
+  hpDiffBucket,
+  koTurnsBucket,
+  levelGapBucket,
+  moveKindBucket,
+  powerBucket,
+  priorityBucket,
+  speedOrderAdvantage,
+  usesBestOffenseStat,
+};
+export { canBuildCombatObservation, contextFromHistory, emptyCombatDecisionHistory, updateCombatDecisionHistory };
+export type { CombatDecisionHistory, CombatObservation, DecisionKind };
 
 function inferScenarioTrainerBattle(scenario: any): boolean {
   const battleType = typeof scenario?.battle_type === "string"
@@ -834,239 +699,24 @@ function inferScenarioTrainerBattle(scenario: any): boolean {
   return scenario?.trainer != null;
 }
 
-function isActiveTrappedSafe(pokemon: { isTrapped?: () => boolean } | null | undefined): boolean {
-  try {
-    return pokemon?.isTrapped?.() === true;
-  } catch {
-    return false;
+let enumParityChecked = false;
+
+/** combat-v4-Observation; `history` und `decisionKind` fuehrt der Runner (siehe updateCombatDecisionHistory). */
+export function buildObservation(
+  game: GameManager,
+  scenario: any,
+  history: CombatDecisionHistory = emptyCombatDecisionHistory(),
+  decisionKind: DecisionKind = 0,
+): CombatObservation {
+  if (!enumParityChecked) {
+    assertCombatObservationEnumParity(TerrainType as unknown as Record<string, string | number>);
+    enumParityChecked = true;
   }
+  return buildCombatObservation(game.scene, contextFromHistory(history, decisionKind, inferScenarioTrainerBattle(scenario)));
 }
 
-export function buildObservation(game: GameManager, scenario: any) {
-  const player = game.scene.getPlayerPokemon();
-  const enemy = game.scene.getEnemyPokemon();
-  if (!player || !enemy) {
-    throw new Error("Missing active battlers while building observation");
-  }
-
-  const playerTypes = player
-    .getTypes(true, true)
-    .filter(type => Number.isInteger(type) && type >= 0)
-    .slice(0, 2);
-  const enemyTypes = enemy
-    .getTypes(true, true)
-    .filter(type => Number.isInteger(type) && type >= 0)
-    .slice(0, 2);
-
-  const moveSet = player.getMoveset().slice(0, 4);
-  const playerHpRatio = getHpRatio(player.hp, player.getMaxHp());
-  const enemyHpRatio = getHpRatio(enemy.hp, enemy.getMaxHp());
-  const speedAdvantage = speedOrderAdvantage(player, enemy);
-  const knownEnemyPriorityThreat = enemyHasKnownPriorityThreat(enemy);
-  const bestKnownEnemyPriority = getBestKnownEnemyPriority(enemy);
-  const activeBestMoveEffectiveness = moveSet.reduce((best, move) => {
-    const moveData = move.getMove();
-    const [usable] = move.isUsable(player, false, true);
-    if (!usable) return best;
-    const effectiveness = enemy.getMoveEffectiveness(player, moveData, false, true);
-    return Math.max(best, Number.isFinite(effectiveness) ? effectiveness : 1);
-  }, 0);
-  const activeBestDamageRatio = moveSet.reduce((best, move) => {
-    const moveData = move.getMove();
-    const [usable] = move.isUsable(player, false, true);
-    if (!usable) return best;
-    const effectiveness = enemy.getMoveEffectiveness(player, moveData, false, true);
-    const stab = playerTypes.includes(moveData.type) ? 1 : 0;
-    return Math.max(best, estimateDamageRatio(player, enemy, moveData, effectiveness, stab));
-  }, 0);
-  const enemyBestDamageIntoActive = enemy.getMoveset().slice(0, 4).reduce((best, move) => {
-    const moveData = move.getMove();
-    const [usable] = move.isUsable(enemy, false, true);
-    if (!usable) return best;
-    const effectiveness = player.getMoveEffectiveness(enemy, moveData, false, true);
-    const enemyStab = enemyTypes.includes(moveData.type) ? 1 : 0;
-    return Math.max(best, estimateDamageRatio(enemy, player, moveData, effectiveness, enemyStab));
-  }, 0);
-  const moves = player.getMoveset().slice(0, 4).map(move => {
-    const moveData = move.getMove();
-    const ppMax = move.getMovePp();
-    const ppUsed = Number.isFinite(move.ppUsed) ? move.ppUsed : 0;
-    const ppLeft = Math.max(0, ppMax - ppUsed);
-    const ppRatio = ppMax > 0 ? ppLeft / ppMax : 0;
-    const effectiveness = enemy.getMoveEffectiveness(player, moveData, false, true);
-    const moveType = moveData.type;
-    const stab = playerTypes.includes(moveType) ? 1 : 0;
-    const [usable] = move.isUsable(player, false, true);
-    const available = usable ? 1 : 0;
-    const actsFirst = available === 1 && actsFirstIfUsed(player, enemy, moveData, bestKnownEnemyPriority);
-    const estimatedDamageRatio = estimateDamageRatio(player, enemy, moveData, effectiveness, stab);
-    return {
-      available,
-      power_bucket: powerBucket(Number.isFinite(moveData.power) ? moveData.power : 0),
-      effectiveness_bucket: effectivenessBucket(Number.isFinite(effectiveness) ? effectiveness : 1),
-      stab,
-      pp_low: ppLeft > 0 && ppRatio <= 0.2 ? 1 : 0,
-      priority_bucket: priorityBucket(Number.isFinite(moveData.priority) ? moveData.priority : 0),
-      acts_first_if_used: actsFirst ? 1 : 0,
-      can_ko_before_enemy_moves: actsFirst && estimatedDamageRatio >= enemyHpRatio ? 1 : 0,
-      move_kind_bucket: moveKindBucket(moveData),
-      damage_class_bucket: damageClassBucket(moveData.category),
-      estimated_damage_ratio_bucket: damageRatioBucket(estimatedDamageRatio),
-      estimated_ko_turns_bucket: koTurnsBucket(estimatedDamageRatio, enemyHpRatio),
-      accuracy_bucket: accuracyBucket(Number.isFinite(moveData.accuracy) ? moveData.accuracy : 100),
-      uses_best_offense_stat: usesBestOffenseStat(player, enemy, moveData) ? 1 : 0,
-      target_immunity_risk: effectiveness <= 0 ? 1 : 0,
-    };
-  });
-  const activeHasAnyFirstStrikeMove = moves.some(move => move.acts_first_if_used === 1);
-
-  const actionMask = Array.from({ length: ACTION_DIM }, () => 0);
-  for (let idx = 0; idx < moves.length; idx += 1) {
-    actionMask[idx] = moves[idx].available;
-  }
-
-  const party = game.scene.getPlayerParty();
-  const switchableMembers: Array<{
-    hpRatio: number;
-    bestEffectiveness: number;
-    bestDamageIntoEnemy: number;
-    expectedIncomingDamage: number;
-    survivesOneHit: boolean;
-  }> = [];
-  const activeTrapped = isActiveTrappedSafe(player);
-  const partySlots = Array.from({ length: 6 }, (_, slot) => {
-    const member = party[slot];
-    if (!member) {
-      return {
-        present: 0,
-        active: 0,
-        fainted: 0,
-        hp_ratio: 0,
-        level: 0,
-        types: [],
-        best_damage_into_enemy_bucket: 0,
-        expected_incoming_damage_bucket: 0,
-        speed_advantage_bucket: 1,
-        survives_one_hit: 0,
-        can_threaten_ko_bucket: 0,
-      };
-    }
-
-    const hpRatio = getHpRatio(member.hp, member.getMaxHp());
-    const types = member
-      .getTypes(true, true)
-      .filter(type => Number.isInteger(type) && type >= 0)
-      .slice(0, 2);
-
-    const canSwitch = !member.isOnField() && !member.isFainted() && member.isAllowedInBattle();
-    const bestDamageIntoEnemy = member.getMoveset()
-      .slice(0, 4)
-      .reduce((best, move) => {
-        const moveData = move.getMove();
-        const [usable] = move.isUsable(member, false, true);
-        if (!usable) return best;
-        const effectiveness = enemy.getMoveEffectiveness(member, moveData, false, true);
-        const memberTypes = member.getTypes(true, true)
-          .filter(type => Number.isInteger(type) && type >= 0)
-          .slice(0, 2);
-        const stab = memberTypes.includes(moveData.type) ? 1 : 0;
-        return Math.max(best, estimateDamageRatio(member, enemy, moveData, effectiveness, stab));
-      }, 0);
-    const expectedIncomingDamage = enemy.getMoveset()
-      .slice(0, 4)
-      .reduce((best, move) => {
-        const moveData = move.getMove();
-        const [usable] = move.isUsable(enemy, false, true);
-        if (!usable) return best;
-        const effectiveness = member.getMoveEffectiveness(enemy, moveData, false, true);
-        const stab = enemyTypes.includes(moveData.type) ? 1 : 0;
-        return Math.max(best, estimateDamageRatio(enemy, member, moveData, effectiveness, stab));
-      }, 0);
-    const slotSpeedAdvantage = speedOrderAdvantage(member, enemy);
-    const survivesOneHit = expectedIncomingDamage < hpRatio;
-    const canThreatenKoBucket = koTurnsBucket(bestDamageIntoEnemy, enemyHpRatio);
-    // Gefangene Pokemon (Mean Look, Wrap, Shadow Tag, ...) koennen nicht wechseln: das Spiel lehnt den Wechsel ab und
-    // bleibt in der CommandPhase. Nur die Maske sperrt den Wechsel; canSwitch bleibt Bank-Feature (State-Schema unveraendert).
-    actionMask[MOVE_ACTIONS + slot] = canSwitch && !activeTrapped ? 1 : 0;
-    if (canSwitch) {
-      const bestEffectiveness = member.getMoveset()
-        .slice(0, 4)
-        .reduce((best, move) => {
-          const moveData = move.getMove();
-          const [usable] = move.isUsable(member, false, true);
-          if (!usable) return best;
-          const effectiveness = enemy.getMoveEffectiveness(member, moveData, false, true);
-          return Math.max(best, Number.isFinite(effectiveness) ? effectiveness : 1);
-        }, 0);
-      switchableMembers.push({
-        hpRatio,
-        bestEffectiveness,
-        bestDamageIntoEnemy,
-        expectedIncomingDamage,
-        survivesOneHit,
-      });
-    }
-
-    return {
-      present: 1,
-      active: member.isOnField() ? 1 : 0,
-      fainted: member.isFainted() ? 1 : 0,
-      hp_ratio: hpRatio,
-      level: member.level,
-      types,
-      best_damage_into_enemy_bucket: damageRatioBucket(bestDamageIntoEnemy),
-      expected_incoming_damage_bucket: damageRatioBucket(expectedIncomingDamage),
-      speed_advantage_bucket: slotSpeedAdvantage,
-      survives_one_hit: survivesOneHit ? 1 : 0,
-      can_threaten_ko_bucket: canThreatenKoBucket,
-    };
-  });
-  const aliveBenchCount = switchableMembers.length;
-  const healthyBenchCount = switchableMembers.filter(member => member.hpRatio > 0.5).length;
-  const bestSwitchEffectiveness = switchableMembers.reduce((best, member) => Math.max(best, member.bestEffectiveness), 0);
-  const lowestSwitchHp = switchableMembers.length > 0
-    ? switchableMembers.reduce((lowest, member) => Math.min(lowest, member.hpRatio), 1)
-    : 1;
-  const worstSwitchRiskBucket = switchableMembers.length === 0
-    ? 0
-    : lowestSwitchHp <= 0.25 ? 3 : lowestSwitchHp <= 0.5 ? 2 : lowestSwitchHp <= 0.75 ? 1 : 0;
-  const battle = game.scene.currentBattle as any;
-  const isTrainerBattle = battle?.trainer != null || inferScenarioTrainerBattle(scenario);
-  const hasLegalSwitch = aliveBenchCount > 0;
-  const activeHpCritical = playerHpRatio <= 0.25;
-  const benchHasHealthierSwitch = switchableMembers.some(member => member.hpRatio > playerHpRatio + 0.15);
-  const benchHasBetterMatchupThanActive = bestSwitchEffectiveness > activeBestMoveEffectiveness;
-  const activeCanFinishEnemy = enemyHpRatio <= 0.25 && activeBestMoveEffectiveness >= 1.0;
-
-  return {
-    wave_index: game.scene.currentBattle.waveIndex,
-    player_hp_ratio: playerHpRatio,
-    enemy_hp_ratio: enemyHpRatio,
-    player_hp_bucket: hpBucket(playerHpRatio),
-    enemy_hp_bucket: hpBucket(enemyHpRatio),
-    hp_diff_bucket: hpDiffBucket(playerHpRatio - enemyHpRatio),
-    level_gap_bucket: levelGapBucket(player.level - enemy.level),
-    is_trainer_battle: isTrainerBattle ? 1 : 0,
-    has_legal_switch: hasLegalSwitch ? 1 : 0,
-    active_hp_critical: activeHpCritical ? 1 : 0,
-    bench_has_healthier_switch: benchHasHealthierSwitch ? 1 : 0,
-    bench_has_better_matchup_than_active: benchHasBetterMatchupThanActive ? 1 : 0,
-    active_can_finish_enemy: activeCanFinishEnemy ? 1 : 0,
-    alive_bench_count_bucket: countBucket(aliveBenchCount),
-    healthy_bench_count_bucket: countBucket(healthyBenchCount),
-    best_switch_matchup_bucket: effectivenessBucket(bestSwitchEffectiveness),
-    worst_switch_risk_bucket: worstSwitchRiskBucket,
-    speed_order_advantage: speedAdvantage,
-    enemy_has_known_priority_threat: knownEnemyPriorityThreat ? 1 : 0,
-    active_has_any_first_strike_move: activeHasAnyFirstStrikeMove ? 1 : 0,
-    active_best_damage_bucket: damageRatioBucket(activeBestDamageRatio),
-    enemy_best_damage_into_active_bucket: damageRatioBucket(enemyBestDamageIntoActive),
-    active_survives_next_hit: enemyBestDamageIntoActive < playerHpRatio ? 1 : 0,
-    enemy_survives_best_hit: activeBestDamageRatio < enemyHpRatio ? 1 : 0,
-    moves,
-    party_slots: partySlots,
-    action_mask: actionMask,
-  };
+export function enemyHasKnownPriorityThreat(enemy: Parameters<typeof getBestKnownEnemyPriority>[0]): boolean {
+  return getBestKnownEnemyPriority(enemy) > 0;
 }
 
 export function setPokemonHpRatio(pokemon: any, ratio: number): void {
@@ -1409,7 +1059,25 @@ function mapBattleStyleName(value: unknown): BattleStyle | null {
   return null;
 }
 
-export function applyScenarioOverrides(game: GameManager, scenario: any, seedOverride: string | null): void {
+/**
+ * Wildkaempfe ab Wave 2 bieten im Kampfstil SWITCH vor dem ersten Zug einen kostenlosen Wechsel an (CheckSwitchPhase,
+ * nur aus EncounterPhase). Die Szenarien sind alle SET; mit `checkSwitchDecisions` stellt der Collector solche Kaempfe
+ * auf SWITCH um, damit das Angebot als Entscheidung (decision_kind 2) in den Daten vorkommt.
+ */
+export function scenarioOffersCheckSwitch(scenario: any): boolean {
+  return mapBattleTypeName(getScenarioBattleTypeName(scenario)) === BattleType.WILD
+    && getScenarioWaveIndex(scenario) > 1
+    && scenario?.is_double_fight !== true
+    && Array.isArray(scenario?.player_team)
+    && scenario.player_team.length > 1;
+}
+
+export function applyScenarioOverrides(
+  game: GameManager,
+  scenario: any,
+  seedOverride: string | null,
+  options: { checkSwitchDecisions?: boolean } = {},
+): void {
   const effectiveSeed = seedOverride ?? scenario.seed ?? null;
   const waveIndex = getScenarioWaveIndex(scenario);
   const battleStyle = mapBattleStyleName(scenario.battle_style);
@@ -1428,6 +1096,9 @@ export function applyScenarioOverrides(game: GameManager, scenario: any, seedOve
   // Die Spieleinstellung SET/SWITCH (Wechsel-Angebot nach KO) ist davon unabhaengig.
   if (battleStyle != null) {
     game.scene.battleStyle = battleStyle;
+  }
+  if (options.checkSwitchDecisions === true && scenarioOffersCheckSwitch(scenario)) {
+    game.scene.battleStyle = BattleStyle.SWITCH;
   }
   game.override.battleType(battleType);
   if (trainerType != null) {
@@ -1449,7 +1120,33 @@ export async function startScenarioBattle(game: GameManager, scenario: any, team
   await game.phaseInterceptor.to("EncounterPhase", false);
 
   prepareScenarioBattleBeforeEncounter(game, scenario);
-  await game.phaseInterceptor.to("CommandPhase");
+  await advanceToFirstCommandPhase(game);
+}
+
+/**
+ * Vom Kampfbeginn bis zur ersten CommandPhase. Bedient dabei das Wechselangebot (CheckSwitchPhase, nur im Kampfstil
+ * SWITCH) und den daraus folgenden SwitchPhase ueber die Harness, also mit dem Entscheidungs-Hook des Runners.
+ * Ohne Angebot ist das gleichwertig zu `phaseInterceptor.to("CommandPhase")`.
+ */
+async function advanceToFirstCommandPhase(game: GameManager): Promise<void> {
+  let reached = false;
+  let failure: unknown = null;
+  const pump = withTimeout(game.phaseInterceptor.to("CommandPhase"), STEP_TIMEOUT_MS, "scenario start command phase")
+    .then(() => {
+      reached = true;
+    })
+    .catch(error => {
+      failure = error;
+    });
+  while (!reached && failure == null) {
+    resolveOptionalCheckSwitchIfNeeded(game);
+    resolveForcedSwitchIfNeeded(game);
+    await sleep(25);
+  }
+  await pump;
+  if (failure != null) {
+    throw failure;
+  }
 }
 
 function sampleUniformAction(valid: number[]): number {

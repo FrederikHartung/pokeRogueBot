@@ -317,6 +317,19 @@ Vorbereitete Erweiterung fuer die gewachsene Wave-Library:
     - `bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-v3`
     - `bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-v3-smoke`
   - Zielgroesse fuer den vollen V3-50ep-Lauf: `15.550` Episoden
+  - historisch: Der Collector schreibt seit combat-v4 nur noch v4-Transitions; die v3-Configs brechen in der Pipeline vor dem Sammeln ab.
+
+Combat-v4-Collection (aktueller Pfad, State-Contract `docs/combat-state-v4.md`):
+
+- dieselben V3-Szenarien (`generated-wave-library-v3-w1-24`), aber `dataset_pool.combat_version = combat-v4`
+- Configs:
+  - `50` Episoden pro Szenario: `data/rl/wave-library-random-collection-remote-v4-50ep.json`
+  - Smoke (Trainer w5 und Wild w6, je eine Episode): `data/rl/wave-library-random-collection-remote-v4-smoke.json`
+- Remote-Helper:
+  - `bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-v4-smoke`
+  - `bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-v4`
+- `collect.collector.check_switch_decisions` (Standard `true`) stellt den Kampfstil auf SWITCH, damit zu Beginn von Wildkaempfen ab Wave 2 auch `decision_kind = 2` (Wechselangebot) gesammelt wird; `false` sammelt nur command- und Zwangswechsel-Entscheidungen.
+- Training: Der Trainer erkennt die Feature-Version aus dem Datensatz (`6` = combat-v3 mit 166 Features, `7` = combat-v4 mit 469 Features) und speichert sie im Checkpoint; Inferenz, Worker (`{"describe":true}`) und Live-Bot waehlen den Encoder pro Checkpoint. Gemischte v3/v4-Datensaetze lehnt `rl:check:dataset` ab.
 
 Serverseitige Pool-Ablage fuer wiederverwendbare Trainingsdaten:
 
@@ -754,6 +767,7 @@ Pragmatische Empfehlung fuer kuenftige Trainingsdaten aus mehreren Quellen:
 - dadurch bleibt jeder Trainingslauf reproduzierbar ueber einen klar benannten finalen Merge-Datensatz
 - fuer `combat-v3` ist der bevorzugte Sammelpunkt:
   - `data/rl/dataset-pools/combat-v3/merged/`
+- fuer `combat-v4` entsprechend `data/rl/dataset-pools/combat-v4/merged/`; v3- und v4-Daten nie in denselben Merge legen
 
 Ubuntu-Setup-Kurzpfad fuer spaetere Server:
 

@@ -6,7 +6,8 @@
 // verworfen. Authentifizierung ueber den lokalen Claude-Code-Login, kein API-Key.
 //
 // Protokoll (eine JSON-Zeile pro Zug, wie dqn_policy_infer_worker.py):
-//   stdin:  {"episode_id", "step_index", "battle_context"?, "state", "action_mask"} | {"shutdown": true}
+//   stdin:  {"episode_id", "step_index", "decision_kind"?, "battle_context"?, "state", "action_mask"} | {"shutdown": true}
+//   decision_kind (combat-v4): 0 normaler Zug, 1 Zwangswechsel nach K.O., 2 Wechselangebot zu Kampfbeginn.
 //   stdout: {"action": <int>} | {"error": "<text>"}
 //
 // Aufruf (aus dem Collector-Policy-Config):
@@ -26,6 +27,7 @@ type ContextMode = "battle" | "state";
 type Request = {
   episode_id?: string;
   step_index?: number;
+  decision_kind?: number;
   battle_context?: BattleContext;
   state?: Record<string, unknown>;
   action_mask?: number[];
@@ -96,6 +98,7 @@ const SYSTEM_PROMPT = [
     ? "Each turn shows what a player sees: your full team with moves and PP, the active enemy (species, level, HP %, types, status, stat changes), weather, and the battle messages since your last decision. You do not know the enemy's moves or remaining team until they are revealed in the battle messages; use what you learned earlier in this battle."
     : "Each turn shows a numeric feature vector describing the battle (bucketed HP, damage estimates, matchups, move and party slot features).",
   "Pick exactly one of the listed legal actions. Actions 0-3 use the move in that move slot of your active Pokemon; actions 4-9 switch to the Pokemon in party slot (action - 4).",
+  "Besides normal turns there are two switch-only decisions: after your active Pokemon fainted you choose which Pokemon to send in (free, the enemy does not attack), and at the start of some wild battles you may switch your lead for free before the first turn or keep it (the action of your current active slot means keep it).",
   "Answer only through the structured output: the action number and a one-sentence reason.",
 ].join("\n");
 
@@ -288,9 +291,10 @@ async function decide(request: Request): Promise<number> {
     session = new BattleSession(episodeId);
   }
 
+  const decisionKind = Number(request.decision_kind ?? request.state?.decision_kind ?? 0);
   const prompt = contextMode === "battle" && request.battle_context
-    ? formatBattleTurn(request.battle_context, legal, request.step_index)
-    : formatStateTurn(request.state ?? {}, legal, request.step_index);
+    ? formatBattleTurn(request.battle_context, legal, request.step_index, decisionKind)
+    : formatStateTurn(request.state ?? {}, legal, request.step_index, decisionKind);
   let result = await session.ask(prompt);
   if (!legal.includes(result.action)) {
     result = await session.ask(`Action ${result.action} is not legal this turn. Choose one of: ${legal.join(", ")}.`);
@@ -301,13 +305,27 @@ async function decide(request: Request): Promise<number> {
   return result.action;
 }
 
-function formatBattleTurn(context: BattleContext, legal: number[], stepIndex: number | undefined): string {
+function decisionKindLine(decisionKind: number): string | null {
+  if (decisionKind === 1) {
+    return "Your active Pokemon fainted: choose which Pokemon to send in (free switch, the enemy does not attack).";
+  }
+  if (decisionKind === 2) {
+    return "A new wild battle starts: you may switch your lead for free before the first turn, or keep it.";
+  }
+  return null;
+}
+
+function formatBattleTurn(context: BattleContext, legal: number[], stepIndex: number | undefined, decisionKind: number): string {
   const party = context.player_party ?? [];
   const active = party.find(member => member.active) ?? null;
   const lines: string[] = [];
+  const kindLine = decisionKindLine(decisionKind);
   lines.push(`Decision ${Number(stepIndex ?? 0) + 1} | wave ${context.wave ?? "?"} | battle turn ${context.turn ?? "?"} | ${context.battle_type === "trainer" ? `trainer battle vs ${context.trainer ?? "trainer"} (${context.enemy_pokemon_remaining ?? "?"} enemy Pokemon left)` : "wild battle"}`);
   if (context.weather || context.terrain) {
     lines.push(`Field: weather ${context.weather ?? "none"}, terrain ${context.terrain ?? "none"}`);
+  }
+  if (kindLine) {
+    lines.push(kindLine);
   }
   if ((context.new_messages ?? []).length > 0) {
     lines.push("Battle messages since your last decision:");
@@ -330,16 +348,20 @@ function formatBattleTurn(context: BattleContext, legal: number[], stepIndex: nu
       lines.push(`    moves: ${member.moves.map(move => move.name).join(", ")}`);
     }
   }
-  lines.push(`Legal actions: ${legal.map(action => `${action}=${describeAction(action, party, active)}`).join("; ")}`);
+  lines.push(`Legal actions: ${legal.map(action => `${action}=${describeAction(action, party, active, decisionKind)}`).join("; ")}`);
   return lines.join("\n");
 }
 
-function describeAction(action: number, party: PartyMember[], active: PartyMember | null): string {
+function describeAction(action: number, party: PartyMember[], active: PartyMember | null, decisionKind: number): string {
   if (action < MOVE_ACTIONS) {
     return `use ${active?.moves[action]?.name ?? `move ${action}`}`;
   }
   const slot = action - MOVE_ACTIONS;
-  return `switch to ${party[slot]?.species ?? `party slot ${slot}`}`;
+  const species = party[slot]?.species ?? `party slot ${slot}`;
+  if (decisionKind === 2 && party[slot]?.active) {
+    return `keep ${species} in (no switch)`;
+  }
+  return decisionKind === 1 ? `send in ${species}` : `switch to ${species}`;
 }
 
 function formatStages(stages: Record<string, number> | undefined): string {
@@ -347,9 +369,11 @@ function formatStages(stages: Record<string, number> | undefined): string {
   return entries.length === 0 ? "" : `, stat stages ${entries.map(([stat, value]) => `${stat}${value > 0 ? "+" : ""}${value}`).join(" ")}`;
 }
 
-function formatStateTurn(state: Record<string, unknown>, legal: number[], stepIndex: number | undefined): string {
+function formatStateTurn(state: Record<string, unknown>, legal: number[], stepIndex: number | undefined, decisionKind: number): string {
+  const kindLine = decisionKindLine(decisionKind);
   return [
     `Decision ${Number(stepIndex ?? 0) + 1}. Battle features:`,
+    ...(kindLine ? [kindLine] : []),
     JSON.stringify(state),
     `Legal actions: ${legal.join(", ")}`,
   ].join("\n");

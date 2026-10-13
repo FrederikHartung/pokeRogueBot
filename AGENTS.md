@@ -38,7 +38,7 @@ Das Projekt: ein Bot, der das Browserspiel PokeRogue automatisiert (Spring Boot,
 
 ### 2.3 Combat-RL-State-Schema
 
-- Fuer Offline-Training von Kampf- und Switch-Entscheidungen gibt es genau einen verbindlichen State-Contract: `docs/rl-schema/combat-transition.schema.json`, Beispiel in `docs/rl-schema/combat-transition.example.json`.
+- Fuer Offline-Training von Kampf- und Switch-Entscheidungen gibt es genau einen verbindlichen State-Contract: `docs/rl-schema/combat-transition.schema.json`, Beispiel in `docs/rl-schema/combat-transition.example.json`. Aktuell ist das combat-v4 (`docs/combat-state-v4.md`); abgeloeste Versionen liegen nur als Archiv daneben (`combat-transition-v3.*`).
 - Bei Schema-Aenderungen im selben Arbeitsschritt alle Consumer pruefen und anpassen: Collector, Dataset-Sanity-Checks, Offline-Training, Inferenz-/Eval-Skripte, Doku. Kein stiller Drift zwischen Schema, erzeugten JSONL-Daten und Python-/Node-Skripten.
 
 ### 2.4 JS-Bridge-Typisierung
@@ -117,6 +117,7 @@ Fallstricke auf dem Server:
 - Starten: `mvn spring-boot:run` (Main-Klasse `com.sfh.pokeRogueBot.Application`)
 - Paket: `mvn clean package`
 - Voraussetzung: lokales PokeRogue unter `http://localhost:8000/` (`cd pokerogue && npm run start:dev`), Spielsprache Englisch
+- JDK 21 verwenden (`JAVA_HOME` setzen): Der Kotlin-2.1-Compiler bricht unter JDK 25 beim Parsen des Java-Versionsstrings ab.
 
 **JS-Bridge:**
 - `npm install`, dann `npm run build:js` (Typecheck + esbuild; nur Build: `node build-js.mjs`)

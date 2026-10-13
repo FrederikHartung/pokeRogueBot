@@ -12,6 +12,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { validatePolicyConfig } from "../rl-config/policy-contract.ts";
 import { validateCollectorRunConfig } from "../rl-config/run-config-contract.ts";
+import { linkCombatObservationModule } from "./combat-observation-module.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -130,6 +131,8 @@ const rewardRemainingTeamHpRatioWinBonusScale = Number.isFinite(config.reward_re
   ? Number(config.reward_remaining_team_hp_ratio_win_bonus_scale)
   : 2.0;
 const terminalOnEggLapse = config.terminal_on_egg_lapse !== false;
+// Wildkaempfe ab Wave 2 im Kampfstil SWITCH spielen, damit das Wechselangebot (decision_kind 2) in den Daten vorkommt.
+const checkSwitchDecisions = config.check_switch_decisions !== false;
 const criticalHpRatio = 0.1;
 const halfHpRatio = 0.5;
 // POKEROGUE_COMBAT_STEP_TIMEOUT_MS wie beim Modifier-Collector (POKEROGUE_MODIFIER_STEP_TIMEOUT_MS), z. B. um in
@@ -206,63 +209,45 @@ import { installSingleDriverPhaseInterceptor } from "#test/porubot/harness/singl
 import { resolveLearnMoveIfNeeded } from "#test/porubot/harness/battle-command-advance";
 import { afterAll, beforeAll, describe, it, vi } from "vitest";
 import {
+  applyScenarioMaterializedState,
   applyScenarioOverrides,
   applyStateVariant,
   buildBattleContext,
-  applyScenarioMaterializedState,
   buildObservation,
-  clearStalePromptsForForcedSwitch,
-  accuracyBucket,
-  actsFirstIfUsed,
-  bucketByThresholds,
+  canBuildCombatObservation,
   cleanupPersistentExternalPolicyWorkers,
   computeTransitionReward,
   countAlivePlayerTeamMembers,
-  countBucket,
+  countFaintedEnemyPokemon,
+  countFaintedPlayerPokemon,
   currentPhaseNameSafe,
   currentUiModeNameSafe,
-  damageClassBucket,
-  damageRatioBucket,
   deriveTerminalNextState,
   deriveTerminalOutcome,
   describePartyForDiagnostics,
   describePartyUiHandlerForDiagnostics,
   describePromptQueueForDiagnostics,
   drainTerminalPhase,
-  effectivenessBucket,
-  enemyHasKnownPriorityThreat,
-  estimateDamageRatio,
+  emptyCombatDecisionHistory,
   executeAction,
   findActivePartySlotIndex,
-  getBestKnownEnemyPriority,
-  getEffectiveSpeed,
-  getHpRatio,
   getEnemyTeamHpRatio,
   getPlayerTeamHpRatio,
-  hasRemainingPlayerTeam,
   hasLoggedTerminalPhaseSince,
-  hpBucket,
-  hpDiffBucket,
+  hasRemainingPlayerTeam,
   isCollectorEpisodeTerminalPhase,
   isVictorySafe,
-  koTurnsBucket,
   leavePartyOptionsOpenForTest,
-  levelGapBucket,
-  moveKindBucket,
-  powerBucket,
-  priorityBucket,
-  requiresTerminalDrain,
   resolveForcedSwitchIfNeeded,
   resolveOptionalCheckSwitchIfNeeded,
-  setPokemonHpAbsolute,
-  setPokemonHpRatio,
-  speedOrderAdvantage,
-  startScenarioBattle,
   selectActionFromMask,
+  setSwitchDecisionProvider,
+  sleep,
+  startScenarioBattle,
+  updateCombatDecisionHistory,
   waitForCommandOrTerminalAfterForcedSwitch,
   waitForPromiseOrTerminal,
   withTimeout,
-  usesBestOffenseStat,
 } from "./experience-collector.helpers";
 
 const SCENARIOS = ${JSON.stringify(scenarios)};
@@ -297,6 +282,7 @@ const STATE_VARIANTS = ${JSON.stringify(stateVariants)};
 const QUIET_GAME_LOGS = ${quietGameLogs};
 const PLANNED_EPISODES = ${plannedEpisodes};
 const STEP_TIMEOUT_MS = ${stepTimeoutMs};
+const CHECK_SWITCH_DECISIONS = ${checkSwitchDecisions};
 const MOVE_ACTIONS = 4;
 const SWITCH_ACTIONS = 6;
 const ACTION_DIM = MOVE_ACTIONS + SWITCH_ACTIONS;
@@ -547,120 +533,232 @@ describe("external combat collector", () => {
             let lastStepIndex = -1;
             const battleMessageCursor = { index: 0 };
             try {
-            applyScenarioOverrides(game, scenario, seedOverride);
+            applyScenarioOverrides(game, scenario, seedOverride, { checkSwitchDecisions: CHECK_SWITCH_DECISIONS });
+
+            // Szenario-Zustand (HP, Moves, Status) und State-Variante genau einmal anwenden: beim Wechselangebot zu
+            // Kampfbeginn schon vor der ersten Entscheidung, sonst direkt nach dem Kampfstart. Ein zweites Anwenden
+            // nach einem Wechsel wuerde wegen des Positionstauschs die falschen Pokemon patchen.
+            const episodeStateVariant = selectEpisodeStateVariant(globalEpisodeIndex);
+            let materialized = false;
+            const materializeScenarioOnce = () => {
+              if (materialized) {
+                return;
+              }
+              materialized = true;
+              applyScenarioMaterializedState(game, scenario);
+              applyStateVariant(game, episodeStateVariant, episodeId);
+            };
+
+            // Jede Entscheidung (command, forced_switch, check_switch) ist eine Transition. Sie bleibt offen, bis die
+            // naechste Entscheidung oder das Episodenende ihren next_state liefert; der Reward deckt genau dieses
+            // Fenster ab (Team-HP und K.O.-Zaehler beim Oeffnen gegen den Stand beim Schliessen).
+            let history = emptyCombatDecisionHistory();
+            let pending: any = null;
+            let decisionCount = 0;
+            // Die Episode ist genau ein Kampf. Flieht der Gegner (z. B. Teleport), laeuft das Spiel in den naechsten Kampf
+            // weiter; ab dann entscheidet weder die Episode noch der Wechsel-Hook mehr.
+            const episodeWaveIndex = Number(scenario.wave_index);
+            let episodeEnded = false;
+
+            const finalizePending = (nextState: any, done: boolean, flags: Record<string, boolean> = {}) => {
+              const decision = pending;
+              if (!decision) {
+                return;
+              }
+              pending = null;
+              const enemyTeamDefeated = flags.enemyTeamDefeated === true;
+              const playerTeamDefeated = flags.playerTeamDefeated === true;
+              const nextPlayerTeamHp = playerTeamDefeated ? 0 : getPlayerTeamHpRatio(game);
+              const nextEnemyTeamHp = enemyTeamDefeated ? 0 : getEnemyTeamHpRatio(game);
+              const reward = computeTransitionReward({
+                decisionKind: decision.decisionKind,
+                action: decision.action,
+                activePartyIndexBeforeAction: decision.activePartyIndex,
+                lastActionWasSwitch: decision.historyBefore.lastActionWasSwitch,
+                consecutiveSwitchCount: decision.historyBefore.consecutiveSwitchCount,
+                lastSwitchOriginPartyIndex: decision.historyBefore.lastSwitchOriginPartyIndex,
+                enemyTeamHpBeforeAction: decision.window.enemyTeamHp,
+                nextEnemyTeamHp,
+                playerTeamHpBeforeAction: decision.window.playerTeamHp,
+                nextPlayerTeamHp,
+                enemyFaints: countFaintedEnemyPokemon(game) - decision.window.enemyFainted,
+                playerFaints: countFaintedPlayerPokemon(game) - decision.window.playerFainted,
+                enemyTeamDefeated,
+                playerTeamDefeated,
+                alivePlayerTeamMembers: countAlivePlayerTeamMembers(game),
+              });
+              const outcome = done
+                ? deriveTerminalOutcome({
+                  enemyTeamDefeated,
+                  playerTeamDefeated,
+                  timeoutTruncated: flags.timeoutTruncated === true,
+                  maxStepsTruncated: flags.maxStepsTruncated === true,
+                  battleEnded: flags.battleEnded === true,
+                })
+                : null;
+              episodeRecords.push(JSON.stringify({
+                episode_id: episodeId,
+                step_index: decision.stepIndex,
+                state: decision.state,
+                action: decision.action,
+                reward,
+                next_state: nextState,
+                done,
+                meta: {
+                  seed: effectiveSeed,
+                  wave: currentWaveIndexSafe(game, decision.state.wave_index),
+                  battle_type: "single",
+                  state_schema_version: "combat-v4",
+                  scenario: scenario.__scenario_name,
+                  state_variant: episodeStateVariant,
+                  action_source: decision.actionSource,
+                  outcome,
+                },
+                timestamp: Date.now(),
+              }));
+            };
+
+            const decide = async (decisionKind: number, state: any) => {
+              const policyExtras: Record<string, unknown> = {
+                episode_id: episodeId,
+                step_index: decisionCount,
+                decision_kind: decisionKind,
+              };
+              if (POLICY.include_battle_context === true) {
+                policyExtras.battle_context = buildBattleContext(game, battleMessageCursor);
+              }
+              return selectActionFromMask(state, state.action_mask, globalEpisodeIndex, policyExtras);
+            };
+
+            const openDecision = (state: any, decisionKind: number, action: number, actionSource: string) => {
+              const activePartyIndex = findActivePartySlotIndex(state);
+              pending = {
+                state,
+                decisionKind,
+                action,
+                actionSource,
+                activePartyIndex,
+                stepIndex: decisionCount,
+                historyBefore: history,
+                window: {
+                  playerTeamHp: getPlayerTeamHpRatio(game),
+                  enemyTeamHp: getEnemyTeamHpRatio(game),
+                  playerFainted: countFaintedPlayerPokemon(game),
+                  enemyFainted: countFaintedEnemyPokemon(game),
+                },
+              };
+              history = updateCombatDecisionHistory(history, decisionKind, action, activePartyIndex);
+              decisionCount += 1;
+            };
+
+            // Zwangswechsel und Wechselangebot entscheidet dieselbe Policy (Harness-Hook, switch-decision.ts).
+            // null = Harness-Standard (erster gueltiger Slot bzw. ablehnen), z. B. nach dem Sieg oder ohne Gegner.
+            setSwitchDecisionProvider(game, async (_game, kind) => {
+              if (
+                episodeEnded
+                || decisionCount >= MAX_STEPS_PER_EPISODE
+                || game.scene.currentBattle?.double
+                || game.scene.currentBattle?.waveIndex !== episodeWaveIndex
+              ) {
+                return null;
+              }
+              if (kind === "check_switch") {
+                materializeScenarioOnce();
+              }
+              if (!canBuildCombatObservation(game.scene) || isVictorySafe(game) || !hasRemainingPlayerTeam(game)) {
+                return null;
+              }
+              const decisionKind = kind === "forced_switch" ? 1 : 2;
+              const state = buildObservation(game, scenario, history, decisionKind);
+              if (!state.action_mask.some((value: number) => value === 1)) {
+                return null;
+              }
+              finalizePending(state, false);
+              const { action, actionSource } = await decide(decisionKind, state);
+              if (action < MOVE_ACTIONS) {
+                return null;
+              }
+              openDecision(state, decisionKind, action, actionSource);
+              const slot = action - MOVE_ACTIONS;
+              return decisionKind === 2 && state.party_slots[slot]?.active === 1 ? "stay" : slot;
+            });
 
             const teamSpecies = scenario.player_team.map(member => member.species_id);
             await startScenarioBattle(game, scenario, teamSpecies);
-            applyScenarioMaterializedState(game, scenario);
+            materializeScenarioOnce();
             // Kampfmeldungen fuer kontextbasierte Policies erst ab hier: die Intro-Meldungen nennen den vom Spiel
             // gewuerfelten Gegner, bevor der Collector ihn durch den Szenario-Gegner ersetzt.
             battleMessageCursor.index = Array.isArray(game.textInterceptor?.logs) ? game.textInterceptor.logs.length : 0;
 
-            const episodeStateVariant = selectEpisodeStateVariant(globalEpisodeIndex);
-            applyStateVariant(game, episodeStateVariant, episodeId);
             // Nur fuer den Replay-Test (Signatur E): hinterlaesst ein offenes Options-Menue im Party-Handler, wie es
             // ein frueherer Kampf auf derselben Szene tun kann.
             if (process.env.POKEROGUE_COLLECTOR_TEST_STALE_PARTY_OPTIONS === "1") {
               const leftOpen = await leavePartyOptionsOpenForTest(game);
               console.log(\`[collector-test-hook] stale_party_options=\${leftOpen}\`);
             }
-            let previousAction: number | null = null;
-            let lastSwitchOriginPartyIndex: number | null = null;
-            let consecutiveSwitchCount = 0;
 
-              for (let stepIndex = 0; stepIndex < MAX_STEPS_PER_EPISODE; stepIndex += 1) {
-              lastStepIndex = stepIndex;
-              const state = buildObservation(game, scenario);
-              const policyExtras: Record<string, unknown> = { episode_id: episodeId, step_index: stepIndex };
-              if (POLICY.include_battle_context === true) {
-                policyExtras.battle_context = buildBattleContext(game, battleMessageCursor);
+            while (true) {
+              lastStepIndex = decisionCount;
+              const state = buildObservation(game, scenario, history, 0);
+              if (decisionCount >= MAX_STEPS_PER_EPISODE) {
+                finalizePending(state, true, { maxStepsTruncated: true });
+                break;
               }
-              const { action, actionSource } = await selectActionFromMask(state, state.action_mask, globalEpisodeIndex, policyExtras);
+              finalizePending(state, false);
+              const { action, actionSource } = await decide(0, state);
               if (action < 0) {
                 break;
               }
-              const playerTeamHpBeforeAction = getPlayerTeamHpRatio(game);
-              const enemyTeamHpBeforeAction = getEnemyTeamHpRatio(game);
+              openDecision(state, 0, action, actionSource);
 
               const stepStartAt = Date.now();
               executeAction(game, action);
               const advanceStatus = await advanceAfterAction(game);
               const stepMs = Date.now() - stepStartAt;
 
-              const enemyPokemon = game.scene.getEnemyPokemon();
-              const playerPokemon = game.scene.getPlayerPokemon();
-              const enemyFainted = !enemyPokemon || enemyPokemon.hp <= 0 || enemyPokemon.isFainted();
-              const playerFainted = !playerPokemon || playerPokemon.hp <= 0 || playerPokemon.isFainted();
-              const enemyTeamDefeated = isVictorySafe(game);
+              const battleChanged = game.scene.currentBattle?.waveIndex !== episodeWaveIndex;
+              const enemyTeamDefeated = !battleChanged && isVictorySafe(game);
               const playerTeamDefeated = !hasRemainingPlayerTeam(game);
               const hardTerminalPhase = isCollectorEpisodeTerminalPhase(game);
               const timeoutTruncated = advanceStatus === "timeout";
-              let done = enemyTeamDefeated || playerTeamDefeated || hardTerminalPhase || timeoutTruncated;
-              const nextState = done
-                ? deriveTerminalNextState(state, enemyTeamDefeated, playerTeamDefeated)
-                : buildObservation(game, scenario);
-              const nextPlayerTeamHp = playerTeamDefeated ? 0 : getPlayerTeamHpRatio(game);
-              const nextEnemyTeamHp = enemyTeamDefeated ? 0 : getEnemyTeamHpRatio(game);
-              const alivePlayerTeamMembers = countAlivePlayerTeamMembers(game);
-              const activePartyIndexBeforeAction = findActivePartySlotIndex(state);
-              const reward = computeTransitionReward({
-                action,
-                previousAction,
-                consecutiveSwitchCount,
-                lastSwitchOriginPartyIndex,
-                enemyTeamHpBeforeAction,
-                nextEnemyTeamHp,
-                playerTeamHpBeforeAction,
-                nextPlayerTeamHp,
-                enemyFainted,
-                playerFainted,
-                enemyTeamDefeated,
-                playerTeamDefeated,
-                alivePlayerTeamMembers,
-              });
+              // "terminal" ohne Sieg/Niederlage: Kampf ohne Ergebnis beendet (Flucht). toNextTurn() laeuft seit v1.12 bis
+              // in den naechsten Kampf weiter; frueher spielte die Episode diesen dann faelschlich mit.
+              const battleEnded = advanceStatus === "terminal" || battleChanged;
+              const done = enemyTeamDefeated || playerTeamDefeated || hardTerminalPhase || timeoutTruncated || battleEnded;
 
-              if (!done && stepIndex === MAX_STEPS_PER_EPISODE - 1) {
-                done = true;
+              if (done) {
+                episodeEnded = true;
+                const lastDecision = pending;
+                if (lastDecision) {
+                  finalizePending(
+                    deriveTerminalNextState(lastDecision.state, enemyTeamDefeated, playerTeamDefeated),
+                    true,
+                    { enemyTeamDefeated, playerTeamDefeated, timeoutTruncated, battleEnded },
+                  );
+                }
+                const drainStatus = await drainTerminalPhase(game, STEP_TIMEOUT_MS);
+                if (drainStatus === "timeout") {
+                  console.log(\`[collector-terminal-drain-timeout] episode=\${episodeId} step=\${lastStepIndex} phase=\${currentPhaseNameSafe(game)}\`);
+                }
+                if (timeoutTruncated) {
+                  console.log(
+                    \`[collector-timeout] episode=\${episodeId} step=\${lastStepIndex} phase=\${currentPhaseNameSafe(game)} ui_mode=\${currentUiModeNameSafe(game)} advance_status=\${advanceStatus} step_ms=\${stepMs} player_party="\${describePartyForDiagnostics(game)}" party_ui="\${describePartyUiHandlerForDiagnostics(game)}" prompts="\${describePromptQueueForDiagnostics(game)}"\`,
+                  );
+                  technicalFailure = {
+                    kind: "collector_episode_timeout",
+                    reason: \`advance_timeout:\${currentPhaseNameSafe(game)}\`,
+                    ...buildEpisodeDebugSnapshot(game, lastStepIndex),
+                    advance_status: advanceStatus,
+                    step_ms: stepMs,
+                    action: lastDecision?.action ?? action,
+                    action_kind: (lastDecision?.action ?? action) >= MOVE_ACTIONS ? "switch" : "move",
+                    decision_kind: lastDecision?.decisionKind ?? 0,
+                    action_mask: lastDecision?.state?.action_mask ?? state.action_mask,
+                  };
+                }
+                break;
               }
 
-              const terminalOutcome = deriveTerminalOutcome({
-                enemyTeamDefeated,
-                playerTeamDefeated,
-                timeoutTruncated,
-                done,
-                stepIndex,
-                maxStepsPerEpisode: MAX_STEPS_PER_EPISODE,
-              });
-
-              const record = {
-                episode_id: episodeId,
-                step_index: stepIndex,
-                state,
-                action,
-                reward,
-                next_state: nextState,
-                done,
-                meta: {
-                  seed: effectiveSeed,
-                  wave: currentWaveIndexSafe(game, state.wave_index),
-                  battle_type: "single",
-                  scenario: scenario.__scenario_name,
-                  state_variant: episodeStateVariant,
-                  action_source: actionSource,
-                  outcome: terminalOutcome,
-                },
-                timestamp: Date.now(),
-              };
-
-              episodeRecords.push(JSON.stringify(record));
-              if (action >= MOVE_ACTIONS) {
-                lastSwitchOriginPartyIndex = activePartyIndexBeforeAction >= 0 ? activePartyIndexBeforeAction : null;
-                consecutiveSwitchCount += 1;
-              } else {
-                lastSwitchOriginPartyIndex = null;
-                consecutiveSwitchCount = 0;
-              }
-              previousAction = action;
               if (
                 PROGRESS_PAUSE_ENABLED
                 && PROGRESS_PAUSE_TARGET_TRANSITIONS > 0
@@ -681,29 +779,6 @@ describe("external combat collector", () => {
                   }
                   nextProgressPausePercent += PROGRESS_PAUSE_PERCENT_STEP;
                 }
-              }
-
-              if (done) {
-                const drainStatus = await drainTerminalPhase(game, STEP_TIMEOUT_MS);
-                if (drainStatus === "timeout") {
-                  console.log(\`[collector-terminal-drain-timeout] episode=\${episodeId} step=\${stepIndex} phase=\${currentPhaseNameSafe(game)}\`);
-                }
-                if (timeoutTruncated) {
-                  console.log(
-                    \`[collector-timeout] episode=\${episodeId} step=\${stepIndex} phase=\${currentPhaseNameSafe(game)} ui_mode=\${currentUiModeNameSafe(game)} advance_status=\${advanceStatus} step_ms=\${stepMs} player_party="\${describePartyForDiagnostics(game)}" party_ui="\${describePartyUiHandlerForDiagnostics(game)}" prompts="\${describePromptQueueForDiagnostics(game)}"\`,
-                  );
-                  technicalFailure = {
-                    kind: "collector_episode_timeout",
-                    reason: \`advance_timeout:\${currentPhaseNameSafe(game)}\`,
-                    ...buildEpisodeDebugSnapshot(game, stepIndex),
-                    advance_status: advanceStatus,
-                    step_ms: stepMs,
-                    action,
-                    action_kind: action >= MOVE_ACTIONS ? "switch" : "move",
-                    action_mask: state.action_mask,
-                  };
-                }
-                break;
               }
             }
             } catch (error) {
@@ -776,7 +851,8 @@ describe("external combat collector", () => {
 
 mkdirSync(tempDir, { recursive: true });
 writeFileSync(tempTestPath, testSource, { encoding: "utf8" });
-writeFileSync(tempHelpersPath, helperSource, { encoding: "utf8" });
+// Gemeinsamer combat-v4-Builder (auch JS-Bridge und strategischer Collector) wird neben den Helper kopiert.
+writeFileSync(tempHelpersPath, linkCombatObservationModule(helperSource, tempDir, repoRoot), { encoding: "utf8" });
 
 const runnerEnv = {
   ...process.env,

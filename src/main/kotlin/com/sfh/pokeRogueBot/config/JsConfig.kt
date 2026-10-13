@@ -24,6 +24,7 @@ class JsConfig(
     private val STARTER: Path = Paths.get(".", "src", "main", "js", "starter.js")
     private val EGG: Path = Paths.get(".", "src", "main", "js", "egg.js")
     private val UI_HANDLER: Path = Paths.get(".", "src", "main", "js", "uihandler.js")
+    private val COMBAT: Path = Paths.get(".", "src", "main", "js", "combat.js")
     private val GSON: Gson = GsonBuilder()
         .registerTypeAdapter(ChooseModifierItem::class.java, ChooseModifierItemDeserializer())
         .create()
@@ -36,6 +37,7 @@ class JsConfig(
         jsClient.addScriptToWindow(STARTER)
         jsClient.addScriptToWindow(EGG)
         jsClient.addScriptToWindow(UI_HANDLER)
+        jsClient.addScriptToWindow(COMBAT)
 
         val gameSettingsRequest = gameSettingsConfig.toGameSettingsRequest()
         val result = setGameSettings(gameSettingsRequest)

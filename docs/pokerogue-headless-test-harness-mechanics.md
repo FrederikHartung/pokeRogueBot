@@ -262,6 +262,36 @@ Harness und Collectors waehlen deshalb nicht mehr ueber `doSwitchPokemon`/`doSel
 - `pokerogue/test/porubot/harness/party-send-out.test.ts`: stellt den Zustand ueber die echte UI her. `doSwitchPokemon` landet in `SUMMARY` (Mechanismus-Test); Befehlswechsel und Zwangswechsel mit `sendOutFromPartyUi` laufen durch. Der Zwangswechsel des Harness hing vor der Umstellung (Timeout).
 - Replay `signature E` in `scripts/01-data-generation/collector/combat-collector-replays.test.ts`. Der Test stellt den Zustand per Test-Hook her (`POKEROGUE_COLLECTOR_TEST_STALE_PARTY_OPTIONS=1`: Party-Menue oeffnen, Optionen fuer Slot 1 oeffnen, zurueck in den Command-Modus) und wechselt im ersten Zug. Ohne Fix 4/4 Timeouts mit `ui_mode=SUMMARY`, mit Fix 4/4 regulaer.
 
+### 3.13 Das Wechselangebot (`CheckSwitchPhase`) gibt es nur zu Kampfbeginn
+
+`CheckSwitchPhase` wird nur in `EncounterPhase.end()` (`src/phases/encounter-phase.ts`) eingereiht, und zwar nur bei Nicht-Trainerkaempfen ab Wave 2 (bzw. ausserhalb des Daily-Modus) mit mehr einsatzbereiten Pokemon als Feldplaetzen. Die Phase endet sofort, wenn der Kampfstil `SET` ist, das aktive Pokemon gefangen ist (`isTrapped()`, `FRENZY`) oder kein Wechselkandidat existiert. Nach einem gegnerischen K.O. mitten im Kampf fragt das Spiel **nie**: Trainer schicken ihr naechstes Pokemon per `SwitchSummonPhase` (`faint-phase.ts`).
+
+Antwortet man mit "Ja", setzt der Callback die UI auf `MESSAGE`, reiht `SwitchPhase(SwitchType.INITIAL_SWITCH, fieldIndex, isModal=false, doReturn=true)` ein und beendet die Phase; die Party-UI oeffnet dann im Modus `POST_BATTLE_SWITCH` (mit `PartyOption.SEND_OUT`). Die Harness bildet genau das nach (`resolveOptionalCheckSwitchIfNeeded`), statt den CONFIRM-Handler zu bedienen.
+
+Alle Szenarien der Wave-Library sind `SET`. Der Combat-Collector stellt Wildkaempfe ab Wave 2 mit `check_switch_decisions` (Standard an) auf `SWITCH`, damit das Angebot als Entscheidung in den Daten vorkommt (`docs/combat-state-v4.md`).
+
+**Belegt durch:** `pokerogue/test/porubot/harness/switch-decision.test.ts` (Angebot annehmen und ablehnen).
+
+### 3.14 Asynchrone Wechsel-Entscheidungen in synchronen Polling-Schleifen
+
+`resolveForcedSwitchIfNeeded` und `resolveOptionalCheckSwitchIfNeeded` laufen in vielen synchronen Polling-Schleifen der Harness. Eine Policy (DQN-Worker, Claude-Session) antwortet asynchron. `pokerogue/test/porubot/harness/switch-decision.ts` loest das ohne Umbau der Schleifen:
+
+- Pro `GameManager` kann ein Provider registriert werden (`setSwitchDecisionProvider`). Ohne Provider bleibt alles wie vorher (erster gueltiger Slot bzw. Angebot ablehnen).
+- Der Provider wird pro Phase-Instanz genau einmal gestartet. Bis sein Promise erfuellt ist, melden die beiden Funktionen `"pending"`; die Schleifen pollen einfach weiter, die Phase wartet in ihrer UI (PARTY bzw. CONFIRM).
+- `null` oder eine Ablehnung (rejected Promise) fallen auf das Standardverhalten zurueck; ein ungueltiger Slot ebenso.
+- Ein beim Wechselangebot gewaehlter Slot wird an die dadurch eingereihte `SwitchPhase` weitergegeben, ohne den Provider erneut zu fragen.
+- Der Provider muss selbst pruefen, ob die Entscheidung noch zu seinem Kampf gehoert (Abschnitt 3.15): Die Schleifen laufen auch dann weiter, wenn das Spiel schon im naechsten Kampf ist.
+
+**Belegt durch:** `pokerogue/test/porubot/harness/switch-decision.test.ts` (Provider waehlt einen anderen Slot als den ersten gueltigen, `null` faellt zurueck, Angebot annehmen/ablehnen; jeweils mit 150 ms Antwortzeit).
+
+### 3.15 `toNextTurn()` laeuft nach einer Flucht in den naechsten Kampf
+
+`GameManager.toNextTurn()` nimmt seit v1.12 keine Liste von Endphasen mehr an; uebergebene Argumente werden ignoriert. Es laeuft `to("TurnInitPhase")` und dann `to("CommandPhase")`. Endet der Kampf ohne Sieg oder Niederlage, z. B. weil ein wilder Gegner per Teleport flieht (`Wild Abra fled!`), laufen dabei `BattleEndPhase` → `NewBattlePhase` → `NextEncounterPhase` und der komplette Start des naechsten Kampfes durch, bis zu dessen erster `CommandPhase` (bzw. dessen `CheckSwitchPhase`).
+
+Erkennbar ist das nur nachtraeglich ueber `hasLoggedTerminalPhaseSince` (die Advance-Funktion meldet dann `"terminal"`) oder ueber eine geaenderte `waveIndex`. Der Combat-Collector beendet die Episode in beiden Faellen (`meta.outcome = "battle_ended"`); vorher spielte er den Folgekampf faelschlich in derselben Episode weiter. Mit dem Entscheidungs-Hook aus 3.14 fuehrte das zusaetzlich dazu, dass das Wechselangebot des Folgekampfes noch die Policy fragte und sich mit der naechsten Kampfentscheidung ueberlagerte (Timeout `advance_timeout:CommandPhase` in Wave 3 eines Wave-2-Szenarios).
+
+**Belegt durch:** Replay `signature A` (`wild-w2-11610b8af6ec`, Gegner Abra mit Teleport) in `scripts/01-data-generation/collector/combat-collector-replays.test.ts`.
+
 ## 4. Was `phaseInterceptor.to(target)` tatsaechlich garantiert - und was nicht
 
 ```ts
@@ -298,6 +328,7 @@ Zusaetzlich, seit der Extraktion der generischen Phasen-Fahrlogik (siehe 3.7 und
 
 - `pokerogue/test/porubot/harness/battle-command-advance.ts` - die eigentliche, produktiv vom Hauptrepo-Collector-Template importierte Advance-Logik (`advanceCombatAfterAction`, `advanceDoubleCombatAfterAction` und ihre Abhaengigkeiten).
 - `pokerogue/test/porubot/harness/battle-command-advance.test.ts` - Selbsttest dieser Logik gegen generische Szenarien (kein Bezug zu einem konkreten historischen Vorfall).
+- `pokerogue/test/porubot/harness/switch-decision.ts` und `switch-decision.test.ts` - optionaler Entscheidungs-Hook fuer Zwangswechsel und Wechselangebot (siehe 3.13, 3.14).
 - `pokerogue/test/porubot/regressions/replays/wave14-double-trainer-command-phase-stuck.test.ts` - siehe 6.1, Real-World-Replay statt Dummy-Szenario.
 
 Ausfuehrung (aus dem Hauptrepo):
