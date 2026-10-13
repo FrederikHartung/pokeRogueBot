@@ -13,6 +13,19 @@ import { fileURLToPath } from "node:url";
 
 import { validateModifierStrategicPipelineConfig } from "../rl-config/run-config-contract.ts";
 import { buildModifierStrategicTrainingTransitions } from "../../90-dev/rl/build-modifier-strategic-training-transitions.ts";
+import {
+  TechnicalFailureCircuitBreaker,
+  buildSignatureKey,
+  loadTechnicalFailures,
+  readGitCommits,
+  resolveCircuitBreakerConfig,
+  sanitizeFileStem,
+  shellQuote as shellQuoteArg,
+  writeTechnicalFailureFile,
+  writeTechnicalFailureSignatures,
+  type GitCommits,
+  type TechnicalFailure,
+} from "./technical-failures.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,6 +54,10 @@ const manifestPath = resolvePathWithFallbacks(
 );
 const artifactsSummaryPath = path.join(pipelineRoot, "artifacts-summary.json");
 const metricsPath = path.join(pipelineRoot, "collection-metrics.json");
+const technicalFailuresDir = path.join(pipelineRoot, "collect_dataset", "technical-failures");
+const technicalFailureSignaturesPath = path.join(pipelineRoot, "collect_dataset", "technical-failure-signatures.json");
+const circuitBreakerConfig = resolveCircuitBreakerConfig((config.collect as Record<string, unknown>).technical_failure_threshold);
+let cachedGitCommits: GitCommits | null = null;
 const phases = ["collect_dataset", "build_transitions", "archive_dataset"];
 const LOG_TAIL_LIMIT_CHARS = 12000;
 
@@ -191,6 +208,8 @@ type Batch = {
   exit_code?: number | null;
   signal?: string | null;
   error_excerpt?: string | null;
+  regular_run_count?: number | null;
+  technical_termination_count?: number | null;
 };
 
 function loadManifest(filePath: string, activeConfigPath: string) {
@@ -238,6 +257,8 @@ function syncManifest(currentManifest: Record<string, unknown>, rootConfig: Reco
           exit_code: existing.exit_code ?? null,
           signal: existing.signal ?? null,
           error_excerpt: existing.error_excerpt ?? null,
+          regular_run_count: existing.regular_run_count ?? null,
+          technical_termination_count: existing.technical_termination_count ?? null,
         };
   });
 
@@ -409,6 +430,9 @@ async function runCollectPhase(currentManifest: Record<string, unknown>) {
   const queue = pendingBatches.slice();
   const running = new Map<string, { batch: Batch; child: ChildProcess; promise: Promise<void> }>();
   let firstError: unknown = null;
+  // Zaehlt nur Runs dieses Aufrufs: nach einem Abbruch durch den Notausschalter soll ein Neustart
+  // (nach Untersuchung bzw. Fix) nicht sofort wieder ausloesen.
+  const circuitBreaker = new TechnicalFailureCircuitBreaker(circuitBreakerConfig);
 
   const startBatch = (batch: Batch) => {
     const batchRef = manifestInput.batches.find(entry => entry.id === batch.id);
@@ -483,11 +507,22 @@ async function runCollectPhase(currentManifest: Record<string, unknown>) {
         await Promise.allSettled([finished(stdoutStream), finished(stderrStream)]);
       })
       .then(() => {
+        // Technische Terminations einzelner Runs beenden den Batch nicht: sie werden als Failure-Dateien
+        // abgelegt, der Batch gilt als completed. Nur der Notausschalter bricht die Sammlung ab.
+        const runOutcomes = recordBatchTechnicalFailures(batchRef);
         batchRef.status = "completed";
         batchRef.completed_at = new Date().toISOString();
         batchRef.duration_ms = Date.now() - startedAt;
         batchRef.error = null;
         batchRef.error_excerpt = null;
+        for (const outcome of runOutcomes) {
+          circuitBreaker.record(outcome);
+        }
+        if (circuitBreaker.tripped && firstError == null) {
+          firstError = new Error(circuitBreaker.trippedReason ?? "technical_failure_threshold_exceeded");
+          console.error(`[modifier-strategic-pipeline] ${circuitBreaker.trippedReason}; stopping collection`);
+          terminateRunningBatchChildren(running, batch.id);
+        }
       })
       .catch(error => {
         batchRef.status = "failed";
@@ -533,32 +568,138 @@ async function runCollectPhase(currentManifest: Record<string, unknown>) {
     running.set(batch.id, { batch, child, promise });
   };
 
-  while ((queue.length > 0 || running.size > 0) && firstError == null) {
-    while (queue.length > 0 && running.size < parallelism && firstError == null) {
-      const nextBatch = queue.shift();
-      if (!nextBatch) {
-        continue;
+  try {
+    while ((queue.length > 0 || running.size > 0) && firstError == null) {
+      while (queue.length > 0 && running.size < parallelism && firstError == null) {
+        const nextBatch = queue.shift();
+        if (!nextBatch) {
+          continue;
+        }
+        startBatch(nextBatch);
       }
-      startBatch(nextBatch);
+
+      if (running.size === 0) {
+        break;
+      }
+
+      try {
+        await Promise.race(Array.from(running.values(), entry => entry.promise));
+      } catch (error) {
+        firstError ??= error;
+      }
     }
 
-    if (running.size === 0) {
-      break;
+    if (firstError != null) {
+      await Promise.allSettled(Array.from(running.values(), entry => entry.promise));
+      throw firstError;
     }
-
-    try {
-      await Promise.race(Array.from(running.values(), entry => entry.promise));
-    } catch (error) {
-      firstError ??= error;
+    // Kein einziger regulaerer Run: eher ein systemischer Fehler als seltene Einzelfehler.
+    if (circuitBreaker.totalRuns > 0 && circuitBreaker.technicalRuns === circuitBreaker.totalRuns) {
+      throw new Error(`no_regular_runs_collected:technical=${circuitBreaker.technicalRuns}`);
     }
-  }
-
-  if (firstError != null) {
-    await Promise.allSettled(Array.from(running.values(), entry => entry.promise));
-    throw firstError;
+  } finally {
+    writeTechnicalFailureSignatures(technicalFailureSignaturesPath, loadTechnicalFailures(technicalFailuresDir));
   }
 
   return manifestInput;
+}
+
+type RunOutcome = { run_index: number; outcome: "regular" | "technical" };
+
+function recordBatchTechnicalFailures(batch: Batch): Array<"regular" | "technical"> {
+  if (!existsSync(batch.output_path)) {
+    throw new Error(`Batch output missing after successful runner exit: ${batch.output_path}`);
+  }
+  const payload = JSON.parse(readFileSync(batch.output_path, "utf8")) as Record<string, unknown>;
+  const episodes = Array.isArray(payload.episodes) ? payload.episodes as Array<Record<string, unknown>> : [];
+  const terminations = Array.isArray(payload.technical_terminations)
+    ? payload.technical_terminations as Array<Record<string, unknown>>
+    : [];
+
+  for (const termination of terminations) {
+    writeTechnicalFailureFile(technicalFailuresDir, buildModifierTechnicalFailure(batch, termination));
+  }
+  batch.regular_run_count = episodes.length;
+  batch.technical_termination_count = terminations.length;
+
+  const outcomes: RunOutcome[] = [
+    ...episodes.map(episode => ({ run_index: Number(episode.run_index), outcome: "regular" as const })),
+    ...terminations.map(termination => ({ run_index: Number(termination.run_index), outcome: "technical" as const })),
+  ];
+  return outcomes.sort((left, right) => left.run_index - right.run_index).map(entry => entry.outcome);
+}
+
+function buildModifierTechnicalFailure(batch: Batch, termination: Record<string, unknown>): TechnicalFailure {
+  const collectConfig = config.collect as Record<string, unknown>;
+  const runIndex = Number(termination.run_index);
+  const episode = (termination.episode ?? null) as Record<string, unknown> | null;
+  const debug = (episode?.timeout_debug ?? episode?.error_debug ?? null) as Record<string, unknown> | null;
+  const failureId = `${sanitizeFileStem(batch.seed)}--run-${runIndex}`;
+  const params = {
+    seed: batch.seed,
+    run_index: runIndex,
+    decision_rng_seed: `${batch.seed}::${runIndex}`,
+    max_waves: batch.max_waves,
+    modifier_policy: String(collectConfig.modifier_policy ?? "random_executable"),
+    step_timeout_ms: collectConfig.step_timeout_ms ?? null,
+    run_process_timeout_ms: collectConfig.run_process_timeout_ms ?? null,
+    combat_dqn_checkpoint: collectConfig.combat_dqn_checkpoint ?? null,
+    combat_dqn_device: collectConfig.combat_dqn_device ?? null,
+  };
+  const waveFromDebug = Number(debug?.wave_index);
+  const waveFromEpisode = Number(episode?.wave_reached);
+  cachedGitCommits ??= readGitCommits(repoRoot);
+
+  return {
+    schema_version: 1,
+    pipeline: "modifier_strategic_seeded",
+    failure_id: failureId,
+    batch_id: batch.id,
+    kind: String(termination.kind ?? "unknown"),
+    reason: String(termination.reason ?? "unknown"),
+    seed: batch.seed,
+    run_index: runIndex,
+    scenario: null,
+    wave: Number.isFinite(waveFromDebug) ? waveFromDebug : Number.isFinite(waveFromEpisode) ? waveFromEpisode : null,
+    phase: typeof debug?.phase_name === "string" ? debug.phase_name : null,
+    ui_mode: typeof debug?.ui_mode === "string" ? debug.ui_mode : null,
+    is_double_battle: typeof debug?.current_battle_double === "boolean" ? debug.current_battle_double : null,
+    repro: {
+      command: `node scripts/01-data-generation/pipeline/repro-technical-failure.ts ${shellQuoteArg(path.relative(repoRoot, path.join(technicalFailuresDir, `${failureId}.json`)))}`,
+      params: {
+        ...params,
+        direct_command: buildModifierReproCommand(failureId, params),
+      },
+    },
+    commits: cachedGitCommits,
+    recorded_at: new Date().toISOString(),
+    detail: {
+      exit_code: termination.exit_code ?? null,
+      signal: termination.signal ?? null,
+      stdout_log_path: batch.stdout_log_path ?? null,
+      stderr_log_path: batch.stderr_log_path ?? null,
+      episode,
+    },
+  };
+}
+
+// Fuehrt genau diesen einen Run erneut aus (gleicher Seed, gleicher Run-Index und damit gleicher decision_rng_seed).
+function buildModifierReproCommand(failureId: string, params: Record<string, unknown>): string {
+  const args = [
+    "scripts/90-dev/rl/run-pokerogue-modifier-strategic-fixed-seed-collector.ts",
+    `data/temp/rl/repro/${failureId}.json`,
+    String(params.seed),
+    "1",
+    String(params.max_waves),
+    String(params.modifier_policy),
+    String(params.combat_dqn_checkpoint ?? ""),
+    String(params.combat_dqn_device ?? ""),
+    "",
+    String(params.step_timeout_ms ?? ""),
+    String(params.run_process_timeout_ms ?? ""),
+    String(params.run_index),
+  ];
+  return `node ${args.map(shellQuoteArg).join(" ")}`;
 }
 
 function buildBatchRunConfig(batch: Batch) {
@@ -638,6 +779,8 @@ function runBuildTransitionsPhase(currentManifest: Record<string, unknown>) {
     rows: transitions.length,
     size_bytes: statSync(datasetPath).size,
     raw_batch_output_paths: completedBatchPaths,
+    regular_episode_count: rawOutputs.reduce((sum, output) => sum + (Array.isArray(output.episodes) ? output.episodes.length : 0), 0),
+    seeds_without_regular_run: seeds.filter(seed => !rawOutputs.some(output => output.seed === seed && Array.isArray(output.episodes) && output.episodes.length > 0)),
   };
 
   return manifestInput;
@@ -743,6 +886,7 @@ function writeCollectionMetrics(currentManifest: Record<string, unknown>) {
   const collectOutput = outputs.collect_dataset ?? {};
   const archiveOutput = outputs.archive_dataset ?? {};
   const rawEpisodes = completedBatches.flatMap(batch => loadEpisodesFromOutput(batch.output_path));
+  const technicalFailures = loadTechnicalFailures(technicalFailuresDir);
   const totalRuntimeMs = computeTotalRuntimeMs(manifestInput);
   const datasetPath = typeof collectOutput.dataset_path === "string" ? collectOutput.dataset_path : null;
   const archivePath = typeof archiveOutput.archive_path === "string" ? archiveOutput.archive_path : null;
@@ -785,7 +929,15 @@ function writeCollectionMetrics(currentManifest: Record<string, unknown>) {
     worst_wave_reached: rawEpisodes.length > 0
       ? Math.min(...rawEpisodes.map(episode => Number(episode.wave_reached ?? 0)))
       : null,
-    technical_termination_count: rawEpisodes.filter(episode => isTechnicalTermination(String(episode.termination_reason ?? ""))).length,
+    regular_run_count: rawEpisodes.length,
+    technical_termination_count: technicalFailures.length,
+    technical_termination_ratio: rawEpisodes.length + technicalFailures.length > 0
+      ? technicalFailures.length / (rawEpisodes.length + technicalFailures.length)
+      : null,
+    technical_failure_signature_count: new Set(technicalFailures.map(failure => buildSignatureKey(failure))).size,
+    technical_failures_dir: technicalFailuresDir,
+    technical_failure_signatures_path: existsSync(technicalFailureSignaturesPath) ? technicalFailureSignaturesPath : null,
+    technical_failure_threshold: circuitBreakerConfig,
     started_at: (manifestInput.created_at as string | undefined) ?? null,
     updated_at: (manifestInput.updated_at as string | undefined) ?? null,
     completed_at: phases.every(phase => ((manifestInput.steps as Record<string, Record<string, unknown>> | undefined)?.[phase]?.status === "completed"))
@@ -807,13 +959,6 @@ function loadEpisodesFromOutput(filePath: string): Array<Record<string, unknown>
   }
   const payload = JSON.parse(readFileSync(filePath, "utf8"));
   return Array.isArray(payload.episodes) ? payload.episodes : [];
-}
-
-function isTechnicalTermination(reason: string): boolean {
-  if (!reason) {
-    return true;
-  }
-  return !["max_waves_reached", "team_wipe_or_game_over", "combat_terminal:GameOverPhase", "combat_terminal:PostGameOverPhase", "combat_terminal:TitlePhase"].includes(reason);
 }
 
 function computeTotalRuntimeMs(currentManifest: Record<string, unknown>) {

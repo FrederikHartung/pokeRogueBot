@@ -392,6 +392,24 @@ print(f"Batch size: {collect.get('batch_size')}")
 print(f"Episodes per scenario: {collect.get('episodes_per_instance')}")
 print(f"Batches: {completed}/{total} completed, {failed} failed, {remaining} remaining")
 print(f"Episodes: {completed_episodes}/{planned_episodes} completed, {remaining_episodes} remaining")
+# Technische Fehler live aus dem Manifest (Batch-Zaehler) bzw. dem Failure-Ordner der Pipeline.
+regular_episodes = sum(int(batch.get("regular_episode_count") or 0) for batch in batches)
+technical_episodes = sum(int(batch.get("technical_termination_count") or 0) for batch in batches)
+missing_episodes = sum(int(batch.get("missing_episode_count") or 0) for batch in batches)
+if regular_episodes + technical_episodes > 0:
+    ratio = technical_episodes / (regular_episodes + technical_episodes) * 100
+    print(f"Episode outcomes: regular {regular_episodes}, technical {technical_episodes} ({ratio:.1f} %), missing {missing_episodes}")
+import os
+runtime_dir = os.path.dirname(manifest_path)
+signatures_path = os.path.join(runtime_dir, "collect_dataset", "technical-failure-signatures.json")
+failures_dir = os.path.join(runtime_dir, "collect_dataset", "technical-failures")
+if os.path.isdir(failures_dir) and os.listdir(failures_dir):
+    print(f"Technical failures: {failures_dir} ({len(os.listdir(failures_dir))} files)")
+if os.path.exists(signatures_path):
+    signatures = json.load(open(signatures_path, "r", encoding="utf-8"))
+    print(f"Failure signatures: {signatures_path} ({signatures.get('signature_count', 0)})")
+    for signature in signatures.get("signatures", [])[:5]:
+        print(f"  {signature['count']}x {signature['signature']}")
 if completed_batch_durations_ms:
     print(f"Average batch duration: {fmt_seconds(int(avg_batch_duration_ms / 1000))}")
 if total_step_duration_seconds is not None:

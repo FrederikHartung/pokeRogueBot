@@ -534,3 +534,40 @@ Kurzfazit:
 - Gegenueber `Run 17` ist besonders positiv, dass der DQN nicht nur staerker, sondern auch deutlich effizienter wurde: `avg_turns` sinken von `14.12` auf `9.96`.
 - `always_move_0` bleibt zwar bei der reinen Effizienz vorne, aber der Abstand ist jetzt deutlich kleiner als im vorherigen Full-Benchmark.
 - `truncated_rate` lag fuer alle drei Policies bei `0.000`, der Benchmark war also stabil und ohne Abbrueche.
+
+## Run 19
+
+- Datum: 2026-10-12
+- Beschreibung: Full-Benchmark ueber alle `311` V3-Szenarien (Waves `1-24`) mit der neuen vierten Policy `claude-haiku` (eine Claude-Code-Session pro Kampf, siehe `docs/claude-session-benchmark-policy.md`); zusaetzlich die bisher unvollstaendige `always_move_0`-Baseline neu erzeugt
+- Laufnummer: 19
+- Benchmark-Typ: full
+- Collector-Config: `data/rl/collector-run-benchmarked-wave-library-v3-full.json`
+- `claude-haiku`: Haiku 5.5, Kontextmodus `battle`, Prompt-Version `battle-session-v1`, lokal mit `parallelism` 4, Laufzeit `16m 15s`, `1348` Entscheidungen, Ø `2,3 s` pro Entscheidung, rechnerisch `0,59 $` (Team-Plan-Kontingent), `0` technische Fehler; Meta: `data/rl/benchmark-baselines/claude-haiku-v3-full.meta.json`
+- `always_move_0`: auf dem Server neu erzeugt (`4 min`, `parallelism` 3, `0` technische Fehler). Der alte Cache unter `data/rl/benchmark-runs/dqn-wave-library-v3-compare/policy-jsonl/` enthielt nur `87/311` Episoden (Collector-Abbruch `Cannot read properties of null (reading 'waveIndex')` vom 2026-03-16); er liegt als `eval-always_move_0-benchmarked.stale-87ep.jsonl` daneben.
+- `random` und die drei `dqn`-Werte stammen aus dem V3-Vergleich vom 2026-03-16 (Reports `data/rl/benchmark-runs/dqn-wave-library-v3-compare/reports/`), nicht neu gespielt.
+
+Ergebnisse:
+
+| Policy | Episoden | Win Rate | Avg Reward | Avg Turns | Truncated | Benchmark-Transitions |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `random` | 311 | 0.865 | 6.7414 | 9.74 | 0.010 | 3029 |
+| `always_move_0` (neu) | 311 | 0.871 | 7.7135 | 7.74 | 0.000 | 2406 |
+| `dqn` main (`...-v3-w1-24-50ep.pt`) | 311 | 0.942 | 9.3814 | 6.19 | 0.003 | 1926 |
+| `dqn` conservative | 311 | 0.910 | 8.8909 | 5.66 | 0.003 | 1760 |
+| `dqn` longer | 251 | 0.920 | 8.3016 | 6.60 | 0.000 | 1657 |
+| `claude-haiku` | 311 | 0.916 | 9.0421 | 4.33 | 0.000 | 1348 |
+
+Siege nach Wave-Bereich (`claude-haiku` / `always_move_0`): Waves `1-6` `200/200` / `200/200`, `7-12` `61/85` / `51/85`, `13-18` `17/19` / `14/19`, `19-24` `7/7` / `6/7`.
+
+Kurzfazit:
+
+- Haiku spielt ohne Training klar besser als beide Heuristik-Baselines (`+0.045` Win Rate und `+1.33` Avg Reward gegen `always_move_0`) und gewinnt mit Abstand am schnellsten (`4.33` Zuege gegen `6.19` beim besten DQN).
+- Das beste DQN (`main`) bleibt bei Win Rate (`+0.026`) und Avg Reward (`+0.34`) vorne; Haiku liegt etwa auf Hoehe von `conservative`.
+- 24 der 26 Haiku-Niederlagen fallen in Waves `7-12`, wie bei den anderen Policies der schwierigste Bereich des Sets.
+- Einschraenkungen: Die Szenarien haben keinen Seed, jede Zeile ist eine Stichprobe; die DQN-/`random`-Werte sind sieben Monate alt und mit dem Collector-Stand vor der Fehlererfassung erzeugt. Haiku sieht im Kontextmodus `battle` mehr als das DQN (Attacken, Typen, Kampfmeldungen), der Vergleich zeigt also Policy plus Informationsstand.
+
+Nachtrag 2026-10-13, Einzelvergleich Haiku gegen DQN main:
+
+- Die Einzeldaten des DQN-`main`-Laufs vom Maerz waren nicht mehr vorhanden (der Remote-Benchmark ueberschreibt `eval-dqn-benchmarked.jsonl` pro Checkpoint). `main` daher auf dem Server mit dem aktuellen Collector neu gespielt (`3.5 min`, `parallelism` 3): `310/311` Kaempfe, Win Rate `0.929`, Avg Reward `9.1543`, Avg Turns `6.38`, Truncated `0.000`, `1979` Transitions; `1` technischer Fehler (`wild-w6-66cfee77fee6`, `collector_episode_timeout` / `advance_timeout:CommandPhase`).
+- Auf den `310` gemeinsamen Szenarien: beide gewinnen `281`, beide verlieren `19`, nur DQN gewinnt `7`, nur Haiku gewinnt `3`.
+- `9` der `10` Unterschiede sind Rivalenkaempfe gegen Ivy in Wave `8` (`33` Szenarien, Haiku `10` Siege, DQN `14`). Der Gegner wechselt dort bedrohte Pokemon aus, sodass Haikus Angriff den eingewechselten Flug-Typ trifft. Haiku haelt Pflanze faelschlich fuer sehr effektiv gegen Flug und nutzt praktisch nie Status-Attacken (`2` von `1348` Entscheidungen). Das DQN setzt in diesen Kaempfen in `38 %` der Zuege `Growl` ein und kommt mit der Heilung durch Grassy Terrain laenger durch.

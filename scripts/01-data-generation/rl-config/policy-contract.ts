@@ -48,7 +48,7 @@ function assertNoLegacyEpsilonKeys(policyConfig, context) {
 function validateExternalCommandPolicy(policyConfig, context) {
   assertAllowedKeys(
     policyConfig,
-    new Set(["type", "command", "env", "timeout_ms", "persistent", "step_timeout_ms"]),
+    new Set(["type", "command", "env", "timeout_ms", "persistent", "step_timeout_ms", "include_battle_context"]),
     context,
   );
 
@@ -66,6 +66,9 @@ function validateExternalCommandPolicy(policyConfig, context) {
   }
   if ("persistent" in policyConfig && typeof policyConfig.persistent !== "boolean") {
     throw new Error(`Invalid boolean policy field${describeContext(context)}: persistent`);
+  }
+  if ("include_battle_context" in policyConfig && typeof policyConfig.include_battle_context !== "boolean") {
+    throw new Error(`Invalid boolean policy field${describeContext(context)}: include_battle_context`);
   }
 
   return structuredClone(policyConfig);

@@ -109,6 +109,21 @@ type EpisodeSummary = {
   wave_reached: number;
   total_reward: number;
   termination_reason?: string;
+  decision_rng_seed?: string;
+  timeout_debug?: Record<string, unknown>;
+  error_debug?: Record<string, unknown>;
+};
+
+// Ein technisch beendeter Run: er landet nicht in episodes[], sondern hier, damit die Pipeline
+// eine Failure-Datei mit Repro-Infos schreiben kann. episode ist das vollstaendige Episoden-JSON,
+// soweit der Run eines geschrieben hat (sonst null, z. B. bei Prozess-Timeout).
+type TechnicalTermination = {
+  run_index: number;
+  kind: string;
+  reason: string;
+  exit_code: number | null;
+  signal: string | null;
+  episode: EpisodeSummary | null;
 };
 
 type CollectorPayload = {
@@ -127,13 +142,20 @@ type CollectorPayload = {
   combat_dqn_device: string;
   generated_at: string;
   summary?: {
-    average_wave_reached: number;
-    average_total_reward: number;
-    best_wave_reached: number;
-    worst_wave_reached: number;
+    average_wave_reached: number | null;
+    average_total_reward: number | null;
+    best_wave_reached: number | null;
+    worst_wave_reached: number | null;
   };
   episodes: EpisodeSummary[];
+  regular_run_count?: number;
+  technical_termination_count?: number;
+  technical_terminations?: TechnicalTermination[];
 };
+
+type RunOutcome =
+  | { status: "regular"; payload: CollectorPayload }
+  | { status: "technical"; payload: CollectorPayload | null; termination: TechnicalTermination };
 
 function buildTestSource(runOutputPath: string, runIndexOffset: number): string {
   return templateSource
@@ -167,15 +189,31 @@ function isTechnicalTerminationReason(reason: string | undefined): boolean {
   return true;
 }
 
-function runSingleCollectorBatch(runIndex: number): CollectorPayload {
+function firstLine(value: string, maxLength = 240): string {
+  return (value.split("\n")[0] ?? "").trim().slice(0, maxLength);
+}
+
+function readRunPayload(runOutputPath: string): CollectorPayload | null {
+  if (!existsSync(runOutputPath)) {
+    return null;
+  }
+  try {
+    return JSON.parse(readFileSync(runOutputPath, "utf8")) as CollectorPayload;
+  } catch {
+    return null;
+  }
+}
+
+function runSingleCollectorBatch(runIndex: number): RunOutcome {
   const runTempRelativeDir = path.join("test", ".external-rl", runId, `run-${runIndex}`);
   const runTempDir = path.join(pokerogueRoot, runTempRelativeDir);
   const runTempTestRelativePath = path.join(runTempRelativeDir, "modifier-strategic-fixed-seed-collector.test.ts");
   const runTempTestPath = path.join(pokerogueRoot, runTempTestRelativePath);
   const runOutputPath = path.join(tempDir, `run-${runIndex}.json`);
+  const globalRunIndex = runIndexBase + runIndex;
 
   mkdirSync(runTempDir, { recursive: true });
-  writeFileSync(runTempTestPath, buildTestSource(runOutputPath, runIndexBase + runIndex), { encoding: "utf8" });
+  writeFileSync(runTempTestPath, buildTestSource(runOutputPath, globalRunIndex), { encoding: "utf8" });
 
   console.log(`[modifier-strategic-fixed-seed-runner] starting run ${runIndex + 1}/${runCount}`);
   const result = spawnSync(
@@ -190,70 +228,90 @@ function runSingleCollectorBatch(runIndex: number): CollectorPayload {
     },
   );
 
+  const exitCode = result.status ?? null;
+  const signal = result.signal ?? null;
+  const payload = readRunPayload(runOutputPath);
+  const episode = payload && Array.isArray(payload.episodes) && payload.episodes.length === 1 ? payload.episodes[0]! : null;
+  const technical = (kind: string, reason: string): RunOutcome => {
+    console.error(
+      `[modifier-strategic-fixed-seed-runner] technical termination run=${globalRunIndex} kind=${kind} reason=${reason} exit=${exitCode ?? "none"} signal=${signal ?? "none"}`,
+    );
+    return {
+      status: "technical",
+      payload,
+      termination: { run_index: globalRunIndex, kind, reason, exit_code: exitCode, signal, episode },
+    };
+  };
+
   if (result.error && "code" in result.error && result.error.code === "ETIMEDOUT") {
-    throw new Error(`collector_run_process_timeout:${runIndex}:${runProcessTimeoutMs}`);
+    return technical("collector_run_process_timeout", `run_process_timeout_ms_exceeded:${runProcessTimeoutMs}`);
+  }
+  if (result.error) {
+    return technical("collector_run_failed", `spawn_error:${firstLine(String(result.error.message ?? result.error))}`);
+  }
+  if (payload == null) {
+    return technical("collector_run_missing_output", exitCode === 0 ? "missing_or_invalid_run_output" : `missing_run_output:exit_${exitCode ?? "none"}`);
+  }
+  if (episode == null) {
+    return technical("collector_run_invalid_episode_count", `episode_count:${payload.episodes?.length ?? "unknown"}`);
+  }
+  if (isTechnicalTerminationReason(episode.termination_reason)) {
+    return technical("collector_run_technical_termination", firstLine(episode.termination_reason ?? "unknown"));
+  }
+  if (exitCode !== 0) {
+    return technical("collector_run_failed", `vitest_exit_${exitCode ?? "none"}`);
   }
 
-  if (!existsSync(runOutputPath)) {
-    throw new Error(`collector_run_missing_output:${runIndex}`);
-  }
-
-  if (result.status !== 0) {
-    throw new Error(`collector_run_failed:${runIndex}:exit_${result.status ?? 1}`);
-  }
-
-  const payload = JSON.parse(readFileSync(runOutputPath, "utf8")) as CollectorPayload;
-  if (!Array.isArray(payload.episodes) || payload.episodes.length !== 1) {
-    throw new Error(`collector_run_invalid_episode_count:${runIndex}:${payload.episodes?.length ?? "unknown"}`);
-  }
-  const episode = payload.episodes[0];
-  if (isTechnicalTerminationReason(episode?.termination_reason)) {
-    throw new Error(`collector_run_technical_termination:${runIndex}:${episode?.termination_reason ?? "unknown"}`);
-  }
   console.log(
-    `[modifier-strategic-fixed-seed-runner] finished run ${runIndex + 1}/${runCount} wave=${episode?.wave_reached ?? "unknown"} reward=${episode?.total_reward ?? "unknown"} termination=${episode?.termination_reason ?? "unknown"}`,
+    `[modifier-strategic-fixed-seed-runner] finished run ${runIndex + 1}/${runCount} wave=${episode.wave_reached ?? "unknown"} reward=${episode.total_reward ?? "unknown"} termination=${episode.termination_reason ?? "unknown"}`,
   );
-  return payload;
+  return { status: "regular", payload };
+}
+
+function average(values: number[]): number | null {
+  return values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
 }
 
 try {
-  const runPayloads: CollectorPayload[] = [];
+  const outcomes: RunOutcome[] = [];
 
   for (let runIndex = 0; runIndex < runCount; runIndex += 1) {
-    runPayloads.push(runSingleCollectorBatch(runIndex));
+    outcomes.push(runSingleCollectorBatch(runIndex));
   }
 
-  const firstPayload = runPayloads[0];
-  if (!firstPayload) {
-    throw new Error("collector_produced_no_payloads");
-  }
+  const regularPayloads = outcomes.flatMap(outcome => outcome.status === "regular" ? [outcome.payload] : []);
+  const technicalTerminations = outcomes.flatMap(outcome => outcome.status === "technical" ? [outcome.termination] : []);
+  // Metadaten aus dem ersten Run, der ueberhaupt eine Ausgabe geschrieben hat; sonst aus den CLI-Argumenten.
+  const metadataPayload = regularPayloads[0] ?? outcomes.map(outcome => outcome.payload).find(payload => payload != null) ?? null;
 
-  const episodes = runPayloads.flatMap(payload => payload.episodes);
-  const averageWaveReached = episodes.reduce((sum, episode) => sum + episode.wave_reached, 0) / episodes.length;
-  const averageTotalReward = episodes.reduce((sum, episode) => sum + episode.total_reward, 0) / episodes.length;
+  const episodes = regularPayloads.flatMap(payload => payload.episodes);
+  const waves = episodes.map(episode => episode.wave_reached);
 
   const aggregatedPayload: CollectorPayload = {
-    schema_version: firstPayload.schema_version,
-    seed: firstPayload.seed,
+    schema_version: metadataPayload?.schema_version ?? "unknown",
+    seed,
     run_count: runCount,
-    max_waves: firstPayload.max_waves,
-    collector_variant: firstPayload.collector_variant,
-    worker_id: firstPayload.worker_id,
-    starter_config_id: firstPayload.starter_config_id,
-    starter_species: firstPayload.starter_species,
-    decision_rng_strategy: firstPayload.decision_rng_strategy,
-    step_timeout_ms: firstPayload.step_timeout_ms,
-    modifier_policy: firstPayload.modifier_policy,
-    combat_dqn_checkpoint: firstPayload.combat_dqn_checkpoint,
-    combat_dqn_device: firstPayload.combat_dqn_device,
+    max_waves: maxWaves,
+    collector_variant: metadataPayload?.collector_variant ?? collectorVariant,
+    worker_id: metadataPayload?.worker_id ?? "unknown",
+    starter_config_id: metadataPayload?.starter_config_id ?? "unknown",
+    starter_species: metadataPayload?.starter_species ?? [],
+    decision_rng_strategy: metadataPayload?.decision_rng_strategy ?? "seed_plus_run_index",
+    step_timeout_ms: metadataPayload?.step_timeout_ms ?? stepTimeoutMs,
+    modifier_policy: metadataPayload?.modifier_policy ?? modifierPolicy,
+    combat_dqn_checkpoint: metadataPayload?.combat_dqn_checkpoint ?? combatCheckpoint,
+    combat_dqn_device: metadataPayload?.combat_dqn_device ?? combatDevice,
     generated_at: new Date().toISOString(),
     summary: {
-      average_wave_reached: averageWaveReached,
-      average_total_reward: averageTotalReward,
-      best_wave_reached: Math.max(...episodes.map(episode => episode.wave_reached)),
-      worst_wave_reached: Math.min(...episodes.map(episode => episode.wave_reached)),
+      average_wave_reached: average(waves),
+      average_total_reward: average(episodes.map(episode => episode.total_reward)),
+      best_wave_reached: waves.length > 0 ? Math.max(...waves) : null,
+      worst_wave_reached: waves.length > 0 ? Math.min(...waves) : null,
     },
     episodes,
+    regular_run_count: episodes.length,
+    technical_termination_count: technicalTerminations.length,
+    technical_terminations: technicalTerminations,
   };
 
   writeFileSync(outputPath, JSON.stringify(aggregatedPayload, null, 2), { encoding: "utf8" });
@@ -261,6 +319,8 @@ try {
   console.log("Modifier strategic fixed-seed collector output:", outputPath);
   console.log("Seed:", aggregatedPayload.seed);
   console.log("Runs:", aggregatedPayload.run_count);
+  console.log("Regular runs:", aggregatedPayload.regular_run_count);
+  console.log("Technical terminations:", aggregatedPayload.technical_termination_count);
   console.log("Max waves:", aggregatedPayload.max_waves);
   console.log("Collector variant:", aggregatedPayload.collector_variant);
   console.log("Step timeout ms:", aggregatedPayload.step_timeout_ms);

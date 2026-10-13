@@ -1,6 +1,7 @@
 import { spawn, spawnSync as spawnSyncChild } from "node:child_process";
 import { createInterface } from "node:readline";
 import { getGameMode } from "#app/game-mode";
+import { Gender } from "#data/gender";
 import { allAbilities } from "#data/data-lists";
 import { BattleStyle } from "#enums/battle-style";
 import { BattleType } from "#enums/battle-type";
@@ -22,7 +23,14 @@ import { SelectStarterPhase } from "#phases/select-starter-phase";
 import type { GameManager } from "#test/framework/game-manager";
 import { generateStarters } from "#test/utils/game-manager-utils";
 import { PartyUiMode } from "#enums/party-ui-mode";
-import { getPokemonSpeciesForm } from "#utils/pokemon-utils";
+import { speciesDataRegistry } from "#app/global-species-data-registry";
+import { resolveLearnMoveIfNeeded } from "#test/porubot/harness/battle-command-advance";
+import { PokemonType } from "#enums/pokemon-type";
+import { WeatherType } from "#enums/weather-type";
+import { TerrainType } from "#data/terrain";
+import type { CommandUiHandler } from "#ui/command-ui-handler";
+import type { PartyUiHandler } from "#ui/party-ui-handler";
+import { sendOutFromPartyUi } from "#test/porubot/harness/party-send-out";
 
 const TERMINAL_ON_EGG_LAPSE = "__COLLECTOR_TERMINAL_ON_EGG_LAPSE__" === "true";
 const STEP_TIMEOUT_MS = Number("__COLLECTOR_STEP_TIMEOUT_MS__");
@@ -95,7 +103,9 @@ export function describePartyForDiagnostics(game: GameManager): string {
 }
 
 export function describePartyUiHandlerForDiagnostics(game: GameManager): string {
-  const handler = game.scene.ui?.getHandler?.() as any;
+  // Immer der Party-Handler, auch wenn gerade ein anderer Modus aktiv ist: sein liegengebliebener Zustand
+  // (optionsMode, options) ist bei Wechsel-Haengern die relevante Information (Signatur E).
+  const handler = (game.scene.ui?.handlers?.[UiMode.PARTY] ?? game.scene.ui?.getHandler?.()) as any;
   if (!handler) {
     return "handler=missing";
   }
@@ -132,6 +142,107 @@ export function describePromptQueueForDiagnostics(game: GameManager): string {
     .join("|");
 }
 
+// Lesbarer Kampfkontext fuer Policies, die wie ein Spieler entscheiden (z. B. eine Claude-Session pro Kampf).
+// Enthaelt nur, was ein Spieler auf dem Bildschirm sieht: eigenes Team komplett, vom Gegner nur Spezies, Level,
+// Typen, HP in Prozent, Status und Werteveraenderungen (keine Attacken, keine Faehigkeit, kein Team).
+// Wird nur bei policy.include_battle_context an den externen Worker geschickt, nie in die Transitions geschrieben.
+const BATTLE_STAT_NAMES = ["ATK", "DEF", "SPATK", "SPDEF", "SPD", "ACC", "EVA"];
+
+function contextSafe<T>(read: () => T, fallback: T): T {
+  try {
+    return read();
+  } catch {
+    return fallback;
+  }
+}
+
+function describeTypes(pokemon: any): string[] {
+  return contextSafe(() => (pokemon.getTypes() as number[]).map(type => PokemonType[type] ?? String(type)), []);
+}
+
+function describeStatus(pokemon: any): string | null {
+  const effect = pokemon?.status?.effect;
+  return effect == null || effect === StatusEffect.NONE ? null : (StatusEffect[effect] ?? String(effect));
+}
+
+function describeStatStages(pokemon: any): Record<string, number> {
+  const stages = contextSafe(() => pokemon.getStatStages() as number[], []);
+  const result: Record<string, number> = {};
+  stages.forEach((value, index) => {
+    if (value !== 0) {
+      result[BATTLE_STAT_NAMES[index] ?? String(index)] = value;
+    }
+  });
+  return result;
+}
+
+function describeSpecies(pokemon: any): string {
+  return contextSafe(() => pokemon.species.getName(pokemon.formIndex), pokemon?.name ?? "unknown");
+}
+
+export function buildBattleContext(game: GameManager, messageCursor: { index: number }): Record<string, unknown> {
+  const battle = game.scene.currentBattle as any;
+  const party = game.scene.getPlayerParty();
+  const enemy = game.scene.getEnemyPokemon() as any;
+  const arena = game.scene.arena as any;
+  const logs: string[] = Array.isArray((game as any).textInterceptor?.logs) ? (game as any).textInterceptor.logs : [];
+  const newMessages = logs
+    .slice(messageCursor.index)
+    .map(text => String(text).replace(/@\w{.*?}/g, "").replace(/\$/g, " ").replace(/\s+/g, " ").trim())
+    // Unuebersetzte i18n-Schluessel (z. B. "dialogue:rivalFemale.encounter.1") sieht kein Spieler.
+    .filter(text => text.length > 0 && !/^[a-zA-Z]+:[\w.]+$/.test(text));
+  messageCursor.index = logs.length;
+
+  const enemyParty = Array.isArray(battle?.enemyParty) ? battle.enemyParty : [];
+  return {
+    wave: battle?.waveIndex ?? null,
+    turn: battle?.turn ?? null,
+    battle_type: battle?.trainer ? "trainer" : "wild",
+    trainer: battle?.trainer ? contextSafe(() => battle.trainer.getName(), "trainer") : null,
+    enemy_pokemon_remaining: battle?.trainer ? enemyParty.filter((member: any) => !member.isFainted()).length : null,
+    weather: arena?.weather ? (WeatherType[arena.weather.weatherType] ?? null) : null,
+    terrain: arena?.terrain ? (TerrainType[arena.terrain.terrainType] ?? null) : null,
+    new_messages: newMessages,
+    player_party: party.map((member: any, slot: number) => ({
+      slot,
+      species: describeSpecies(member),
+      level: member.level,
+      hp: member.hp,
+      max_hp: contextSafe(() => member.getMaxHp(), null),
+      status: describeStatus(member),
+      fainted: member.isFainted(),
+      active: member.isOnField(),
+      types: describeTypes(member),
+      ability: contextSafe(() => member.getAbility().name, null),
+      stat_stages: member.isOnField() ? describeStatStages(member) : {},
+      moves: contextSafe(() => member.getMoveset().filter((move: any) => move != null).map((move: any, moveSlot: number) => {
+        const data = move.getMove();
+        const ppMax = move.getMovePp();
+        return {
+          slot: moveSlot,
+          name: data.name,
+          type: PokemonType[data.type] ?? String(data.type),
+          category: MoveCategory[data.category] ?? String(data.category),
+          power: data.power > 0 ? data.power : null,
+          accuracy: data.accuracy > 0 ? data.accuracy : null,
+          pp: `${Math.max(0, ppMax - (move.ppUsed ?? 0))}/${ppMax}`,
+        };
+      }), []),
+    })),
+    enemy_active: enemy
+      ? {
+        species: describeSpecies(enemy),
+        level: enemy.level,
+        hp_percent: Math.round((enemy.hp / Math.max(1, enemy.getMaxHp())) * 100),
+        status: describeStatus(enemy),
+        types: describeTypes(enemy),
+        stat_stages: describeStatStages(enemy),
+        boss: contextSafe(() => enemy.isBoss(), false),
+      }
+      : null,
+  };
+}
+
 export function isCollectorEpisodeTerminalPhase(game: GameManager): boolean {
   return isHardTerminalPhase(game)
     || game.isCurrentPhase("BattleEndPhase")
@@ -163,24 +274,11 @@ export function resolveForcedSwitchIfNeeded(game: GameManager): "not_switch_phas
   const nextIndex = party.findIndex(member => !member.isFainted() && !member.isOnField() && member.isAllowedInBattle());
   if (nextIndex >= 0) {
     if (game.scene.ui?.getMode?.() === UiMode.PARTY) {
-      const handler = game.scene.ui.getHandler() as any;
-      if (typeof handler?.setCursor === "function") {
-        handler.setCursor(nextIndex);
-      }
-      if (typeof handler?.processInput === "function" && Number.isInteger(handler?.cursor) && handler.cursor !== nextIndex) {
-        const direction = handler.cursor < nextIndex ? Button.DOWN : Button.UP;
-        for (let attempts = 0; attempts < 8 && handler.cursor !== nextIndex; attempts += 1) {
-          handler.processInput(direction);
-        }
-      }
-      if (typeof handler?.processInput === "function") {
-        handler.processInput(Button.ACTION);
-        if (handler.optionsMode === true) {
-          handler.processInput(Button.ACTION);
-        }
-      }
+      sendOutFromPartyUi(game, nextIndex);
     } else if (battle?.__collectorForcedSwitchQueued !== nextIndex) {
-      game.doSelectPartyPokemon(nextIndex);
+      game.onNextPrompt("SwitchPhase", UiMode.PARTY, () => {
+        sendOutFromPartyUi(game, nextIndex);
+      });
       if (battle) {
         battle.__collectorForcedSwitchQueued = nextIndex;
       }
@@ -245,8 +343,38 @@ export function selectMoveByIndex(game: GameManager, actionIndex: number): void 
   game.selectTarget(actionIndex, BattlerIndex.ENEMY);
 }
 
+// Private Felder des Party-Handlers, die der Collector lesen muss. PartyUiHandler.clear() setzt optionsMode und
+// options nicht zurueck; ein offenes Options-Menue ueberlebt deshalb den Moduswechsel und den naechsten Kampf auf
+// derselben Szene (siehe docs/pokerogue-headless-test-harness-mechanics.md, Signatur E).
+type PartyUiHandlerInternals = { optionsMode: boolean; options: number[]; cursor: number };
+
+function partyInternals(handler: PartyUiHandler): PartyUiHandlerInternals {
+  return handler as unknown as PartyUiHandlerInternals;
+}
+
+// Nur fuer den Replay-Test: oeffnet im Party-Menue die Optionen fuer Slot 1 und verlaesst das Menue, ohne sie zu
+// schliessen. Gibt zurueck, ob danach ein offenes Options-Menue im Handler zurueckbleibt.
+export async function leavePartyOptionsOpenForTest(game: GameManager): Promise<boolean> {
+  const ui = game.scene.ui;
+  await ui.setMode(UiMode.PARTY, PartyUiMode.SWITCH, 0);
+  const handler = ui.getHandler() as PartyUiHandler;
+  handler.setCursor(1);
+  handler.processInput(Button.ACTION);
+  await ui.setMode(UiMode.COMMAND, 0);
+  return partyInternals(handler).optionsMode === true;
+}
+
+// Wechsel ueber sendOutFromPartyUi aus dem Harness statt GameManager.doSwitchPokemon: dessen blinde ACTION-Folge
+// oeffnet bei liegengebliebenen Party-Optionen die Uebersicht (SUMMARY, Signatur E).
 export function selectSwitchByPartyIndex(game: GameManager, partyIndex: number): void {
-  game.doSwitchPokemon(partyIndex);
+  game.onNextPrompt("CommandPhase", UiMode.COMMAND, () => {
+    const commandHandler = game.scene.ui.getHandler() as CommandUiHandler;
+    commandHandler.setCursor(2);
+    commandHandler.processInput(Button.ACTION);
+  });
+  game.onNextPrompt("CommandPhase", UiMode.PARTY, () => {
+    sendOutFromPartyUi(game, partyIndex);
+  });
 }
 
 export function executeAction(game: GameManager, action: number): void {
@@ -295,6 +423,10 @@ export async function waitForPromiseOrTerminal(
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
     resolveOptionalCheckSwitchIfNeeded(game);
+    // Level-Up mit neuer Attacke bei vollem Moveset fragt per CONFIRM/SUMMARY nach; ohne Antwort haengt LearnMovePhase.
+    if (resolveLearnMoveIfNeeded(game)) {
+      console.log(`[collector-learn-move] ui_mode=${currentUiModeNameSafe(game)}`);
+    }
     const forcedSwitchStatus = resolveForcedSwitchIfNeeded(game);
     if (forcedSwitchStatus === "no_candidate") {
       return "terminal";
@@ -341,6 +473,10 @@ export async function waitForCommandOrTerminalAfterForcedSwitch(
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
     resolveOptionalCheckSwitchIfNeeded(game);
+    // Level-Up mit neuer Attacke bei vollem Moveset fragt per CONFIRM/SUMMARY nach; ohne Antwort haengt LearnMovePhase.
+    if (resolveLearnMoveIfNeeded(game)) {
+      console.log(`[collector-learn-move] ui_mode=${currentUiModeNameSafe(game)}`);
+    }
     const forcedSwitchStatus = resolveForcedSwitchIfNeeded(game);
     if (forcedSwitchStatus === "no_candidate") {
       return "terminal";
@@ -698,6 +834,14 @@ function inferScenarioTrainerBattle(scenario: any): boolean {
   return scenario?.trainer != null;
 }
 
+function isActiveTrappedSafe(pokemon: { isTrapped?: () => boolean } | null | undefined): boolean {
+  try {
+    return pokemon?.isTrapped?.() === true;
+  } catch {
+    return false;
+  }
+}
+
 export function buildObservation(game: GameManager, scenario: any) {
   const player = game.scene.getPlayerPokemon();
   const enemy = game.scene.getEnemyPokemon();
@@ -789,6 +933,7 @@ export function buildObservation(game: GameManager, scenario: any) {
     expectedIncomingDamage: number;
     survivesOneHit: boolean;
   }> = [];
+  const activeTrapped = isActiveTrappedSafe(player);
   const partySlots = Array.from({ length: 6 }, (_, slot) => {
     const member = party[slot];
     if (!member) {
@@ -840,7 +985,9 @@ export function buildObservation(game: GameManager, scenario: any) {
     const slotSpeedAdvantage = speedOrderAdvantage(member, enemy);
     const survivesOneHit = expectedIncomingDamage < hpRatio;
     const canThreatenKoBucket = koTurnsBucket(bestDamageIntoEnemy, enemyHpRatio);
-    actionMask[MOVE_ACTIONS + slot] = canSwitch ? 1 : 0;
+    // Gefangene Pokemon (Mean Look, Wrap, Shadow Tag, ...) koennen nicht wechseln: das Spiel lehnt den Wechsel ab und
+    // bleibt in der CommandPhase. Nur die Maske sperrt den Wechsel; canSwitch bleibt Bank-Feature (State-Schema unveraendert).
+    actionMask[MOVE_ACTIONS + slot] = canSwitch && !activeTrapped ? 1 : 0;
     if (canSwitch) {
       const bestEffectiveness = member.getMoveset()
         .slice(0, 4)
@@ -1056,11 +1203,17 @@ export function patchPokemonFromScenario(pokemon: any, member: any, player: bool
 
   pokemon.id = Number(member.id);
   pokemon.name = typeof member.name === "string" ? member.name : pokemon.name;
-  pokemon.species = getPokemonSpeciesForm(Number(member.species_id), 0);
+  // Immer die Spezies, nie ein Form-Objekt: getPokemonSpeciesForm(id, 0) liefert bei Spezies mit Formen
+  // (z. B. Pichu) ein PokemonSpeciesForm ohne getName(); die Form steuert pokemon.formIndex.
+  pokemon.species = speciesDataRegistry.getSpecies(Number(member.species_id));
   pokemon.formIndex = Number.isInteger(member.form_index) ? Number(member.form_index) : 0;
   pokemon.level = Number(member.level);
-  if (member.gender != null) {
-    pokemon.gender = member.gender;
+  // Szenarien speichern das Geschlecht als Enum-Namen ("MALE"); das Spiel erwartet den Enum-Wert.
+  const genderValue = typeof member.gender === "string"
+    ? Gender[member.gender as keyof typeof Gender]
+    : member.gender;
+  if (Number.isInteger(genderValue)) {
+    pokemon.gender = genderValue as Gender;
   }
   pokemon.ivs = toStatArray(member.ivs);
 
@@ -1163,7 +1316,7 @@ export function applyScenarioMaterializedState(game: GameManager, scenario: any)
 }
 
 export function buildEnemyPokemonFromScenario(game: GameManager, member: any) {
-  const species = getPokemonSpeciesForm(Number(member.species_id), 0);
+  const species = speciesDataRegistry.getSpecies(Number(member.species_id));
   const level = Number(member.level);
   const enemyPokemon = game.scene.addEnemyPokemon(
     species,
@@ -1269,8 +1422,12 @@ export function applyScenarioOverrides(game: GameManager, scenario: any, seedOve
   if (Number.isFinite(waveIndex)) {
     game.override.startingWave(waveIndex);
   }
+  // `override.battleStyle` steuert seit v1.12 Einzel- vs. Doppelkampf ("single"/"double"). Ein ungueltiger
+  // Wert faellt dort in den default-Zweig, und das Spiel wuerfelt Doppelkaempfe per Seed selbst aus.
+  game.override.battleStyle(scenario.is_double_fight === true ? "double" : "single");
+  // Die Spieleinstellung SET/SWITCH (Wechsel-Angebot nach KO) ist davon unabhaengig.
   if (battleStyle != null) {
-    game.override.battleStyle(battleStyle);
+    game.scene.battleStyle = battleStyle;
   }
   game.override.battleType(battleType);
   if (trainerType != null) {
@@ -1445,12 +1602,17 @@ function getOrStartPersistentExternalPolicyWorker(policyConfig: any): any {
   return worker;
 }
 
-async function runPersistentExternalPolicy(policyConfig: any, state: any, actionMask: number[]): Promise<number> {
+async function runPersistentExternalPolicy(
+  policyConfig: any,
+  state: any,
+  actionMask: number[],
+  extras: Record<string, unknown> = {},
+): Promise<number> {
   const worker = getOrStartPersistentExternalPolicyWorker(policyConfig);
   const timeoutMs = Number.isFinite(policyConfig?.timeout_ms) && policyConfig.timeout_ms > 0
     ? policyConfig.timeout_ms
     : 5000;
-  const payload = JSON.stringify({ state, action_mask: actionMask }) + "\n";
+  const payload = JSON.stringify({ ...extras, state, action_mask: actionMask }) + "\n";
 
   return await withTimeout(
     new Promise<number>((resolve, reject) => {
@@ -1471,9 +1633,14 @@ async function runPersistentExternalPolicy(policyConfig: any, state: any, action
   );
 }
 
-async function runExternalPolicy(policyConfig: any, state: any, actionMask: number[]): Promise<number> {
+async function runExternalPolicy(
+  policyConfig: any,
+  state: any,
+  actionMask: number[],
+  extras: Record<string, unknown> = {},
+): Promise<number> {
   if (policyConfig?.persistent === true) {
-    return runPersistentExternalPolicy(policyConfig, state, actionMask);
+    return runPersistentExternalPolicy(policyConfig, state, actionMask, extras);
   }
 
   if (!Array.isArray(policyConfig?.command) || policyConfig.command.length === 0) {
@@ -1556,6 +1723,8 @@ export async function selectActionFromMask(
   state: any,
   actionMask: number[],
   globalEpisodeIndex: number,
+  // Zusatzfelder fuer externe Worker (episode_id, step_index, battle_context); der DQN-Worker ignoriert sie.
+  policyExtras: Record<string, unknown> = {},
 ): Promise<{ action: number; actionSource: string }> {
   const valid = actionMask
     .map((value, index) => ({ value, index }))
@@ -1595,7 +1764,7 @@ export async function selectActionFromMask(
   }
 
   if (POLICY.type === "external_command") {
-    const action = await runExternalPolicy(POLICY, state, actionMask);
+    const action = await runExternalPolicy(POLICY, state, actionMask, policyExtras);
     if (valid.includes(action)) {
       const actionSource = Array.isArray(POLICY.command)
         && POLICY.command.some((part: string) => String(part).includes("dqn_policy_infer"))

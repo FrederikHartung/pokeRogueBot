@@ -2,8 +2,12 @@
 //
 // Gruppen:
 //   bot      - quick-smoke, wenn der eigene Control-Bot schon laeuft bzw. ein Control-Bot eines anderen Helpers laeuft
-//   failure  - detached `start`, der per Prozess-Timeout bzw. wegen eines fehlenden Checkpoints abbricht;
-//              prueft Manifest, Failure-Summary, `collection_failed`-Notification (Dry-Run) und das automatische Stoppen des Control-Bots
+//   failure  - detached `start` mit drei Fehlerbildern:
+//              pipeline-timeout: jeder Run ueberschreitet den Prozess-Timeout -> technische Termination mit Failure-Datei
+//                und Signatur, Batch `completed`, Pipeline endet mit `no_regular_runs_collected`
+//              circuit-breaker: drei Seeds, Notausschalter nach 2 technischen Runs in Folge, dritter Batch startet nicht
+//              pipeline-error: fehlender Checkpoint -> systemischer Fehler, weiterhin sofortiger Abbruch (fast-fail)
+//              jeweils mit `collection_failed`-Notification (Dry-Run) und automatischem Stoppen des Control-Bots
 //   all      - beide Gruppen (Default)
 //
 // Aufruf: node scripts/01-data-generation/pipeline/test-modifier-strategic-remote-scenarios.ts [bot|failure|all]
@@ -23,18 +27,30 @@ type CommandResult = {
 type FailureScenario = {
   name: string;
   configFile: string;
+  // "technical": Runs scheitern einzeln, werden als technische Termination erfasst (Batch completed).
+  // "systemic": Fehler vor dem ersten Run, Batch failed (fast-fail).
+  mode: "technical" | "systemic";
   expectedError: string;
+  expectedBatchStatuses: string[];
 };
 
 type ManifestBatch = {
+  seed?: string;
   status?: string;
   failure_summary_path?: string | null;
   error_excerpt?: string | null;
+  technical_termination_count?: number | null;
 };
 
 type Manifest = {
-  steps?: Record<string, { status?: string }>;
+  steps?: Record<string, { status?: string; error?: string | null }>;
   batches?: ManifestBatch[];
+};
+
+type TechnicalFailureFile = {
+  kind?: string;
+  repro?: { command?: string };
+  commits?: { repo?: string | null; submodule?: string | null };
 };
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -53,12 +69,23 @@ const failureScenarios: FailureScenario[] = [
   {
     name: "pipeline-timeout",
     configFile: "modifier-strategic-seeded-remote-scenario-timeout.json",
-    expectedError: "collector_run_process_timeout",
+    mode: "technical",
+    expectedError: "no_regular_runs_collected",
+    expectedBatchStatuses: ["completed"],
+  },
+  {
+    name: "circuit-breaker",
+    configFile: "modifier-strategic-seeded-remote-scenario-circuit-breaker.json",
+    mode: "technical",
+    expectedError: "technical_failure_threshold_exceeded",
+    expectedBatchStatuses: ["completed", "completed", "pending"],
   },
   {
     name: "pipeline-error",
     configFile: "modifier-strategic-seeded-remote-scenario-error.json",
+    mode: "systemic",
     expectedError: "Combat DQN checkpoint not found",
+    expectedBatchStatuses: ["failed"],
   },
 ];
 
@@ -157,20 +184,47 @@ async function scenarioPipelineFailure(scenario: FailureScenario) {
   }
 
   const manifest = readJson<Manifest>(path.join(runtimeDir, "manifest.json"));
-  const batch = manifest?.batches?.[0];
-  const failureSummaryPath = batch?.failure_summary_path ?? null;
-  const failureSummary = failureSummaryPath && existsSync(failureSummaryPath) ? readFileSync(failureSummaryPath, "utf8") : "";
+  const batches = manifest?.batches ?? [];
+  const batch = batches[0];
   const log = readTextIfExists(path.join(runtimeDir, "remote-modifier-strategic.log"));
 
   const checks: Array<[string, boolean]> = [
     ["collect_dataset failed", manifest?.steps?.collect_dataset?.status === "failed"],
-    ["batch failed", batch?.status === "failed"],
-    ["failure summary has expected error", failureSummary.includes(scenario.expectedError)],
-    ["error excerpt has expected error", (batch?.error_excerpt ?? "").includes(scenario.expectedError)],
+    [
+      `batch statuses ${scenario.expectedBatchStatuses.join("/")}`,
+      batches.map(entry => entry.status).join("/") === scenario.expectedBatchStatuses.join("/"),
+    ],
     ["collection_failed dry run", log.includes("Telegram dry run for event: collection_failed")],
     ["control bot auto-started", botAutoStarted],
     ["control bot auto-stopped", !isOwnControlBotRunning() && !existsSync(modifierTelegramAutoFile)],
   ];
+
+  if (scenario.mode === "systemic") {
+    const failureSummaryPath = batch?.failure_summary_path ?? null;
+    const failureSummary = failureSummaryPath && existsSync(failureSummaryPath) ? readFileSync(failureSummaryPath, "utf8") : "";
+    checks.push(
+      ["failure summary has expected error", failureSummary.includes(scenario.expectedError)],
+      ["error excerpt has expected error", (batch?.error_excerpt ?? "").includes(scenario.expectedError)],
+    );
+  } else {
+    const failureFile = batch?.seed
+      ? readJson<TechnicalFailureFile>(
+        path.join(runtimeDir, "collect_dataset", "technical-failures", `${batch.seed.replaceAll(/[^a-zA-Z0-9._-]+/g, "-")}--run-0.json`),
+      )
+      : null;
+    const signatures = readJson<{ signature_count?: number }>(
+      path.join(runtimeDir, "collect_dataset", "technical-failure-signatures.json"),
+    );
+    checks.push(
+      ["step error has expected reason", (manifest?.steps?.collect_dataset?.error ?? "").includes(scenario.expectedError)],
+      ["technical termination counted", batch?.technical_termination_count === 1],
+      ["failure file with process timeout", failureFile?.kind === "collector_run_process_timeout"],
+      ["failure file has repro command", (failureFile?.repro?.command ?? "").includes("repro-technical-failure.ts")],
+      ["failure file has commits", typeof failureFile?.commits?.repo === "string" && typeof failureFile?.commits?.submodule === "string"],
+      ["signatures written", (signatures?.signature_count ?? 0) >= 1],
+      ["notification shows technical failures", log.includes("Technical failures:")],
+    );
+  }
   const failedChecks = checks.filter(([, ok]) => !ok).map(([label]) => label);
   record(
     failedChecks.length === 0,

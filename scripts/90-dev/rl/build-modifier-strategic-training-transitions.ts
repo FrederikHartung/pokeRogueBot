@@ -235,7 +235,12 @@ export function buildModifierStrategicTrainingTransitions(
     throw new Error(`Invalid gamma: ${String(gamma)}`);
   }
 
-  const outputs = rawWorkerOutputs.map(normalizeWorkerOutput);
+  // Ausgaben ohne regulaere Episode (jeder Run technisch beendet) tragen nichts zum Datensatz bei
+  // und haben keine verlaesslichen Metadaten; technische Runs selbst stehen nie in episodes[].
+  const outputs = rawWorkerOutputs.map(normalizeWorkerOutput).filter(output => output.episodes.length > 0);
+  if (outputs.length === 0) {
+    return [];
+  }
   assertCompatibleOutputs(outputs);
 
   const collectorSchemaVersion = outputs[0]!.schema_version;

@@ -149,6 +149,25 @@ function loadOptionalJson(filePath) {
   return JSON.parse(readFileSync(filePath, "utf8"));
 }
 
+// Technische Fehler (Timeouts/Abstuerze einzelner Runs bzw. Episoden), siehe scripts/01-data-generation/pipeline/technical-failures.ts.
+// Modifier-Metriken zaehlen Runs (regular_run_count), Combat-Metriken Episoden (regular_episode_count).
+function appendTechnicalFailureLines(lines, collectionMetrics) {
+  if (collectionMetrics?.technical_termination_count == null) {
+    return;
+  }
+  const regular = collectionMetrics.regular_run_count ?? collectionMetrics.regular_episode_count;
+  if (regular != null) {
+    lines.push(`Regular: ${regular}`);
+  }
+  const ratio = typeof collectionMetrics.technical_termination_ratio === "number"
+    ? ` (${(collectionMetrics.technical_termination_ratio * 100).toFixed(1)} %)`
+    : "";
+  lines.push(`Technical failures: ${collectionMetrics.technical_termination_count}${ratio}, signatures: ${collectionMetrics.technical_failure_signature_count ?? 0}`);
+  if (Number(collectionMetrics.missing_episode_count ?? 0) > 0) {
+    lines.push(`Missing episodes: ${collectionMetrics.missing_episode_count}`);
+  }
+}
+
 function buildMessage({
   event,
   runtimeDir,
@@ -220,6 +239,7 @@ function buildMessage({
       lines.push(`Batches: ${collectionMetrics.completed_batches ?? "?"}/${collectionMetrics.total_batches ?? "?"}`);
       lines.push(`Episodes: ${collectionMetrics.completed_episodes ?? "?"}/${collectionMetrics.total_episodes ?? "?"}`);
       lines.push(`Transitions: ${collectionMetrics.dataset_rows ?? "?"}`);
+      appendTechnicalFailureLines(lines, collectionMetrics);
       if (collectionMetrics.dataset_size_mb != null) {
         lines.push(`Dataset size: ${formatMegabytes(collectionMetrics.dataset_size_mb)}`);
       }
@@ -254,6 +274,7 @@ function buildMessage({
       }
       lines.push(`Batches: ${collectionMetrics.completed_batches ?? "?"}/${collectionMetrics.total_batches ?? "?"}`);
       lines.push(`Episodes: ${collectionMetrics.completed_episodes ?? "?"}/${collectionMetrics.total_episodes ?? "?"}`);
+      appendTechnicalFailureLines(lines, collectionMetrics);
     } else if (progress) {
       lines.push(`Batches: ${progress.completedBatches}/${progress.totalBatches}`);
       lines.push(`Episodes: ${progress.completedEpisodes}/${progress.totalEpisodes}`);

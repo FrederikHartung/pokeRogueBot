@@ -167,6 +167,33 @@ function validateEpisode(value: unknown, context: string): Record<string, unknow
   return structuredClone(value);
 }
 
+function validateTechnicalTerminationFields(value: Record<string, unknown>, context: string): void {
+  if ("regular_run_count" in value) {
+    assertInteger(value.regular_run_count, context, "regular_run_count");
+  }
+  if ("technical_termination_count" in value) {
+    assertInteger(value.technical_termination_count, context, "technical_termination_count");
+  }
+  if (!("technical_terminations" in value)) {
+    return;
+  }
+  assertArray(value.technical_terminations, context, "technical_terminations");
+  value.technical_terminations.forEach((entry, index) => {
+    const entryContext = `${context}.technical_terminations[${index}]`;
+    assertPlainObject(entry, entryContext, "technical termination");
+    assertAllowedKeys(entry, new Set(["run_index", "kind", "reason", "exit_code", "signal", "episode"]), entryContext, "technical termination");
+    assertInteger(entry.run_index, entryContext, "run_index");
+    assertString(entry.kind, entryContext, "kind");
+    assertString(entry.reason, entryContext, "reason");
+  });
+  if (
+    "technical_termination_count" in value
+    && value.technical_termination_count !== value.technical_terminations.length
+  ) {
+    throw new Error(`technical_termination_count does not match technical_terminations${describeContext(context)}`);
+  }
+}
+
 export function validateModifierStrategicFixedSeedOutput(value: unknown): Record<string, unknown> {
   const context = "modifier strategic fixed-seed output";
   assertPlainObject(value, context, "output");
@@ -189,10 +216,26 @@ export function validateModifierStrategicFixedSeedOutput(value: unknown): Record
       "generated_at",
       "episodes",
       "summary",
+      "regular_run_count",
+      "technical_termination_count",
+      "technical_terminations",
     ]),
     context,
     "output",
   );
+
+  validateTechnicalTerminationFields(value, context);
+  assertArray(value.episodes, context, "episodes");
+  if (value.episodes.length === 0) {
+    // Batch, in dem jeder Run technisch beendet wurde: es gibt keine Episode, aus der die
+    // Metadaten stammen koennten. Solche Ausgaben traegt nur die Pipeline-Fehlererfassung weiter.
+    assertString(value.seed, context, "seed");
+    assertInteger(value.run_count, context, "run_count", { min: 1 });
+    if (!Array.isArray(value.technical_terminations) || value.technical_terminations.length === 0) {
+      throw new Error(`Output without episodes must list technical_terminations${describeContext(context)}`);
+    }
+    return structuredClone(value);
+  }
 
   assertString(value.schema_version, context, "schema_version");
   if (value.schema_version !== "modifier_strategic_fixed_seed_output_v1") {
@@ -214,7 +257,6 @@ export function validateModifierStrategicFixedSeedOutput(value: unknown): Record
   assertString(value.combat_dqn_checkpoint, context, "combat_dqn_checkpoint");
   assertString(value.combat_dqn_device, context, "combat_dqn_device");
   assertString(value.generated_at, context, "generated_at");
-  assertArray(value.episodes, context, "episodes");
   value.episodes.forEach((episode, index) => {
     const normalizedEpisode = validateEpisode(episode, `${context}.episodes[${index}]`);
     const expectedDecisionRngSeed = `${value.seed}::${normalizedEpisode.run_index}`;

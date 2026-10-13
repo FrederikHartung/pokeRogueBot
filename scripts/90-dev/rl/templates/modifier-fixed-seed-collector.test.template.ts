@@ -18,8 +18,11 @@ import { Stat } from "#enums/stat";
 import { UiMode } from "#enums/ui-mode";
 import type { CommandPhase } from "#phases/command-phase";
 import { ModifierSelectUiHandler } from "#ui/modifier-select-ui-handler";
+import type { CommandUiHandler } from "#ui/command-ui-handler";
+import { sendOutFromPartyUi } from "#test/porubot/harness/party-send-out";
 import { PartyUiMode } from "#enums/party-ui-mode";
 import { GameManager } from "#test/framework/game-manager";
+import { PromptHandler } from "#test/helpers/prompt-handler";
 import Phaser from "phaser";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
@@ -929,6 +932,14 @@ function buildDoubleCombatObservation(game: GameManager): Record<string, unknown
   };
 }
 
+function isActiveTrappedSafe(pokemon: { isTrapped?: () => boolean } | null | undefined): boolean {
+  try {
+    return pokemon?.isTrapped?.() === true;
+  } catch {
+    return false;
+  }
+}
+
 function buildCombatObservation(game: GameManager): Record<string, unknown> {
   const player = game.scene.getPlayerPokemon();
   const enemy = game.scene.getEnemyPokemon();
@@ -1015,6 +1026,7 @@ function buildCombatObservation(game: GameManager): Record<string, unknown> {
     expectedIncomingDamage: number;
   }> = [];
 
+  const activeTrapped = isActiveTrappedSafe(player);
   const partySlots = Array.from({ length: 6 }, (_, slot) => {
     const member = party[slot];
     if (!member) {
@@ -1057,7 +1069,9 @@ function buildCombatObservation(game: GameManager): Record<string, unknown> {
     const survivesOneHit = expectedIncomingDamage < hpRatio;
     const canThreatenKoBucket = koTurnsBucket(bestDamageIntoEnemy, enemyHpRatio);
 
-    actionMask[MOVE_ACTIONS + slot] = canSwitch ? 1 : 0;
+    // Gefangene Pokemon (Mean Look, Wrap, Shadow Tag, ...) koennen nicht wechseln: das Spiel lehnt den Wechsel ab und
+    // bleibt in der CommandPhase. Nur die Maske sperrt den Wechsel; canSwitch bleibt Bank-Feature (State-Schema unveraendert).
+    actionMask[MOVE_ACTIONS + slot] = canSwitch && !activeTrapped ? 1 : 0;
     if (canSwitch) {
       const bestEffectiveness = member.getMoveset().slice(0, 4).reduce((best: number, move: any) => {
         const moveData = move.getMove();
@@ -2074,8 +2088,17 @@ function resolveCurrentTargetSelection(game: GameManager, action: DoubleSlotActi
   handler.processInput(Button.ACTION);
 }
 
+// Wechsel ueber sendOutFromPartyUi aus dem Harness statt GameManager.doSwitchPokemon: dessen blinde ACTION-Folge
+// oeffnet bei liegengebliebenen Party-Optionen (z. B. nach Item-Auswahl im Shop) die Uebersicht (SUMMARY, Signatur E).
 function selectSwitchByPartyIndex(game: GameManager, partyIndex: number): void {
-  game.doSwitchPokemon(partyIndex);
+  game.onNextPrompt("CommandPhase", UiMode.COMMAND, () => {
+    const commandHandler = game.scene.ui.getHandler() as CommandUiHandler;
+    commandHandler.setCursor(2);
+    commandHandler.processInput(Button.ACTION);
+  });
+  game.onNextPrompt("CommandPhase", UiMode.PARTY, () => {
+    sendOutFromPartyUi(game, partyIndex);
+  });
 }
 
 function executeCombatAction(game: GameManager, action: number): void {
@@ -2721,6 +2744,14 @@ describe("modifier fixed seed collector", () => {
       let recordedEpisode: EpisodeRecord | null = null;
 
       for (let attemptIndex = 0; attemptIndex < 2; attemptIndex += 1) {
+        if (attemptIndex > 0) {
+          // Ein Retry legt einen zweiten GameManager im selben Test an. Seit v1.12 geht der Harness von einem
+          // GameManager pro Test aus; ohne dieses Aufraeumen wirft das statische PromptHandler-Intervall und
+          // die Spies verschachteln sich (gleiches Problem wie im Combat-Collector).
+          clearInterval(PromptHandler.runInterval);
+          PromptHandler.runInterval = undefined;
+          vi.restoreAllMocks();
+        }
         const game = new GameManager(phaserGame);
         // This collector deliberately leaves earlier phaseInterceptor.to() calls
         // pending (background toNextTurn(), recovery pumps, ...); without this,

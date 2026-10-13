@@ -185,6 +185,12 @@ def resolve_path(value):
 print(f"Validated config: collector_config_path={collector_config_path}")
 print(f"Validated config: benchmarks={len(benchmarks)}")
 
+for extra in config.get("extra_baselines") or []:
+    if not isinstance(extra, dict) or not extra.get("label") or not extra.get("path"):
+        raise SystemExit("Each extra_baselines entry requires label and path")
+    if not os.path.exists(resolve_path(extra["path"])):
+        raise SystemExit(f"Extra baseline '{extra['label']}' not found: {resolve_path(extra['path'])}")
+
 for benchmark in benchmarks:
     label = benchmark.get("label")
     checkpoint = benchmark.get("checkpoint")
@@ -599,6 +605,9 @@ for index, benchmark in enumerate(benchmarks, start=1):
     ]
     if reuse_used:
         command.append("--reuse-baselines")
+    # Vorab aufgezeichnete Policies (z. B. Claude-Session-Baseline), die nur eingelesen und nicht neu gespielt werden.
+    for extra in config.get("extra_baselines") or []:
+        command.extend(["--extra-baseline", f"{extra['label']}={resolve_path(extra['path'])}"])
 
     print(f"benchmark_start label={label} checkpoint={checkpoint_path} reuse_baselines={str(reuse_used).lower()}")
     subprocess.run(command, cwd=repo_root, check=True)

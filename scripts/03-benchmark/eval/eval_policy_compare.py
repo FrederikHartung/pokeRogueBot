@@ -198,6 +198,16 @@ def classify_outcome(last_record: Dict) -> str:
     return "truncated"
 
 
+def parse_extra_baselines(values: List[str]) -> Dict[str, str]:
+    baselines: Dict[str, str] = {}
+    for value in values:
+        label, separator, path = value.partition("=")
+        if not separator or not label or not path:
+            raise ValueError(f"--extra-baseline expects LABEL=JSONL, got: {value}")
+        baselines[label] = os.path.abspath(os.path.join(REPO_ROOT, path))
+    return baselines
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Compare random/always0/DQN on benchmarked scenarios")
     parser.add_argument("--collector-config", default="./data/rl/collector-run-benchmarked-wave-library-v2.json")
@@ -208,6 +218,13 @@ def main() -> None:
     parser.add_argument("--max-steps-per-episode", type=int, default=400)
     parser.add_argument("--max-truncated-rate", type=float, default=0.10)
     parser.add_argument("--parallelism", type=int, default=1)
+    parser.add_argument(
+        "--extra-baseline",
+        action="append",
+        default=[],
+        metavar="LABEL=JSONL",
+        help="Additional pre-recorded policy run to compare against (e.g. a Claude session baseline); repeatable",
+    )
     parser.add_argument(
         "--reuse-baselines",
         action="store_true",
@@ -276,6 +293,19 @@ def main() -> None:
         rows = load_records(output_path)
         results[label] = summarize(rows)
 
+    extra_baselines = parse_extra_baselines(args.extra_baseline)
+    for label, path in extra_baselines.items():
+        if label in results:
+            raise ValueError(f"Extra baseline label collides with a built-in policy: {label}")
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Extra baseline '{label}' not found: {path}")
+        print(f"Using pre-recorded baseline '{label}' from {path}")
+        run_sources[label] = "pre_recorded"
+        results[label] = summarize(load_records(path))
+        meta_path = os.path.splitext(path)[0] + ".meta.json"
+        if os.path.exists(meta_path):
+            results[label]["baseline_meta"] = load_json(meta_path)
+
     dqn = results["dqn"]
     random_res = results["random"]
     always0 = results["always_move_0"]
@@ -292,6 +322,13 @@ def main() -> None:
             "avg_turns_delta": dqn["avg_turns"] - always0["avg_turns"],
         },
     }
+
+    for label in extra_baselines:
+        comparison[f"dqn_vs_{label}"] = {
+            "win_rate_delta": dqn["win_rate"] - results[label]["win_rate"],
+            "avg_reward_delta": dqn["avg_reward"] - results[label]["avg_reward"],
+            "avg_turns_delta": dqn["avg_turns"] - results[label]["avg_turns"],
+        }
 
     quality_gates = {
         "max_truncated_rate": args.max_truncated_rate,
@@ -321,7 +358,7 @@ def main() -> None:
     write_json(report_path, report)
 
     print("Policy comparison complete")
-    for label in ["random", "always_move_0", "dqn"]:
+    for label in ["random", "always_move_0", "dqn", *extra_baselines.keys()]:
         s = results[label]
         print(
             f"{label}: win_rate={s['win_rate']:.3f} avg_reward={s['avg_reward']:.4f} "

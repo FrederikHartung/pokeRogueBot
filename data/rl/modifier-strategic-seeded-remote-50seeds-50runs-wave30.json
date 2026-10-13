@@ -11,7 +11,7 @@
     "max_waves": 30,
     "modifier_policy": "random_executable",
     "step_timeout_ms": 15000,
-    "run_process_timeout_ms": 300000,
+    "run_process_timeout_ms": 1200000,
     "combat_dqn_device": "cpu"
   },
   "postprocess": {

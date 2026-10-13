@@ -119,6 +119,18 @@ Bei aktivem Runtime-Cleanup liegt dort dann zusaetzlich:
 - `runtime-debug/runtime-debug.tar.gz`
 - `runtime-debug/runtime-debug-metadata.json`
 
+## Technische Fehler
+
+Eine Episode, die nicht regulaer endet (Sieg, Niederlage, `max_steps_per_episode`), sondern durch Timeout oder Exception, gilt als technische Termination. Der Collector schreibt ihre Transitions nicht in den Datensatz, sondern einen Eintrag mit Debug-Snapshot (Phase, UI-Modus, Wave, Party, Prompt-Queue) nach `<batch>.jsonl.technical-failures.jsonl`. Bricht der Vitest-Prozess selbst ab oder endet mit Exit != 0, erfasst er das als `collector_process_failed` mit der Zahl fehlender Episoden. `<batch>.jsonl.summary.json` haelt geplante, regulaere und technische Episoden fest.
+
+Die Pipeline laeuft weiter und legt pro Fehler `collect_dataset/technical-failures/<szenario>--episode-<n>.json` an (Repro-Parameter, Commits, Rohdaten), am Ende `collect_dataset/technical-failure-signatures.json`. Beides kommt mit ins Archiv. Notausschalter, Defaults und Repro-Befehl sind dieselben wie in der Modifier-Pipeline (gemeinsames Modul `scripts/01-data-generation/pipeline/technical-failures.ts`, siehe `docs/modifier-strategic-seeded-remote.md`, Abschnitt "Fehlerbehandlung"); die Schwellen stehen hier in `collect.technical_failure_threshold`.
+
+Stresskampagne 2026-10-13 (Server, `parallelism` 3-4): Combat 311 Szenarien x 8 Episoden ergab 2.482 regulaere und 6 technische Episoden (0,2 %) in zwei Signaturen; Modifier 40 Seeds x 2 Runs bis Wave 10 und 30 Seeds x 2 Runs bis Wave 50 ergaben 140 regulaere Runs ohne technischen Fehler (Team-Wipe meist zwischen Wave 7 und 15). Die gefundenen Collector-Fehler (Signaturen C: Wechsel trotz `isTrapped()`, D: unbeantwortete `LearnMovePhase`, spaeter E: liegengebliebene Party-Optionen) sind behoben und bis auf D als Replay-Test in `scripts/01-data-generation/collector/combat-collector-replays.test.ts` festgehalten (D: Submodul-Test `learn-move-phase-requires-active-servicing.test.ts`), Mechanismen in `docs/pokerogue-headless-test-harness-mechanics.md`.
+
+Einschraenkung beim Nachstellen: Die generierten Szenarien haben keinen eigenen Seed, jede Episode wuerfelt neu. Ein Repro ist deshalb statistisch (`--repeat N`), nicht exakt.
+
+Fuer Tests laesst sich der Step-Timeout per `POKEROGUE_COMBAT_STEP_TIMEOUT_MS` ueberschreiben (z. B. `50`, um Timeouts zu erzwingen).
+
 ## Metrikmodell
 
 `collection-metrics.json` ist das verbindliche Modell fuer Abschlussmetriken und Telegram-Zusammenfassung.
@@ -196,8 +208,8 @@ Empfohlene Retention-Regel:
   - optional Datensatz-Archiv behalten
   - Runtime-Logs und Metadaten nur noch komprimiert als `runtime-debug.tar.gz` behalten
   - den eigentlichen Runtime-Ordner unter `pipeline-runs/...` loeschen
-- fehlgeschlagene Laeufe:
-  - Runtime-Ordner komplett liegen lassen, bis der Fehler untersucht ist
+- fehlgeschlagene Laeufe (Notausschalter `technical_failure_threshold_exceeded`, `no_regular_runs_collected` oder systemischer Fehler; einzelne technische Fehler lassen den Lauf `completed` enden):
+  - Runtime-Ordner komplett liegen lassen, bis der Fehler untersucht ist, danach mit `npm run ops:clean:pipeline-temp` aufraeumen
 
 ## V3-Startpunkt
 

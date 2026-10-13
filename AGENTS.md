@@ -66,7 +66,8 @@ Das Projekt: ein Bot, der das Browserspiel PokeRogue automatisiert (Spring Boot,
 - Zielgroessen wie "erzeuge X Episoden" sind pragmatisch: etwa `+-5 %` Abweichung ist in Ordnung, wenn die Daten dadurch sauber ueber Wellen bzw. Seeds verteilt bleiben. Verteilungsqualitaet geht vor exakter Zahl.
 - Datenhygiene:
   - Bei Wave-Library-, Dataset- und Pipeline-Artefakten auf semantische Duplikate, bug-induzierte Eintraege und veraltete Outputs achten.
-  - Kurzlebige Dateien nach `data/temp/` statt in produktive Datenpfade (`npm run dev:clean` raeumt auf).
+  - Kurzlebige Dateien nach `data/temp/` statt in produktive Datenpfade.
+  - Aufraeumen nach Pipeline-Laeufen (lokal und auf dem Server): `npm run ops:clean:pipeline-temp` zeigt im Trockenlauf, was geloescht wuerde; geloescht wird erst mit `-- --apply`, Rohdaten abgeschlossener Laeufe nur mit `--include-raw`, ganze Laeufe unter `data/temp/rl/pipeline-runs/` nur mit `--runtime <name>`. Auf dem Server vorher den User bestaetigen lassen (Skill `server-cleanup`). Achtung: `npm run dev:clean` loescht pauschal alles unter `data/rl/pipeline-runs/`, inklusive Control-Ordnern laufender Helper.
   - Bereinigungen an produktiven Datensaetzen oder Wave-Lib-Eintraegen nur gezielt und nachvollziehbar, danach betroffene Dateien kurz validieren.
 
 ## 5. Remote-Server (optional)
@@ -126,12 +127,16 @@ Fallstricke auf dem Server:
 - `npm run typecheck:scripts`: prueft alle `scripts/**/*.ts` gegen die `#alias/*`-Pfad-Map der Root-`tsconfig.json` (siehe 7.)
 - `npm run rl:test:porubot:regressions`: Regressionstests im Submodul (vitest)
 - `npm run rl:test:policy-contract`, `npm run rl:test:modifier:strategic-contract`, `npm run rl:test:modifier:item-suite`: Contract- und Masking-Tests
+- `npm run rl:test:pipeline:technical-failures`: Fehlererfassung beider Pipelines (Signaturen, Notausschalter)
+- `npm run rl:test:combat:collector-replays`: Replays frueherer Combat-Collector-Timeouts gegen den echten Collector (ca. 2-3 min)
+- Technischen Fehler aus einem Pipeline-Lauf nachstellen: `node scripts/01-data-generation/pipeline/repro-technical-failure.ts <collect_dataset/technical-failures/...json> [--repeat N]`
 - Lokale Pipeline-Laeufe: `npm run rl:pipeline:modifier:strategic:collect -- <config>`, `npm run rl:pipeline:wave-lib:collect -- <config>`
 
 **Training und Eval (Python):**
 - Repo-venv unter `.venv/` verwenden; die Remote-Helper nutzen sie automatisch.
 - Training: `npm run rl:train:dqn:wave-lib:v3` (bzw. `python3 scripts/02-training/offline-dqn/train_dqn_offline.py --config <config>`)
 - Eval: `npm run rl:eval:compare -- <args>`
+- Claude-Session als vierte Benchmark-Policy (einmal lokal erzeugen, dann per `--extra-baseline` einlesen; nur aus einem normalen Terminal, nicht aus einer Claude-Code-Session): `node scripts/03-benchmark/eval/run-claude-session-baseline.ts --model haiku --label <label>`, siehe `docs/claude-session-benchmark-policy.md`
 - Dataset pruefen: `npm run rl:check:dataset`, `npm run rl:report:dataset`
 
 **Submodul:**
