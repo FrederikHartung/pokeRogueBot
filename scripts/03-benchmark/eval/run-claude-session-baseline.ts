@@ -32,7 +32,7 @@ const runDir = path.join(baselineDir, label);
 const outputPath = path.join(baselineDir, `${label}.jsonl`);
 const metaPath = path.join(baselineDir, `${label}.meta.json`);
 // Prompt-Version hochzaehlen, wenn sich System-Prompt oder Zugformat im Worker aendern.
-const PROMPT_VERSION = "battle-session-v1";
+const PROMPT_VERSION = "battle-session-v2"; // v2: Zwangswechsel und Wechselangebot (combat-v4)
 
 if (process.env.CLAUDECODE) {
   console.error("Run this from a normal terminal: Claude Code refuses nested sessions (CLAUDECODE is set).");

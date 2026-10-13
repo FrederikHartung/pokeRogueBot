@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { linkCombatObservationModule } from "../../01-data-generation/collector/combat-observation-module.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -213,7 +214,9 @@ function runSingleCollectorBatch(runIndex: number): RunOutcome {
   const globalRunIndex = runIndexBase + runIndex;
 
   mkdirSync(runTempDir, { recursive: true });
-  writeFileSync(runTempTestPath, buildTestSource(runOutputPath, globalRunIndex), { encoding: "utf8" });
+  // Gemeinsamer combat-v4-Builder neben den generierten Test (Import "#bot-ts/combat-observation").
+  const runTestSource = linkCombatObservationModule(buildTestSource(runOutputPath, globalRunIndex), runTempDir, repoRoot);
+  writeFileSync(runTempTestPath, runTestSource, { encoding: "utf8" });
 
   console.log(`[modifier-strategic-fixed-seed-runner] starting run ${runIndex + 1}/${runCount}`);
   const result = spawnSync(

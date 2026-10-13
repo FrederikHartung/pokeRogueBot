@@ -88,6 +88,7 @@ function validateCollectorOverrides(value, context) {
     value,
     new Set([
       "append_output",
+      "check_switch_decisions",
       "episode_index_offset",
       "enemy_team_overrides_path",
       "max_steps_per_episode",
@@ -152,7 +153,7 @@ function validateCollectorOverrides(value, context) {
     }
   }
 
-  for (const key of ["append_output", "progress_pause_enabled", "quiet_game_logs", "terminal_on_egg_lapse"]) {
+  for (const key of ["append_output", "check_switch_decisions", "progress_pause_enabled", "quiet_game_logs", "terminal_on_egg_lapse"]) {
     if (key in value) {
       assertOptionalBoolean(value[key], context, key);
     }
@@ -396,6 +397,7 @@ export function validateCollectorRunConfig(value, options = {}) {
       "scenario_files",
       "output_path",
       "append_output",
+      "check_switch_decisions",
       "episodes_per_seed",
       "episode_index_offset",
       "max_steps_per_episode",
@@ -442,7 +444,7 @@ export function validateCollectorRunConfig(value, options = {}) {
   if ("episode_index_offset" in value) {
     assertOptionalInteger(value.episode_index_offset, context, "episode_index_offset");
   }
-  for (const key of ["quiet_game_logs", "terminal_on_egg_lapse", "progress_pause_enabled"]) {
+  for (const key of ["check_switch_decisions", "quiet_game_logs", "terminal_on_egg_lapse", "progress_pause_enabled"]) {
     if (key in value) {
       assertOptionalBoolean(value[key], context, key);
     }

@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { linkCombatObservationModule } from "../../01-data-generation/collector/combat-observation-module.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -109,7 +110,8 @@ const testSource = templateSource
   .replaceAll("__COMBAT_DQN_WORKER_SCRIPT__", JSON.stringify(combatInferWorkerScript))
   .replaceAll("__STEP_TIMEOUT_MS__", String(stepTimeoutMs));
 
-writeFileSync(tempTestPath, testSource, { encoding: "utf8" });
+// Gemeinsamer combat-v4-Builder neben den generierten Test (Import "#bot-ts/combat-observation").
+writeFileSync(tempTestPath, linkCombatObservationModule(testSource, tempDir, repoRoot), { encoding: "utf8" });
 
 const runnerEnv = {
   ...process.env,

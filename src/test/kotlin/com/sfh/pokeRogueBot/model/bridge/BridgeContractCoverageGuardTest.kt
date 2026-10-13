@@ -28,6 +28,9 @@ class BridgeContractCoverageGuardTest {
         "JsService.isUiHandlerActive",
         "JsService.currentBattleHasEnemyTrainer",
         "JsService.resetStarterToDefault",
+        // combat-v4-Observation: Kotlin reicht sie ohne DTO an den DQN-Worker durch; der Contract ist das JSON-Schema
+        // docs/rl-schema/combat-transition.schema.json, erzeugt vom gemeinsamen Builder src/main/ts/lib/combat-observation.ts.
+        "JsService.getCombatObservationJson",
         "JsUiService.setModifierOptionsCursor",
         "JsUiService.setPokeBallCursor",
         "JsUiService.setPokemonSelectCursor",

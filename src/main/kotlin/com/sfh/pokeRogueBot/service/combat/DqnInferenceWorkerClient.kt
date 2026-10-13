@@ -40,11 +40,31 @@ class DqnInferenceWorkerClient(
     @Volatile
     private var reader: BufferedReader? = null
 
+    /** Feature-Version des geladenen Checkpoints (6 = combat-v3, 7 = combat-v4); null bis zur ersten Abfrage. */
+    @Volatile
+    private var featureSchemaVersion: Int? = null
+
     @Synchronized
     fun inferAction(state: Map<String, Any>, actionMask: List<Int>): Int? {
+        val payload = request(mapOf("state" to state, "action_mask" to actionMask), "inference") ?: return null
+        return payload.get("action")?.takeIf(JsonNode::isInt)?.asInt()
+    }
+
+    /**
+     * Feature-Version des Checkpoints, einmal pro Worker-Start per `describe` erfragt. Davon haengt ab, ob Zwangswechsel und
+     * Wechselangebot mit eigener Entscheidungsart (combat-v4) oder wie bisher als Command-State mit Wechsel-Maske laufen.
+     */
+    @Synchronized
+    fun featureSchemaVersion(): Int? {
+        featureSchemaVersion?.let { return it }
+        val payload = request(mapOf("describe" to true), "describe") ?: return null
+        return payload.get("feature_schema_version")?.takeIf(JsonNode::isInt)?.asInt()?.also { featureSchemaVersion = it }
+    }
+
+    private fun request(body: Map<String, Any>, label: String): JsonNode? {
         val checkpointFile = File(checkpointPath)
         if (!checkpointFile.exists()) {
-            log.warn("DQN checkpoint not found at {}, skipping model inference", checkpointFile.absolutePath)
+            log.warn("DQN checkpoint not found at {}, skipping model {}", checkpointFile.absolutePath, label)
             return null
         }
 
@@ -53,8 +73,7 @@ class DqnInferenceWorkerClient(
 
             val currentWriter = writer ?: return null
             val currentReader = reader ?: return null
-            val request = objectMapper.writeValueAsString(mapOf("state" to state, "action_mask" to actionMask))
-            currentWriter.write(request)
+            currentWriter.write(objectMapper.writeValueAsString(body))
             currentWriter.newLine()
             currentWriter.flush()
 
@@ -66,14 +85,14 @@ class DqnInferenceWorkerClient(
 
             val payload = objectMapper.readTree(rawResponse)
             if (payload.hasNonNull("error")) {
-                log.warn("DQN worker returned inference error: {}", payload.get("error").asText())
-                restartWorker("worker returned inference error")
+                log.warn("DQN worker returned {} error: {}", label, payload.get("error").asText())
+                restartWorker("worker returned $label error")
                 null
             } else {
-                payload.get("action")?.takeIf(JsonNode::isInt)?.asInt()
+                payload
             }
         } catch (ex: Exception) {
-            log.warn("Persistent DQN inference failed, restarting worker", ex)
+            log.warn("Persistent DQN {} failed, restarting worker", label, ex)
             restartWorker("request failure")
             null
         }
@@ -147,6 +166,7 @@ class DqnInferenceWorkerClient(
         writer = null
         reader = null
         process = null
+        featureSchemaVersion = null
     }
 
     override fun destroy() {

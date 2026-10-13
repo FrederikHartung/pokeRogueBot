@@ -11,7 +11,7 @@ TRAIN_DIR = Path(__file__).resolve().parents[1] / "offline-dqn"
 if str(TRAIN_DIR) not in sys.path:
     sys.path.insert(0, str(TRAIN_DIR))
 
-from train_dqn_offline import FEATURE_SCHEMA_VERSION, QNetwork, build_feature_names, encode_state
+from train_dqn_offline import SUPPORTED_FEATURE_SCHEMA_VERSIONS, QNetwork, build_feature_names, encode_state
 
 
 def _sanitize_action_mask(mask: object, action_dim: int) -> List[float]:
@@ -24,16 +24,18 @@ def _sanitize_action_mask(mask: object, action_dim: int) -> List[float]:
     return sanitized
 
 
-def load_model(checkpoint_path: str, device: str) -> tuple[QNetwork, int]:
+def load_model(checkpoint_path: str, device: str) -> tuple[QNetwork, int, int]:
+    """Laedt einen Checkpoint; die Feature-Version des Checkpoints (6 = combat-v3, 7 = combat-v4) waehlt den Encoder."""
     checkpoint = torch.load(checkpoint_path, map_location=device)
     checkpoint_schema_version = int(checkpoint.get("feature_schema_version", 1))
-    if checkpoint_schema_version != FEATURE_SCHEMA_VERSION:
+    if checkpoint_schema_version not in SUPPORTED_FEATURE_SCHEMA_VERSIONS:
         raise ValueError(
-            f"Checkpoint feature schema version {checkpoint_schema_version} does not match runtime version {FEATURE_SCHEMA_VERSION}"
+            f"Checkpoint feature schema version {checkpoint_schema_version} is not supported "
+            f"(supported: {', '.join(str(v) for v in SUPPORTED_FEATURE_SCHEMA_VERSIONS)})"
         )
 
     checkpoint_feature_names = checkpoint.get("feature_names")
-    runtime_feature_names = build_feature_names()
+    runtime_feature_names = build_feature_names(checkpoint_schema_version)
     if isinstance(checkpoint_feature_names, list) and checkpoint_feature_names != runtime_feature_names:
         raise ValueError("Checkpoint feature names do not match current runtime feature order")
 
@@ -48,11 +50,17 @@ def load_model(checkpoint_path: str, device: str) -> tuple[QNetwork, int]:
     model = QNetwork(input_dim, hidden_dims, output_dim).to(device)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
-    return model, output_dim
+    return model, output_dim, checkpoint_schema_version
 
 
-def select_action(model: QNetwork, state: Dict, action_mask: List[float], device: str) -> int:
-    state_vec, encoded_mask = encode_state(state)
+def select_action(
+    model: QNetwork,
+    state: Dict,
+    action_mask: List[float],
+    device: str,
+    feature_schema_version: int,
+) -> int:
+    state_vec, encoded_mask = encode_state(state, feature_schema_version)
     mask = action_mask if any(value > 0.5 for value in action_mask) else encoded_mask
 
     valid_indices = [idx for idx, value in enumerate(mask) if value > 0.5]
@@ -78,10 +86,10 @@ def main() -> None:
 
     payload = json.load(fp=open(0, "r", encoding="utf-8"))
     state = payload.get("state") if isinstance(payload.get("state"), dict) else {}
-    model, output_dim = load_model(args.checkpoint, args.device)
+    model, output_dim, feature_schema_version = load_model(args.checkpoint, args.device)
     action_mask = _sanitize_action_mask(payload.get("action_mask"), output_dim)
 
-    action = select_action(model, state, action_mask, args.device)
+    action = select_action(model, state, action_mask, args.device, feature_schema_version)
 
     print(json.dumps({"action": action}))
 

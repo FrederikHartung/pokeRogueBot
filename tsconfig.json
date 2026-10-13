@@ -66,6 +66,10 @@
         "pokerogue/src/data/*.ts"
       ],
 
+      // Not a submodule alias: shared bot modules (src/main/ts/lib/) used by collector templates. The collector runners
+      // copy the module next to the generated test and rewrite the import (combat-observation-module.ts).
+      "#bot-ts/*": ["src/main/ts/lib/*.ts"],
+
       // these must always be last
       "#test/*": ["pokerogue/test/*.ts"],
       "#app/*": ["pokerogue/src/*.ts"]

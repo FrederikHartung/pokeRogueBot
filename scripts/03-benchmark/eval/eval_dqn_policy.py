@@ -187,7 +187,12 @@ def summarize(records: List[Dict]) -> Tuple[Dict, List[Dict]]:
     for episode_id, steps in episodes.items():
         ordered = sorted(steps, key=lambda step: int(step.get("step_index", 0)))
         episode_reward = sum(float(step.get("reward", 0.0)) for step in ordered)
-        turns = len(ordered)
+        # combat-v4: Zwangswechsel und Wechselangebot sind eigene Transitions, aber keine Kampfzuege.
+        turns = sum(
+            1
+            for step in ordered
+            if int((step.get("state") if isinstance(step.get("state"), dict) else {}).get("decision_kind", 0) or 0) == 0
+        )
         outcome = classify_outcome(ordered[-1])
 
         if outcome == "win":

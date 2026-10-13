@@ -19,10 +19,45 @@ except ModuleNotFoundError as exc:
 
 
 ACTION_DIM = 10  # 0..3 move slots, 4..9 party switch targets
-FEATURE_SCHEMA_VERSION = 6
+# Feature-Versionen: 6 = combat-v3-State, 7 = combat-v4-State (docs/rl-schema/combat-transition.schema.json).
+# Neue Trainings nutzen v4; v3 bleibt fuer bestehende Checkpoints lauffaehig (Inferenz waehlt den Encoder per Checkpoint).
+FEATURE_SCHEMA_VERSION_V3 = 6
+FEATURE_SCHEMA_VERSION_V4 = 7
+FEATURE_SCHEMA_VERSION = FEATURE_SCHEMA_VERSION_V4
+SUPPORTED_FEATURE_SCHEMA_VERSIONS = (FEATURE_SCHEMA_VERSION_V3, FEATURE_SCHEMA_VERSION_V4)
 WAVE_INDEX_SCALE = 100.0
 LEVEL_SCALE = 100.0
 TYPE_ID_SCALE = 20.0
+V4_WAVE_INDEX_SCALE = 200.0
+V4_LEVEL_SCALE = 200.0
+TYPE_COUNT = 19  # PokemonType 0..18 (NORMAL..STELLAR)
+STATUS_COUNT = 7  # StatusEffect NONE..BURN ohne FAINT
+STAT_STAGE_COUNT = 7  # ATK, DEF, SPATK, SPDEF, SPD, ACC, EVA
+WEATHER_COUNT = 10
+TERRAIN_COUNT = 5
+EFFECT_CATEGORY_COUNT = 9
+DECISION_KIND_COUNT = 3
+VOLATILE_KEYS = (
+    "confused",
+    "seeded",
+    "substitute",
+    "trapped",
+    "locked_into_move",
+    "taunted",
+    "infatuated",
+    "drowsy",
+    "perish_song",
+)
+SIDE_CONDITION_KEYS = (
+    ("spikes_layers", 3.0),
+    ("toxic_spikes_layers", 2.0),
+    ("stealth_rock", 1.0),
+    ("sticky_web", 1.0),
+    ("reflect", 1.0),
+    ("light_screen", 1.0),
+    ("aurora_veil", 1.0),
+    ("tailwind", 1.0),
+)
 
 class QNetwork(nn.Module):
     def __init__(self, input_dim: int, hidden_dims: List[int], output_dim: int):
@@ -39,7 +74,108 @@ class QNetwork(nn.Module):
         return self.net(x)
 
 
-def build_feature_names() -> List[str]:
+def build_feature_names(feature_schema_version: int = FEATURE_SCHEMA_VERSION) -> List[str]:
+    if feature_schema_version == FEATURE_SCHEMA_VERSION_V4:
+        return _build_feature_names_v4()
+    if feature_schema_version == FEATURE_SCHEMA_VERSION_V3:
+        return _build_feature_names_v3()
+    raise ValueError(f"Unsupported feature schema version {feature_schema_version}")
+
+
+V3_GLOBAL_FEATURES = [
+    "wave_index",
+    "player_hp_ratio",
+    "enemy_hp_ratio",
+    "player_hp_bucket",
+    "enemy_hp_bucket",
+    "hp_diff_bucket",
+    "level_gap_bucket",
+    "is_trainer_battle",
+    "has_legal_switch",
+    "active_hp_critical",
+    "bench_has_healthier_switch",
+    "bench_has_better_matchup_than_active",
+    "active_can_finish_enemy",
+    "alive_bench_count_bucket",
+    "healthy_bench_count_bucket",
+    "best_switch_matchup_bucket",
+    "worst_switch_risk_bucket",
+    "speed_order_advantage",
+    "enemy_has_known_priority_threat",
+    "active_has_any_first_strike_move",
+    "active_best_damage_bucket",
+    "enemy_best_damage_into_active_bucket",
+    "active_survives_next_hit",
+    "enemy_survives_best_hit",
+]
+V3_MOVE_FEATURES = [
+    "available",
+    "power_bucket",
+    "effectiveness_bucket",
+    "stab",
+    "pp_low",
+    "priority_bucket",
+    "acts_first_if_used",
+    "can_ko_before_enemy_moves",
+    "move_kind_bucket",
+    "damage_class_bucket",
+    "estimated_damage_ratio_bucket",
+    "estimated_ko_turns_bucket",
+    "accuracy_bucket",
+    "uses_best_offense_stat",
+    "target_immunity_risk",
+]
+V3_SLOT_COMBAT_FEATURES = [
+    "best_damage_into_enemy_bucket",
+    "expected_incoming_damage_bucket",
+    "speed_advantage_bucket",
+    "survives_one_hit",
+    "can_threaten_ko_bucket",
+]
+
+
+def _battler_feature_names(prefix: str) -> List[str]:
+    names = [f"{prefix}_status_{i}" for i in range(STATUS_COUNT)]
+    names.extend(f"{prefix}_stat_stage_{i}" for i in range(STAT_STAGE_COUNT))
+    names.extend(f"{prefix}_volatile_{key}" for key in VOLATILE_KEYS)
+    return names
+
+
+def _build_feature_names_v4() -> List[str]:
+    names: List[str] = list(V3_GLOBAL_FEATURES)
+    names.extend(f"decision_kind_{i}" for i in range(DECISION_KIND_COUNT))
+    names.extend(["last_action_was_switch", "consecutive_switch_bucket", "battle_turn_bucket"])
+    names.extend(_battler_feature_names("active"))
+    names.extend(_battler_feature_names("enemy"))
+    names.extend(f"enemy_type_{i}" for i in range(TYPE_COUNT))
+    names.extend(["enemy_remaining_team_count", "enemy_team_hp_ratio"])
+    names.extend(f"field_weather_{i}" for i in range(WEATHER_COUNT))
+    names.extend(f"field_terrain_{i}" for i in range(TERRAIN_COUNT))
+    names.append("field_trick_room")
+    for side in ("player_side", "enemy_side"):
+        names.extend(f"field_{side}_{key}" for key, _ in SIDE_CONDITION_KEYS)
+    for i in range(4):
+        names.extend(f"move_{i}_{key}" for key in V3_MOVE_FEATURES)
+        names.extend([f"move_{i}_estimated_damage_ratio", f"move_{i}_pp_ratio"])
+        names.extend(f"move_{i}_effect_category_{c}" for c in range(EFFECT_CATEGORY_COUNT))
+        names.append(f"move_{i}_effect_still_useful")
+    for i in range(6):
+        names.extend([
+            f"party_slot_{i}_present",
+            f"party_slot_{i}_active",
+            f"party_slot_{i}_fainted",
+            f"party_slot_{i}_hp_ratio",
+            f"party_slot_{i}_level",
+        ])
+        names.extend(f"party_slot_{i}_type_{t}" for t in range(TYPE_COUNT))
+        names.extend(f"party_slot_{i}_{key}" for key in V3_SLOT_COMBAT_FEATURES)
+        names.extend(f"party_slot_{i}_status_{s}" for s in range(STATUS_COUNT))
+        names.append(f"party_slot_{i}_is_last_switch_origin")
+    names.extend(f"action_mask_{i}" for i in range(ACTION_DIM))
+    return names
+
+
+def _build_feature_names_v3() -> List[str]:
     names: List[str] = [
         "wave_index",
         "player_hp_ratio",
@@ -127,7 +263,159 @@ def _normalize(value, max_value: float, default: float = 0.0) -> float:
     return max(0.0, min(1.0, numeric / max_value))
 
 
-def encode_state(state: Dict) -> Tuple[List[float], List[float]]:
+def _one_hot(value, size: int) -> List[float]:
+    index = int(_safe_num(value, 0.0))
+    return [1.0 if i == index else 0.0 for i in range(size)]
+
+
+def _multi_hot(values, size: int) -> List[float]:
+    hot = [0.0] * size
+    for value in values if isinstance(values, list) else []:
+        index = int(_safe_num(value, -1.0))
+        if 0 <= index < size:
+            hot[index] = 1.0
+    return hot
+
+
+def _mask_of(state: Dict) -> List[float]:
+    action_mask = state.get("action_mask") if isinstance(state.get("action_mask"), list) else [1, 1, 1, 1]
+    return [1.0 if (action_mask[i] if i < len(action_mask) else 0) == 1 else 0.0 for i in range(ACTION_DIM)]
+
+
+def _encode_battler(battler: Dict) -> List[float]:
+    stages = battler.get("stat_stages") if isinstance(battler.get("stat_stages"), list) else []
+    volatile = battler.get("volatile") if isinstance(battler.get("volatile"), dict) else {}
+    features = _one_hot(battler.get("status"), STATUS_COUNT)
+    features.extend(
+        max(-1.0, min(1.0, _safe_num(stages[i] if i < len(stages) else 0, 0.0) / 6.0)) for i in range(STAT_STAGE_COUNT)
+    )
+    features.extend(_safe_num(volatile.get(key), 0.0) for key in VOLATILE_KEYS)
+    return features
+
+
+def _v3_global_features(state: Dict, wave_scale: float) -> List[float]:
+    return [
+        _normalize(state.get("wave_index"), wave_scale),
+        _safe_num(state.get("player_hp_ratio"), 0.0),
+        _safe_num(state.get("enemy_hp_ratio"), 0.0),
+        _normalize(state.get("player_hp_bucket"), 5.0),
+        _normalize(state.get("enemy_hp_bucket"), 5.0),
+        _normalize(state.get("hp_diff_bucket"), 6.0),
+        _normalize(state.get("level_gap_bucket"), 8.0),
+        _safe_num(state.get("is_trainer_battle"), 0.0),
+        _safe_num(state.get("has_legal_switch"), 0.0),
+        _safe_num(state.get("active_hp_critical"), 0.0),
+        _safe_num(state.get("bench_has_healthier_switch"), 0.0),
+        _safe_num(state.get("bench_has_better_matchup_than_active"), 0.0),
+        _safe_num(state.get("active_can_finish_enemy"), 0.0),
+        _normalize(state.get("alive_bench_count_bucket"), 3.0),
+        _normalize(state.get("healthy_bench_count_bucket"), 3.0),
+        _normalize(state.get("best_switch_matchup_bucket"), 4.0),
+        _normalize(state.get("worst_switch_risk_bucket"), 3.0),
+        _normalize(state.get("speed_order_advantage"), 2.0),
+        _safe_num(state.get("enemy_has_known_priority_threat"), 0.0),
+        _safe_num(state.get("active_has_any_first_strike_move"), 0.0),
+        _normalize(state.get("active_best_damage_bucket"), 4.0),
+        _normalize(state.get("enemy_best_damage_into_active_bucket"), 4.0),
+        _safe_num(state.get("active_survives_next_hit"), 0.0),
+        _safe_num(state.get("enemy_survives_best_hit"), 0.0),
+    ]
+
+
+def _v3_move_features(move: Dict) -> List[float]:
+    return [
+        _safe_num(move.get("available"), 0.0),
+        _normalize(move.get("power_bucket"), 4.0),
+        _normalize(move.get("effectiveness_bucket"), 4.0),
+        _safe_num(move.get("stab"), 0.0),
+        _safe_num(move.get("pp_low"), 0.0),
+        _normalize(move.get("priority_bucket"), 2.0),
+        _safe_num(move.get("acts_first_if_used"), 0.0),
+        _safe_num(move.get("can_ko_before_enemy_moves"), 0.0),
+        _normalize(move.get("move_kind_bucket"), 2.0),
+        _normalize(move.get("damage_class_bucket"), 2.0),
+        _normalize(move.get("estimated_damage_ratio_bucket"), 4.0),
+        _normalize(move.get("estimated_ko_turns_bucket"), 3.0),
+        _normalize(move.get("accuracy_bucket"), 3.0),
+        _safe_num(move.get("uses_best_offense_stat"), 0.0),
+        _safe_num(move.get("target_immunity_risk"), 0.0),
+    ]
+
+
+def _encode_state_v4(state: Dict) -> Tuple[List[float], List[float]]:
+    if "decision_kind" not in state or not isinstance(state.get("field"), dict):
+        raise ValueError("combat-v4 encoder needs a combat-v4 state (decision_kind/field missing)")
+    features = _v3_global_features(state, V4_WAVE_INDEX_SCALE)
+    features.extend(_one_hot(state.get("decision_kind"), DECISION_KIND_COUNT))
+    features.extend([
+        _safe_num(state.get("last_action_was_switch"), 0.0),
+        _normalize(state.get("consecutive_switch_bucket"), 3.0),
+        _normalize(state.get("battle_turn_bucket"), 4.0),
+    ])
+    active = state.get("active") if isinstance(state.get("active"), dict) else {}
+    enemy = state.get("enemy") if isinstance(state.get("enemy"), dict) else {}
+    features.extend(_encode_battler(active))
+    features.extend(_encode_battler(enemy))
+    features.extend(_multi_hot(enemy.get("types"), TYPE_COUNT))
+    features.extend([
+        _normalize(enemy.get("remaining_team_count"), 6.0),
+        _safe_num(enemy.get("team_hp_ratio"), 0.0),
+    ])
+    field = state["field"]
+    features.extend(_one_hot(field.get("weather"), WEATHER_COUNT))
+    features.extend(_one_hot(field.get("terrain"), TERRAIN_COUNT))
+    features.append(_safe_num(field.get("trick_room"), 0.0))
+    for side_key in ("player_side", "enemy_side"):
+        side = field.get(side_key) if isinstance(field.get(side_key), dict) else {}
+        features.extend(_normalize(side.get(key), scale) for key, scale in SIDE_CONDITION_KEYS)
+
+    moves = state.get("moves") if isinstance(state.get("moves"), list) else []
+    for i in range(4):
+        move = moves[i] if i < len(moves) and isinstance(moves[i], dict) else {}
+        features.extend(_v3_move_features(move))
+        features.extend([
+            _normalize(move.get("estimated_damage_ratio"), 2.0),
+            _safe_num(move.get("pp_ratio"), 0.0),
+        ])
+        features.extend(_one_hot(move.get("effect_category"), EFFECT_CATEGORY_COUNT) if move else [0.0] * EFFECT_CATEGORY_COUNT)
+        features.append(_safe_num(move.get("effect_still_useful"), 0.0))
+
+    party_slots = state.get("party_slots") if isinstance(state.get("party_slots"), list) else []
+    for i in range(6):
+        slot = party_slots[i] if i < len(party_slots) and isinstance(party_slots[i], dict) else {}
+        present = _safe_num(slot.get("present"), 0.0)
+        features.extend([
+            present,
+            _safe_num(slot.get("active"), 0.0),
+            _safe_num(slot.get("fainted"), 0.0),
+            _safe_num(slot.get("hp_ratio"), 0.0),
+            _normalize(slot.get("level"), V4_LEVEL_SCALE),
+        ])
+        features.extend(_multi_hot(slot.get("types"), TYPE_COUNT))
+        features.extend([
+            _normalize(slot.get("best_damage_into_enemy_bucket"), 4.0),
+            _normalize(slot.get("expected_incoming_damage_bucket"), 4.0),
+            _normalize(slot.get("speed_advantage_bucket"), 2.0),
+            _safe_num(slot.get("survives_one_hit"), 0.0),
+            _normalize(slot.get("can_threaten_ko_bucket"), 3.0),
+        ])
+        features.extend(_one_hot(slot.get("status"), STATUS_COUNT) if present > 0.5 else [0.0] * STATUS_COUNT)
+        features.append(_safe_num(slot.get("is_last_switch_origin"), 0.0))
+
+    mask = _mask_of(state)
+    features.extend(mask)
+    return features, mask
+
+
+def encode_state(state: Dict, feature_schema_version: int = FEATURE_SCHEMA_VERSION) -> Tuple[List[float], List[float]]:
+    if feature_schema_version == FEATURE_SCHEMA_VERSION_V4:
+        return _encode_state_v4(state)
+    if feature_schema_version == FEATURE_SCHEMA_VERSION_V3:
+        return _encode_state_v3(state)
+    raise ValueError(f"Unsupported feature schema version {feature_schema_version}")
+
+
+def _encode_state_v3(state: Dict) -> Tuple[List[float], List[float]]:
     features: List[float] = [
         _normalize(state.get("wave_index"), WAVE_INDEX_SCALE),
         _safe_num(state.get("player_hp_ratio"), 0.0),
@@ -213,8 +501,9 @@ def encode_state(state: Dict) -> Tuple[List[float], List[float]]:
 
 
 class JsonlTransitionDataset(Dataset):
-    def __init__(self, path: str):
+    def __init__(self, path: str, feature_schema_version: int = FEATURE_SCHEMA_VERSION):
         self.path = path
+        self.feature_schema_version = feature_schema_version
         self.offsets = self._build_offsets(path)
         self._file_handle = None
 
@@ -233,7 +522,7 @@ class JsonlTransitionDataset(Dataset):
         line = handle.readline()
         if not line:
             raise IndexError(f"Dataset row {index} could not be read from {self.path}")
-        return parse_transition_row(line, index + 1)
+        return parse_transition_row(line, index + 1, self.feature_schema_version)
 
     def _get_file_handle(self):
         if self._file_handle is None or self._file_handle.closed:
@@ -254,7 +543,7 @@ class JsonlTransitionDataset(Dataset):
         return offsets
 
 
-def parse_transition_row(line: str, line_no: int) -> Dict[str, torch.Tensor]:
+def parse_transition_row(line: str, line_no: int, feature_schema_version: int = FEATURE_SCHEMA_VERSION) -> Dict[str, torch.Tensor]:
     record = json.loads(line)
     state = record.get("state")
     next_state = record.get("next_state")
@@ -267,8 +556,11 @@ def parse_transition_row(line: str, line_no: int) -> Dict[str, torch.Tensor]:
     if not isinstance(action, int) or action < 0 or action >= ACTION_DIM:
         raise ValueError(f"Invalid action in line {line_no}: {action}")
 
-    state_vec, state_mask = encode_state(state)
-    next_state_vec, next_mask = encode_state(next_state)
+    try:
+        state_vec, state_mask = encode_state(state, feature_schema_version)
+        next_state_vec, next_mask = encode_state(next_state, feature_schema_version)
+    except ValueError as exc:
+        raise ValueError(f"line {line_no}: {exc}") from exc
     if state_mask[action] <= 0.5:
         raise ValueError(f"Action {action} is not legal in line {line_no}")
 
@@ -282,6 +574,21 @@ def parse_transition_row(line: str, line_no: int) -> Dict[str, torch.Tensor]:
     }
 
 
+def detect_feature_schema_version(dataset_path: str) -> int:
+    """combat-v4-Zeilen (decision_kind bzw. meta.state_schema_version) -> 7, sonst combat-v3 -> 6."""
+    with open(dataset_path, "r", encoding="utf-8") as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            record = json.loads(line)
+            meta = record.get("meta") if isinstance(record.get("meta"), dict) else {}
+            state = record.get("state") if isinstance(record.get("state"), dict) else {}
+            if meta.get("state_schema_version") == "combat-v4" or "decision_kind" in state:
+                return FEATURE_SCHEMA_VERSION_V4
+            return FEATURE_SCHEMA_VERSION_V3
+    raise ValueError(f"No rows found in dataset: {dataset_path}")
+
+
 def train(config: Dict) -> None:
     dataset_path = config["dataset_path"]
     output_path = config.get("output_path", "./data/rl/models/dqn-combat-wave-library-bootstrap-combined-960.pt")
@@ -293,7 +600,11 @@ def train(config: Dict) -> None:
     random.seed(seed)
     torch.manual_seed(seed)
 
-    dataset = JsonlTransitionDataset(dataset_path)
+    feature_schema_version = int(config.get("feature_schema_version") or detect_feature_schema_version(dataset_path))
+    if feature_schema_version not in SUPPORTED_FEATURE_SCHEMA_VERSIONS:
+        raise ValueError(f"Unsupported feature_schema_version {feature_schema_version}")
+
+    dataset = JsonlTransitionDataset(dataset_path, feature_schema_version)
     dataset_size = len(dataset)
 
     input_dim = dataset.input_dim
@@ -334,6 +645,7 @@ def train(config: Dict) -> None:
         "training_start "
         f"dataset_rows={dataset_size} "
         f"input_dim={input_dim} "
+        f"feature_schema_version={feature_schema_version} "
         f"batch_size={batch_size} "
         f"epochs={epochs} "
         f"device={device}"
@@ -437,8 +749,8 @@ def train(config: Dict) -> None:
             "hidden_dims": hidden_dims,
             "dataset_path": dataset_path,
             "seed": seed,
-            "feature_schema_version": FEATURE_SCHEMA_VERSION,
-            "feature_names": build_feature_names(),
+            "feature_schema_version": feature_schema_version,
+            "feature_names": build_feature_names(feature_schema_version),
         },
         output_path,
     )
@@ -462,7 +774,7 @@ def train(config: Dict) -> None:
             "learning_rate": lr,
             "target_update_steps": target_update,
             "grad_clip_norm": grad_clip,
-            "feature_schema_version": FEATURE_SCHEMA_VERSION,
+            "feature_schema_version": feature_schema_version,
             "total_runtime_ms": total_runtime_ms,
             "epoch_metrics": epoch_metrics,
         }

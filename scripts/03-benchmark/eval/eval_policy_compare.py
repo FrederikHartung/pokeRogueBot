@@ -143,6 +143,11 @@ def output_path_for_label(label: str, output_dir: str) -> str:
     return os.path.abspath(os.path.join(output_dir, f"eval-{label}-benchmarked.jsonl"))
 
 
+def is_command_decision(row: Dict) -> bool:
+    state = row.get("state") if isinstance(row.get("state"), dict) else {}
+    return int(state.get("decision_kind", 0) or 0) == 0
+
+
 def summarize(rows: List[Dict]) -> Dict:
     episodes: Dict[str, List[Dict]] = {}
     for row in rows:
@@ -157,7 +162,8 @@ def summarize(rows: List[Dict]) -> Dict:
     for steps in episodes.values():
         ordered = sorted(steps, key=lambda item: int(item.get("step_index", 0)))
         total_reward += sum(float(item.get("reward", 0.0)) for item in ordered)
-        total_turns += len(ordered)
+        # combat-v4: Zwangswechsel und Wechselangebot sind eigene Transitions, aber keine Kampfzuege.
+        total_turns += sum(1 for item in ordered if is_command_decision(item))
         outcome = classify_outcome(ordered[-1])
         if outcome == "win":
             wins += 1
