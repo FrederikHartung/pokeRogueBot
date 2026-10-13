@@ -136,6 +136,7 @@ Fallstricke auf dem Server:
 - Repo-venv unter `.venv/` verwenden; die Remote-Helper nutzen sie automatisch.
 - Training: `npm run rl:train:dqn:wave-lib:v3` (bzw. `python3 scripts/02-training/offline-dqn/train_dqn_offline.py --config <config>`)
 - Eval: `npm run rl:eval:compare -- <args>`
+- Claude-Session als vierte Benchmark-Policy (einmal lokal erzeugen, dann per `--extra-baseline` einlesen; nur aus einem normalen Terminal, nicht aus einer Claude-Code-Session): `node scripts/03-benchmark/eval/run-claude-session-baseline.ts --model haiku --label <label>`, siehe `docs/claude-session-benchmark-policy.md`
 - Dataset pruefen: `npm run rl:check:dataset`, `npm run rl:report:dataset`
 
 **Submodul:**

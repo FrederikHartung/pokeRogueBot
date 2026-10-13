@@ -64,8 +64,8 @@ Kurzfristig ergaenzen:
       - `average_wave_reached = 8.2`
       - alle `5/5` Runs enden regulär mit `team_wipe_or_game_over`
       - im konkreten Sample `double_turns = 0`
-  - neue Prioritaet:
-    - stabilere Datengenerierung ueber mehr Seeds mit wieder aktivierten Wild-Doppelkampfen und erlaubter `LURE`-Familie validieren
+  - Prioritaet (Stand damals):
+    - stabilere Datengenerierung ueber mehr Seeds mit wieder aktivierten Wild-Doppelkampfen und erlaubter `LURE`-Familie validieren (erledigt, siehe Multi-Seed-Sanity-Stand unten und Stresskampagne 2026-10-13)
     - danach noch fehlende Shop-Survival-Items wie `Ether` nachziehen
     - dann erstes sinnvolles Modifier-DQN auf dem weniger kuenstlich beschnittenen Run-Space trainieren
   - offene Punkte fuer Double-Battle-Support:
@@ -76,7 +76,7 @@ Kurzfristig ergaenzen:
     - Regressionstest festziehen:
       - bevorzugter Referenzfall ist aktuell `modifier-strategic-fixed-seed-wave15-s3`
       - Referenz-Artefakt: `data/temp/rl/modifier-strategic-fixed-seed-wave14-seed3-runs20.json`
-      - aktuelles Ist: `20/20` Runs enden bei `wave_reached = 13` mit `double_battle_not_supported`
+      - frueheres Ist (vor dem Double-Fallback, inzwischen behoben): `20/20` Runs endeten bei `wave_reached = 13` mit `double_battle_not_supported`
   - neuer lokaler Zwischenstand:
     - der Referenzfall kommt inzwischen regulär bis `max_waves = 14`
     - belegt in `data/temp/rl/modifier-strategic-fixed-seed-wave14-seed3-run1-double-fallback-check-v12.json`
@@ -99,7 +99,7 @@ Kurzfristig ergaenzen:
     - freiwillige Double-Switches spaeter sauber erweitern; aktuell Phase-1-bewusst move-first ohne freiwillige Double-Switches
     - `Ether`
     - PP-Heilung im Shop (`Ether`/`Max Ether`/`Elixir`/`Max Elixir`) technisch nachziehen
-  - erster strategischer Smoke-Run bis `maxWave=11` lief technisch erfolgreich, kam aber inhaltlich nur bis Wave `4`; aktueller Fokus ist daher zunaechst Pipeline-Stabilitaet unter echten Gegnern statt sofort Trainingsqualitaet
+  - erster strategischer Smoke-Run bis `maxWave=11` lief technisch erfolgreich, kam aber inhaltlich nur bis Wave `4`; der Fokus lag daher zunaechst auf Pipeline-Stabilitaet unter echten Gegnern statt sofort Trainingsqualitaet (inzwischen stabil bis Wave 30, technische Fehler werden gesammelt statt abzubrechen)
   - terminaler Reward fuer Phase 1 primaer ueber erreichte Wave
   - geplanter naechster Strategics-Schritt nach Collector-Stabilitaet:
     - seed-lokales post-hoc Credit Assignment fuer Modifier-Steps
@@ -110,7 +110,7 @@ Kurzfristig ergaenzen:
   - kleines lokales Shaping fuer unkluge `skip`-Entscheidungen beibehalten
   - standardmaessiger Wave-Step-Timeout aktuell wieder `15000ms`; hoehere Werte nur noch fuer gezielte Debug-Laeufe
   - `LearnMovePhase` wird im Harness jetzt aktiv ueber eine kleine Portierung der bestehenden Kotlin-/Java-Logik bedient; der fruehere Learn-Move-Timeout ist damit nicht mehr der Hauptblocker
-  - aktueller Fokus fuer den naechsten Debug-Schritt:
+  - frueherer Debug-Fokus (erledigt):
     - strategischen Collector lokal stabil ueber `maxWave=11` und danach hoehere fruehe Wellen bringen
     - echte Trainer-/Wild-Kaempfe und deren terminale Abbrueche sauber klassifizieren
     - `battle_end_to_select_modifier_phase`
@@ -262,6 +262,18 @@ Verbindlicher Schema-Hinweis:
 - Forced-Switch nach KO hat jetzt einen eigenen Policy-Pfad; erste strukturierte Logs fuer `forced_switch_model`, `forced_switch_fallback`, `forced_switch_double_battle_fallback` und `forced_switch_enemy_party_empty` sind im DQN-Livepfad vorhanden
 - Umsetzungsplan Phase 4:
 - Live-Sonderfaelle absichern: `tryToCatch`, keine legalen Moves, Forced Switch, leere Gegnerparty, invalide Action-Mask, aktiver Slotwechsel nach KO
+
+Folgearbeiten aus der Fehlersammlung in beiden Pipelines (offen nach dem Merge von `feature/pipeline-failure-collection`)
+- Repro bei langen Modifier-Runs: pruefen, ob ein Run mit gleichem Seed, Run-Index und `decision_rng_seed` auch lange bis zum Fehlerzeitpunkt identisch ablaeuft (Contract-Test belegt Determinismus nur fuer kurze Runs); falls nicht, aufgezeichnete Aktionen nachspielen. Combat-Szenarien haben keinen Seed, dort ist ein Repro nur statistisch (`--repeat`).
+- Mehrere `GameManager` pro Test (Collector-Aufraeumen von `PromptHandler.runInterval` und Spies): Mechanismus in `docs/pokerogue-headless-test-harness-mechanics.md` als Unterkapitel und als Regressionstest unter `pokerogue/test/porubot/regressions/` festhalten.
+- `restoreOg()`-Entfernung auch in den 22 Modifier-Mask-Test-Templates (`scripts/90-dev/rl/templates/modifier-*-mask.test.template.ts`, `modifier-item-suite`) und in `scripts/90-dev/tools/dump-pokerogue-starter-defaults.mjs`; danach `npm run rl:test:modifier:item-suite`.
+- API-Drift nach Submodul-Bumps frueh erkennen: der Combat-Collector erzeugt seinen Testcode als String (nicht typgeprueft); mindestens nach jedem Bump `npm run rl:test:combat:collector-replays` und einen Combat-Smoke ausfuehren.
+- Live-Bot: beruecksichtigt die Wechsel-Logik bzw. die DQN-Maske `isTrapped()` (Signatur C)?
+- Wave-Library-Sync: Hash-Vergleich lokal vs. Server mit Kopieren und Neuerzeugen der Szenarien, Preflight-Warnung im Combat-Helper bei veralteten Szenarien, Pruefschritt im `AGENTS.md`-Ablauf fuer Combat-Laeufe.
+- Szenario-Abdeckung: die 311 V3-Szenarien enthalten keinen Doppelkampf und kaum Waves ueber 8; klaeren, ob ueber mehr Live-Runs, Doppelkampf-Snapshots aus der Modifier-Pipeline oder synthetische Szenarien.
+- Combat-Helper: `quick-smoke` und Szenario-Tests (Bot-Sonderfaelle, Timeout, Fehlerabbruch) analog zum Modifier-Helper; pruefen, ob die Pipeline `seeds`/`episodes_per_seed` an den Collector durchreicht.
+- Modifier-Remote: `start-smoke` nach dem Merge einmal laufen lassen.
+- Server: Rohdaten der Stresslaeufe (Trockenlauf 13.10.: 269 MB) mit `npm run ops:clean:pipeline-temp` aufraeumen und entscheiden, ob die Stress-Datensaetze als Trainingsdaten bleiben.
 
 Späterer Ausbau: Trainingsdaten mit der Claude-Session-Policy (Roadmap, nicht Teil des Benchmark-Slices)
 - Die Claude-Session-Policy (`docs/claude-session-benchmark-policy.md`, eine `claude -p`-Session pro Kampf, Entscheidungen wie ein Spieler mit Kampfverlauf) ist zunaechst nur als vierte Benchmark-Baseline gedacht.
@@ -525,7 +537,7 @@ Späterer Ausbau: Double Battles als eigener RL-Pfad
 - Vergleich gegen `always_move_0` auf den neuen Switch-lastigen Startzuständen separat auswerten
 
 7. Dataset-Qualitäts-Gates ergänzen
-- Anteil `truncated`/`timeout` überwachen
+- Anteil technischer Fehler ueberwachen (`technical-failure-signatures.json`, Notausschalter-Quote; Timeouts landen nicht mehr als `truncated` im Datensatz) sowie den Anteil per `max_steps_per_episode` gekappter Episoden
 - Anteil Schritte mit `action_mask_sum >= 2`
 - Anteil Switch-Aktionen und Verteilung über Waves
 - Bei schlechter Abdeckung: Run-Konfig anpassen statt blind trainieren
