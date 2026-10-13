@@ -11,7 +11,7 @@
     "max_waves": 15,
     "modifier_policy": "random_executable",
     "step_timeout_ms": 15000,
-    "run_process_timeout_ms": 300000,
+    "run_process_timeout_ms": 600000,
     "combat_dqn_device": "cpu",
     "combat_dqn_python": "python3"
   },

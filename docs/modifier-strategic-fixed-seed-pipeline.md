@@ -18,7 +18,7 @@ Fuer das grundsaetzliche Funktionsprinzip des Headless-Testharness (Phasen-Reihe
 Remote-Betrieb:
 
 - fuer die seed-basierte Remote-Datengenerierung gibt es jetzt einen eigenen Betriebs- und Startpfad:
-  - [modifier-strategic-seeded-remote.md](/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/docs/modifier-strategic-seeded-remote.md)
+  - [modifier-strategic-seeded-remote.md](modifier-strategic-seeded-remote.md)
 
 ## Status Quo
 
@@ -437,8 +437,8 @@ Aktuell bevorzugter Regression-Fall:
 - Seed: `modifier-strategic-fixed-seed-wave15-s3`
 - Collector: `strategic_fixed_seed`
 - Referenz-Artefakt: `data/temp/rl/modifier-strategic-fixed-seed-wave14-seed3-runs20.json`
-- aktuelles Verhalten:
-  - `20/20` Runs enden mit `double_battle_not_supported`
+- frueheres Verhalten (vor dem Double-Fallback, inzwischen behoben):
+  - `20/20` Runs endeten mit `double_battle_not_supported`
   - jeweils bei `wave_reached = 13`
   - der letzte gespeicherte Modifier-Step liegt ebenfalls auf `wave_index = 13`
 
@@ -1036,8 +1036,8 @@ Geplante Weiterentwicklung spaeter:
 
 Begleitende Dokumentation und Beispiele:
 
-- [docs/rl-schema/modifier-strategic-fixed-seed-output.schema.json](/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/docs/rl-schema/modifier-strategic-fixed-seed-output.schema.json)
-- [docs/rl-schema/modifier-strategic-fixed-seed-output.example.json](/Users/frederikhartung/Documents/GitRepos/Privat/pokeRogueBot/docs/rl-schema/modifier-strategic-fixed-seed-output.example.json)
+- [docs/rl-schema/modifier-strategic-fixed-seed-output.schema.json](rl-schema/modifier-strategic-fixed-seed-output.schema.json)
+- [docs/rl-schema/modifier-strategic-fixed-seed-output.example.json](rl-schema/modifier-strategic-fixed-seed-output.example.json)
 
 ## Langfristiges Trainingsziel
 
