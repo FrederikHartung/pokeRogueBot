@@ -29,7 +29,8 @@ import { PokemonType } from "#enums/pokemon-type";
 import { WeatherType } from "#enums/weather-type";
 import { TerrainType } from "#data/terrain";
 import type { CommandUiHandler } from "#ui/command-ui-handler";
-import { PartyOption, type PartyUiHandler } from "#ui/party-ui-handler";
+import type { PartyUiHandler } from "#ui/party-ui-handler";
+import { sendOutFromPartyUi } from "#test/porubot/harness/party-send-out";
 
 const TERMINAL_ON_EGG_LAPSE = "__COLLECTOR_TERMINAL_ON_EGG_LAPSE__" === "true";
 const STEP_TIMEOUT_MS = Number("__COLLECTOR_STEP_TIMEOUT_MS__");
@@ -363,44 +364,8 @@ export async function leavePartyOptionsOpenForTest(game: GameManager): Promise<b
   return partyInternals(handler).optionsMode === true;
 }
 
-// Ersetzt GameManager.doSwitchPokemon/doSelectPartyPokemon: die druecken im Party-Menue blind zweimal ACTION und
-// nehmen an, dass die oberste Option "Einwechseln" ist. Mit einem liegengebliebenen Options-Menue verschiebt
-// setCursor() aber den Options-Cursor, und das zweite ACTION oeffnet die Uebersicht (SUMMARY, Signatur E).
-// Hier: offenes Options-Menue schliessen, Slot setzen und pruefen, SEND_OUT gezielt anwaehlen.
-export function sendOutFromPartyUi(game: GameManager, partyIndex: number): boolean {
-  const handler = game.scene.ui.getHandler() as PartyUiHandler;
-  const internals = partyInternals(handler);
-  const target = game.scene.getPlayerParty()[partyIndex];
-  if (!target || target.isFainted() || target.isOnField()) {
-    console.log(`[collector-party-select] slot=${partyIndex} not selectable (fainted, on field or missing)`);
-    return false;
-  }
-  if (internals.optionsMode) {
-    console.log(`[collector-party-select] cleared stale party options (options=${internals.options.length})`);
-    handler.clearOptions();
-  }
-  handler.setCursor(partyIndex);
-  for (let attempts = 0; attempts < 8 && internals.cursor !== partyIndex; attempts += 1) {
-    handler.processInput(internals.cursor < partyIndex ? Button.DOWN : Button.UP);
-  }
-  if (internals.cursor !== partyIndex) {
-    console.log(`[collector-party-select] cursor stuck at ${internals.cursor}, wanted slot ${partyIndex}`);
-    return false;
-  }
-  handler.processInput(Button.ACTION);
-  const sendOutIndex = internals.optionsMode ? internals.options.indexOf(PartyOption.SEND_OUT) : -1;
-  if (sendOutIndex < 0) {
-    console.log(`[collector-party-select] no SEND_OUT option for slot ${partyIndex} (optionsMode=${internals.optionsMode})`);
-    if (internals.optionsMode) {
-      handler.clearOptions();
-    }
-    return false;
-  }
-  handler.setCursor(sendOutIndex);
-  handler.processInput(Button.ACTION);
-  return true;
-}
-
+// Wechsel ueber sendOutFromPartyUi aus dem Harness statt GameManager.doSwitchPokemon: dessen blinde ACTION-Folge
+// oeffnet bei liegengebliebenen Party-Optionen die Uebersicht (SUMMARY, Signatur E).
 export function selectSwitchByPartyIndex(game: GameManager, partyIndex: number): void {
   game.onNextPrompt("CommandPhase", UiMode.COMMAND, () => {
     const commandHandler = game.scene.ui.getHandler() as CommandUiHandler;

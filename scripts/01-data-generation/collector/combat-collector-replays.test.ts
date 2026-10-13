@@ -116,7 +116,7 @@ test("replay wild-w6-66cfee77fee6: switch with stale party options still sends o
   });
   // Der Test-Hook muss den Fehlerzustand tatsaechlich hergestellt haben, sonst prueft der Test nichts.
   assert.equal((stdout.match(/\[collector-test-hook\] stale_party_options=true/g) ?? []).length, 4);
-  assert.equal((stdout.match(/\[collector-party-select\] cleared stale party options/g) ?? []).length, 4);
+  assert.equal((stdout.match(/\[harness-party-select\] cleared stale party options/g) ?? []).length, 4);
   assert.deepEqual(failures, [], `technical failures: ${describeFailures(failures)}`);
   assert.equal(summary.regular_episodes, 4);
   assert.equal(summary.technical_episodes, 0);
