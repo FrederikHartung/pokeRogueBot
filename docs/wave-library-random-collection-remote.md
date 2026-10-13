@@ -223,6 +223,27 @@ Gleiches Szenario-Set wie V3 (`311` Szenarien, Waves `1-24`, `50` Episoden pro S
 
 Episoden enthalten mehr Transitions als unter V3, weil Zwangswechsel und Wechselangebot eigene Transitions sind; "Avg Turns" in der Eval zaehlt nur Kampfzuege.
 
+### Laufzeit im Vergleich zu V3 (Stand 2026-10-13)
+
+Der V4-50ep-Lauf dauert deutlich laenger als der V3-50ep-Lauf vom Maerz 2026 (damals ca. `2,5 h` gesamt). Fuer Laeufe ueber Nacht ist das unkritisch; Optimierung ist bewusst zurueckgestellt.
+
+Gemessen auf dem Server, gleiche Szenarien, `parallelism: 2` in beiden 50ep-Configs:
+
+| Lauf | State / Spielstand | Episoden pro Batch | Dauer pro Batch (Wave-1-Wildkaempfe) |
+|---|---|---|---|
+| V3-50ep, 2026-03-15 | combat-v3, Spiel vor v1.12 | 50 | `29-38 s` (4 Szenarien), Mittel ueber alle 36 Wave-1-Batches `68 s` |
+| combat-stress-v1, 2026-10-12 | combat-v3, Spiel v1.12 | 8 | Mittel `29 s` |
+| V4-50ep, 2026-10-13 | combat-v4, Spiel v1.12 | 50 | `88-142 s`, Mittel `111 s` (erste 4 Batches) |
+
+Einordnung (Schaetzung; die feste Startzeit pro Batch von grob `15-20 s` ist aus dem Smoke-Lauf abgeleitet, nicht exakt gemessen):
+
+- Pro Episode ca. `0,3 s` (Maerz, v3) -> ca. `1 s` (Oktober, v3) -> ca. `1,8 s` (Oktober, v4).
+- Den groesseren Teil hat das Spiel-Update auf v1.12 gebracht, noch vor combat-v4.
+- combat-v4 kostet zusaetzlich etwa Faktor `1,5-2`: pro Entscheidung simuliert der Builder den Schaden jedes Moves ueber das Spiel (`getAttackDamage({simulated:true})`) und baut Status, Feld und Gegnerteam zusammen. Wechselangebote spielen in Wave 1 noch keine Rolle.
+- Saubere Messung des v4-Anteils, falls spaeter noetig: dasselbe Szenario mit gleichem Seed lokal auf `504d06b` (vor combat-v4) und auf dem aktuellen Stand laufen lassen. Moeglicher Hebel: simulierte Schadenswerte pro Entscheidung zwischenspeichern.
+
+Die `ETA` im `status` rechnet `average_batch_duration_ms * verbleibende Batches` und ignoriert `parallelism`. Bei `parallelism: 2` ist die tatsaechliche Restzeit etwa halb so lang wie angezeigt (V4-50ep: angezeigt ca. `9,5 h`, realistisch ca. `4,5-5 h`).
+
 ## V3-Startpunkt (historisch)
 
 Fuer den naechsten breiteren Datensatzpfad ist jetzt eine V3-Variante vorbereitet:
