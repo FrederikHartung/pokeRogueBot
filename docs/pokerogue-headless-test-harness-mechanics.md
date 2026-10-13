@@ -248,6 +248,20 @@ Der Collector (`scripts/90-dev/rl/templates/modifier-fixed-seed-collector.test.t
 - `pokerogue/test/porubot/harness/single-driver-phase-interceptor.test.ts` (ohne Installation: Variante "move" haengt bis zum Timeout, Variante "switch" startet `SwitchSummonPhase` doppelt; mit Installation beide gruen).
 - Realer Repro (Seed `fresh-check-seed-2`, `max_waves=12`): vorher `step_timeout:advance_combat_after_action` in Welle 8, danach `max_waves_reached` (12/12 Wellen).
 
+### 3.12 Ein offenes Options-Menue im Party-Handler ueberlebt den Kampf - und lenkt `doSwitchPokemon` auf "Summary"
+
+`GameManager.doSwitchPokemon()` bzw. `doSelectPartyPokemon()` waehlen im Party-Menue blind: `setCursor(slot)`, ACTION (Optionen oeffnen), ACTION ("oberste Option"). Das geht nur gut, wenn der `PartyUiHandler` sauber ist:
+
+- `PartyUiHandler.clear()` setzt `optionsMode`/`options` **nicht** zurueck (nur `clearOptions()` tut das). Wird das Menue mit offenen Optionen verlassen (Moduswechsel), bleiben sie im Handler liegen.
+- Die UI-Handler gehoeren zur Szene. Der Combat-Collector legt pro Kampf einen neuen `GameManager` auf **derselben** Szene an, der Modifier-Collector spielt viele Wellen auf einer; der liegengebliebene Zustand ueberlebt also den Kampf.
+- Beim naechsten Wechsel verschiebt `setCursor(slot)` dann den **Options-Cursor** statt des Slot-Cursors. Das erste ACTION waehlt Option `slot` der alten Liste, bei Slot 1 ist das `SUMMARY`. Die Uebersicht bleibt offen, die `CommandPhase` kommt nie weiter: `advance_timeout:CommandPhase` mit `ui_mode=SUMMARY` (Signatur E, einmal in rund 3.100 Kaempfen).
+
+Die Collectors waehlen deshalb nicht mehr ueber `doSwitchPokemon`, sondern ueber `sendOutFromPartyUi` (Combat-Helper-Template, gleichlautend im Modifier-Template): offenes Options-Menue mit `clearOptions()` schliessen, Slot setzen und pruefen, `PartyOption.SEND_OUT` gezielt anwaehlen. Liegengebliebene Optionen werden als `[collector-party-select] cleared stale party options` geloggt. Die Diagnose bei Timeouts (`party_ui=...`) beschreibt seitdem immer den Party-Handler, nicht den gerade aktiven Handler.
+
+Offen: Der blinde Zwangswechsel in `pokerogue/test/porubot/harness/battle-command-advance.ts` (`doSelectPartyPokemon`) hat dieselbe Schwachstelle; eine Aenderung dort ist nicht additiv und braucht Zustimmung.
+
+**Belegt durch:** Replay `signature E` in `scripts/01-data-generation/collector/combat-collector-replays.test.ts`. Der Test stellt den Zustand per Test-Hook her (`POKEROGUE_COLLECTOR_TEST_STALE_PARTY_OPTIONS=1`: Party-Menue oeffnen, Optionen fuer Slot 1 oeffnen, zurueck in den Command-Modus) und wechselt im ersten Zug. Ohne Fix 4/4 Timeouts mit `ui_mode=SUMMARY`, mit Fix 4/4 regulaer.
+
 ## 4. Was `phaseInterceptor.to(target)` tatsaechlich garantiert - und was nicht
 
 ```ts

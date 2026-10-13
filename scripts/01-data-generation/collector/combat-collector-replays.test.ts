@@ -37,7 +37,9 @@ type CollectorSummary = {
   transitions: number;
 };
 
-function runCollectorReplay(scenarioName: string, episodes: number) {
+type ReplayOptions = { policy?: Record<string, unknown>; env?: Record<string, string> };
+
+function runCollectorReplay(scenarioName: string, episodes: number, options: ReplayOptions = {}) {
   const scenarioPath = path.join(scenarioDir, `${scenarioName}.json`);
   assert.ok(existsSync(scenarioPath), `scenario missing: ${scenarioPath}`);
   mkdirSync(workDir, { recursive: true });
@@ -52,11 +54,12 @@ function runCollectorReplay(scenarioName: string, episodes: number) {
     max_steps_per_episode: 300,
     test_timeout_ms: 600000,
     quiet_game_logs: true,
-    policy: { type: "random" },
+    policy: options.policy ?? { type: "random" },
   }, null, 2)}\n`, "utf8");
 
   const result = spawnSync("node", ["scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts", configPath], {
     cwd: repoRoot,
+    env: { ...process.env, ...options.env },
     encoding: "utf8",
     maxBuffer: 256 * 1024 * 1024,
   });
@@ -68,7 +71,7 @@ function runCollectorReplay(scenarioName: string, episodes: number) {
     ? readFileSync(failuresPath, "utf8").split("\n").filter(Boolean).map(line => JSON.parse(line))
     : [];
   const unhandledErrors = (result.stdout ?? "").match(/Unhandled (Rejection|Error)/g) ?? [];
-  return { summary, failures, unhandledErrors };
+  return { summary, failures, unhandledErrors, stdout: result.stdout ?? "" };
 }
 
 function describeFailures(failures: Array<Record<string, unknown>>): string {
@@ -97,6 +100,25 @@ test("replay wild-w16-31b95ce4e94d: no switch offered while trapped by Mean Look
   const { summary, failures, unhandledErrors } = runCollectorReplay("wild-w16-31b95ce4e94d", 8);
   assert.deepEqual(failures, [], `technical failures: ${describeFailures(failures)}`);
   assert.equal(summary.regular_episodes, 8);
+  assert.equal(summary.technical_episodes, 0);
+  assert.deepEqual(unhandledErrors, []);
+});
+
+test("replay wild-w6-66cfee77fee6: switch with stale party options still sends out (signature E)", () => {
+  const { summary, failures, unhandledErrors, stdout } = runCollectorReplay("wild-w6-66cfee77fee6", 4, {
+    policy: {
+      type: "external_command",
+      command: ["node", path.join(repoRoot, "scripts", "01-data-generation", "collector", "test-fixtures", "switch-first-policy-worker.ts")],
+      persistent: true,
+      timeout_ms: 10000,
+    },
+    env: { POKEROGUE_COLLECTOR_TEST_STALE_PARTY_OPTIONS: "1", POKEROGUE_COMBAT_STEP_TIMEOUT_MS: "8000" },
+  });
+  // Der Test-Hook muss den Fehlerzustand tatsaechlich hergestellt haben, sonst prueft der Test nichts.
+  assert.equal((stdout.match(/\[collector-test-hook\] stale_party_options=true/g) ?? []).length, 4);
+  assert.equal((stdout.match(/\[collector-party-select\] cleared stale party options/g) ?? []).length, 4);
+  assert.deepEqual(failures, [], `technical failures: ${describeFailures(failures)}`);
+  assert.equal(summary.regular_episodes, 4);
   assert.equal(summary.technical_episodes, 0);
   assert.deepEqual(unhandledErrors, []);
 });

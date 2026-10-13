@@ -18,6 +18,8 @@ import { Stat } from "#enums/stat";
 import { UiMode } from "#enums/ui-mode";
 import type { CommandPhase } from "#phases/command-phase";
 import { ModifierSelectUiHandler } from "#ui/modifier-select-ui-handler";
+import type { CommandUiHandler } from "#ui/command-ui-handler";
+import { PartyOption, type PartyUiHandler } from "#ui/party-ui-handler";
 import { PartyUiMode } from "#enums/party-ui-mode";
 import { GameManager } from "#test/framework/game-manager";
 import { PromptHandler } from "#test/helpers/prompt-handler";
@@ -2086,8 +2088,52 @@ function resolveCurrentTargetSelection(game: GameManager, action: DoubleSlotActi
   handler.processInput(Button.ACTION);
 }
 
+// Wie sendOutFromPartyUi im Combat-Collector-Helper (Signatur E): GameManager.doSwitchPokemon drueckt im
+// Party-Menue blind zweimal ACTION. Ein liegengebliebenes Options-Menue (PartyUiHandler.clear() setzt optionsMode
+// nicht zurueck, z. B. nach Item-Auswahl im Shop) lenkt das zweite ACTION auf "Summary", der Wechsel haengt.
+function sendOutFromPartyUi(game: GameManager, partyIndex: number): boolean {
+  const handler = game.scene.ui.getHandler() as PartyUiHandler;
+  const internals = handler as unknown as { optionsMode: boolean; options: number[]; cursor: number };
+  const target = game.scene.getPlayerParty()[partyIndex];
+  if (!target || target.isFainted() || target.isOnField()) {
+    console.error(`[modifier-fixed-seed-party-select] slot=${partyIndex} not selectable (fainted, on field or missing)`);
+    return false;
+  }
+  if (internals.optionsMode) {
+    console.error(`[modifier-fixed-seed-party-select] cleared stale party options (options=${internals.options.length})`);
+    handler.clearOptions();
+  }
+  handler.setCursor(partyIndex);
+  for (let attempts = 0; attempts < 8 && internals.cursor !== partyIndex; attempts += 1) {
+    handler.processInput(internals.cursor < partyIndex ? Button.DOWN : Button.UP);
+  }
+  if (internals.cursor !== partyIndex) {
+    console.error(`[modifier-fixed-seed-party-select] cursor stuck at ${internals.cursor}, wanted slot ${partyIndex}`);
+    return false;
+  }
+  handler.processInput(Button.ACTION);
+  const sendOutIndex = internals.optionsMode ? internals.options.indexOf(PartyOption.SEND_OUT) : -1;
+  if (sendOutIndex < 0) {
+    console.error(`[modifier-fixed-seed-party-select] no SEND_OUT option for slot ${partyIndex} (optionsMode=${internals.optionsMode})`);
+    if (internals.optionsMode) {
+      handler.clearOptions();
+    }
+    return false;
+  }
+  handler.setCursor(sendOutIndex);
+  handler.processInput(Button.ACTION);
+  return true;
+}
+
 function selectSwitchByPartyIndex(game: GameManager, partyIndex: number): void {
-  game.doSwitchPokemon(partyIndex);
+  game.onNextPrompt("CommandPhase", UiMode.COMMAND, () => {
+    const commandHandler = game.scene.ui.getHandler() as CommandUiHandler;
+    commandHandler.setCursor(2);
+    commandHandler.processInput(Button.ACTION);
+  });
+  game.onNextPrompt("CommandPhase", UiMode.PARTY, () => {
+    sendOutFromPartyUi(game, partyIndex);
+  });
 }
 
 function executeCombatAction(game: GameManager, action: number): void {

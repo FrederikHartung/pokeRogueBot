@@ -28,6 +28,8 @@ import { resolveLearnMoveIfNeeded } from "#test/porubot/harness/battle-command-a
 import { PokemonType } from "#enums/pokemon-type";
 import { WeatherType } from "#enums/weather-type";
 import { TerrainType } from "#data/terrain";
+import type { CommandUiHandler } from "#ui/command-ui-handler";
+import { PartyOption, type PartyUiHandler } from "#ui/party-ui-handler";
 
 const TERMINAL_ON_EGG_LAPSE = "__COLLECTOR_TERMINAL_ON_EGG_LAPSE__" === "true";
 const STEP_TIMEOUT_MS = Number("__COLLECTOR_STEP_TIMEOUT_MS__");
@@ -100,7 +102,9 @@ export function describePartyForDiagnostics(game: GameManager): string {
 }
 
 export function describePartyUiHandlerForDiagnostics(game: GameManager): string {
-  const handler = game.scene.ui?.getHandler?.() as any;
+  // Immer der Party-Handler, auch wenn gerade ein anderer Modus aktiv ist: sein liegengebliebener Zustand
+  // (optionsMode, options) ist bei Wechsel-Haengern die relevante Information (Signatur E).
+  const handler = (game.scene.ui?.handlers?.[UiMode.PARTY] ?? game.scene.ui?.getHandler?.()) as any;
   if (!handler) {
     return "handler=missing";
   }
@@ -269,24 +273,11 @@ export function resolveForcedSwitchIfNeeded(game: GameManager): "not_switch_phas
   const nextIndex = party.findIndex(member => !member.isFainted() && !member.isOnField() && member.isAllowedInBattle());
   if (nextIndex >= 0) {
     if (game.scene.ui?.getMode?.() === UiMode.PARTY) {
-      const handler = game.scene.ui.getHandler() as any;
-      if (typeof handler?.setCursor === "function") {
-        handler.setCursor(nextIndex);
-      }
-      if (typeof handler?.processInput === "function" && Number.isInteger(handler?.cursor) && handler.cursor !== nextIndex) {
-        const direction = handler.cursor < nextIndex ? Button.DOWN : Button.UP;
-        for (let attempts = 0; attempts < 8 && handler.cursor !== nextIndex; attempts += 1) {
-          handler.processInput(direction);
-        }
-      }
-      if (typeof handler?.processInput === "function") {
-        handler.processInput(Button.ACTION);
-        if (handler.optionsMode === true) {
-          handler.processInput(Button.ACTION);
-        }
-      }
+      sendOutFromPartyUi(game, nextIndex);
     } else if (battle?.__collectorForcedSwitchQueued !== nextIndex) {
-      game.doSelectPartyPokemon(nextIndex);
+      game.onNextPrompt("SwitchPhase", UiMode.PARTY, () => {
+        sendOutFromPartyUi(game, nextIndex);
+      });
       if (battle) {
         battle.__collectorForcedSwitchQueued = nextIndex;
       }
@@ -351,8 +342,74 @@ export function selectMoveByIndex(game: GameManager, actionIndex: number): void 
   game.selectTarget(actionIndex, BattlerIndex.ENEMY);
 }
 
+// Private Felder des Party-Handlers, die der Collector lesen muss. PartyUiHandler.clear() setzt optionsMode und
+// options nicht zurueck; ein offenes Options-Menue ueberlebt deshalb den Moduswechsel und den naechsten Kampf auf
+// derselben Szene (siehe docs/pokerogue-headless-test-harness-mechanics.md, Signatur E).
+type PartyUiHandlerInternals = { optionsMode: boolean; options: number[]; cursor: number };
+
+function partyInternals(handler: PartyUiHandler): PartyUiHandlerInternals {
+  return handler as unknown as PartyUiHandlerInternals;
+}
+
+// Nur fuer den Replay-Test: oeffnet im Party-Menue die Optionen fuer Slot 1 und verlaesst das Menue, ohne sie zu
+// schliessen. Gibt zurueck, ob danach ein offenes Options-Menue im Handler zurueckbleibt.
+export async function leavePartyOptionsOpenForTest(game: GameManager): Promise<boolean> {
+  const ui = game.scene.ui;
+  await ui.setMode(UiMode.PARTY, PartyUiMode.SWITCH, 0);
+  const handler = ui.getHandler() as PartyUiHandler;
+  handler.setCursor(1);
+  handler.processInput(Button.ACTION);
+  await ui.setMode(UiMode.COMMAND, 0);
+  return partyInternals(handler).optionsMode === true;
+}
+
+// Ersetzt GameManager.doSwitchPokemon/doSelectPartyPokemon: die druecken im Party-Menue blind zweimal ACTION und
+// nehmen an, dass die oberste Option "Einwechseln" ist. Mit einem liegengebliebenen Options-Menue verschiebt
+// setCursor() aber den Options-Cursor, und das zweite ACTION oeffnet die Uebersicht (SUMMARY, Signatur E).
+// Hier: offenes Options-Menue schliessen, Slot setzen und pruefen, SEND_OUT gezielt anwaehlen.
+export function sendOutFromPartyUi(game: GameManager, partyIndex: number): boolean {
+  const handler = game.scene.ui.getHandler() as PartyUiHandler;
+  const internals = partyInternals(handler);
+  const target = game.scene.getPlayerParty()[partyIndex];
+  if (!target || target.isFainted() || target.isOnField()) {
+    console.log(`[collector-party-select] slot=${partyIndex} not selectable (fainted, on field or missing)`);
+    return false;
+  }
+  if (internals.optionsMode) {
+    console.log(`[collector-party-select] cleared stale party options (options=${internals.options.length})`);
+    handler.clearOptions();
+  }
+  handler.setCursor(partyIndex);
+  for (let attempts = 0; attempts < 8 && internals.cursor !== partyIndex; attempts += 1) {
+    handler.processInput(internals.cursor < partyIndex ? Button.DOWN : Button.UP);
+  }
+  if (internals.cursor !== partyIndex) {
+    console.log(`[collector-party-select] cursor stuck at ${internals.cursor}, wanted slot ${partyIndex}`);
+    return false;
+  }
+  handler.processInput(Button.ACTION);
+  const sendOutIndex = internals.optionsMode ? internals.options.indexOf(PartyOption.SEND_OUT) : -1;
+  if (sendOutIndex < 0) {
+    console.log(`[collector-party-select] no SEND_OUT option for slot ${partyIndex} (optionsMode=${internals.optionsMode})`);
+    if (internals.optionsMode) {
+      handler.clearOptions();
+    }
+    return false;
+  }
+  handler.setCursor(sendOutIndex);
+  handler.processInput(Button.ACTION);
+  return true;
+}
+
 export function selectSwitchByPartyIndex(game: GameManager, partyIndex: number): void {
-  game.doSwitchPokemon(partyIndex);
+  game.onNextPrompt("CommandPhase", UiMode.COMMAND, () => {
+    const commandHandler = game.scene.ui.getHandler() as CommandUiHandler;
+    commandHandler.setCursor(2);
+    commandHandler.processInput(Button.ACTION);
+  });
+  game.onNextPrompt("CommandPhase", UiMode.PARTY, () => {
+    sendOutFromPartyUi(game, partyIndex);
+  });
 }
 
 export function executeAction(game: GameManager, action: number): void {

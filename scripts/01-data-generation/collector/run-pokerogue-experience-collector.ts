@@ -246,6 +246,7 @@ import {
   isCollectorEpisodeTerminalPhase,
   isVictorySafe,
   koTurnsBucket,
+  leavePartyOptionsOpenForTest,
   levelGapBucket,
   moveKindBucket,
   powerBucket,
@@ -557,6 +558,12 @@ describe("external combat collector", () => {
 
             const episodeStateVariant = selectEpisodeStateVariant(globalEpisodeIndex);
             applyStateVariant(game, episodeStateVariant, episodeId);
+            // Nur fuer den Replay-Test (Signatur E): hinterlaesst ein offenes Options-Menue im Party-Handler, wie es
+            // ein frueherer Kampf auf derselben Szene tun kann.
+            if (process.env.POKEROGUE_COLLECTOR_TEST_STALE_PARTY_OPTIONS === "1") {
+              const leftOpen = await leavePartyOptionsOpenForTest(game);
+              console.log(\`[collector-test-hook] stale_party_options=\${leftOpen}\`);
+            }
             let previousAction: number | null = null;
             let lastSwitchOriginPartyIndex: number | null = null;
             let consecutiveSwitchCount = 0;
