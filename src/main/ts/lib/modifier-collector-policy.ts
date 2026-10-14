@@ -31,6 +31,8 @@ export interface CollectorExecutability {
   executable: boolean;
   reason?: string;
   requiresPartyTarget?: boolean;
+  /** Nach dem Party-Ziel folgt eine Attacken-Auswahl (PartyUiMode.MOVE_MODIFIER). */
+  requiresMoveTarget?: boolean;
 }
 
 // Reward actions are either:
@@ -138,6 +140,12 @@ export const OFFLINE_BLOCKED_MODIFIER_TYPE_NAMES = new Set([
   "FusePokemonModifierType",
 ]);
 
+/**
+ * Belohnungen mit Attacken-Ziel, die der Collector ausfuehrt (Party-Slot, dann Attacke). TMs und Erinnerungspilz fuehren
+ * stattdessen in eine Lern-Entscheidung und bleiben bis zur Learn-Move-Policy gesperrt (docs/modifier-state-v1-draft.md 2.3).
+ */
+export const MOVE_TARGET_REWARD_IDS = new Set(["ETHER", "MAX_ETHER", "PP_UP", "PP_MAX"]);
+
 const LOCALE_KEY_ID = /^modifierType:ModifierType\.([A-Z0-9_]+)$/;
 
 /** Wie itemIdOf im Builder; Shop-Items haben keine Pool-id, ihr localeKey traegt den Schluessel. */
@@ -217,6 +225,9 @@ export function getActionExecutability(
       return { executable: false, reason: "blocked_by_offline_modifier_policy" };
     }
     if (typeof modifierType?.moveSelectFilter === "function") {
+      if (MOVE_TARGET_REWARD_IDS.has(normalizedModifierTypeId)) {
+        return { executable: true, requiresPartyTarget: true, requiresMoveTarget: true };
+      }
       return { executable: false, reason: "requires_move_selection" };
     }
     if (typeof modifierType?.selectFilter === "function") {

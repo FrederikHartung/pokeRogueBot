@@ -66,7 +66,8 @@
     "rl:pipeline:learn": "node scripts/01-data-generation/pipeline/run-learn-pipeline.ts",
     "rl:test:porubot:regressions": "cd pokerogue && npx vitest run test/porubot/regressions",
     "dev:clean": "node scripts/90-dev/clean-temp-data.ts",
-    "ops:clean:pipeline-temp": "node scripts/04-automation/maintenance/clean-pipeline-temp-data.ts"
+    "ops:clean:pipeline-temp": "node scripts/04-automation/maintenance/clean-pipeline-temp-data.ts",
+    "rl:test:modifier:collector-actions": "node scripts/90-dev/rl/run-pokerogue-modifier-collector-actions-test.ts"
   },
   "devDependencies": {
     "@types/node": "^24.5.2",

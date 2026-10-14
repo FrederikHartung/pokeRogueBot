@@ -51,7 +51,7 @@ Spalte `Strategic Collector`: ob der strategische Modifier-Collector das Item au
 
 - `ja`: ausfuehrbar; Ziel-Pokemon bzw. Attacke maskiert weiterhin der Builder nach den Spielregeln
 - `nein (gesperrt)`: bewusst gesperrt (`blocked_by_offline_modifier_policy`, ggf. mit `_todo`-Grund)
-- `nein (Attackenwahl nicht umgesetzt)`: braucht eine Attacken-Auswahl, die der Collector noch nicht faehrt (`requires_move_selection`)
+- `nein (Attackenwahl nicht umgesetzt)`: braucht eine Attacken-Auswahl, die der Collector noch nicht faehrt (`requires_move_selection`). Ausgefuehrt werden Party+Move-Belohnungen aus `MOVE_TARGET_REWARD_IDS` (Ether, AP-Items); TMs und Erinnerungspilz bleiben vorher gesperrt.
 - `nein (Kauf nicht umgesetzt)`: als Shop-Kauf nicht umgesetzt (`shop_item_execution_not_implemented`)
 
 Quelle der Regeln ist `src/main/ts/lib/modifier-collector-policy.ts`. `npm run rl:test:modifier:item-suite` erzeugt jedes Item ueber den echten Spiel-Pool, wertet die Regeln aus und bricht ab, wenn eine Zeile hier nicht dazu passt. Bei Aenderungen an den Regeln also diese Spalte mitziehen.
@@ -90,9 +90,9 @@ Quelle:
 | `FULL_HEAL` | Great / Shop | Party-Ziel | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` | ja |
 | `REVIVE`, `MAX_REVIVE` | Great / Ultra / Shop | Party-Ziel | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` | ja |
 | `SACRED_ASH` | Great / Shop | kein Ziel bzw. global | Nein | abgesichert | in Item-Suite mitbeobachtet | ja |
-| `ETHER`, `MAX_ETHER` | Common / Shop | Party+Move | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` | nein (Attackenwahl nicht umgesetzt) |
+| `ETHER`, `MAX_ETHER` | Common / Shop | Party+Move | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` | ja |
 | `ELIXIR`, `MAX_ELIXIR` | Great / Shop | Party-Ziel | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` | ja |
-| `PP_UP`, `PP_MAX` | Great / Ultra | Party+Move | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` | nein (Attackenwahl nicht umgesetzt) |
+| `PP_UP`, `PP_MAX` | Great / Ultra | Party+Move | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` | ja |
 
 ### Level, Nature und direkte Charakterentwicklung
 

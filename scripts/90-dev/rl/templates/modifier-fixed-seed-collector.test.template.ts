@@ -22,6 +22,11 @@ import type { CommandUiHandler } from "#ui/command-ui-handler";
 import { sendOutFromPartyUi } from "#test/porubot/harness/party-send-out";
 import { PartyUiMode } from "#enums/party-ui-mode";
 import { GameManager } from "#test/framework/game-manager";
+import { initSceneWithoutEncounterPhase } from "#test/utils/game-manager-utils";
+import { modifierTypes } from "#data/data-lists";
+import { ModifierTypeOption } from "#modifiers/modifier-type";
+import { generateModifierType } from "#mystery-encounters/encounter-phase-utils";
+import { SelectModifierPhase } from "#phases/select-modifier-phase";
 import { PromptHandler } from "#test/helpers/prompt-handler";
 import Phaser from "phaser";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -240,6 +245,11 @@ const STEP_TIMEOUT_MS = __STEP_TIMEOUT_MS__;
 const MAX_SHOP_PURCHASES = __MAX_SHOP_PURCHASES__;
 /** Rerolls pro Welle; die Kosten verdoppeln sich je Reroll, die Grenze haelt Zufallsruns trotzdem knapp. */
 const MAX_REROLLS_PER_WAVE = __MAX_REROLLS_PER_WAVE__;
+/**
+ * Nur `npm run rl:test:modifier:collector-actions`: gezielte Spieltests der Ausfuehrungspfade statt Datensammlung.
+ * In normalen Collector-Laeufen sind sie aus, damit jeder Batch nur sammelt.
+ */
+const COLLECTOR_ACTION_TESTS = process.env.POKEROGUE_MODIFIER_COLLECTOR_ACTION_TESTS === "1";
 const MAX_COMBAT_TURNS_PER_WAVE = 200;
 const FORCE_NORMALIZE_IVS = process.env.POKEROGUE_MODIFIER_FORCE_NORMALIZE_IVS === "1";
 const FORCE_NORMALIZE_NATURES = process.env.POKEROGUE_MODIFIER_FORCE_NORMALIZE_NATURES === "1";
@@ -2014,6 +2024,7 @@ async function selectModifierOptionAndResolvePartyTarget(
   rowCursor: number,
   cursor: number,
   targetPartyIndex?: number,
+  targetMoveIndex?: number,
 ): Promise<UiMode> {
   await waitForModifierInputReady(game);
   const handler = getModifierHandler(game);
@@ -2027,7 +2038,11 @@ async function selectModifierOptionAndResolvePartyTarget(
     const partyHandler = game.scene.ui.getHandler() as any;
     const partyUiMode = partyHandler?.partyUiMode;
 
-    if (partyUiMode === PartyUiMode.MODIFIER) {
+    if (partyUiMode === PartyUiMode.MODIFIER || partyUiMode === PartyUiMode.MOVE_MODIFIER) {
+      const isMoveModifier = partyUiMode === PartyUiMode.MOVE_MODIFIER;
+      if (isMoveModifier && targetMoveIndex == null) {
+        throw new Error("Move modifier reward requires a target_move_index");
+      }
       const targetIndex = targetPartyIndex ?? getFirstValidPartyTargetIndex(game);
       if (targetIndex < 0) {
         throw new Error("No valid party target for modifier reward");
@@ -2063,6 +2078,16 @@ async function selectModifierOptionAndResolvePartyTarget(
           options: getPartyOptionNames(partyHandler),
         }),
       );
+      if (isMoveModifier) {
+        // Das Optionsmenue listet MOVE_1..MOVE_n in Attacken-Reihenfolge; setCursor setzt im Optionsmodus den Options-Cursor.
+        if (!partyHandler.optionsMode) {
+          throw new Error("Move modifier options menu did not open");
+        }
+        partyHandler.setCursor(targetMoveIndex);
+        if (partyHandler.optionsCursor !== targetMoveIndex) {
+          throw new Error(`Move modifier option cursor mismatch: ${String(partyHandler.optionsCursor)} vs ${String(targetMoveIndex)}`);
+        }
+      }
       const secondActionResult = partyHandler.processInput(Button.ACTION);
       console.error(
         JSON.stringify({
@@ -2108,12 +2133,18 @@ async function waitForModifierSelectOrCommandPhaseAfterShopAction(
   throw new Error(`step_timeout:shop_action_followup:${timeoutMs}`);
 }
 
-async function executeTakeRewardAction(game: GameManager, rewardIndex: number, targetPartyIndex?: number): Promise<"command_phase"> {
+async function executeTakeRewardAction(
+  game: GameManager,
+  rewardIndex: number,
+  targetPartyIndex?: number,
+  targetMoveIndex?: number,
+): Promise<"command_phase"> {
   const followupMode = await selectModifierOptionAndResolvePartyTarget(
     game,
     toRewardRowCursor(),
     rewardIndex,
     targetPartyIndex,
+    targetMoveIndex,
   );
   console.error(
     `[modifier-fixed-seed-reward] after_select wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} ui=${UiMode[followupMode] ?? followupMode} reward_index=${rewardIndex}`,
@@ -2185,7 +2216,7 @@ async function executeModifierCandidate(
       if (candidate.reward_index == null) {
         throw new Error("Reward candidate missing reward_index");
       }
-      return executeTakeRewardAction(game, candidate.reward_index, candidate.target_party_index);
+      return executeTakeRewardAction(game, candidate.reward_index, candidate.target_party_index, candidate.target_move_index);
     case "buy_shop_item":
       if (candidate.shop_row_index == null || candidate.shop_column_index == null) {
         throw new Error("Shop candidate missing shop coordinates");
@@ -2474,7 +2505,73 @@ describe("modifier fixed seed collector", () => {
     });
   });
 
-  it("collects repeated fixed-seed modifier runs", async () => {
+  async function openSelectModifierPhaseWithRewards(game: GameManager, rewards: ModifierTypeOption[]): Promise<void> {
+    initSceneWithoutEncounterPhase(game.scene, STARTER_SPECIES);
+    const [bulbasaur, charmander, squirtle] = game.scene.getPlayerParty();
+    bulbasaur?.tryPopulateMoveset([MoveId.TACKLE, MoveId.GROWL, MoveId.VINE_WHIP]);
+    charmander?.tryPopulateMoveset([MoveId.SCRATCH, MoveId.GROWL, MoveId.EMBER]);
+    squirtle?.tryPopulateMoveset([MoveId.TACKLE, MoveId.TAIL_WHIP, MoveId.WATER_GUN]);
+    game.scene.phaseManager.unshiftPhase(new SelectModifierPhase(0, undefined, { guaranteedModifierTypeOptions: rewards }));
+    await game.phaseInterceptor.to("SelectModifierPhase");
+    await waitForModifierInputReady(game);
+  }
+
+  async function waitForCondition(condition: () => boolean, description: string): Promise<void> {
+    const startedAt = Date.now();
+    while (!condition()) {
+      if (Date.now() - startedAt > 5000) {
+        throw new Error(`Timed out waiting for ${description}`);
+      }
+      await sleep(25);
+    }
+  }
+
+  // Attacken-Ziel-Belohnungen ueber denselben UI-Pfad wie im Collector (Party-Slot, dann Attacke im Optionsmenue).
+  it.runIf(COLLECTOR_ACTION_TESTS)("collector action: ETHER restores PP of the chosen move only", async () => {
+    const game = new GameManager(phaserGame);
+    const ether = generateModifierType(modifierTypes.ETHER);
+    if (!ether) {
+      throw new Error("Failed to generate ETHER");
+    }
+    await openSelectModifierPhaseWithRewards(game, [new ModifierTypeOption(ether, 0)]);
+    const target = game.scene.getPlayerParty()[1]!;
+    const moveset = target.getMoveset();
+    moveset[0]!.ppUsed = 3;
+    moveset[1]!.ppUsed = 5;
+
+    const observation = buildCollectorObservation(game, "reward", 0, 0);
+    const candidate = observation.candidates.find(
+      entry => entry.kind === "take_reward" && entry.target_party_index === 1 && entry.target_move_index === 1,
+    );
+    expect(candidate?.mask).toBe(1);
+
+    await selectModifierOptionAndResolvePartyTarget(game, toRewardRowCursor(), 0, 1, 1);
+    await waitForCondition(() => moveset[1]!.ppUsed === 0, "ETHER to restore move 1");
+    expect(moveset[0]!.ppUsed).toBe(3);
+  });
+
+  it.runIf(COLLECTOR_ACTION_TESTS)("collector action: PP_UP raises PP of the chosen move only", async () => {
+    const game = new GameManager(phaserGame);
+    const ppUp = generateModifierType(modifierTypes.PP_UP);
+    if (!ppUp) {
+      throw new Error("Failed to generate PP_UP");
+    }
+    await openSelectModifierPhaseWithRewards(game, [new ModifierTypeOption(ppUp, 0)]);
+    const moveset = game.scene.getPlayerParty()[2]!.getMoveset();
+    const ppUpBefore = moveset.map(move => move.ppUp);
+
+    const observation = buildCollectorObservation(game, "reward", 0, 0);
+    const candidate = observation.candidates.find(
+      entry => entry.kind === "take_reward" && entry.target_party_index === 2 && entry.target_move_index === 2,
+    );
+    expect(candidate?.mask).toBe(1);
+
+    await selectModifierOptionAndResolvePartyTarget(game, toRewardRowCursor(), 0, 2, 2);
+    await waitForCondition(() => moveset[2]!.ppUp === ppUpBefore[2]! + 1, "PP_UP on move 2");
+    expect(moveset.map(move => move.ppUp)).toEqual(ppUpBefore.map((value, index) => (index === 2 ? value + 1 : value)));
+  });
+
+  it.skipIf(COLLECTOR_ACTION_TESTS)("collects repeated fixed-seed modifier runs", async () => {
     const episodes: EpisodeRecord[] = [];
 
     for (let localRunIndex = 0; localRunIndex < RUN_COUNT; localRunIndex += 1) {
