@@ -790,26 +790,15 @@ Wichtig:
 
 ### Seed-lokales Rank-Signal
 
-Der Phase-1-Vorschlag ist ein einfaches rank-basiertes Reward-Signal.
+Umgesetzt ist seit `modifier_training_transition_v3` ein stetiger seed-lokaler Score (`rankScoresForSeed` in `scripts/90-dev/rl/build-modifier-strategic-training-transitions.ts`):
 
-Beispiel:
+- `rank_score = (wave_reached - mean_seed) / max(std_seed, 1)`, gekappt auf `[-2, 2]`
+- `mean_seed` und `std_seed` (Populations-Standardabweichung) ueber die regulaeren Runs desselben Seeds
+- die Untergrenze 1 fuer die Streuung verhindert, dass eine Welle Unterschied zwischen fast gleichen Runs auf `+-2` aufgeblasen wird
+- Gleichstaende bei `wave_reached` bekommen denselben Wert; `local_reward_sum` (geshapter Sofort-Reward) beeinflusst den Score nicht mehr
+- bei nur einem Run pro Seed ist der Score immer `0`; `seed_run_count` in jeder Transition macht solche Seeds fuer das Training filterbar
 
-- oberes Segment eines Seeds: positives Signal
-- mittleres Segment: neutrales Signal
-- unteres Segment: negatives Signal
-
-Eine moegliche erste praktische Einteilung:
-
-- Top 20%: `+1.0`
-- mittlere 60%: `0.0`
-- untere 20%: `-1.0`
-
-Die genaue Prozentaufteilung ist spaeter feinjustierbar.
-
-Wichtig ist zunaechst nur:
-
-- gute Runs innerhalb desselben Seeds werden belohnt
-- schlechte Runs innerhalb desselben Seeds werden bestraft
+Bis `v2` galt eine grobe Einteilung (oberste 20 % `+1`, mittlere 60 % `0`, unterste 20 % `-1`, Gleichstaende ueber `completed_waves` und `local_reward_sum` aufgeloest). Dabei bekam der Grossteil der Schritte Credit 0, und das Vorzeichen hing bei Gleichstand am Sofort-Reward.
 
 ### Step-Discounting innerhalb eines Runs
 
@@ -866,10 +855,9 @@ Diese Trennung ist wichtig:
 
 1. Worker-Outputs eines Seed-Blocks einlesen.
 2. Runs pro Seed gruppieren.
-3. Innerhalb jedes Seeds nach `wave_reached` ranken.
-4. `rank_score` pro Run berechnen.
-5. `rank_score` mit Discounting auf alle Modifier-Steps des Runs verteilen.
-6. Daraus ein trainierbares Step-Dataset schreiben.
+3. Innerhalb jedes Seeds `rank_score` pro Run aus `wave_reached` berechnen (z-Score, siehe oben).
+4. `rank_score` mit Discounting auf alle Modifier-Steps des Runs verteilen.
+5. Daraus ein trainierbares Step-Dataset schreiben.
 
 ### Geplantes Trainingsartefakt
 
@@ -886,7 +874,8 @@ Ein solcher Datensatz soll pro Zeile mindestens enthalten:
 - `collector_variant`
 - `decision_stage`, `state`, `candidates`, `selected_candidate_index` (aus `modifier-transition-v1`, seit `modifier_training_transition_v2`)
 - `posthoc_credit`
-- `rank_score`
+- `rank_score`, `seed_run_count`
+- `immediate_reward` (Sofort-Reward aus `modifier-transition-v1`, getrennt vom post-hoc Credit)
 - `decision_rng_seed`
 - `wave_index`
 

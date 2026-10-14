@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { buildModifierStrategicTrainingTransitions } from "./build-modifier-strategic-training-transitions.ts";
+import { buildModifierStrategicTrainingTransitions, rankScoresForSeed } from "./build-modifier-strategic-training-transitions.ts";
 
 const exampleTransition = JSON.parse(
   readFileSync(
@@ -80,22 +80,49 @@ function createWorkerOutput({
   };
 }
 
-test("buildModifierStrategicTrainingTransitions ranks runs within the same seed", () => {
+test("buildModifierStrategicTrainingTransitions scores runs as seed-local z-scores", () => {
   const seed = "seed-a";
   const outputs = [
     createWorkerOutput({ workerId: "worker-0", seed, runIndex: 0, waveReached: 10 }),
     createWorkerOutput({ workerId: "worker-1", seed, runIndex: 1, waveReached: 7 }),
-    createWorkerOutput({ workerId: "worker-2", seed, runIndex: 2, waveReached: 3 }),
+    createWorkerOutput({ workerId: "worker-2", seed, runIndex: 2, waveReached: 4 }),
   ];
 
   const transitions = buildModifierStrategicTrainingTransitions(outputs, { gamma: 0.99 });
-  const run0 = transitions.filter(row => row.seed === seed && row.run_index === 0);
-  const run1 = transitions.filter(row => row.seed === seed && row.run_index === 1);
-  const run2 = transitions.filter(row => row.seed === seed && row.run_index === 2);
+  const scoreOf = (runIndex: number) => transitions.find(row => row.run_index === runIndex)?.rank_score;
+  // Mittelwert 7, Standardabweichung sqrt(6).
+  assert.ok(Math.abs(scoreOf(0)! - 3 / Math.sqrt(6)) < 1e-12);
+  assert.equal(scoreOf(1), 0);
+  assert.ok(Math.abs(scoreOf(2)! + 3 / Math.sqrt(6)) < 1e-12);
+  assert.ok(transitions.every(row => row.seed_run_count === 3));
+  // Jeder Schritt eines Runs bekommt denselben Score.
+  assert.ok(transitions.filter(row => row.run_index === 0).every(row => row.rank_score === scoreOf(0)));
+});
 
-  assert.ok(run0.every(row => row.rank_score === 1));
-  assert.ok(run1.every(row => row.rank_score === 0));
-  assert.ok(run2.every(row => row.rank_score === -1));
+test("rankScoresForSeed gives ties the same score regardless of the shaped reward", () => {
+  assert.deepEqual(rankScoresForSeed([6, 6, 6]), [0, 0, 0]);
+  const [a, b, c] = rankScoresForSeed([8, 8, 2]);
+  assert.equal(a, b);
+  assert.ok(a! > 0 && c! < 0);
+});
+
+test("rankScoresForSeed floors the spread at one wave and clips to [-2, 2]", () => {
+  // Eine Welle Unterschied: Streuung 0.5 wird auf 1 angehoben.
+  assert.deepEqual(rankScoresForSeed([5, 6]), [-0.5, 0.5]);
+  // Ein Ausreisser unter vielen gleichen Runs wird gekappt.
+  const scores = rankScoresForSeed([30, ...Array.from({ length: 19 }, () => 5)]);
+  assert.equal(scores[0], 2);
+  assert.ok(scores.slice(1).every(score => score < 0 && score > -1));
+  assert.deepEqual(rankScoresForSeed([9]), [0]);
+});
+
+test("buildModifierStrategicTrainingTransitions ignores local_reward_sum for the rank score", () => {
+  const outputs = [
+    createWorkerOutput({ workerId: "worker-0", seed: "seed-tie", runIndex: 0, waveReached: 6, localRewardSum: 3 }),
+    createWorkerOutput({ workerId: "worker-1", seed: "seed-tie", runIndex: 1, waveReached: 6, localRewardSum: 0 }),
+  ];
+  const transitions = buildModifierStrategicTrainingTransitions(outputs);
+  assert.ok(transitions.every(row => row.rank_score === 0 && row.posthoc_credit === 0));
 });
 
 test("buildModifierStrategicTrainingTransitions applies discounting by distance to end", () => {
@@ -124,7 +151,9 @@ test("buildModifierStrategicTrainingTransitions carries modifier-v1 state and ca
   ]);
 
   assert.equal(transitions.length, 1);
-  assert.equal(transitions[0]?.schema_version, "modifier_training_transition_v2");
+  assert.equal(transitions[0]?.schema_version, "modifier_training_transition_v3");
+  assert.equal(transitions[0]?.seed_run_count, 1);
+  assert.equal(transitions[0]?.rank_score, 0);
   assert.equal(transitions[0]?.decision_stage, exampleTransition.decision_stage);
   assert.deepEqual(transitions[0]?.state, exampleTransition.state);
   assert.deepEqual(transitions[0]?.candidates, exampleTransition.candidates);
@@ -196,7 +225,7 @@ test("buildModifierStrategicTrainingTransitions ignores technical terminations a
 
   assert.deepEqual(Array.from(new Set(transitions.map(entry => entry.seed))), ["seed-a"]);
   assert.deepEqual(Array.from(new Set(transitions.map(entry => entry.run_index))).sort(), [0, 1]);
-  // Rang nur ueber die beiden regulaeren Runs von seed-a: der bessere Run bekommt 1, der schlechtere -1.
+  // Score nur ueber die beiden regulaeren Runs von seed-a (Wellen 5 und 3, Streuung 1): +1 bzw. -1.
   assert.equal(transitions.find(entry => entry.run_index === 0)?.rank_score, 1);
   assert.equal(transitions.find(entry => entry.run_index === 1)?.rank_score, -1);
 });

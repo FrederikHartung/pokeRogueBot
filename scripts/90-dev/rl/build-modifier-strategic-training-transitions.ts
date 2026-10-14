@@ -2,8 +2,14 @@ import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { validateModifierStrategicFixedSeedOutput } from "./modifier-strategic-fixed-seed-contract.ts";
 
-/** v2: State und Kandidaten aus modifier-transition-v1 statt Positions-Maske. */
-export const MODIFIER_TRAINING_TRANSITION_SCHEMA_VERSION = "modifier_training_transition_v2";
+/**
+ * v2: State und Kandidaten aus modifier-transition-v1 statt Positions-Maske.
+ * v3: stetiger seed-lokaler rank_score (z-Score von wave_reached) statt +1/0/-1, dazu seed_run_count.
+ */
+export const MODIFIER_TRAINING_TRANSITION_SCHEMA_VERSION = "modifier_training_transition_v3";
+
+/** rank_score wird auf [-RANK_SCORE_CLIP, RANK_SCORE_CLIP] gekappt (docs/modifier-state-v1-draft.md, Abschnitt 5). */
+export const RANK_SCORE_CLIP = 2;
 
 export interface PostprocessOptions {
   gamma?: number;
@@ -31,6 +37,8 @@ export interface ModifierTrainingTransition {
   wave_reached: number;
   termination_reason: string;
   rank_score: number;
+  /** Regulaere Runs dieses Seeds; bei 1 ist rank_score immer 0 und traegt kein Signal. */
+  seed_run_count: number;
   distance_to_end: number;
   discount_factor: number;
   posthoc_credit: number;
@@ -44,10 +52,7 @@ interface NormalizedEpisode {
   worker_id: string;
   decision_rng_seed: string;
   wave_reached: number;
-  completed_waves: number;
   termination_reason: string;
-  local_reward_sum: number;
-  total_reward: number;
   steps: Array<Record<string, unknown>>;
   starter_config_id: string;
   combat_dqn_checkpoint: string;
@@ -119,10 +124,7 @@ function normalizeWorkerOutput(value: unknown): NormalizedOutput {
     worker_id: String(episode.worker_id ?? defaultWorkerId),
     decision_rng_seed: String(episode.decision_rng_seed),
     wave_reached: Number(episode.wave_reached),
-    completed_waves: Number(episode.completed_waves),
     termination_reason: String(episode.termination_reason),
-    local_reward_sum: Number(episode.local_reward_sum),
-    total_reward: Number(episode.total_reward),
     steps: (episode.steps as Array<Record<string, unknown>>).map(step => structuredClone(step)),
     starter_config_id: starterConfigId,
     combat_dqn_checkpoint: combatDqnCheckpoint,
@@ -151,35 +153,22 @@ function assertNoDuplicateRuns(episodes: NormalizedEpisode[]): void {
   }
 }
 
-function rankEpisodesForSeed(episodes: NormalizedEpisode[]): Array<{ episode: NormalizedEpisode; rank_score: number }> {
-  const sorted = [...episodes].sort((left, right) => {
-    if (right.wave_reached !== left.wave_reached) {
-      return right.wave_reached - left.wave_reached;
-    }
-    if (right.completed_waves !== left.completed_waves) {
-      return right.completed_waves - left.completed_waves;
-    }
-    if (right.local_reward_sum !== left.local_reward_sum) {
-      return right.local_reward_sum - left.local_reward_sum;
-    }
-    return left.run_index - right.run_index;
-  });
-
-  if (sorted.length === 1) {
-    return [{ episode: sorted[0]!, rank_score: 0 }];
+/**
+ * Seed-lokaler stetiger Score: (wave_reached - Mittelwert) / max(Standardabweichung, 1), gekappt auf [-2, 2].
+ * Gleichstaende bekommen denselben Wert; der geshapte Sofort-Reward beeinflusst den Score nicht.
+ * Die Untergrenze 1 fuer die Streuung verhindert, dass eine Welle Unterschied bei fast gleichen Runs auf +-2 aufgeblasen wird.
+ */
+export function rankScoresForSeed(wavesReached: number[]): number[] {
+  if (wavesReached.length === 0) {
+    return [];
   }
-
-  const edgeBucketSize = Math.max(1, Math.floor(sorted.length * 0.2));
-  const lastBottomIndex = sorted.length - edgeBucketSize;
-
-  return sorted.map((episode, index) => {
-    if (index < edgeBucketSize && index < lastBottomIndex) {
-      return { episode, rank_score: 1 };
-    }
-    if (index >= lastBottomIndex && index >= edgeBucketSize) {
-      return { episode, rank_score: -1 };
-    }
-    return { episode, rank_score: 0 };
+  const mean = wavesReached.reduce((sum, wave) => sum + wave, 0) / wavesReached.length;
+  const variance = wavesReached.reduce((sum, wave) => sum + (wave - mean) ** 2, 0) / wavesReached.length;
+  const scale = Math.max(Math.sqrt(variance), 1);
+  return wavesReached.map(wave => {
+    const score = (wave - mean) / scale;
+    // +0 statt -0, damit JSON und Gleichheitsvergleiche stabil bleiben.
+    return Math.min(RANK_SCORE_CLIP, Math.max(-RANK_SCORE_CLIP, score)) + 0;
   });
 }
 
@@ -187,6 +176,7 @@ function buildTransition(
   episode: NormalizedEpisode,
   step: Record<string, unknown>,
   rankScore: number,
+  seedRunCount: number,
   gamma: number,
   collectorSchemaVersion: string,
 ): ModifierTrainingTransition {
@@ -219,6 +209,7 @@ function buildTransition(
     wave_reached: episode.wave_reached,
     termination_reason: episode.termination_reason,
     rank_score: rankScore,
+    seed_run_count: seedRunCount,
     distance_to_end: distanceToEnd,
     discount_factor: discountFactor,
     posthoc_credit: rankScore * discountFactor,
@@ -248,12 +239,12 @@ export function buildModifierStrategicTrainingTransitions(
 
   const transitions: ModifierTrainingTransition[] = [];
   for (const [, seedEpisodes] of groupBySeed(episodes)) {
-    const rankedEpisodes = rankEpisodesForSeed(seedEpisodes);
-    for (const { episode, rank_score } of rankedEpisodes) {
+    const rankScores = rankScoresForSeed(seedEpisodes.map(episode => episode.wave_reached));
+    seedEpisodes.forEach((episode, index) => {
       for (const step of episode.steps) {
-        transitions.push(buildTransition(episode, step, rank_score, gamma, collectorSchemaVersion));
+        transitions.push(buildTransition(episode, step, rankScores[index]!, seedEpisodes.length, gamma, collectorSchemaVersion));
       }
-    }
+    });
   }
 
   transitions.sort((left, right) => {

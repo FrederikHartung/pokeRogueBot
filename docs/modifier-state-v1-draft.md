@@ -1,6 +1,6 @@
 # Modifier-State v1 (Entwurf)
 
-Status: **Entwurf; Schema, Builder und Strategic Collector umgesetzt (Output `modifier_strategic_fixed_seed_output_v2`), Credit-Score und Training offen.** Deckt Phase 1 aus `docs/modifier-dqn-migration-plan.md` ab (eigener State-/Action-Contract fuer die `SelectModifierPhase`). Dateien:
+Status: **Entwurf; Schema, Builder und Strategic Collector umgesetzt (Output `modifier_strategic_fixed_seed_output_v2`), Credit-Score umgesetzt (`modifier_training_transition_v3`), Training offen.** Deckt Phase 1 aus `docs/modifier-dqn-migration-plan.md` ab (eigener State-/Action-Contract fuer die `SelectModifierPhase`). Dateien:
 
 - Schema: `docs/rl-schema/modifier-transition-v1.schema.json`
 - Beispiel: `docs/rl-schema/modifier-transition-v1.example.json` (echte Builder-Ausgabe aus dem Spieltest, validiert gegen das Schema)
@@ -117,7 +117,7 @@ Training offline in Python wie beim Combat-DQN; das DL4J-Modell (`ModifierDQNAge
 
 ## 5. Credit und Reward
 
-- Seed-lokaler stetiger Score statt +1/0/-1: `rank_score = (wave_reached - mean_seed) / max(std_seed, 1)`, gekappt auf [-2, 2]. Gleichstaende bekommen denselben Wert; der geshapte Sofort-Reward entscheidet nicht mehr ueber das Vorzeichen.
+- Seed-lokaler stetiger Score statt +1/0/-1: `rank_score = (wave_reached - mean_seed) / max(std_seed, 1)`, gekappt auf [-2, 2]. Gleichstaende bekommen denselben Wert; der geshapte Sofort-Reward entscheidet nicht mehr ueber das Vorzeichen. Umgesetzt (`modifier_training_transition_v3`, Details in `docs/modifier-strategic-fixed-seed-pipeline.md`); `seed_run_count` markiert Seeds mit nur einem Run, deren Score immer 0 ist.
 - Discounting wie bisher (`gamma^distance_to_end`).
 - Sofort-Reward nur noch fuer klar messbare Effekte: geheilter HP-Anteil bzw. wiederbelebte Pokemon, kleiner Malus fuer bezahlte Heilung bei vorhandener Gratis-Heilung. Der Skip-Malus entfaellt, weil Skip maskiert ist.
 - Ausbaustufe "verzweigte Laeufe": Seed und Entscheidungsfolge sind reproduzierbar (identische Outputs bei Wiederholung). Ein Lauf kann bis zu einer Entscheidung nachgespielt und dort mit K Alternativen fortgesetzt werden. Das bewertet die einzelne Entscheidung direkt (gemeinsame Zufallszahlen) statt eine Rangfolge ganzer Runs auf alle Schritte zu verteilen. Kosten: der Praefix wird pro Alternative neu gespielt.
@@ -143,7 +143,7 @@ Solange das Modifier-DQN nur Heilung/Revive kennt:
 
 1. Live-Fallback (Abschnitt 6) mit Kotlin-Tests. Umgesetzt und live getestet (2026-10-14, Wellen 12-20: Poke Ball, X-Item, Sonderbonbon inkl. Party-Menue).
 2. Gemeinsamen TS-Builder fuer `state` und `candidates` schreiben; Strategic Collector auf `modifier-transition-v1` umstellen (zwei Stufen, Skip-Maske, Item-gleichverteilte Exploration, Kaufgrenze). Umgesetzt 2026-10-14: Builder mit Spieltest, Collector-Output `v2`; die collector-spezifischen Sperren (`getActionExecutability`) gehen als `blockCandidate` an den Builder, Reroll und Lock sind dort noch gesperrt (`not_implemented_in_collector`). Sofort-Reward nach Abschnitt 5 (geheilter Anteil, Malus fuer bezahlte Heilung bei Gratis-Heilung).
-3. `build-modifier-strategic-training-transitions.ts`: `state`/`candidates` aus v1 (umgesetzt, `modifier_training_transition_v2`); neuer Credit-Score (offen).
+3. `build-modifier-strategic-training-transitions.ts`: `state`/`candidates` aus v1 (umgesetzt, `modifier_training_transition_v2`); neuer Credit-Score nach Abschnitt 5 (umgesetzt 2026-10-14, `modifier_training_transition_v3`).
 4. Contract-Tests (`rl:test:modifier:strategic-contract`, umgesetzt: JSON-Schema-Validierung, Determinismus ueber State und Kandidaten) und Item-Suite auf v1 ziehen; Item-Matrix um Spalte "im Strategic Collector ausfuehrbar" ergaenzen.
 5. Smoke-Lauf, danach erster Remote-Lauf mit v1. Grosse Laeufe mit dem alten Step-Format bis dahin nicht mehr starten (State fehlt und ist nicht nachruestbar).
 6. Reroll und Freischaltungen Prioritaet 1 aus 2.3.
