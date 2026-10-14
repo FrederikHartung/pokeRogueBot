@@ -2,6 +2,9 @@ import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { validateModifierStrategicFixedSeedOutput } from "./modifier-strategic-fixed-seed-contract.ts";
 
+/** v2: State und Kandidaten aus modifier-transition-v1 statt Positions-Maske. */
+export const MODIFIER_TRAINING_TRANSITION_SCHEMA_VERSION = "modifier_training_transition_v2";
+
 export interface PostprocessOptions {
   gamma?: number;
 }
@@ -20,11 +23,10 @@ export interface ModifierTrainingTransition {
   combat_dqn_checkpoint: string;
   decision_rng_seed: string;
   decision_rng_strategy: string;
+  decision_stage: string;
   state: Record<string, unknown>;
-  action_mask: number[];
-  selected_action: Record<string, unknown>;
-  selected_action_index: number;
-  selected_action_valid: boolean;
+  candidates: Array<Record<string, unknown>>;
+  selected_candidate_index: number;
   immediate_reward: number;
   wave_reached: number;
   termination_reason: string;
@@ -189,17 +191,15 @@ function buildTransition(
   collectorSchemaVersion: string,
 ): ModifierTrainingTransition {
   const stepIndex = Number(step.step_index);
-  const selectedAction = step.selected_action as Record<string, unknown>;
-  const modifierDecision = step.modifier_decision as Record<string, unknown>;
-  const actionMask = Array.isArray(modifierDecision.action_mask) ? (modifierDecision.action_mask as number[]) : [];
-  const selectedActionIndex = Number(selectedAction.action_index);
+  // modifier-transition-v1 (docs/rl-schema/modifier-transition-v1.schema.json), vom Contract bereits validiert.
+  const transition = step.modifier_transition as Record<string, unknown>;
   const lastStepIndex = episode.steps.length - 1;
   const distanceToEnd = Math.max(0, lastStepIndex - stepIndex);
   const discountFactor = Math.pow(gamma, distanceToEnd);
 
   return {
-    schema_version: "modifier_training_transition_v1",
-    training_schema_version: "modifier_training_transition_v1",
+    schema_version: MODIFIER_TRAINING_TRANSITION_SCHEMA_VERSION,
+    training_schema_version: MODIFIER_TRAINING_TRANSITION_SCHEMA_VERSION,
     collector_schema_version: collectorSchemaVersion,
     collector_variant: episode.collector_variant,
     seed: episode.seed,
@@ -211,12 +211,11 @@ function buildTransition(
     combat_dqn_checkpoint: episode.combat_dqn_checkpoint,
     decision_rng_seed: String(step.decision_rng_seed),
     decision_rng_strategy: episode.decision_rng_strategy,
-    state: structuredClone(modifierDecision),
-    action_mask: [...actionMask],
-    selected_action: structuredClone(selectedAction),
-    selected_action_index: selectedActionIndex,
-    selected_action_valid: Boolean(step.selected_action_valid),
-    immediate_reward: Number(step.immediate_reward),
+    decision_stage: String(transition.decision_stage),
+    state: structuredClone(transition.state as Record<string, unknown>),
+    candidates: structuredClone(transition.candidates as Array<Record<string, unknown>>),
+    selected_candidate_index: Number(transition.selected_candidate_index),
+    immediate_reward: Number(transition.immediate_reward),
     wave_reached: episode.wave_reached,
     termination_reason: episode.termination_reason,
     rank_score: rankScore,

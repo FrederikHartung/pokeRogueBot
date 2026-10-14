@@ -75,7 +75,7 @@ test("strategic fixed-seed collector smoke output matches the contract", () => {
     const normalized = validateModifierStrategicFixedSeedOutput(payload);
 
     assert.equal(normalized.worker_id, "contract-test-worker-0");
-    assert.equal(normalized.schema_version, "modifier_strategic_fixed_seed_output_v1");
+    assert.equal(normalized.schema_version, "modifier_strategic_fixed_seed_output_v2");
   } finally {
     rmSync(tempDir, { recursive: true, force: true });
   }
@@ -108,14 +108,12 @@ test("strategic fixed-seed collector keeps modifier decisions deterministic for 
     assert.equal(episodeA.decision_rng_seed, "modifier-strategic-determinism::0");
     assert.equal(episodeB.decision_rng_seed, "modifier-strategic-determinism::0");
 
-    const selectedActionsA = ((episodeA.steps as Array<Record<string, unknown>>)).map(
-      step => (step.selected_action as Record<string, unknown>).action_index,
-    );
-    const selectedActionsB = ((episodeB.steps as Array<Record<string, unknown>>)).map(
-      step => (step.selected_action as Record<string, unknown>).action_index,
-    );
+    // Gleicher Seed und Run-Index: identische Entscheidungen inklusive State und Kandidaten.
+    const transitionsA = (episodeA.steps as Array<Record<string, unknown>>).map(step => step.modifier_transition);
+    const transitionsB = (episodeB.steps as Array<Record<string, unknown>>).map(step => step.modifier_transition);
 
-    assert.deepEqual(selectedActionsA, selectedActionsB);
+    assert.ok(transitionsA.length > 0);
+    assert.deepEqual(transitionsA, transitionsB);
   } finally {
     rmSync(tempDir, { recursive: true, force: true });
   }

@@ -186,6 +186,12 @@ it("builds modifier-v1 state and candidates from a real SelectModifierPhase", as
   expect(shop.candidates.at(-1)).toEqual({ kind: "finish_shop", mask: 1, tier: -1, cost: 0 });
   expect(shop.candidates.slice(0, -1).every(c => c.kind === "buy_shop_item")).toBe(true);
   expect(shop.candidates.some(c => c.kind === "take_reward")).toBe(false);
+  // Shop-Items haben im Spiel keine Pool-ID; der Builder liest sie aus dem localeKey.
+  const shopIds = shop.state.offer.filter(item => item.source === "shop").map(item => item.item_id);
+  expect(shopIds).toContain("POTION");
+  expect(shop.state.offer.filter(item => item.source === "shop").every(item => item.item_family !== "other")).toBe(true);
+  const potionOnCharmander = findCandidates(shop, c => c.item_id === "POTION" && c.target_party_index === 1)[0];
+  expect(potionOnCharmander?.effect?.hp_restore_ratio).toBeGreaterThan(0);
 
   mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
   writeFileSync(OUTPUT_PATH, JSON.stringify({ observations: [reward, shop] }, null, 2), "utf8");

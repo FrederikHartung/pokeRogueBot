@@ -75,10 +75,17 @@ import {
   resolveActivePlayerPokemon,
   updateCombatDecisionHistory,
 } from "#bot-ts/combat-observation";
+import {
+  buildModifierObservation,
+  type CandidateBlocker,
+  type DecisionStage,
+  type ModifierCandidate,
+  type ModifierObservation,
+} from "#bot-ts/modifier-observation";
 
 type ModifierPolicy = "random_executable";
 type CollectorVariant = "sanity_masking" | "strategic_fixed_seed";
-const SCHEMA_VERSION = "modifier_strategic_fixed_seed_output_v1";
+const SCHEMA_VERSION = "modifier_strategic_fixed_seed_output_v2";
 const STARTER_CONFIG_ID = "wave_lib_w1_starters_v1";
 const WORKER_ID = process.env.POKEROGUE_COLLECTOR_WORKER_ID ?? "local-worker-0";
 
@@ -119,36 +126,11 @@ interface DoubleSlotActionSnapshot {
   score: number;
 }
 
-interface ModifierOptionSnapshot {
-  index: number;
-  modifier_type_id: string;
-  cost: number;
-  upgrade_count: number;
-  tier: number;
-}
-
-interface ModifierActionSnapshot {
-  action_index: number;
-  action_type: "take_reward" | "buy_shop_item" | "skip";
-  reward_index?: number;
-  target_party_index?: number;
-  shop_row_index?: number;
-  shop_column_index?: number;
-  modifier_type_id?: string;
-  cost: number;
-  available: boolean;
-  executable: boolean;
-  unavailable_reason?: string;
-  non_executable_reason?: string;
-}
-
-interface ModifierDecisionSnapshot {
-  wave_index: number;
-  reward_options: ModifierOptionSnapshot[];
-  shop_rows: ModifierOptionSnapshot[][];
-  actions: ModifierActionSnapshot[];
-  action_mask: number[];
-}
+/** modifier-transition-v1-Datensatz (docs/rl-schema/modifier-transition-v1.schema.json). */
+type ModifierTransitionRecord = ModifierObservation & {
+  selected_candidate_index: number;
+  immediate_reward: number;
+};
 
 interface ModifierStepRecord {
   step_index: number;
@@ -156,10 +138,7 @@ interface ModifierStepRecord {
   decision_rng_seed: string;
   wave_index: number;
   combat_turns: CombatDecisionSnapshot[];
-  modifier_decision: ModifierDecisionSnapshot;
-  selected_action: ModifierActionSnapshot;
-  selected_action_valid: boolean;
-  immediate_reward: number;
+  modifier_transition: ModifierTransitionRecord;
 }
 
 interface MoveSnapshot {
@@ -178,11 +157,13 @@ interface PartyMemberDebugSnapshot {
 }
 
 interface SelectedModifierActionDebugSnapshot {
-  action_index: number;
-  action_type: string;
-  modifier_type_id?: string;
+  decision_stage: DecisionStage;
+  candidate_index: number;
+  kind: ModifierCandidate["kind"];
+  item_id?: string;
   reward_index?: number;
   target_party_index?: number;
+  target_move_index?: number;
   shop_row_index?: number;
   shop_column_index?: number;
   cost: number;
@@ -247,6 +228,8 @@ const COMBAT_DQN_PYTHON = __COMBAT_DQN_PYTHON__;
 const COMBAT_DQN_WORKER_SCRIPT = __COMBAT_DQN_WORKER_SCRIPT__;
 const STARTER_SPECIES = [SpeciesId.BULBASAUR, SpeciesId.CHARMANDER, SpeciesId.SQUIRTLE];
 const STEP_TIMEOUT_MS = __STEP_TIMEOUT_MS__;
+/** Kaeufe pro SelectModifierPhase, damit Zufallsruns nicht das ganze Geld verbrauchen (docs/modifier-state-v1-draft.md 2.4). */
+const MAX_SHOP_PURCHASES = __MAX_SHOP_PURCHASES__;
 const MAX_COMBAT_TURNS_PER_WAVE = 200;
 const FORCE_NORMALIZE_IVS = process.env.POKEROGUE_MODIFIER_FORCE_NORMALIZE_IVS === "1";
 const FORCE_NORMALIZE_NATURES = process.env.POKEROGUE_MODIFIER_FORCE_NORMALIZE_NATURES === "1";
@@ -1386,17 +1369,6 @@ function isSupportedDirectShopItem(modifierTypeId: string): boolean {
   return normalizeModifierTypeId(modifierTypeId) === "SACRED_ASH";
 }
 
-function toModifierOptionSnapshot(option: any, index: number): ModifierOptionSnapshot {
-  const modifierType = option.modifierTypeOption?.type;
-  return {
-    index,
-    modifier_type_id: getModifierTypeId(option),
-    cost: option.modifierTypeOption.cost,
-    upgrade_count: option.modifierTypeOption.upgradeCount,
-    tier: modifierType?.tier ?? -1,
-  };
-}
-
 function getPartyResourceFlags(game: GameManager): {
   hasMissingHp: boolean;
   hasFaintedPokemon: boolean;
@@ -1567,104 +1539,59 @@ function getRewardTargetAvailability(game: GameManager, option: any, targetIndex
   return { available: false, reason: String(filterResult) };
 }
 
-function buildModifierDecisionSnapshot(game: GameManager): ModifierDecisionSnapshot {
-  const handler = getModifierHandler(game);
-  const actions: ModifierActionSnapshot[] = [];
-  const actionMask: number[] = [];
-
-  handler.options.forEach((option, index) => {
-    const executability = getActionExecutability("take_reward", option);
-    if (executability.requiresPartyTarget) {
-      game.scene.getPlayerParty().forEach((_pokemon: any, partyIndex: number) => {
-        const availability = getRewardTargetAvailability(game, option, partyIndex);
-        const available = availability.available && executability.executable;
-        actions.push({
-          action_index: actions.length,
-          action_type: "take_reward",
-          reward_index: index,
-          target_party_index: partyIndex,
-          modifier_type_id: getModifierTypeId(option),
-          cost: option.modifierTypeOption?.cost ?? 0,
-          available,
-          executable: executability.executable,
-          unavailable_reason: availability.reason,
-          non_executable_reason: executability.reason,
-        });
-        actionMask.push(available ? 1 : 0);
-      });
-    } else {
-      actions.push({
-        action_index: actions.length,
-        action_type: "take_reward",
-        reward_index: index,
-        modifier_type_id: getModifierTypeId(option),
-        cost: option.modifierTypeOption?.cost ?? 0,
-        available: true,
-        executable: executability.executable,
-        non_executable_reason: executability.reason,
-      });
-      actionMask.push(executability.executable ? 1 : 0);
+/**
+ * Sperren des Collectors zusaetzlich zu den Spielregeln des Builders: was die Ausfuehrung noch nicht kann
+ * (getActionExecutability) und Zusatzregeln fuer Kauf und Ziel. Reroll und Lock sind noch nicht umgesetzt.
+ */
+function createCollectorCandidateBlocker(game: GameManager): CandidateBlocker {
+  return (candidate, option) => {
+    if (candidate.kind === "reroll" || candidate.kind === "toggle_lock_rarities") {
+      return "not_implemented_in_collector";
     }
-  });
-
-  handler.shopOptionsRows.forEach((row, rowIndex) => {
-    row.forEach((option, columnIndex) => {
-      const availability = getActionAvailability(game, option);
-      const executability = getActionExecutability("buy_shop_item", option);
-      if (executability.requiresPartyTarget) {
-        game.scene.getPlayerParty().forEach((_pokemon: any, partyIndex: number) => {
-          const targetAvailability = getRewardTargetAvailability(game, option, partyIndex);
-          const available = availability.available && targetAvailability.available && executability.executable;
-          actions.push({
-            action_index: actions.length,
-            action_type: "buy_shop_item",
-            shop_row_index: rowIndex,
-            shop_column_index: columnIndex,
-            target_party_index: partyIndex,
-            modifier_type_id: getModifierTypeId(option),
-            cost: option.modifierTypeOption?.cost ?? 0,
-            available,
-            executable: executability.executable,
-            unavailable_reason: availability.reason ?? targetAvailability.reason,
-            non_executable_reason: executability.reason,
-          });
-          actionMask.push(available ? 1 : 0);
-        });
-      } else {
-        const available = availability.available && executability.executable;
-        actions.push({
-          action_index: actions.length,
-          action_type: "buy_shop_item",
-          shop_row_index: rowIndex,
-          shop_column_index: columnIndex,
-          modifier_type_id: getModifierTypeId(option),
-          cost: option.modifierTypeOption?.cost ?? 0,
-          available,
-          executable: executability.executable,
-          unavailable_reason: availability.reason,
-          non_executable_reason: executability.reason,
-        });
-        actionMask.push(available ? 1 : 0);
+    if (!option || (candidate.kind !== "take_reward" && candidate.kind !== "buy_shop_item")) {
+      return null;
+    }
+    // Die bestehenden Regeln arbeiten auf dem UI-Objekt (ModifierOption mit modifierTypeOption).
+    const uiOption = { modifierTypeOption: option };
+    if (candidate.kind === "buy_shop_item") {
+      const availability = getActionAvailability(game, uiOption);
+      if (!availability.available) {
+        return availability.reason ?? "unavailable";
       }
-    });
-  });
-
-  actions.push({
-    action_index: actions.length,
-    action_type: "skip",
-    cost: 0,
-    available: true,
-    executable: true,
-  });
-  actionMask.push(1);
-
-  return {
-    wave_index: game.scene.currentBattle.waveIndex,
-    reward_options: handler.options.map((option, index) => toModifierOptionSnapshot(option, index)),
-    shop_rows: handler.shopOptionsRows.map(row => row.map((option, index) => toModifierOptionSnapshot(option, index))),
-    actions,
-    action_mask: actionMask,
+    }
+    const executability = getActionExecutability(candidate.kind, uiOption);
+    if (!executability.executable) {
+      return executability.reason ?? "not_executable";
+    }
+    if (candidate.target_party_index !== undefined) {
+      const target = getRewardTargetAvailability(game, uiOption, candidate.target_party_index);
+      if (!target.available) {
+        return target.reason ?? "target_unavailable";
+      }
+    }
+    return null;
   };
+}
+
+/** Oeffentliche Methode und privater Zaehler der SelectModifierPhase; die Klasse ist hier nur strukturell noetig. */
+interface SelectModifierPhaseLike {
+  getRerollCost(lockRarities: boolean): number;
+  rerollCount?: number;
+}
+
+function buildCollectorObservation(game: GameManager, stage: DecisionStage, purchasesThisPhase: number): ModifierObservation {
+  const handler = getModifierHandler(game);
+  const phase = game.scene.phaseManager.getCurrentPhase() as unknown as SelectModifierPhaseLike;
+  return buildModifierObservation({
+    scene: game.scene,
+    decisionStage: stage,
+    rewardOptions: handler.options.map(option => option.modifierTypeOption),
+    shopRows: handler.shopOptionsRows.map(row => row.map(option => option.modifierTypeOption)),
+    rerollCost: phase.getRerollCost(game.scene.lockModifierTiers),
+    rerollCount: phase.rerollCount ?? 0,
+    purchasesThisPhase,
+    blockCandidate: createCollectorCandidateBlocker(game),
+  });
 }
 
 function getPartyOptionNames(handler: any): string[] {
@@ -1687,14 +1614,19 @@ function getPartyOptionNames(handler: any): string[] {
 }
 
 function buildModifierPhaseLogSnapshot(game: GameManager): Record<string, unknown> {
-  const decision = buildModifierDecisionSnapshot(game);
+  const observation = buildCollectorObservation(game, "reward", 0);
   return {
-    wave_index: decision.wave_index,
+    wave_index: observation.state.run.wave_index,
     money: game.scene.money,
-    reward_options: decision.reward_options,
-    shop_rows: decision.shop_rows,
-    actions: decision.actions,
-    action_mask: decision.action_mask,
+    offer: observation.state.offer,
+    reward_candidates: observation.candidates.map(candidate => ({
+      kind: candidate.kind,
+      item_id: candidate.item_id,
+      target_party_index: candidate.target_party_index,
+      target_move_index: candidate.target_move_index,
+      mask: candidate.mask,
+      mask_reason: candidate.mask_reason,
+    })),
     party: game.scene.getPlayerParty().map((pokemon: any) => buildPartyMemberDebugSnapshot(pokemon)),
   };
 }
@@ -2384,74 +2316,103 @@ async function executeBuyShopItemAction(
   return waitForModifierSelectOrCommandPhaseAfterShopAction(game, STEP_TIMEOUT_MS);
 }
 
-async function executeModifierAction(game: GameManager, action: ModifierActionSnapshot): Promise<"modifier_select" | "command_phase"> {
-  switch (action.action_type) {
+async function executeModifierCandidate(
+  game: GameManager,
+  candidate: ModifierCandidate,
+): Promise<"modifier_select" | "command_phase"> {
+  switch (candidate.kind) {
     case "skip":
       await executeSkipAction(game);
       return "command_phase";
     case "take_reward":
-      if (action.reward_index == null) {
-        throw new Error("Reward action missing reward_index");
+      if (candidate.reward_index == null) {
+        throw new Error("Reward candidate missing reward_index");
       }
-      return executeTakeRewardAction(game, action.reward_index, action.target_party_index);
+      return executeTakeRewardAction(game, candidate.reward_index, candidate.target_party_index);
     case "buy_shop_item":
-      if (action.shop_row_index == null || action.shop_column_index == null) {
-        throw new Error("Shop action missing shop coordinates");
+      if (candidate.shop_row_index == null || candidate.shop_column_index == null) {
+        throw new Error("Shop candidate missing shop coordinates");
       }
       return executeBuyShopItemAction(
         game,
-        action.shop_row_index,
-        action.shop_column_index,
-        action.target_party_index,
+        candidate.shop_row_index,
+        candidate.shop_column_index,
+        candidate.target_party_index,
       );
+    case "finish_shop":
+      // Keine Spieleingabe: die Phase bleibt offen, es folgt die Gratis-Wahl.
+      return "modifier_select";
+    default:
+      throw new Error(`Modifier candidate kind not executable in collector: ${candidate.kind}`);
   }
 }
 
-function pickRandomExecutableAction(
-  decision: ModifierDecisionSnapshot,
-  random: () => number,
-): ModifierActionSnapshot {
-  const candidates = decision.actions.filter(action => action.available && action.executable);
-  if (candidates.length === 0) {
-    throw new Error("No executable modifier actions available");
+/**
+ * Exploration: erst gleichverteilt eine Wahl (Gratis-Belohnung, Shop-Platz, finish_shop, skip, ...), dann gleichverteilt
+ * ein gueltiges Ziel. Sonst wuerden Items mit vielen Zielen (Party x Attacke) uebergewichtet.
+ */
+function pickRandomCandidateIndex(observation: ModifierObservation, random: () => number): number {
+  const groups = new Map<string, number[]>();
+  observation.candidates.forEach((candidate, index) => {
+    if (candidate.mask !== 1) {
+      return;
+    }
+    const key = [candidate.kind, candidate.reward_index, candidate.shop_row_index, candidate.shop_column_index].join(":");
+    const group = groups.get(key);
+    if (group) {
+      group.push(index);
+    } else {
+      groups.set(key, [index]);
+    }
+  });
+  const choices = [...groups.values()];
+  if (choices.length === 0) {
+    throw new Error("No executable modifier candidates available");
   }
-  const index = Math.floor(random() * candidates.length);
-  return candidates[index]!;
+  const choice = choices[Math.floor(random() * choices.length)]!;
+  return choice[Math.floor(random() * choice.length)]!;
 }
 
-function calculateImmediateReward(
-  decision: ModifierDecisionSnapshot,
-  selectedAction: ModifierActionSnapshot,
-  game: GameManager,
-): number {
-  let reward = 0;
-  const partyFlags = getPartyResourceFlags(game);
-  const hasFreeRewards = decision.reward_options.length > 0;
+const HEAL_FAMILIES = new Set(["heal_hp", "revive", "revive_all"]);
 
-  if (selectedAction.action_type === "skip") {
-    if (partyFlags.hasMissingHp) {
-      reward -= 1.0;
-    }
-    if (hasFreeRewards) {
-      reward -= 0.5;
-    }
+/**
+ * Sofort-Reward nur fuer klar messbare Effekte (docs/modifier-state-v1-draft.md Abschnitt 5): geheilter bzw.
+ * wiederbelebter Anteil, kleiner Malus fuer bezahlte Heilung, wenn eine Gratis-Heilung angeboten wird.
+ */
+function calculateImmediateReward(observation: ModifierObservation, candidate: ModifierCandidate): number {
+  const family = candidate.item_family;
+  if (!family || !HEAL_FAMILIES.has(family)) {
+    return 0;
   }
-
-  if (selectedAction.action_type === "take_reward") {
-    reward += 0.1;
-  }
-
-  if (isSupportedHpRestoreShopItem(selectedAction.modifier_type_id) && partyFlags.hasMissingHp) {
-    reward += 1.0;
+  let reward = candidate.effect?.hp_restore_ratio ?? 0;
+  if (family === "revive_all") {
+    const present = observation.state.party_slots.filter(slot => slot.present === 1).length;
+    const fainted = observation.state.party_slots.filter(slot => slot.fainted === 1).length;
+    reward = present > 0 ? fainted / present : 0;
   }
   if (
-    (isSupportedReviveShopItem(selectedAction.modifier_type_id) || isSupportedDirectShopItem(selectedAction.modifier_type_id))
-    && partyFlags.hasFaintedPokemon
+    candidate.kind === "buy_shop_item"
+    && observation.state.offer.some(item => item.source === "reward" && HEAL_FAMILIES.has(item.item_family))
   ) {
-    reward += 1.0;
+    reward -= 0.1;
   }
-
   return reward;
+}
+
+function toSelectedCandidateDebug(observation: ModifierObservation, candidateIndex: number): SelectedModifierActionDebugSnapshot {
+  const candidate = observation.candidates[candidateIndex]!;
+  return {
+    decision_stage: observation.decision_stage,
+    candidate_index: candidateIndex,
+    kind: candidate.kind,
+    item_id: candidate.item_id,
+    reward_index: candidate.reward_index,
+    target_party_index: candidate.target_party_index,
+    target_move_index: candidate.target_move_index,
+    shop_row_index: candidate.shop_row_index,
+    shop_column_index: candidate.shop_column_index,
+    cost: candidate.cost,
+  };
 }
 
 function calculateTerminalReward(waveReached: number): number {
@@ -2708,7 +2669,7 @@ describe("modifier fixed seed collector", () => {
         let timeoutDebug: TimeoutDebugSnapshot | undefined;
         let errorDebug: TimeoutDebugSnapshot | undefined;
         let errorStack: string | undefined;
-        let selectedModifierActionForDebug: ModifierActionSnapshot | undefined;
+        let selectedModifierActionForDebug: SelectedModifierActionDebugSnapshot | undefined;
         const runStartedAt = Date.now();
 
         try {
@@ -3078,37 +3039,60 @@ describe("modifier fixed seed collector", () => {
 
             let modifierPhaseContinues = true;
             let firstModifierActionInWave = true;
+            let purchasesThisPhase = 0;
+            let decisionStage: DecisionStage = "shop";
             while (modifierPhaseContinues) {
               if (!game.isCurrentPhase("SelectModifierPhase")) {
                 terminationReason = `expected_select_modifier_phase_but_got:${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"}`;
                 break;
               }
 
-              const modifierDecision = buildModifierDecisionSnapshot(game);
+              // Zwei Stufen wie im Spiel: erst kaufen (bis finish_shop oder Kaufgrenze), dann Gratis-Wahl.
+              const observation = buildCollectorObservation(game, decisionStage, purchasesThisPhase);
+              if (
+                decisionStage === "shop"
+                && (purchasesThisPhase >= MAX_SHOP_PURCHASES
+                  || !observation.candidates.some(candidate => candidate.kind === "buy_shop_item" && candidate.mask === 1))
+              ) {
+                // Nur finish_shop waere waehlbar: keine Entscheidung, kein Datensatz.
+                decisionStage = "reward";
+                continue;
+              }
+
               combatTurns.push(...drainSwitchDecisionSnapshots());
               expect(MODIFIER_POLICY).toBe("random_executable");
-              const selectedAction = pickRandomExecutableAction(modifierDecision, random);
-              selectedModifierActionForDebug = selectedAction;
-              const immediateReward = calculateImmediateReward(modifierDecision, selectedAction, game);
+              const selectedIndex = pickRandomCandidateIndex(observation, random);
+              const selectedCandidate = observation.candidates[selectedIndex]!;
+              selectedModifierActionForDebug = toSelectedCandidateDebug(observation, selectedIndex);
+              const immediateReward = calculateImmediateReward(observation, selectedCandidate);
 
               steps.push({
                 step_index: steps.length,
                 worker_id: WORKER_ID,
                 decision_rng_seed: decisionRngSeed,
-                wave_index: modifierDecision.wave_index,
+                wave_index: observation.state.run.wave_index,
                 combat_turns: firstModifierActionInWave ? combatTurns : [],
-                modifier_decision: modifierDecision,
-                selected_action: selectedAction,
-                selected_action_valid: modifierDecision.action_mask[selectedAction.action_index] === 1,
-                immediate_reward: immediateReward,
+                modifier_transition: {
+                  ...observation,
+                  selected_candidate_index: selectedIndex,
+                  immediate_reward: immediateReward,
+                },
               });
+              firstModifierActionInWave = false;
+
+              if (selectedCandidate.kind === "finish_shop") {
+                decisionStage = "reward";
+                continue;
+              }
 
               const modifierOutcome = await withTimeout(
-                executeModifierAction(game, selectedAction),
+                executeModifierCandidate(game, selectedCandidate),
                 STEP_TIMEOUT_MS,
                 "execute_modifier_action",
               );
-              firstModifierActionInWave = false;
+              if (selectedCandidate.kind === "buy_shop_item") {
+                purchasesThisPhase += 1;
+              }
 
               if (modifierOutcome === "command_phase") {
                 completedWaves += 1;
@@ -3129,16 +3113,7 @@ describe("modifier fixed seed collector", () => {
           }
           errorDebug = buildTimeoutDebugSnapshot(game);
           if (selectedModifierActionForDebug) {
-            errorDebug.selected_modifier_action = {
-              action_index: selectedModifierActionForDebug.action_index,
-              action_type: selectedModifierActionForDebug.action_type,
-              modifier_type_id: selectedModifierActionForDebug.modifier_type_id,
-              reward_index: selectedModifierActionForDebug.reward_index,
-              target_party_index: selectedModifierActionForDebug.target_party_index,
-              shop_row_index: selectedModifierActionForDebug.shop_row_index,
-              shop_column_index: selectedModifierActionForDebug.shop_column_index,
-              cost: selectedModifierActionForDebug.cost,
-            };
+            errorDebug.selected_modifier_action = selectedModifierActionForDebug;
           }
           if (terminationReason.startsWith("step_timeout:")) {
             timeoutDebug = errorDebug;
@@ -3159,7 +3134,7 @@ describe("modifier fixed seed collector", () => {
 
         const waveReached = completedWaves;
         const runtimeMs = Date.now() - runStartedAt;
-        const localRewardSum = steps.reduce((sum, step) => sum + step.immediate_reward, 0);
+        const localRewardSum = steps.reduce((sum, step) => sum + step.modifier_transition.immediate_reward, 0);
         const terminalReward = calculateTerminalReward(waveReached);
         const shouldRetry = shouldRetryRun(terminationReason, waveReached, steps, attemptIndex);
 
@@ -3217,6 +3192,7 @@ describe("modifier fixed seed collector", () => {
       decision_rng_strategy: "seed_plus_run_index",
       step_timeout_ms: STEP_TIMEOUT_MS,
       modifier_policy: MODIFIER_POLICY,
+      max_shop_purchases_per_phase: MAX_SHOP_PURCHASES,
       combat_dqn_checkpoint: COMBAT_DQN_CHECKPOINT,
       combat_dqn_device: COMBAT_DQN_DEVICE,
       generated_at: new Date().toISOString(),

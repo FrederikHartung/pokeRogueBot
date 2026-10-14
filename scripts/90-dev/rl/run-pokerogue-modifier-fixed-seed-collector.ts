@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { linkCombatObservationModule } from "../../01-data-generation/collector/combat-observation-module.ts";
+import { linkModifierObservationModule } from "../../01-data-generation/collector/combat-observation-module.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,6 +26,8 @@ const collectorVariant = "sanity_masking";
 const stepTimeoutMs = Number.parseInt(process.argv[10] ?? "", 10)
   || Number.parseInt(process.env.POKEROGUE_MODIFIER_STEP_TIMEOUT_MS ?? "", 10)
   || 15000;
+// Kaeufe pro SelectModifierPhase (modifier-v1, docs/modifier-state-v1-draft.md 2.4).
+const maxShopPurchases = Number.parseInt(process.env.POKEROGUE_MODIFIER_MAX_SHOP_PURCHASES ?? "", 10) || 3;
 const defaultCombatCheckpointCandidates = [
   path.join(repoRoot, "data", "rl", "models", "dqn-combat-wave-library-random-valid-action-v3-w1-24-50ep.pt"),
   path.join(repoRoot, "data", "rl", "models", "dqn-combat-wave-library-random-valid-action-v3-w1-24-longer.pt"),
@@ -108,10 +110,11 @@ const testSource = templateSource
   .replaceAll("__COMBAT_DQN_DEVICE__", JSON.stringify(combatDevice))
   .replaceAll("__COMBAT_DQN_PYTHON__", JSON.stringify(pythonBin))
   .replaceAll("__COMBAT_DQN_WORKER_SCRIPT__", JSON.stringify(combatInferWorkerScript))
-  .replaceAll("__STEP_TIMEOUT_MS__", String(stepTimeoutMs));
+  .replaceAll("__STEP_TIMEOUT_MS__", String(stepTimeoutMs))
+    .replaceAll("__MAX_SHOP_PURCHASES__", String(maxShopPurchases));
 
-// Gemeinsamer combat-v4-Builder neben den generierten Test (Import "#bot-ts/combat-observation").
-writeFileSync(tempTestPath, linkCombatObservationModule(testSource, tempDir, repoRoot), { encoding: "utf8" });
+// Gemeinsame Builder (combat-v4, modifier-v1) neben den generierten Test (Imports "#bot-ts/...").
+writeFileSync(tempTestPath, linkModifierObservationModule(testSource, tempDir, repoRoot), { encoding: "utf8" });
 
 const runnerEnv = {
   ...process.env,

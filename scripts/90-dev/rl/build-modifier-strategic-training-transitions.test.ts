@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { buildModifierStrategicTrainingTransitions } from "./build-modifier-strategic-training-transitions.ts";
+
+const exampleTransition = JSON.parse(
+  readFileSync(
+    path.resolve(import.meta.dirname, "../../../docs/rl-schema/modifier-transition-v1.example.json"),
+    "utf8",
+  ),
+) as Record<string, unknown>;
 
 function createWorkerOutput({
   workerId,
@@ -20,7 +29,7 @@ function createWorkerOutput({
   localRewardSum?: number;
 }) {
   return {
-    schema_version: "modifier_strategic_fixed_seed_output_v1",
+    schema_version: "modifier_strategic_fixed_seed_output_v2",
     seed,
     run_count: 1,
     max_waves: 11,
@@ -31,6 +40,7 @@ function createWorkerOutput({
     decision_rng_strategy: "seed_plus_run_index",
     step_timeout_ms: 15000,
     modifier_policy: "random_executable",
+    max_shop_purchases_per_phase: 3,
     combat_dqn_checkpoint: "data/rl/models/example.pt",
     combat_dqn_device: "cpu",
     generated_at: "2026-03-19T00:00:00.000Z",
@@ -42,7 +52,7 @@ function createWorkerOutput({
     },
     episodes: [
       {
-        schema_version: "modifier_strategic_fixed_seed_output_v1",
+        schema_version: "modifier_strategic_fixed_seed_output_v2",
         run_index: runIndex,
         worker_id: workerId,
         decision_rng_seed: `${seed}::${runIndex}`,
@@ -63,23 +73,7 @@ function createWorkerOutput({
           decision_rng_seed: `${seed}::${runIndex}`,
           wave_index: stepIndex + 1,
           combat_turns: [],
-          modifier_decision: {
-            wave_index: stepIndex + 1,
-            reward_options: [],
-            shop_rows: [],
-            actions: [],
-            action_mask: [1, 0, 1],
-          },
-          selected_action: {
-            action_index: stepIndex % 2 === 0 ? 0 : 2,
-            action_type: "take_reward",
-            modifier_type_id: stepIndex % 2 === 0 ? "LURE" : "POKEBALL",
-            cost: 0,
-            available: true,
-            executable: true,
-          },
-          selected_action_valid: true,
-          immediate_reward: 0.1,
+          modifier_transition: { ...structuredClone(exampleTransition), immediate_reward: 0.1 },
         })),
       },
     ],
@@ -122,6 +116,20 @@ test("buildModifierStrategicTrainingTransitions applies discounting by distance 
   assert.equal(run0[2]?.distance_to_end, 0);
   assert.equal(run0[2]?.discount_factor, 1);
   assert.equal(run0[2]?.posthoc_credit, 1);
+});
+
+test("buildModifierStrategicTrainingTransitions carries modifier-v1 state and candidates", () => {
+  const transitions = buildModifierStrategicTrainingTransitions([
+    createWorkerOutput({ workerId: "worker-0", seed: "seed-v1", runIndex: 0, waveReached: 4, stepCount: 1 }),
+  ]);
+
+  assert.equal(transitions.length, 1);
+  assert.equal(transitions[0]?.schema_version, "modifier_training_transition_v2");
+  assert.equal(transitions[0]?.decision_stage, exampleTransition.decision_stage);
+  assert.deepEqual(transitions[0]?.state, exampleTransition.state);
+  assert.deepEqual(transitions[0]?.candidates, exampleTransition.candidates);
+  assert.equal(transitions[0]?.selected_candidate_index, exampleTransition.selected_candidate_index);
+  assert.equal(transitions[0]?.immediate_reward, 0.1);
 });
 
 test("buildModifierStrategicTrainingTransitions rejects duplicate seed/run combinations", () => {

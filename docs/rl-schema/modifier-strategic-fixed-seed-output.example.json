@@ -1,68 +1,1994 @@
 {
-  "schema_version": "modifier_strategic_fixed_seed_output_v1",
-  "seed": "modifier-strategic-fixed-seed-example",
+  "schema_version": "modifier_strategic_fixed_seed_output_v2",
+  "seed": "modifier-v1-smoke-b",
   "run_count": 1,
-  "max_waves": 11,
+  "max_waves": 12,
   "collector_variant": "strategic_fixed_seed",
   "worker_id": "local-worker-0",
   "starter_config_id": "wave_lib_w1_starters_v1",
-  "starter_species": ["BULBASAUR", "CHARMANDER", "SQUIRTLE"],
+  "starter_species": [
+    "BULBASAUR",
+    "CHARMANDER",
+    "SQUIRTLE"
+  ],
   "decision_rng_strategy": "seed_plus_run_index",
   "step_timeout_ms": 15000,
   "modifier_policy": "random_executable",
-  "combat_dqn_checkpoint": "data/rl/models/example.pt",
+  "max_shop_purchases_per_phase": 3,
+  "combat_dqn_checkpoint": "data/rl/models/dqn-combat-wave-library-random-valid-action-v3-w1-24-50ep.pt",
   "combat_dqn_device": "cpu",
-  "generated_at": "2026-03-19T00:00:00.000Z",
+  "generated_at": "2026-10-14T00:00:00.000Z",
   "summary": {
-    "average_wave_reached": 4,
-    "average_total_reward": 1.2,
-    "best_wave_reached": 4,
-    "worst_wave_reached": 4
+    "average_wave_reached": 9,
+    "average_total_reward": 9.521739130434783,
+    "best_wave_reached": 9,
+    "worst_wave_reached": 9
   },
   "episodes": [
     {
-      "schema_version": "modifier_strategic_fixed_seed_output_v1",
-      "run_index": 0,
+      "schema_version": "modifier_strategic_fixed_seed_output_v2",
+      "run_index": 1,
       "worker_id": "local-worker-0",
-      "decision_rng_seed": "modifier-strategic-fixed-seed-example::0",
-      "seed": "modifier-strategic-fixed-seed-example",
-      "max_waves": 11,
+      "decision_rng_seed": "modifier-v1-smoke-b::1",
+      "seed": "modifier-v1-smoke-b",
+      "max_waves": 12,
       "collector_variant": "strategic_fixed_seed",
       "modifier_policy": "random_executable",
-      "runtime_ms": 5432,
-      "completed_waves": 4,
-      "wave_reached": 4,
+      "runtime_ms": 136608,
+      "completed_waves": 9,
+      "wave_reached": 9,
       "termination_reason": "team_wipe_or_game_over",
-      "local_reward_sum": 0.2,
-      "terminal_reward": 1.0,
-      "total_reward": 1.2,
-      "retry_count": 0,
+      "local_reward_sum": 0.5217391304347826,
+      "terminal_reward": 9,
+      "total_reward": 9.521739130434783,
       "steps": [
         {
           "step_index": 0,
           "worker_id": "local-worker-0",
-          "decision_rng_seed": "modifier-strategic-fixed-seed-example::0",
-          "wave_index": 1,
+          "decision_rng_seed": "modifier-v1-smoke-b::1",
+          "wave_index": 5,
+          "combat_turns": [
+            {
+              "state": {
+                "wave_index": 5,
+                "player_hp_ratio": 1,
+                "enemy_hp_ratio": 1,
+                "player_hp_bucket": 5,
+                "enemy_hp_bucket": 5,
+                "hp_diff_bucket": 3,
+                "level_gap_bucket": 3,
+                "is_trainer_battle": 1,
+                "has_legal_switch": 1,
+                "active_hp_critical": 0,
+                "bench_has_healthier_switch": 0,
+                "bench_has_better_matchup_than_active": 0,
+                "active_can_finish_enemy": 0,
+                "alive_bench_count_bucket": 2,
+                "healthy_bench_count_bucket": 2,
+                "best_switch_matchup_bucket": 2,
+                "worst_switch_risk_bucket": 0,
+                "speed_order_advantage": 2,
+                "enemy_has_known_priority_threat": 0,
+                "active_has_any_first_strike_move": 1,
+                "active_best_damage_bucket": 2,
+                "enemy_best_damage_into_active_bucket": 1,
+                "active_survives_next_hit": 1,
+                "enemy_survives_best_hit": 1,
+                "decision_kind": 0,
+                "last_action_was_switch": 0,
+                "consecutive_switch_bucket": 0,
+                "battle_turn_bucket": 0,
+                "active": {
+                  "status": 0,
+                  "stat_stages": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "volatile": {
+                    "confused": 0,
+                    "seeded": 0,
+                    "substitute": 0,
+                    "trapped": 0,
+                    "locked_into_move": 0,
+                    "taunted": 0,
+                    "infatuated": 0,
+                    "drowsy": 0,
+                    "perish_song": 0
+                  }
+                },
+                "enemy": {
+                  "status": 0,
+                  "stat_stages": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "volatile": {
+                    "confused": 0,
+                    "seeded": 0,
+                    "substitute": 0,
+                    "trapped": 0,
+                    "locked_into_move": 0,
+                    "taunted": 0,
+                    "infatuated": 0,
+                    "drowsy": 0,
+                    "perish_song": 0
+                  },
+                  "types": [
+                    0
+                  ],
+                  "remaining_team_count": 2,
+                  "team_hp_ratio": 1
+                },
+                "field": {
+                  "weather": 0,
+                  "terrain": 0,
+                  "trick_room": 0,
+                  "player_side": {
+                    "spikes_layers": 0,
+                    "toxic_spikes_layers": 0,
+                    "stealth_rock": 0,
+                    "sticky_web": 0,
+                    "reflect": 0,
+                    "light_screen": 0,
+                    "aurora_veil": 0,
+                    "tailwind": 0
+                  },
+                  "enemy_side": {
+                    "spikes_layers": 0,
+                    "toxic_spikes_layers": 0,
+                    "stealth_rock": 0,
+                    "sticky_web": 0,
+                    "reflect": 0,
+                    "light_screen": 0,
+                    "aurora_veil": 0,
+                    "tailwind": 0
+                  }
+                },
+                "moves": [
+                  {
+                    "available": 1,
+                    "power_bucket": 1,
+                    "effectiveness_bucket": 2,
+                    "stab": 0,
+                    "pp_low": 0,
+                    "priority_bucket": 1,
+                    "acts_first_if_used": 1,
+                    "can_ko_before_enemy_moves": 0,
+                    "move_kind_bucket": 1,
+                    "damage_class_bucket": 0,
+                    "estimated_damage_ratio_bucket": 2,
+                    "estimated_ko_turns_bucket": 3,
+                    "accuracy_bucket": 3,
+                    "uses_best_offense_stat": 0,
+                    "target_immunity_risk": 0,
+                    "estimated_damage_ratio": 0.3684210526315789,
+                    "pp_ratio": 1,
+                    "effect_category": 0,
+                    "effect_still_useful": 1
+                  },
+                  {
+                    "available": 1,
+                    "power_bucket": 0,
+                    "effectiveness_bucket": 2,
+                    "stab": 0,
+                    "pp_low": 0,
+                    "priority_bucket": 1,
+                    "acts_first_if_used": 1,
+                    "can_ko_before_enemy_moves": 0,
+                    "move_kind_bucket": 0,
+                    "damage_class_bucket": 2,
+                    "estimated_damage_ratio_bucket": 0,
+                    "estimated_ko_turns_bucket": 0,
+                    "accuracy_bucket": 3,
+                    "uses_best_offense_stat": 0,
+                    "target_immunity_risk": 0,
+                    "estimated_damage_ratio": 0,
+                    "pp_ratio": 1,
+                    "effect_category": 2,
+                    "effect_still_useful": 1
+                  },
+                  {
+                    "available": 1,
+                    "power_bucket": 1,
+                    "effectiveness_bucket": 2,
+                    "stab": 1,
+                    "pp_low": 0,
+                    "priority_bucket": 1,
+                    "acts_first_if_used": 1,
+                    "can_ko_before_enemy_moves": 0,
+                    "move_kind_bucket": 1,
+                    "damage_class_bucket": 1,
+                    "estimated_damage_ratio_bucket": 2,
+                    "estimated_ko_turns_bucket": 3,
+                    "accuracy_bucket": 3,
+                    "uses_best_offense_stat": 1,
+                    "target_immunity_risk": 0,
+                    "estimated_damage_ratio": 0.5789473684210527,
+                    "pp_ratio": 0.76,
+                    "effect_category": 0,
+                    "effect_still_useful": 1
+                  }
+                ],
+                "party_slots": [
+                  {
+                    "present": 1,
+                    "active": 1,
+                    "fainted": 0,
+                    "hp_ratio": 1,
+                    "level": 6,
+                    "types": [
+                      9
+                    ],
+                    "best_damage_into_enemy_bucket": 2,
+                    "expected_incoming_damage_bucket": 1,
+                    "speed_advantage_bucket": 2,
+                    "survives_one_hit": 1,
+                    "can_threaten_ko_bucket": 3,
+                    "status": 0,
+                    "is_last_switch_origin": 0
+                  },
+                  {
+                    "present": 1,
+                    "active": 0,
+                    "fainted": 0,
+                    "hp_ratio": 1,
+                    "level": 5,
+                    "types": [
+                      11,
+                      3
+                    ],
+                    "best_damage_into_enemy_bucket": 2,
+                    "expected_incoming_damage_bucket": 1,
+                    "speed_advantage_bucket": 2,
+                    "survives_one_hit": 1,
+                    "can_threaten_ko_bucket": 3,
+                    "status": 0,
+                    "is_last_switch_origin": 0
+                  },
+                  {
+                    "present": 1,
+                    "active": 0,
+                    "fainted": 0,
+                    "hp_ratio": 1,
+                    "level": 6,
+                    "types": [
+                      10
+                    ],
+                    "best_damage_into_enemy_bucket": 2,
+                    "expected_incoming_damage_bucket": 1,
+                    "speed_advantage_bucket": 2,
+                    "survives_one_hit": 1,
+                    "can_threaten_ko_bucket": 3,
+                    "status": 0,
+                    "is_last_switch_origin": 0
+                  },
+                  {
+                    "present": 0,
+                    "active": 0,
+                    "fainted": 0,
+                    "hp_ratio": 0,
+                    "level": 0,
+                    "types": [],
+                    "best_damage_into_enemy_bucket": 0,
+                    "expected_incoming_damage_bucket": 0,
+                    "speed_advantage_bucket": 1,
+                    "survives_one_hit": 0,
+                    "can_threaten_ko_bucket": 0,
+                    "status": 0,
+                    "is_last_switch_origin": 0
+                  },
+                  {
+                    "present": 0,
+                    "active": 0,
+                    "fainted": 0,
+                    "hp_ratio": 0,
+                    "level": 0,
+                    "types": [],
+                    "best_damage_into_enemy_bucket": 0,
+                    "expected_incoming_damage_bucket": 0,
+                    "speed_advantage_bucket": 1,
+                    "survives_one_hit": 0,
+                    "can_threaten_ko_bucket": 0,
+                    "status": 0,
+                    "is_last_switch_origin": 0
+                  },
+                  {
+                    "present": 0,
+                    "active": 0,
+                    "fainted": 0,
+                    "hp_ratio": 0,
+                    "level": 0,
+                    "types": [],
+                    "best_damage_into_enemy_bucket": 0,
+                    "expected_incoming_damage_bucket": 0,
+                    "speed_advantage_bucket": 1,
+                    "survives_one_hit": 0,
+                    "can_threaten_ko_bucket": 0,
+                    "status": 0,
+                    "is_last_switch_origin": 0
+                  }
+                ],
+                "action_mask": [
+                  1,
+                  1,
+                  1,
+                  0,
+                  0,
+                  1,
+                  1,
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "wave_index": 5,
+              "turn_index": 1,
+              "is_double_battle": false,
+              "player": {
+                "species_id": 4,
+                "species_name": "CHARMANDER",
+                "level": 6,
+                "hp_ratio": 1
+              },
+              "enemy": {
+                "species_id": 399,
+                "species_name": "BIDOOF",
+                "level": 4,
+                "hp_ratio": 1
+              },
+              "action_mask": [
+                1,
+                1,
+                1,
+                0,
+                0,
+                1,
+                1,
+                0,
+                0,
+                0
+              ],
+              "selected_action": 2,
+              "action_source": "dqn"
+            }
+          ],
+          "modifier_transition": {
+            "schema_version": "modifier-v1",
+            "decision_stage": "shop",
+            "state": {
+              "run": {
+                "wave_index": 5,
+                "money": 110,
+                "reroll_cost": 250,
+                "reroll_count": 0,
+                "lock_rarities": 0,
+                "shop_available": 1,
+                "purchases_this_phase": 0,
+                "waves_until_next_fixed_battle": 3,
+                "waves_until_next_boss": 5,
+                "party_luck": 0,
+                "goal_profile": {
+                  "w_run": 1,
+                  "w_meta": 0
+                }
+              },
+              "party_slots": [
+                {
+                  "present": 1,
+                  "fainted": 0,
+                  "hp_ratio": 0.4782608695652174,
+                  "level": 7,
+                  "level_ratio_to_cap": 0.7,
+                  "status": 0,
+                  "types": [
+                    9
+                  ],
+                  "base_stat_total": 309,
+                  "move_count": 4,
+                  "min_pp_ratio": 0.6,
+                  "held_items": []
+                },
+                {
+                  "present": 1,
+                  "fainted": 0,
+                  "hp_ratio": 1,
+                  "level": 5,
+                  "level_ratio_to_cap": 0.5,
+                  "status": 0,
+                  "types": [
+                    11,
+                    3
+                  ],
+                  "base_stat_total": 318,
+                  "move_count": 3,
+                  "min_pp_ratio": 0.72,
+                  "held_items": []
+                },
+                {
+                  "present": 1,
+                  "fainted": 0,
+                  "hp_ratio": 1,
+                  "level": 6,
+                  "level_ratio_to_cap": 0.6,
+                  "status": 0,
+                  "types": [
+                    10
+                  ],
+                  "base_stat_total": 314,
+                  "move_count": 3,
+                  "min_pp_ratio": 1,
+                  "held_items": []
+                },
+                {
+                  "present": 0,
+                  "fainted": 0,
+                  "hp_ratio": 0,
+                  "level": 0,
+                  "level_ratio_to_cap": 0,
+                  "status": 0,
+                  "types": [],
+                  "base_stat_total": 0,
+                  "move_count": 0,
+                  "min_pp_ratio": 0,
+                  "held_items": []
+                },
+                {
+                  "present": 0,
+                  "fainted": 0,
+                  "hp_ratio": 0,
+                  "level": 0,
+                  "level_ratio_to_cap": 0,
+                  "status": 0,
+                  "types": [],
+                  "base_stat_total": 0,
+                  "move_count": 0,
+                  "min_pp_ratio": 0,
+                  "held_items": []
+                },
+                {
+                  "present": 0,
+                  "fainted": 0,
+                  "hp_ratio": 0,
+                  "level": 0,
+                  "level_ratio_to_cap": 0,
+                  "status": 0,
+                  "types": [],
+                  "base_stat_total": 0,
+                  "move_count": 0,
+                  "min_pp_ratio": 0,
+                  "held_items": []
+                }
+              ],
+              "global_items": [
+                {
+                  "item_id": "SUPER_LURE",
+                  "item_family": "lure",
+                  "variant": {},
+                  "tier": 1,
+                  "stacks": 1,
+                  "max_stacks": 2,
+                  "max_battles": 15,
+                  "battles_remaining": 13
+                }
+              ],
+              "inventory": {
+                "pokeball_counts": [
+                  15,
+                  0,
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "offer": [
+                {
+                  "source": "reward",
+                  "reward_index": 0,
+                  "item_id": "TEMP_STAT_STAGE_BOOSTER",
+                  "item_family": "temp_battle_booster",
+                  "variant": {
+                    "stat": 6
+                  },
+                  "tier": 0,
+                  "upgrade_count": 0,
+                  "cost": 0
+                },
+                {
+                  "source": "reward",
+                  "reward_index": 1,
+                  "item_id": "TM_COMMON",
+                  "item_family": "tm",
+                  "variant": {
+                    "move_id": 803
+                  },
+                  "tier": 0,
+                  "upgrade_count": 0,
+                  "cost": 0
+                },
+                {
+                  "source": "reward",
+                  "reward_index": 2,
+                  "item_id": "POKEBALL",
+                  "item_family": "ball",
+                  "variant": {
+                    "pokeball_type": 0,
+                    "count": 5
+                  },
+                  "tier": 0,
+                  "upgrade_count": 0,
+                  "cost": 0
+                },
+                {
+                  "source": "shop",
+                  "shop_row_index": 0,
+                  "shop_column_index": 0,
+                  "item_id": "POTION",
+                  "item_family": "heal_hp",
+                  "variant": {},
+                  "tier": -1,
+                  "upgrade_count": 0,
+                  "cost": 44
+                },
+                {
+                  "source": "shop",
+                  "shop_row_index": 0,
+                  "shop_column_index": 1,
+                  "item_id": "ETHER",
+                  "item_family": "pp_restore",
+                  "variant": {},
+                  "tier": -1,
+                  "upgrade_count": 0,
+                  "cost": 88
+                },
+                {
+                  "source": "shop",
+                  "shop_row_index": 0,
+                  "shop_column_index": 2,
+                  "item_id": "REVIVE",
+                  "item_family": "revive",
+                  "variant": {},
+                  "tier": -1,
+                  "upgrade_count": 0,
+                  "cost": 440
+                }
+              ]
+            },
+            "candidates": [
+              {
+                "kind": "buy_shop_item",
+                "mask": 1,
+                "shop_row_index": 0,
+                "shop_column_index": 0,
+                "item_id": "POTION",
+                "item_family": "heal_hp",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 44,
+                "target_party_index": 0,
+                "owned_stacks": 0,
+                "effect": {
+                  "hp_restore_ratio": 0.5217391304347826
+                }
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 0,
+                "item_id": "POTION",
+                "item_family": "heal_hp",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 44,
+                "target_party_index": 1,
+                "owned_stacks": 0,
+                "effect": {
+                  "hp_restore_ratio": 0
+                },
+                "mask_reason": "select_filter:It won’t have any effect."
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 0,
+                "item_id": "POTION",
+                "item_family": "heal_hp",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 44,
+                "target_party_index": 2,
+                "owned_stacks": 0,
+                "effect": {
+                  "hp_restore_ratio": 0
+                },
+                "mask_reason": "select_filter:It won’t have any effect."
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 1,
+                "item_id": "ETHER",
+                "item_family": "pp_restore",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 88,
+                "target_party_index": 0,
+                "owned_stacks": 0,
+                "target_move_index": 0,
+                "mask_reason": "move_select_filter:It won’t have any effect."
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 1,
+                "item_id": "ETHER",
+                "item_family": "pp_restore",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 88,
+                "target_party_index": 0,
+                "owned_stacks": 0,
+                "target_move_index": 1,
+                "mask_reason": "move_select_filter:It won’t have any effect."
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 1,
+                "item_id": "ETHER",
+                "item_family": "pp_restore",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 88,
+                "target_party_index": 0,
+                "owned_stacks": 0,
+                "target_move_index": 2,
+                "mask_reason": "shop_item_execution_not_implemented"
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 1,
+                "item_id": "ETHER",
+                "item_family": "pp_restore",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 88,
+                "target_party_index": 0,
+                "owned_stacks": 0,
+                "target_move_index": 3,
+                "mask_reason": "move_select_filter:It won’t have any effect."
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 1,
+                "item_id": "ETHER",
+                "item_family": "pp_restore",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 88,
+                "target_party_index": 1,
+                "owned_stacks": 0,
+                "target_move_index": 0,
+                "mask_reason": "move_select_filter:It won’t have any effect."
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 1,
+                "item_id": "ETHER",
+                "item_family": "pp_restore",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 88,
+                "target_party_index": 1,
+                "owned_stacks": 0,
+                "target_move_index": 1,
+                "mask_reason": "move_select_filter:It won’t have any effect."
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 1,
+                "item_id": "ETHER",
+                "item_family": "pp_restore",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 88,
+                "target_party_index": 1,
+                "owned_stacks": 0,
+                "target_move_index": 2,
+                "mask_reason": "shop_item_execution_not_implemented"
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 1,
+                "item_id": "ETHER",
+                "item_family": "pp_restore",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 88,
+                "target_party_index": 2,
+                "owned_stacks": 0,
+                "target_move_index": 0,
+                "mask_reason": "move_select_filter:It won’t have any effect."
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 1,
+                "item_id": "ETHER",
+                "item_family": "pp_restore",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 88,
+                "target_party_index": 2,
+                "owned_stacks": 0,
+                "target_move_index": 1,
+                "mask_reason": "move_select_filter:It won’t have any effect."
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 1,
+                "item_id": "ETHER",
+                "item_family": "pp_restore",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 88,
+                "target_party_index": 2,
+                "owned_stacks": 0,
+                "target_move_index": 2,
+                "mask_reason": "move_select_filter:It won’t have any effect."
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 2,
+                "item_id": "REVIVE",
+                "item_family": "revive",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 440,
+                "target_party_index": 0,
+                "owned_stacks": 0,
+                "effect": {
+                  "hp_restore_ratio": 0.4782608695652174
+                },
+                "mask_reason": "insufficient_money"
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 2,
+                "item_id": "REVIVE",
+                "item_family": "revive",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 440,
+                "target_party_index": 1,
+                "owned_stacks": 0,
+                "effect": {
+                  "hp_restore_ratio": 0.5
+                },
+                "mask_reason": "insufficient_money"
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 2,
+                "item_id": "REVIVE",
+                "item_family": "revive",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 440,
+                "target_party_index": 2,
+                "owned_stacks": 0,
+                "effect": {
+                  "hp_restore_ratio": 0.5
+                },
+                "mask_reason": "insufficient_money"
+              },
+              {
+                "kind": "finish_shop",
+                "mask": 1,
+                "tier": -1,
+                "cost": 0
+              }
+            ],
+            "selected_candidate_index": 16,
+            "immediate_reward": 0
+          }
+        },
+        {
+          "step_index": 1,
+          "worker_id": "local-worker-0",
+          "decision_rng_seed": "modifier-v1-smoke-b::1",
+          "wave_index": 5,
           "combat_turns": [],
-          "modifier_decision": {
-            "wave_index": 1,
-            "reward_options": [],
-            "shop_rows": [],
-            "actions": [],
-            "action_mask": []
-          },
-          "selected_action": {
-            "action_index": 0,
-            "action_type": "take_reward",
-            "modifier_type_id": "POKEBALL",
-            "cost": 0,
-            "available": true,
-            "executable": true
-          },
-          "selected_action_valid": true,
-          "immediate_reward": 0.1
+          "modifier_transition": {
+            "schema_version": "modifier-v1",
+            "decision_stage": "reward",
+            "state": {
+              "run": {
+                "wave_index": 5,
+                "money": 110,
+                "reroll_cost": 250,
+                "reroll_count": 0,
+                "lock_rarities": 0,
+                "shop_available": 1,
+                "purchases_this_phase": 0,
+                "waves_until_next_fixed_battle": 3,
+                "waves_until_next_boss": 5,
+                "party_luck": 0,
+                "goal_profile": {
+                  "w_run": 1,
+                  "w_meta": 0
+                }
+              },
+              "party_slots": [
+                {
+                  "present": 1,
+                  "fainted": 0,
+                  "hp_ratio": 0.4782608695652174,
+                  "level": 7,
+                  "level_ratio_to_cap": 0.7,
+                  "status": 0,
+                  "types": [
+                    9
+                  ],
+                  "base_stat_total": 309,
+                  "move_count": 4,
+                  "min_pp_ratio": 0.6,
+                  "held_items": []
+                },
+                {
+                  "present": 1,
+                  "fainted": 0,
+                  "hp_ratio": 1,
+                  "level": 5,
+                  "level_ratio_to_cap": 0.5,
+                  "status": 0,
+                  "types": [
+                    11,
+                    3
+                  ],
+                  "base_stat_total": 318,
+                  "move_count": 3,
+                  "min_pp_ratio": 0.72,
+                  "held_items": []
+                },
+                {
+                  "present": 1,
+                  "fainted": 0,
+                  "hp_ratio": 1,
+                  "level": 6,
+                  "level_ratio_to_cap": 0.6,
+                  "status": 0,
+                  "types": [
+                    10
+                  ],
+                  "base_stat_total": 314,
+                  "move_count": 3,
+                  "min_pp_ratio": 1,
+                  "held_items": []
+                },
+                {
+                  "present": 0,
+                  "fainted": 0,
+                  "hp_ratio": 0,
+                  "level": 0,
+                  "level_ratio_to_cap": 0,
+                  "status": 0,
+                  "types": [],
+                  "base_stat_total": 0,
+                  "move_count": 0,
+                  "min_pp_ratio": 0,
+                  "held_items": []
+                },
+                {
+                  "present": 0,
+                  "fainted": 0,
+                  "hp_ratio": 0,
+                  "level": 0,
+                  "level_ratio_to_cap": 0,
+                  "status": 0,
+                  "types": [],
+                  "base_stat_total": 0,
+                  "move_count": 0,
+                  "min_pp_ratio": 0,
+                  "held_items": []
+                },
+                {
+                  "present": 0,
+                  "fainted": 0,
+                  "hp_ratio": 0,
+                  "level": 0,
+                  "level_ratio_to_cap": 0,
+                  "status": 0,
+                  "types": [],
+                  "base_stat_total": 0,
+                  "move_count": 0,
+                  "min_pp_ratio": 0,
+                  "held_items": []
+                }
+              ],
+              "global_items": [
+                {
+                  "item_id": "SUPER_LURE",
+                  "item_family": "lure",
+                  "variant": {},
+                  "tier": 1,
+                  "stacks": 1,
+                  "max_stacks": 2,
+                  "max_battles": 15,
+                  "battles_remaining": 13
+                }
+              ],
+              "inventory": {
+                "pokeball_counts": [
+                  15,
+                  0,
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "offer": [
+                {
+                  "source": "reward",
+                  "reward_index": 0,
+                  "item_id": "TEMP_STAT_STAGE_BOOSTER",
+                  "item_family": "temp_battle_booster",
+                  "variant": {
+                    "stat": 6
+                  },
+                  "tier": 0,
+                  "upgrade_count": 0,
+                  "cost": 0
+                },
+                {
+                  "source": "reward",
+                  "reward_index": 1,
+                  "item_id": "TM_COMMON",
+                  "item_family": "tm",
+                  "variant": {
+                    "move_id": 803
+                  },
+                  "tier": 0,
+                  "upgrade_count": 0,
+                  "cost": 0
+                },
+                {
+                  "source": "reward",
+                  "reward_index": 2,
+                  "item_id": "POKEBALL",
+                  "item_family": "ball",
+                  "variant": {
+                    "pokeball_type": 0,
+                    "count": 5
+                  },
+                  "tier": 0,
+                  "upgrade_count": 0,
+                  "cost": 0
+                },
+                {
+                  "source": "shop",
+                  "shop_row_index": 0,
+                  "shop_column_index": 0,
+                  "item_id": "POTION",
+                  "item_family": "heal_hp",
+                  "variant": {},
+                  "tier": -1,
+                  "upgrade_count": 0,
+                  "cost": 44
+                },
+                {
+                  "source": "shop",
+                  "shop_row_index": 0,
+                  "shop_column_index": 1,
+                  "item_id": "ETHER",
+                  "item_family": "pp_restore",
+                  "variant": {},
+                  "tier": -1,
+                  "upgrade_count": 0,
+                  "cost": 88
+                },
+                {
+                  "source": "shop",
+                  "shop_row_index": 0,
+                  "shop_column_index": 2,
+                  "item_id": "REVIVE",
+                  "item_family": "revive",
+                  "variant": {},
+                  "tier": -1,
+                  "upgrade_count": 0,
+                  "cost": 440
+                }
+              ]
+            },
+            "candidates": [
+              {
+                "kind": "take_reward",
+                "mask": 1,
+                "reward_index": 0,
+                "item_id": "TEMP_STAT_STAGE_BOOSTER",
+                "item_family": "temp_battle_booster",
+                "variant": {
+                  "stat": 6
+                },
+                "tier": 0,
+                "upgrade_count": 0,
+                "cost": 0,
+                "owned_stacks": 0
+              },
+              {
+                "kind": "take_reward",
+                "mask": 0,
+                "reward_index": 1,
+                "item_id": "TM_COMMON",
+                "item_family": "tm",
+                "variant": {
+                  "move_id": 803
+                },
+                "tier": 0,
+                "upgrade_count": 0,
+                "cost": 0,
+                "target_party_index": 0,
+                "owned_stacks": 0,
+                "mask_reason": "select_filter:It won’t have any effect."
+              },
+              {
+                "kind": "take_reward",
+                "mask": 0,
+                "reward_index": 1,
+                "item_id": "TM_COMMON",
+                "item_family": "tm",
+                "variant": {
+                  "move_id": 803
+                },
+                "tier": 0,
+                "upgrade_count": 0,
+                "cost": 0,
+                "target_party_index": 1,
+                "owned_stacks": 0,
+                "mask_reason": "blocked_by_offline_modifier_policy:tm_selection_todo"
+              },
+              {
+                "kind": "take_reward",
+                "mask": 0,
+                "reward_index": 1,
+                "item_id": "TM_COMMON",
+                "item_family": "tm",
+                "variant": {
+                  "move_id": 803
+                },
+                "tier": 0,
+                "upgrade_count": 0,
+                "cost": 0,
+                "target_party_index": 2,
+                "owned_stacks": 0,
+                "mask_reason": "select_filter:It won’t have any effect."
+              },
+              {
+                "kind": "take_reward",
+                "mask": 1,
+                "reward_index": 2,
+                "item_id": "POKEBALL",
+                "item_family": "ball",
+                "variant": {
+                  "pokeball_type": 0,
+                  "count": 5
+                },
+                "tier": 0,
+                "upgrade_count": 0,
+                "cost": 0,
+                "owned_stacks": 0
+              },
+              {
+                "kind": "reroll",
+                "mask": 0,
+                "tier": -1,
+                "cost": 250,
+                "mask_reason": "insufficient_money"
+              },
+              {
+                "kind": "toggle_lock_rarities",
+                "mask": 0,
+                "tier": -1,
+                "cost": 0,
+                "mask_reason": "requires_lock_capsule"
+              },
+              {
+                "kind": "skip",
+                "mask": 0,
+                "tier": -1,
+                "cost": 0,
+                "mask_reason": "skip_while_free_reward"
+              }
+            ],
+            "selected_candidate_index": 0,
+            "immediate_reward": 0
+          }
+        },
+        {
+          "step_index": 2,
+          "worker_id": "local-worker-0",
+          "decision_rng_seed": "modifier-v1-smoke-b::1",
+          "wave_index": 6,
+          "combat_turns": [
+            {
+              "state": {
+                "wave_index": 6,
+                "player_hp_ratio": 0.4782608695652174,
+                "enemy_hp_ratio": 1,
+                "player_hp_bucket": 3,
+                "enemy_hp_bucket": 5,
+                "hp_diff_bucket": 1,
+                "level_gap_bucket": 3,
+                "is_trainer_battle": 0,
+                "has_legal_switch": 1,
+                "active_hp_critical": 0,
+                "bench_has_healthier_switch": 1,
+                "bench_has_better_matchup_than_active": 0,
+                "active_can_finish_enemy": 0,
+                "alive_bench_count_bucket": 2,
+                "healthy_bench_count_bucket": 2,
+                "best_switch_matchup_bucket": 2,
+                "worst_switch_risk_bucket": 0,
+                "speed_order_advantage": 2,
+                "enemy_has_known_priority_threat": 0,
+                "active_has_any_first_strike_move": 1,
+                "active_best_damage_bucket": 2,
+                "enemy_best_damage_into_active_bucket": 1,
+                "active_survives_next_hit": 1,
+                "enemy_survives_best_hit": 1,
+                "decision_kind": 0,
+                "last_action_was_switch": 0,
+                "consecutive_switch_bucket": 0,
+                "battle_turn_bucket": 0,
+                "active": {
+                  "status": 0,
+                  "stat_stages": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "volatile": {
+                    "confused": 0,
+                    "seeded": 0,
+                    "substitute": 0,
+                    "trapped": 0,
+                    "locked_into_move": 0,
+                    "taunted": 0,
+                    "infatuated": 0,
+                    "drowsy": 0,
+                    "perish_song": 0
+                  }
+                },
+                "enemy": {
+                  "status": 0,
+                  "stat_stages": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "volatile": {
+                    "confused": 0,
+                    "seeded": 0,
+                    "substitute": 0,
+                    "trapped": 0,
+                    "locked_into_move": 0,
+                    "taunted": 0,
+                    "infatuated": 0,
+                    "drowsy": 0,
+                    "perish_song": 0
+                  },
+                  "types": [
+                    16
+                  ],
+                  "remaining_team_count": 1,
+                  "team_hp_ratio": 1
+                },
+                "field": {
+                  "weather": 0,
+                  "terrain": 0,
+                  "trick_room": 0,
+                  "player_side": {
+                    "spikes_layers": 0,
+                    "toxic_spikes_layers": 0,
+                    "stealth_rock": 0,
+                    "sticky_web": 0,
+                    "reflect": 0,
+                    "light_screen": 0,
+                    "aurora_veil": 0,
+                    "tailwind": 0
+                  },
+                  "enemy_side": {
+                    "spikes_layers": 0,
+                    "toxic_spikes_layers": 0,
+                    "stealth_rock": 0,
+                    "sticky_web": 0,
+                    "reflect": 0,
+                    "light_screen": 0,
+                    "aurora_veil": 0,
+                    "tailwind": 0
+                  }
+                },
+                "moves": [
+                  {
+                    "available": 1,
+                    "power_bucket": 1,
+                    "effectiveness_bucket": 2,
+                    "stab": 0,
+                    "pp_low": 0,
+                    "priority_bucket": 1,
+                    "acts_first_if_used": 1,
+                    "can_ko_before_enemy_moves": 0,
+                    "move_kind_bucket": 1,
+                    "damage_class_bucket": 0,
+                    "estimated_damage_ratio_bucket": 2,
+                    "estimated_ko_turns_bucket": 3,
+                    "accuracy_bucket": 3,
+                    "uses_best_offense_stat": 0,
+                    "target_immunity_risk": 0,
+                    "estimated_damage_ratio": 0.4,
+                    "pp_ratio": 1,
+                    "effect_category": 0,
+                    "effect_still_useful": 1
+                  },
+                  {
+                    "available": 1,
+                    "power_bucket": 0,
+                    "effectiveness_bucket": 2,
+                    "stab": 0,
+                    "pp_low": 0,
+                    "priority_bucket": 1,
+                    "acts_first_if_used": 1,
+                    "can_ko_before_enemy_moves": 0,
+                    "move_kind_bucket": 0,
+                    "damage_class_bucket": 2,
+                    "estimated_damage_ratio_bucket": 0,
+                    "estimated_ko_turns_bucket": 0,
+                    "accuracy_bucket": 3,
+                    "uses_best_offense_stat": 0,
+                    "target_immunity_risk": 0,
+                    "estimated_damage_ratio": 0,
+                    "pp_ratio": 1,
+                    "effect_category": 2,
+                    "effect_still_useful": 1
+                  },
+                  {
+                    "available": 1,
+                    "power_bucket": 1,
+                    "effectiveness_bucket": 2,
+                    "stab": 1,
+                    "pp_low": 0,
+                    "priority_bucket": 1,
+                    "acts_first_if_used": 1,
+                    "can_ko_before_enemy_moves": 0,
+                    "move_kind_bucket": 1,
+                    "damage_class_bucket": 1,
+                    "estimated_damage_ratio_bucket": 2,
+                    "estimated_ko_turns_bucket": 3,
+                    "accuracy_bucket": 3,
+                    "uses_best_offense_stat": 1,
+                    "target_immunity_risk": 0,
+                    "estimated_damage_ratio": 0.55,
+                    "pp_ratio": 0.6,
+                    "effect_category": 0,
+                    "effect_still_useful": 1
+                  },
+                  {
+                    "available": 1,
+                    "power_bucket": 1,
+                    "effectiveness_bucket": 2,
+                    "stab": 0,
+                    "pp_low": 0,
+                    "priority_bucket": 1,
+                    "acts_first_if_used": 1,
+                    "can_ko_before_enemy_moves": 0,
+                    "move_kind_bucket": 1,
+                    "damage_class_bucket": 0,
+                    "estimated_damage_ratio_bucket": 1,
+                    "estimated_ko_turns_bucket": 3,
+                    "accuracy_bucket": 3,
+                    "uses_best_offense_stat": 0,
+                    "target_immunity_risk": 0,
+                    "estimated_damage_ratio": 0.25,
+                    "pp_ratio": 1,
+                    "effect_category": 0,
+                    "effect_still_useful": 1
+                  }
+                ],
+                "party_slots": [
+                  {
+                    "present": 1,
+                    "active": 1,
+                    "fainted": 0,
+                    "hp_ratio": 0.4782608695652174,
+                    "level": 7,
+                    "types": [
+                      9
+                    ],
+                    "best_damage_into_enemy_bucket": 2,
+                    "expected_incoming_damage_bucket": 1,
+                    "speed_advantage_bucket": 2,
+                    "survives_one_hit": 1,
+                    "can_threaten_ko_bucket": 3,
+                    "status": 0,
+                    "is_last_switch_origin": 0
+                  },
+                  {
+                    "present": 1,
+                    "active": 0,
+                    "fainted": 0,
+                    "hp_ratio": 1,
+                    "level": 5,
+                    "types": [
+                      11,
+                      3
+                    ],
+                    "best_damage_into_enemy_bucket": 2,
+                    "expected_incoming_damage_bucket": 1,
+                    "speed_advantage_bucket": 1,
+                    "survives_one_hit": 1,
+                    "can_threaten_ko_bucket": 3,
+                    "status": 0,
+                    "is_last_switch_origin": 0
+                  },
+                  {
+                    "present": 1,
+                    "active": 0,
+                    "fainted": 0,
+                    "hp_ratio": 1,
+                    "level": 6,
+                    "types": [
+                      10
+                    ],
+                    "best_damage_into_enemy_bucket": 2,
+                    "expected_incoming_damage_bucket": 1,
+                    "speed_advantage_bucket": 2,
+                    "survives_one_hit": 1,
+                    "can_threaten_ko_bucket": 3,
+                    "status": 0,
+                    "is_last_switch_origin": 0
+                  },
+                  {
+                    "present": 0,
+                    "active": 0,
+                    "fainted": 0,
+                    "hp_ratio": 0,
+                    "level": 0,
+                    "types": [],
+                    "best_damage_into_enemy_bucket": 0,
+                    "expected_incoming_damage_bucket": 0,
+                    "speed_advantage_bucket": 1,
+                    "survives_one_hit": 0,
+                    "can_threaten_ko_bucket": 0,
+                    "status": 0,
+                    "is_last_switch_origin": 0
+                  },
+                  {
+                    "present": 0,
+                    "active": 0,
+                    "fainted": 0,
+                    "hp_ratio": 0,
+                    "level": 0,
+                    "types": [],
+                    "best_damage_into_enemy_bucket": 0,
+                    "expected_incoming_damage_bucket": 0,
+                    "speed_advantage_bucket": 1,
+                    "survives_one_hit": 0,
+                    "can_threaten_ko_bucket": 0,
+                    "status": 0,
+                    "is_last_switch_origin": 0
+                  },
+                  {
+                    "present": 0,
+                    "active": 0,
+                    "fainted": 0,
+                    "hp_ratio": 0,
+                    "level": 0,
+                    "types": [],
+                    "best_damage_into_enemy_bucket": 0,
+                    "expected_incoming_damage_bucket": 0,
+                    "speed_advantage_bucket": 1,
+                    "survives_one_hit": 0,
+                    "can_threaten_ko_bucket": 0,
+                    "status": 0,
+                    "is_last_switch_origin": 0
+                  }
+                ],
+                "action_mask": [
+                  1,
+                  1,
+                  1,
+                  1,
+                  0,
+                  1,
+                  1,
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "wave_index": 6,
+              "turn_index": 1,
+              "is_double_battle": false,
+              "player": {
+                "species_id": 4,
+                "species_name": "CHARMANDER",
+                "level": 7,
+                "hp_ratio": 0.4782608695652174
+              },
+              "enemy": {
+                "species_id": 509,
+                "species_name": "PURRLOIN",
+                "level": 5,
+                "hp_ratio": 1
+              },
+              "action_mask": [
+                1,
+                1,
+                1,
+                1,
+                0,
+                1,
+                1,
+                0,
+                0,
+                0
+              ],
+              "selected_action": 2,
+              "action_source": "dqn"
+            }
+          ],
+          "modifier_transition": {
+            "schema_version": "modifier-v1",
+            "decision_stage": "shop",
+            "state": {
+              "run": {
+                "wave_index": 6,
+                "money": 110,
+                "reroll_cost": 250,
+                "reroll_count": 0,
+                "lock_rarities": 0,
+                "shop_available": 1,
+                "purchases_this_phase": 0,
+                "waves_until_next_fixed_battle": 2,
+                "waves_until_next_boss": 4,
+                "party_luck": 0,
+                "goal_profile": {
+                  "w_run": 1,
+                  "w_meta": 0
+                }
+              },
+              "party_slots": [
+                {
+                  "present": 1,
+                  "fainted": 0,
+                  "hp_ratio": 0.4782608695652174,
+                  "level": 7,
+                  "level_ratio_to_cap": 0.7,
+                  "status": 0,
+                  "types": [
+                    9
+                  ],
+                  "base_stat_total": 309,
+                  "move_count": 4,
+                  "min_pp_ratio": 0.52,
+                  "held_items": []
+                },
+                {
+                  "present": 1,
+                  "fainted": 0,
+                  "hp_ratio": 1,
+                  "level": 5,
+                  "level_ratio_to_cap": 0.5,
+                  "status": 0,
+                  "types": [
+                    11,
+                    3
+                  ],
+                  "base_stat_total": 318,
+                  "move_count": 3,
+                  "min_pp_ratio": 0.72,
+                  "held_items": []
+                },
+                {
+                  "present": 1,
+                  "fainted": 0,
+                  "hp_ratio": 1,
+                  "level": 6,
+                  "level_ratio_to_cap": 0.6,
+                  "status": 0,
+                  "types": [
+                    10
+                  ],
+                  "base_stat_total": 314,
+                  "move_count": 3,
+                  "min_pp_ratio": 1,
+                  "held_items": []
+                },
+                {
+                  "present": 0,
+                  "fainted": 0,
+                  "hp_ratio": 0,
+                  "level": 0,
+                  "level_ratio_to_cap": 0,
+                  "status": 0,
+                  "types": [],
+                  "base_stat_total": 0,
+                  "move_count": 0,
+                  "min_pp_ratio": 0,
+                  "held_items": []
+                },
+                {
+                  "present": 0,
+                  "fainted": 0,
+                  "hp_ratio": 0,
+                  "level": 0,
+                  "level_ratio_to_cap": 0,
+                  "status": 0,
+                  "types": [],
+                  "base_stat_total": 0,
+                  "move_count": 0,
+                  "min_pp_ratio": 0,
+                  "held_items": []
+                },
+                {
+                  "present": 0,
+                  "fainted": 0,
+                  "hp_ratio": 0,
+                  "level": 0,
+                  "level_ratio_to_cap": 0,
+                  "status": 0,
+                  "types": [],
+                  "base_stat_total": 0,
+                  "move_count": 0,
+                  "min_pp_ratio": 0,
+                  "held_items": []
+                }
+              ],
+              "global_items": [
+                {
+                  "item_id": "SUPER_LURE",
+                  "item_family": "lure",
+                  "variant": {},
+                  "tier": 1,
+                  "stacks": 1,
+                  "max_stacks": 2,
+                  "max_battles": 15,
+                  "battles_remaining": 12
+                },
+                {
+                  "item_id": "TEMP_STAT_STAGE_BOOSTER",
+                  "item_family": "temp_battle_booster",
+                  "variant": {
+                    "stat": 6
+                  },
+                  "tier": 0,
+                  "stacks": 1,
+                  "max_stacks": 2,
+                  "max_battles": 5,
+                  "battles_remaining": 4
+                }
+              ],
+              "inventory": {
+                "pokeball_counts": [
+                  15,
+                  0,
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "offer": [
+                {
+                  "source": "reward",
+                  "reward_index": 0,
+                  "item_id": "TEMP_STAT_STAGE_BOOSTER",
+                  "item_family": "temp_battle_booster",
+                  "variant": {
+                    "stat": 1
+                  },
+                  "tier": 0,
+                  "upgrade_count": 0,
+                  "cost": 0
+                },
+                {
+                  "source": "reward",
+                  "reward_index": 1,
+                  "item_id": "POKEBALL",
+                  "item_family": "ball",
+                  "variant": {
+                    "pokeball_type": 0,
+                    "count": 5
+                  },
+                  "tier": 0,
+                  "upgrade_count": 0,
+                  "cost": 0
+                },
+                {
+                  "source": "reward",
+                  "reward_index": 2,
+                  "item_id": "LURE",
+                  "item_family": "lure",
+                  "variant": {},
+                  "tier": 0,
+                  "upgrade_count": 0,
+                  "cost": 0
+                },
+                {
+                  "source": "shop",
+                  "shop_row_index": 0,
+                  "shop_column_index": 0,
+                  "item_id": "POTION",
+                  "item_family": "heal_hp",
+                  "variant": {},
+                  "tier": -1,
+                  "upgrade_count": 0,
+                  "cost": 46
+                },
+                {
+                  "source": "shop",
+                  "shop_row_index": 0,
+                  "shop_column_index": 1,
+                  "item_id": "ETHER",
+                  "item_family": "pp_restore",
+                  "variant": {},
+                  "tier": -1,
+                  "upgrade_count": 0,
+                  "cost": 92
+                },
+                {
+                  "source": "shop",
+                  "shop_row_index": 0,
+                  "shop_column_index": 2,
+                  "item_id": "REVIVE",
+                  "item_family": "revive",
+                  "variant": {},
+                  "tier": -1,
+                  "upgrade_count": 0,
+                  "cost": 460
+                }
+              ]
+            },
+            "candidates": [
+              {
+                "kind": "buy_shop_item",
+                "mask": 1,
+                "shop_row_index": 0,
+                "shop_column_index": 0,
+                "item_id": "POTION",
+                "item_family": "heal_hp",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 46,
+                "target_party_index": 0,
+                "owned_stacks": 0,
+                "effect": {
+                  "hp_restore_ratio": 0.5217391304347826
+                }
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 0,
+                "item_id": "POTION",
+                "item_family": "heal_hp",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 46,
+                "target_party_index": 1,
+                "owned_stacks": 0,
+                "effect": {
+                  "hp_restore_ratio": 0
+                },
+                "mask_reason": "select_filter:It won’t have any effect."
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 0,
+                "item_id": "POTION",
+                "item_family": "heal_hp",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 46,
+                "target_party_index": 2,
+                "owned_stacks": 0,
+                "effect": {
+                  "hp_restore_ratio": 0
+                },
+                "mask_reason": "select_filter:It won’t have any effect."
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 1,
+                "item_id": "ETHER",
+                "item_family": "pp_restore",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 92,
+                "target_party_index": 0,
+                "owned_stacks": 0,
+                "target_move_index": 0,
+                "mask_reason": "move_select_filter:It won’t have any effect."
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 1,
+                "item_id": "ETHER",
+                "item_family": "pp_restore",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 92,
+                "target_party_index": 0,
+                "owned_stacks": 0,
+                "target_move_index": 1,
+                "mask_reason": "move_select_filter:It won’t have any effect."
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 1,
+                "item_id": "ETHER",
+                "item_family": "pp_restore",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 92,
+                "target_party_index": 0,
+                "owned_stacks": 0,
+                "target_move_index": 2,
+                "mask_reason": "shop_item_execution_not_implemented"
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 1,
+                "item_id": "ETHER",
+                "item_family": "pp_restore",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 92,
+                "target_party_index": 0,
+                "owned_stacks": 0,
+                "target_move_index": 3,
+                "mask_reason": "move_select_filter:It won’t have any effect."
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 1,
+                "item_id": "ETHER",
+                "item_family": "pp_restore",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 92,
+                "target_party_index": 1,
+                "owned_stacks": 0,
+                "target_move_index": 0,
+                "mask_reason": "move_select_filter:It won’t have any effect."
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 1,
+                "item_id": "ETHER",
+                "item_family": "pp_restore",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 92,
+                "target_party_index": 1,
+                "owned_stacks": 0,
+                "target_move_index": 1,
+                "mask_reason": "move_select_filter:It won’t have any effect."
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 1,
+                "item_id": "ETHER",
+                "item_family": "pp_restore",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 92,
+                "target_party_index": 1,
+                "owned_stacks": 0,
+                "target_move_index": 2,
+                "mask_reason": "shop_item_execution_not_implemented"
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 1,
+                "item_id": "ETHER",
+                "item_family": "pp_restore",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 92,
+                "target_party_index": 2,
+                "owned_stacks": 0,
+                "target_move_index": 0,
+                "mask_reason": "move_select_filter:It won’t have any effect."
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 1,
+                "item_id": "ETHER",
+                "item_family": "pp_restore",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 92,
+                "target_party_index": 2,
+                "owned_stacks": 0,
+                "target_move_index": 1,
+                "mask_reason": "move_select_filter:It won’t have any effect."
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 1,
+                "item_id": "ETHER",
+                "item_family": "pp_restore",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 92,
+                "target_party_index": 2,
+                "owned_stacks": 0,
+                "target_move_index": 2,
+                "mask_reason": "move_select_filter:It won’t have any effect."
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 2,
+                "item_id": "REVIVE",
+                "item_family": "revive",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 460,
+                "target_party_index": 0,
+                "owned_stacks": 0,
+                "effect": {
+                  "hp_restore_ratio": 0.4782608695652174
+                },
+                "mask_reason": "insufficient_money"
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 2,
+                "item_id": "REVIVE",
+                "item_family": "revive",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 460,
+                "target_party_index": 1,
+                "owned_stacks": 0,
+                "effect": {
+                  "hp_restore_ratio": 0.5
+                },
+                "mask_reason": "insufficient_money"
+              },
+              {
+                "kind": "buy_shop_item",
+                "mask": 0,
+                "shop_row_index": 0,
+                "shop_column_index": 2,
+                "item_id": "REVIVE",
+                "item_family": "revive",
+                "variant": {},
+                "tier": -1,
+                "upgrade_count": 0,
+                "cost": 460,
+                "target_party_index": 2,
+                "owned_stacks": 0,
+                "effect": {
+                  "hp_restore_ratio": 0.5
+                },
+                "mask_reason": "insufficient_money"
+              },
+              {
+                "kind": "finish_shop",
+                "mask": 1,
+                "tier": -1,
+                "cost": 0
+              }
+            ],
+            "selected_candidate_index": 0,
+            "immediate_reward": 0.5217391304347826
+          }
         }
-      ]
+      ],
+      "retry_count": 0
     }
-  ]
+  ],
+  "regular_run_count": 1,
+  "technical_termination_count": 0,
+  "technical_terminations": []
 }

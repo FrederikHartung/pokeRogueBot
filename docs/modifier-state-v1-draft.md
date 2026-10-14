@@ -1,13 +1,13 @@
 # Modifier-State v1 (Entwurf)
 
-Status: **Entwurf; Schema und Builder umgesetzt, Collector noch nicht umgestellt.** Deckt Phase 1 aus `docs/modifier-dqn-migration-plan.md` ab (eigener State-/Action-Contract fuer die `SelectModifierPhase`). Dateien:
+Status: **Entwurf; Schema, Builder und Strategic Collector umgesetzt (Output `modifier_strategic_fixed_seed_output_v2`), Credit-Score und Training offen.** Deckt Phase 1 aus `docs/modifier-dqn-migration-plan.md` ab (eigener State-/Action-Contract fuer die `SelectModifierPhase`). Dateien:
 
 - Schema: `docs/rl-schema/modifier-transition-v1.schema.json`
 - Beispiel: `docs/rl-schema/modifier-transition-v1.example.json` (echte Builder-Ausgabe aus dem Spieltest, validiert gegen das Schema)
 - Builder: `src/main/ts/lib/modifier-observation.ts` (`buildModifierObservation`), einzige Implementierung fuer Collector und spaeter die JS-Bridge; nutzt die Party-Helfer aus `combat-observation.ts`. Die Runner kopieren beide Dateien neben den generierten Test (`linkModifierObservationModule` in `scripts/01-data-generation/collector/combat-observation-module.ts`).
 - Spieltest: `npm run rl:test:modifier:observation-v1` baut State und Kandidaten in einer echten `SelectModifierPhase` (vorhandene Items, voll gestapelte Beere, Sonderbonbon-Glas, Attacken-Ziele), prueft, dass der Builder den Spiel-Zufall nicht veraendert, und validiert die Ausgabe und das Beispiel gegen das Schema.
 
-Bezug zu bestehenden Contracts: `modifier_strategic_fixed_seed_output_v1` bleibt das Huellformat (Manifest, Episoden, Steps). In v1 wird das freie Objekt `step.modifier_decision` durch einen `modifier-transition-v1`-Datensatz ersetzt; `build-modifier-strategic-training-transitions.ts` uebernimmt dessen `state` und `candidates` statt `modifier_decision`.
+Bezug zu bestehenden Contracts: `modifier_strategic_fixed_seed_output_v2` ist das Huellformat (Manifest, Episoden, Steps); jeder Step traegt einen `modifier-transition-v1`-Datensatz in `step.modifier_transition` (frueher das freie Objekt `modifier_decision`). `build-modifier-strategic-training-transitions.ts` uebernimmt daraus `decision_stage`, `state`, `candidates` und `selected_candidate_index` (`modifier_training_transition_v2`).
 
 ## 1. Befunde (Stand 2026-10-13)
 
@@ -92,7 +92,7 @@ Pro Item (getragen oder global):
 - bei zeitlich begrenzten Items (`LapsingPersistentModifier`): verbleibende und maximale Kaempfe (`battleCount`, `maxBattles`)
 - bei X-Items: betroffener Wert
 
-Zufaellige Trainer fehlen bewusst: `gameMode.isWaveTrainer` wuerfelt mit dem Spiel-RNG, ein Aufruf aus dem Builder wuerde den Run veraendern. `battleCount` zaehlt im Spiel die verbleibenden Kaempfe herunter.
+Zufaellige Trainer fehlen bewusst: `gameMode.isWaveTrainer` wuerfelt mit dem Spiel-RNG, ein Aufruf aus dem Builder wuerde den Run veraendern. `battleCount` zaehlt im Spiel die verbleibenden Kaempfe herunter. Shop-Items entstehen ohne Pool und haben deshalb keine `id`; der Builder liest den Schluessel aus dem `localeKey` (`modifierType:ModifierType.POTION`).
 
 Getragene Items haengen am jeweiligen Party-Slot, globale Items stehen in `global_items`. Beide Listen haben variable Laenge und werden mit demselben Item-Encoder wie die Kandidaten kodiert und zusammengefasst (Summe/Maximum ueber die Kodierungen). Dadurch kann das Netz Zusammenhaenge wie "Sonderbonbon-Glas vorhanden" x "Kandidat Sonderbonbon" lernen, ohne dass sie einzeln von Hand modelliert werden.
 
@@ -142,9 +142,9 @@ Solange das Modifier-DQN nur Heilung/Revive kennt:
 ## 7. Migrationsplan
 
 1. Live-Fallback (Abschnitt 6) mit Kotlin-Tests. Umgesetzt und live getestet (2026-10-14, Wellen 12-20: Poke Ball, X-Item, Sonderbonbon inkl. Party-Menue).
-2. Gemeinsamen TS-Builder fuer `state` und `candidates` schreiben (umgesetzt 2026-10-14, mit Spieltest); Strategic Collector auf `modifier-transition-v1` umstellen (zwei Stufen, Skip-Maske, Item-gleichverteilte Exploration, Kaufgrenze; offen). Die collector-spezifischen Sperren (`getActionExecutability`) gehen als `blockCandidate` an den Builder.
-3. `build-modifier-strategic-training-transitions.ts`: neuer Credit-Score, `state`/`candidates` aus v1.
-4. Contract-Tests (`rl:test:modifier:strategic-contract`) und Item-Suite auf v1 ziehen; Item-Matrix um Spalte "im Strategic Collector ausfuehrbar" ergaenzen.
+2. Gemeinsamen TS-Builder fuer `state` und `candidates` schreiben; Strategic Collector auf `modifier-transition-v1` umstellen (zwei Stufen, Skip-Maske, Item-gleichverteilte Exploration, Kaufgrenze). Umgesetzt 2026-10-14: Builder mit Spieltest, Collector-Output `v2`; die collector-spezifischen Sperren (`getActionExecutability`) gehen als `blockCandidate` an den Builder, Reroll und Lock sind dort noch gesperrt (`not_implemented_in_collector`). Sofort-Reward nach Abschnitt 5 (geheilter Anteil, Malus fuer bezahlte Heilung bei Gratis-Heilung).
+3. `build-modifier-strategic-training-transitions.ts`: `state`/`candidates` aus v1 (umgesetzt, `modifier_training_transition_v2`); neuer Credit-Score (offen).
+4. Contract-Tests (`rl:test:modifier:strategic-contract`, umgesetzt: JSON-Schema-Validierung, Determinismus ueber State und Kandidaten) und Item-Suite auf v1 ziehen; Item-Matrix um Spalte "im Strategic Collector ausfuehrbar" ergaenzen.
 5. Smoke-Lauf, danach erster Remote-Lauf mit v1. Grosse Laeufe mit dem alten Step-Format bis dahin nicht mehr starten (State fehlt und ist nicht nachruestbar).
 6. Reroll und Freischaltungen Prioritaet 1 aus 2.3.
 7. PyTorch-Training (Kandidaten-Bewertung), Inferenz-Worker, Kotlin-Anbindung ueber die JS-Bridge (Phasen 3/4 des Migrationsplans).

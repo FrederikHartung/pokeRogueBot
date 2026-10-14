@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { linkCombatObservationModule } from "../../01-data-generation/collector/combat-observation-module.ts";
+import { linkModifierObservationModule } from "../../01-data-generation/collector/combat-observation-module.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,6 +24,8 @@ const collectorVariant = "strategic_fixed_seed";
 const stepTimeoutMs = Number.parseInt(process.argv[10] ?? "", 10)
   || Number.parseInt(process.env.POKEROGUE_MODIFIER_STEP_TIMEOUT_MS ?? "", 10)
   || 15000;
+// Kaeufe pro SelectModifierPhase (modifier-v1, docs/modifier-state-v1-draft.md 2.4).
+const maxShopPurchases = Number.parseInt(process.env.POKEROGUE_MODIFIER_MAX_SHOP_PURCHASES ?? "", 10) || 3;
 const runProcessTimeoutMs = Number.parseInt(process.argv[11] ?? "", 10)
   || Number.parseInt(process.env.POKEROGUE_MODIFIER_RUN_TIMEOUT_MS ?? "", 10)
   || 300000;
@@ -139,6 +141,7 @@ type CollectorPayload = {
   decision_rng_strategy: string;
   step_timeout_ms: number;
   modifier_policy: string;
+  max_shop_purchases_per_phase?: number;
   combat_dqn_checkpoint: string;
   combat_dqn_device: string;
   generated_at: string;
@@ -171,7 +174,8 @@ function buildTestSource(runOutputPath: string, runIndexOffset: number): string 
     .replaceAll("__COMBAT_DQN_DEVICE__", JSON.stringify(combatDevice))
     .replaceAll("__COMBAT_DQN_PYTHON__", JSON.stringify(pythonBin))
     .replaceAll("__COMBAT_DQN_WORKER_SCRIPT__", JSON.stringify(combatInferWorkerScript))
-    .replaceAll("__STEP_TIMEOUT_MS__", String(stepTimeoutMs));
+    .replaceAll("__STEP_TIMEOUT_MS__", String(stepTimeoutMs))
+    .replaceAll("__MAX_SHOP_PURCHASES__", String(maxShopPurchases));
 }
 
 function isTechnicalTerminationReason(reason: string | undefined): boolean {
@@ -214,8 +218,8 @@ function runSingleCollectorBatch(runIndex: number): RunOutcome {
   const globalRunIndex = runIndexBase + runIndex;
 
   mkdirSync(runTempDir, { recursive: true });
-  // Gemeinsamer combat-v4-Builder neben den generierten Test (Import "#bot-ts/combat-observation").
-  const runTestSource = linkCombatObservationModule(buildTestSource(runOutputPath, globalRunIndex), runTempDir, repoRoot);
+  // Gemeinsame Builder (combat-v4, modifier-v1) neben den generierten Test (Imports "#bot-ts/...").
+  const runTestSource = linkModifierObservationModule(buildTestSource(runOutputPath, globalRunIndex), runTempDir, repoRoot);
   writeFileSync(runTempTestPath, runTestSource, { encoding: "utf8" });
 
   console.log(`[modifier-strategic-fixed-seed-runner] starting run ${runIndex + 1}/${runCount}`);
@@ -302,6 +306,7 @@ try {
     decision_rng_strategy: metadataPayload?.decision_rng_strategy ?? "seed_plus_run_index",
     step_timeout_ms: metadataPayload?.step_timeout_ms ?? stepTimeoutMs,
     modifier_policy: metadataPayload?.modifier_policy ?? modifierPolicy,
+    max_shop_purchases_per_phase: metadataPayload?.max_shop_purchases_per_phase ?? maxShopPurchases,
     combat_dqn_checkpoint: metadataPayload?.combat_dqn_checkpoint ?? combatCheckpoint,
     combat_dqn_device: metadataPayload?.combat_dqn_device ?? combatDevice,
     generated_at: new Date().toISOString(),

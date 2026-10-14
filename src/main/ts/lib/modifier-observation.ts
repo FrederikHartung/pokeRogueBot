@@ -302,8 +302,14 @@ interface TargetFilters {
   moveSelectFilter?: (pokemonMove: PokemonMove) => string | null;
 }
 
+const LOCALE_KEY_ID = /^modifierType:ModifierType\.([A-Z0-9_]+)$/;
+
 export function itemIdOf(type: ModifierType): string {
-  return type.id || type.constructor.name;
+  if (type.id) return type.id;
+  // Shop-Items entstehen ohne Pool und damit ohne id (getPlayerShopModifierTypeOptionsForWave); ihr localeKey traegt
+  // denselben Schluessel ("modifierType:ModifierType.POTION").
+  const match = LOCALE_KEY_ID.exec(type.localeKey ?? "");
+  return match?.[1] ?? type.constructor.name;
 }
 
 export function itemFamilyOf(type: ModifierType): ItemFamily {

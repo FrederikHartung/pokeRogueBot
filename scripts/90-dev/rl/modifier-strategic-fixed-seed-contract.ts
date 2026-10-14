@@ -1,3 +1,8 @@
+import { modifierTransitionV1Errors } from "./modifier-transition-v1-schema.ts";
+
+/** v2: Steps tragen einen modifier-transition-v1-Datensatz statt durchnummerierter Aktionen. */
+export const MODIFIER_STRATEGIC_OUTPUT_SCHEMA_VERSION = "modifier_strategic_fixed_seed_output_v2";
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -37,12 +42,6 @@ function assertNumber(value: unknown, context: string, fieldName: string): void 
   }
 }
 
-function assertBoolean(value: unknown, context: string, fieldName: string): void {
-  if (typeof value !== "boolean") {
-    throw new Error(`Invalid boolean field${describeContext(context)}: ${fieldName}`);
-  }
-}
-
 function assertInteger(value: unknown, context: string, fieldName: string, { min = 0 }: { min?: number } = {}): void {
   if (!Number.isInteger(value) || (value as number) < min) {
     throw new Error(`Invalid integer field${describeContext(context)}: ${fieldName}`);
@@ -76,6 +75,20 @@ function validateSummary(value: unknown, context: string): Record<string, unknow
   return structuredClone(value);
 }
 
+/** modifier-transition-v1 (JSON-Schema) plus: der gewaehlte Kandidat existiert und war waehlbar. */
+function validateModifierTransition(value: unknown, context: string): void {
+  assertPlainObject(value, context, "modifier_transition");
+  const errors = modifierTransitionV1Errors(value);
+  if (errors !== null) {
+    throw new Error(`Invalid modifier_transition${describeContext(context)}: ${errors}`);
+  }
+  const candidates = value.candidates as Array<{ mask: number }>;
+  const selected = candidates[value.selected_candidate_index as number];
+  if (!selected || selected.mask !== 1) {
+    throw new Error(`selected_candidate_index must point to a candidate with mask=1${describeContext(context)}`);
+  }
+}
+
 function validateModifierStep(value: unknown, context: string): Record<string, unknown> {
   assertPlainObject(value, context, "modifier step");
   assertAllowedKeys(
@@ -86,10 +99,7 @@ function validateModifierStep(value: unknown, context: string): Record<string, u
       "decision_rng_seed",
       "wave_index",
       "combat_turns",
-      "modifier_decision",
-      "selected_action",
-      "selected_action_valid",
-      "immediate_reward",
+      "modifier_transition",
     ]),
     context,
     "modifier step",
@@ -99,10 +109,7 @@ function validateModifierStep(value: unknown, context: string): Record<string, u
   assertString(value.decision_rng_seed, context, "decision_rng_seed");
   assertInteger(value.wave_index, context, "wave_index");
   assertArray(value.combat_turns, context, "combat_turns");
-  assertPlainObject(value.modifier_decision, context, "modifier_decision");
-  assertPlainObject(value.selected_action, context, "selected_action");
-  assertBoolean(value.selected_action_valid, context, "selected_action_valid");
-  assertNumber(value.immediate_reward, context, "immediate_reward");
+  validateModifierTransition(value.modifier_transition, context);
   return structuredClone(value);
 }
 
@@ -211,6 +218,7 @@ export function validateModifierStrategicFixedSeedOutput(value: unknown): Record
       "decision_rng_strategy",
       "step_timeout_ms",
       "modifier_policy",
+      "max_shop_purchases_per_phase",
       "combat_dqn_checkpoint",
       "combat_dqn_device",
       "generated_at",
@@ -238,7 +246,7 @@ export function validateModifierStrategicFixedSeedOutput(value: unknown): Record
   }
 
   assertString(value.schema_version, context, "schema_version");
-  if (value.schema_version !== "modifier_strategic_fixed_seed_output_v1") {
+  if (value.schema_version !== MODIFIER_STRATEGIC_OUTPUT_SCHEMA_VERSION) {
     throw new Error(`Unsupported schema_version${describeContext(context)}: ${String(value.schema_version)}`);
   }
   assertString(value.seed, context, "seed");
@@ -254,6 +262,7 @@ export function validateModifierStrategicFixedSeedOutput(value: unknown): Record
   }
   assertInteger(value.step_timeout_ms, context, "step_timeout_ms", { min: 1 });
   assertString(value.modifier_policy, context, "modifier_policy");
+  assertInteger(value.max_shop_purchases_per_phase, context, "max_shop_purchases_per_phase");
   assertString(value.combat_dqn_checkpoint, context, "combat_dqn_checkpoint");
   assertString(value.combat_dqn_device, context, "combat_dqn_device");
   assertString(value.generated_at, context, "generated_at");

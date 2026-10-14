@@ -884,10 +884,7 @@ Ein solcher Datensatz soll pro Zeile mindestens enthalten:
 - `run_index`
 - `step_index`
 - `collector_variant`
-- `state`
-- `action_mask`
-- `selected_action`
-- `selected_action_valid`
+- `decision_stage`, `state`, `candidates`, `selected_candidate_index` (aus `modifier-transition-v1`, seit `modifier_training_transition_v2`)
 - `posthoc_credit`
 - `rank_score`
 - `decision_rng_seed`
@@ -989,10 +986,9 @@ Pflichtfelder pro Step:
 - `decision_rng_seed`
 - `wave_index`
 - `combat_turns`
-- `modifier_decision`
-- `selected_action`
-- `selected_action_valid`
-- `immediate_reward`
+- `modifier_transition`: ein `modifier-transition-v1`-Datensatz (`docs/rl-schema/modifier-transition-v1.schema.json`) mit `decision_stage`, `state`, `candidates`, `selected_candidate_index` und `immediate_reward`; der Contract validiert ihn gegen das JSON-Schema und prueft, dass der gewaehlte Kandidat `mask = 1` hat
+
+Seit `modifier_strategic_fixed_seed_output_v2` (2026-10-14) gibt es pro `SelectModifierPhase` zwei Stufen: Shop-Entscheidungen (`buy_shop_item` / `finish_shop`, hoechstens `max_shop_purchases_per_phase` Kaeufe, Env `POKEROGUE_MODIFIER_MAX_SHOP_PURCHASES`, Standard 3) und danach die Gratis-Wahl (`take_reward` / `skip`; `skip` nur, wenn keine Belohnung waehlbar ist). Shop-Stufen, in denen nur `finish_shop` waehlbar waere, erzeugen keinen Step. `random_executable` wuerfelt erst gleichverteilt eine Wahl (Belohnung, Shop-Platz, `finish_shop`, `skip`), dann ein gueltiges Ziel. Aeltere `v1`-Outputs (durchnummerierte Aktionen) lehnt der Contract ab; ihnen fehlt der State.
 
 Wichtig fuer die Reproduzierbarkeit:
 

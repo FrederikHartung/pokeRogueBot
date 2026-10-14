@@ -10,7 +10,7 @@ Eigenschaften:
 - fixer Combat-DQN-Checkpoint
 - nur `random_executable` in der `SelectModifierPhase`
 - batchweise Sammlung pro Seed
-- anschliessendes seed-lokales Postprocessing zu `modifier_training_transition_v1`
+- anschliessendes seed-lokales Postprocessing zu `modifier_training_transition_v2`
 - Telegram-Benachrichtigung bei Erfolg und Fehler
 
 Wichtige Datenhygiene fuer diesen Pfad:
@@ -120,7 +120,7 @@ Interpretation:
 - `runs_per_seed`: wie viele Episoden pro Seed insgesamt gesammelt werden
 - `runs_per_instance`: wie viele Episoden derselbe Collector-Runner in einem Batch fuer denselben Seed ausfuehrt
 - Anzahl Batches pro Seed: `ceil(runs_per_seed / runs_per_instance)`
-- das Postprocessing baut aus den Raw-Outputs direkt `modifier_training_transition_v1`
+- das Postprocessing baut aus den Raw-Outputs direkt `modifier_training_transition_v2`
 - `collect.combat_dqn_python` sollte auf Remote nach Moeglichkeit weggelassen werden, damit der strategic Collector automatisch zuerst die Repo-venv unter `.venv/bin/python*` nutzt
 
 ## Laufphasen
@@ -234,7 +234,7 @@ Der Remote-Helper bietet dieselben Telegram-Control-Kommandos wie die anderen Re
 Der Smoke-Run ist erfolgreich, wenn:
 
 - der Collector mindestens einen Seed mit einer Episode ausfuehrt
-- `build_transitions` erfolgreich `modifier_training_transition_v1` erzeugt
+- `build_transitions` erfolgreich `modifier_training_transition_v2` erzeugt
 - `archive_dataset` ein Download-Artefakt schreibt
 - keine technische Termination in der Pipeline auftritt
 
