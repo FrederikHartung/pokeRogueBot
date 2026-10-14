@@ -366,7 +366,7 @@ export function actsFirstIfUsed(player: Pokemon, enemy: Pokemon, move: Move, bes
   return getEffectiveSpeed(player, enemy) > getEffectiveSpeed(enemy, player);
 }
 
-function typesOf(pokemon: Pokemon): number[] {
+export function typesOf(pokemon: Pokemon): number[] {
   return pokemon
     .getTypes()
     .filter(type => Number.isInteger(type) && type >= 0)

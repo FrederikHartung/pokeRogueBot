@@ -20,3 +20,27 @@ export function linkCombatObservationModule(templateSource: string, targetDir: s
   );
   return templateSource.replaceAll(COMBAT_OBSERVATION_IMPORT, COMBAT_OBSERVATION_LOCAL_IMPORT);
 }
+
+// Der modifier-v1-Builder importiert seinerseits "./combat-observation" (gemeinsame Party-Merkmale).
+const MODIFIER_OBSERVATION_IMPORT = 'from "#bot-ts/modifier-observation"';
+const MODIFIER_OBSERVATION_LOCAL_IMPORT = 'from "./modifier-observation"';
+
+export function modifierObservationSourcePath(repoRoot: string): string {
+  return path.join(repoRoot, "src", "main", "ts", "lib", "modifier-observation.ts");
+}
+
+/**
+ * Schreibt modifier-observation.ts und combat-observation.ts nach `targetDir` und gibt die Template-Quelle mit lokalen
+ * Imports zurueck.
+ */
+export function linkModifierObservationModule(templateSource: string, targetDir: string, repoRoot: string): string {
+  writeFileSync(
+    path.join(targetDir, "modifier-observation.ts"),
+    readFileSync(modifierObservationSourcePath(repoRoot), "utf8"),
+    { encoding: "utf8" },
+  );
+  return linkCombatObservationModule(templateSource, targetDir, repoRoot).replaceAll(
+    MODIFIER_OBSERVATION_IMPORT,
+    MODIFIER_OBSERVATION_LOCAL_IMPORT,
+  );
+}
