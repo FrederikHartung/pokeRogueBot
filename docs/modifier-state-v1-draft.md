@@ -14,6 +14,7 @@ Belegt im Code; Haeufigkeiten aus lokalen Smoke-/Check-Laeufen (7 Seeds, 17 Epis
 ### Live-Bot
 
 1. **`SKIP` verwirft das ganze Angebot.** `ModifierRLNeuron` kennt 8 Actions (Potion/Revive/Max Revive kaufen oder gratis nehmen, Sacred Ash, Skip). `ModifierActionMapper` liefert fuer `SKIP` `null`, `SelectModifierPhase.kt` drueckt dann Abbrechen und bestaetigt das Ueberspringen. Gratis-Belohnungen ausserhalb von Heilung/Revive (Baelle, EP-Teiler, Amulettmuenze, Sonderbonbon, Items zum Tragen) nimmt der Live-Bot nie. Die alten Heuristiken (`ChosePokeBallModifierNeuron`, `ChooseHealModifierNeuron`, `ChoosePpRestoreModifierNeuron`) sind seit dem Commit "added rl agent" nicht mehr eingebunden.
+1a. **State und Architektur (Stand 2026-10-14).** `SmallModifierSelectState` hat `11` Werte: HP-Stufe je Party-Slot (leer und besiegt sind beide `0.0`) und fuenf Verfuegbarkeits-Flags fuer Trank, Beleber und Heilige Asche. Welle, Geld, Level, Typen, Status, restliches Angebot, Inventar und naechste Bosswelle fehlen. Die `8` Actions sind feste Bedeutungen (`BUY_POTION`, `TAKE_FREE_REVIVE`, ...); jedes weitere Item braeuchte eine eigene Ausgabe, getrennt fuer Kauf und Gratis-Wahl. Das Ziel-Pokemon waehlt eine Regel (`ModifierActionMapper`: Trank an das schwaechste nicht besiegte, Beleber an das besiegte mit den hoechsten Basiswerten). Der Reward ist eine fest eingebaute Heuristik (`ModifierRewardCalculator`). Netz `11 -> 64 -> 32 -> 8` in DL4J, Online-Lernen im Live-Bot; damit ein zweiter Technik-Stapel neben dem Python-Kampf-DQN.
 
 ### Strategic Collector
 
@@ -22,6 +23,7 @@ Belegt im Code; Haeufigkeiten aus lokalen Smoke-/Check-Laeufen (7 Seeds, 17 Epis
 4. **Skip kostet immer ein Item.** In 25 % der Entscheidungen wurde Skip gewaehlt, jedes Mal obwohl ein ausfuehrbares Gratis-Item da war.
 5. **Zufallsauswahl verzerrt.** `pickRandomExecutableAction` wuerfelt gleichverteilt ueber Actions; Items mit Party-Ziel stehen einmal pro Ziel in der Liste. Beobachtet: Sonderbonbon x1,8, Beere x1,7; bei voller Party bis x6.
 6. **Variante fehlt.** Generierte Items tragen nur ihre Pool-ID (`withIdFromFunc`): `BERRY`, `BASE_STAT_BOOSTER`, `ATTACK_TYPE_BOOSTER`, `TEMP_STAT_STAGE_BOOSTER`, `EVOLUTION_ITEM`, `MINT`, `TM_*`. Welche Beere, welcher Wert, welche Attacke ist nicht im Datensatz.
+6a. **Kandidaten nur durchnummeriert.** Die Action-Liste ist pro Entscheidung neu aufgebaut (Gratis-Item `i` x Ziel, Shop-Reihe/-Spalte x Ziel, `skip`). Index `k` bedeutet in jeder Entscheidung etwas anderes und taugt daher nicht als feste Netz-Ausgabe.
 7. **State ohne Kontext.** Ein Step enthaelt Angebot, Actions und Maske, aber kein Geld, keinen Party-Zustand zum Entscheidungszeitpunkt und kein Inventar. Das laesst sich aus vorhandenen Daten nicht nachtraeglich rekonstruieren.
 8. **Credit Assignment.** `rankEpisodesForSeed` loest Gleichstaende bei `wave_reached` ueber `local_reward_sum` auf, also ueber den geshapten Sofort-Reward. Etwa 60 % der Schritte bekommen Credit 0, bei einem Run pro Seed alle. Der Sofort-Reward gibt +1 fuer einen Heil-Kauf, sobald irgendein Pokemon nicht volle HP hat.
 
@@ -66,15 +68,29 @@ Item-Transfer (Held Items verschieben) bleibt ausserhalb von v1; der Action-Spac
 
 ## 3. State
 
-Vollstaendige Felder im Schema; Kurzfassung:
+Vollstaendige Felder im Schema; Kurzfassung (Stand 2026-10-14 erweitert, Schema noch nachziehen):
 
 | Block | Inhalt | Quelle im Spiel |
 |---|---|---|
-| `run` | Wave, Geld, Reroll-Kosten und -Anzahl, Lock aktiv, Shop vorhanden, Abstand zum naechsten Trainer, festen Kampf und Boss | `globalScene.money`, `SelectModifierPhase.getRerollCost`, `gameMode.isWaveTrainer`, `gameMode.isFixedBattle` |
-| `party_slots` (6) | vorhanden, besiegt, HP, Level, Level / Level-Cap, Status, Typen, Anzahl Attacken, niedrigster PP-Anteil, Stacks getragener Items, Item-Entwicklung moeglich | `getPlayerParty()`, `getMaxExpLevel()`, `PokemonHeldItemModifier` |
-| `inventory` | Ballanzahl je Typ, Stacks globaler Run-Modifier, Restdauer Lure und X-Items | `pokeballCounts`, `findModifiers(...)` |
+| `stage` | `shop` oder `reward`, Kaeufe in dieser Phase bisher | `SelectModifierPhase` |
+| `run` | Wave, Geld, Reroll-Kosten und -Anzahl, Lock aktiv, Shop vorhanden, Abstand zum naechsten Trainer, Rivalen, festen Kampf, Boss und Biomwechsel, Team-Glueck, Ziel-Profil (`w_run`, `w_meta`, siehe `docs/strategy-roadmap.md`) | `globalScene.money`, `SelectModifierPhase.getRerollCost`, `gameMode.isWaveTrainer`, `gameMode.isFixedBattle`, `getPartyLuckValue` |
+| `party_slots` (6) | vorhanden, besiegt, HP-Anteil, Level, Level / Level-Cap, Status, Typen, Basiswertsumme, Anzahl Attacken, niedrigster PP-Anteil, Item-Entwicklung moeglich, **getragene Items** (siehe unten) | `getPlayerParty()`, `getMaxExpLevel()`, `PokemonHeldItemModifier` |
+| `global_items` | **alle Run-weiten Modifier des Trainers** (siehe unten) | `globalScene.modifiers` (ohne `PokemonHeldItemModifier`) |
+| `inventory` | Ballanzahl je Typ | `pokeballCounts` |
+| `offer` | **gesamtes Angebot**: alle Gratis- und Shop-Kandidaten, auch in der `shop`-Stufe | `SelectModifierPhase` (beide werden gleichzeitig angezeigt) |
 
-Pro Kandidat (Action-Merkmale): Art, Item-ID, Item-Familie, Variante, Tier, Upgrade-Anzahl, Kosten, Ziel-Slot und -Attacke, vorhandene und maximale Stacks auf dem Ziel.
+### 3.1 Bereits vorhandene Items
+
+Welche Items der Run schon hat, bestimmt den Wert eines Angebots mit. Beispiele: Das Sonderbonbon-Glas (`CANDY_JAR`, `LevelIncrementBoosterModifier`) macht jedes Sonderbonbon staerker; ein weiterer Stack eines Items ist bei erreichtem Maximum wertlos; X-Items (`TempStatStageBoosterModifier`) wirken `5` Kaempfe lang und damit auch auf die naechsten Kampfanfaenge; Lockmittel (`DoubleBattleChanceBoosterModifier`) wirken `10`/`15`/`30` Kaempfe.
+
+Pro Item (getragen oder global):
+
+- Item-ID (gemeinsame Kennung mit den Kandidaten), Familie, Variante
+- Stacks und maximale Stacks (`getStackCount`, `getMaxStackCount`)
+- bei zeitlich begrenzten Items (`LapsingPersistentModifier`): verbleibende und maximale Kaempfe (`battleCount`, `maxBattles`)
+- bei X-Items: betroffener Wert
+
+Getragene Items haengen am jeweiligen Party-Slot, globale Items stehen in `global_items`. Beide Listen haben variable Laenge und werden mit demselben Item-Encoder wie die Kandidaten kodiert und zusammengefasst (Summe/Maximum ueber die Kodierungen). Dadurch kann das Netz Zusammenhaenge wie "Sonderbonbon-Glas vorhanden" x "Kandidat Sonderbonbon" lernen, ohne dass sie einzeln von Hand modelliert werden.
 
 Party-Merkmale (HP, Status, Typen, Level) teilen sich die Berechnung mit dem Combat-Observation-Builder (`combat-v4`).
 
@@ -82,11 +98,18 @@ Party-Merkmale (HP, Status, Typen, Level) teilen sich die Berechnung mit dem Com
 
 Die Kandidatenliste hat je Entscheidung eine andere Laenge, und Item x Ziel x Attacke ergibt mehrere hundert moegliche Kombinationen. Statt eines festen Ausgabekopfs bewertet das Netz jeden Kandidaten einzeln:
 
-- Eingabe: State-Encoding (fest) + Kandidaten-Encoding (Art One-Hot, Item-Familie One-Hot, Item-ID-Embedding, Variante, Tier, Kosten / Geld, gratis ja/nein, Merkmale des Ziel-Slots).
+- Eingabe: State-Encoding + Kandidaten-Encoding. Der Kandidat wird ueber Merkmale beschrieben, nicht ueber seine Position:
+  - Art (One-Hot): `buy_shop_item`, `take_reward`, `finish_shop`, `reroll`, `toggle_lock_rarities`, `skip`. Die bisherigen festen Actions (`BUY_POTION`, ...) gehen darin auf.
+  - Item: ID-Embedding, Familie (Heilung, Beleber, Ball, EP, Tragen, Beere, TM, Gutschein, ...), Variante, Tier, Kosten / Geld, gratis ja/nein.
+  - Effekt als Zahl, wo sinnvoll: geheilte HP, wiederbelebter Anteil, verstaerkter Typ und ob er zum Ziel passt (STAB), gesteigerter Wert.
+  - Bereits vorhanden: Stacks dieses Items beim Ziel bzw. global, maximale Stacks.
+  - Ziel: Merkmale des Ziel-Slots aus `party_slots`, bei Attacken-Zielen die Attacke.
+- Das gesamte Angebot (`offer`) wird mit demselben Encoder zusammengefasst und geht in den State ein. So weiss das Modell beim Kaufen, welches Gratis-Item noch wartet, und kann einen Kauf sparen, wenn dasselbe gratis angeboten wird.
+- Neue Items brauchen keine neue Netz-Ausgabe; ein unbekanntes Item wird ueber Familie, Tier und Effekt beschrieben.
 - Ausgabe: ein Wert pro Kandidat; gewaehlt wird das Maximum ueber `mask = 1`.
-- Ziel fuer Phase 1: Regression auf den post-hoc Credit (Monte-Carlo-Wert). Bootstrapping (DQN-Target) erst, wenn der Credit stabil ist.
+- Ziel fuer Phase 1: Regression auf den post-hoc Credit (Monte-Carlo-Wert). Bootstrapping (DQN-Target) erst, wenn der Credit stabil ist. Grund zusaetzlich: Beim combat-v4-Training hat Bootstrapping mit Standard-Einstellungen die Q-Werte stark ueberschaetzt (`docs/benchmark-history.md`, Run 20); bei langen Runs mit wenigen Daten waere das Risiko groesser.
 
-Live laeuft das Modell wie das Combat-DQN ueber einen persistenten Python-Worker; Kotlin baut keine Features mehr selbst, sondern bekommt State und Kandidaten fertig aus der JS-Bridge (gemeinsamer Builder, siehe `docs/combat-state-v4.md` Abschnitt 5).
+Training offline in Python wie beim Combat-DQN; das DL4J-Modell (`ModifierDQNAgent`, `ModifierTrainingPipeline`, Online-Lernen im Live-Bot) wird abgeloest. Live laeuft das Modell wie das Combat-DQN ueber einen persistenten Python-Worker; Kotlin baut keine Features mehr selbst, sondern bekommt State und Kandidaten fertig aus der JS-Bridge (gemeinsamer Builder, siehe `docs/combat-state-v4.md` Abschnitt 5).
 
 ## 5. Credit und Reward
 
@@ -99,19 +122,29 @@ Live laeuft das Modell wie das Combat-DQN ueber einen persistenten Python-Worker
 
 Solange das Modifier-DQN nur Heilung/Revive kennt:
 
-- Waehlt `ModifierRLNeuron` `SKIP`, nimmt `SelectModifierPhase.kt` statt Abbruch das beste ausfuehrbare Gratis-Item nach fester Prioritaet: EP-Teiler / EP-Charm / Amulettmuenze / Candy Jar, dann Sonderbonbon / Golden Punch / Items zum Tragen auf das Pokemon mit dem hoechsten Level, dann Baelle, dann Rest; Lures zuletzt (der Combat-Pfad behandelt Doppelkaempfe nur per Fallback).
-- Shop-Kaeufe bleiben vor der Gratis-Wahl.
-- Skip nur, wenn kein Gratis-Item ausfuehrbar ist.
+- Umgesetzt in `FreeModifierFallback.kt`, aufgerufen in `Brain.getModifierToPick`: Waehlt `ModifierRLNeuron` `SKIP`, nimmt der Bot statt Abbruch das beste Gratis-Item nach fester Prioritaet (Abgleich ueber die Modifier-Type-ID, nicht den Anzeigenamen):
+  1. Goldener Pokeball, EP-Teiler, EP-Charms, Candy Jar, Amulettmuenze
+  2. Sehr seltenes Bonbon, Sonderbonbon (auf das nicht besiegte Pokemon mit dem hoechsten Level)
+  3. Baelle, bester zuerst
+  4. Nuggets, Gutscheine, X-Items
+- Bewusst nicht im Fallback:
+  - Getragene Items, TMs, AP-Items, Entwicklungs-Items: Das Party-Menue lehnt ungueltige Ziele ab (z. B. volle Stacks), der Live-State kennt keine maximalen Stacks, und der Bot bliebe dort haengen.
+  - Traenke und Beleber: entscheidet weiter das DQN; ohne verletztes bzw. besiegtes Pokemon waeren sie wertlos bzw. nicht anwendbar.
+  - Lockmittel: Skip ist besser, solange der Combat-Pfad Doppelkaempfe nur per Fallback behandelt.
+  - Karte, Mega-Armband u. Ae.: oeffnen bzw. erfordern weitere UI-Pfade.
+- Shop-Kaeufe bleiben vor der Gratis-Wahl: Ein Kauf haelt den Bildschirm offen, erst das `SKIP` des DQN loest die Gratis-Wahl aus.
+- Skip nur, wenn kein gelistetes Gratis-Item angeboten wird.
 
 ## 7. Migrationsplan
 
-1. Live-Fallback (Abschnitt 6) mit Kotlin-Tests.
+1. Live-Fallback (Abschnitt 6) mit Kotlin-Tests. Umgesetzt und live getestet (2026-10-14, Wellen 12-20: Poke Ball, X-Item, Sonderbonbon inkl. Party-Menue).
 2. Gemeinsamen TS-Builder fuer `state` und `candidates` schreiben; Strategic Collector auf `modifier-transition-v1` umstellen (zwei Stufen, Skip-Maske, Item-gleichverteilte Exploration, Kaufgrenze).
 3. `build-modifier-strategic-training-transitions.ts`: neuer Credit-Score, `state`/`candidates` aus v1.
 4. Contract-Tests (`rl:test:modifier:strategic-contract`) und Item-Suite auf v1 ziehen; Item-Matrix um Spalte "im Strategic Collector ausfuehrbar" ergaenzen.
 5. Smoke-Lauf, danach erster Remote-Lauf mit v1. Grosse Laeufe mit dem alten Step-Format bis dahin nicht mehr starten (State fehlt und ist nicht nachruestbar).
 6. Reroll und Freischaltungen Prioritaet 1 aus 2.3.
 7. PyTorch-Training (Kandidaten-Bewertung), Inferenz-Worker, Kotlin-Anbindung ueber die JS-Bridge (Phasen 3/4 des Migrationsplans).
+8. DL4J-Modifier-Modell und Online-Lernen im Live-Bot entfernen, sobald der Python-Worker live laeuft.
 
 ## 8. Offene Fragen
 

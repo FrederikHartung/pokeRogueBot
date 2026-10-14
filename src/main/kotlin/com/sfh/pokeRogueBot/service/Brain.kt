@@ -8,6 +8,7 @@ import com.sfh.pokeRogueBot.model.dto.WaveDto
 import com.sfh.pokeRogueBot.model.enums.CommandPhaseDecision
 import com.sfh.pokeRogueBot.model.enums.RunStatus
 import com.sfh.pokeRogueBot.model.enums.UiMode
+import com.sfh.pokeRogueBot.model.modifier.FreeModifierFallback
 import com.sfh.pokeRogueBot.model.modifier.MoveToModifierResult
 import com.sfh.pokeRogueBot.model.poke.Pokemon
 import com.sfh.pokeRogueBot.model.rl.*
@@ -70,7 +71,20 @@ class Brain(
         val shop = jsUiService.getModifierShop()
         longTermMemory.memorizeItems(shop.allItems)
 
-        return modifierRLNeuron.getModifierToPick(waveDto, shop)
+        val result = modifierRLNeuron.getModifierToPick(waveDto, shop)
+        if (result != null) {
+            return result
+        }
+
+        // The modifier DQN only knows healing/revives; take the best free reward instead of skipping it.
+        val fallback = FreeModifierFallback.pick(shop.freeItems, waveDto.wavePokemon.playerParty)
+        if (fallback != null) {
+            log.info(
+                "Modifier DQN chose SKIP, taking free item instead: {} (offered: {})",
+                fallback, shop.freeItems.map { it.id }
+            )
+        }
+        return fallback
     }
 
     fun getCommandDecision(): CommandPhaseDecision {
