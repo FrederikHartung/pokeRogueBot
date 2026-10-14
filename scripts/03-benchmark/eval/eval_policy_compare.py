@@ -281,7 +281,8 @@ def main() -> None:
         cfg["output_path"] = output_path
         cfg["append_output"] = False
         cfg["max_steps_per_episode"] = args.max_steps_per_episode
-        cfg["test_timeout_ms"] = 600000
+        # Gilt pro Worker-Test (alle Szenarien eines Workers); schwache Policies mit langen Kaempfen brauchen mehr.
+        cfg["test_timeout_ms"] = int(base.get("test_timeout_ms") or 600000)
         cfg["policy"] = policy
 
         should_reuse = args.reuse_baselines and label in {"random", "always_move_0"}

@@ -9,7 +9,7 @@ Das Projekt: ein Bot, der das Browserspiel PokeRogue automatisiert (Spring Boot,
 - Vor nicht-trivialer Arbeit zuerst lesen:
   - `docs/project-context-status-quo-and-goal.md`
   - `docs/project-context-and-pokerogue-overview.md`
-- Danach bei Bedarf: `docs/todo-next.md` (aktueller Arbeitsstand), `docs/architecture.md`, thematische Detaildocs.
+- Danach bei Bedarf: `docs/strategy-roadmap.md` (fachliche Roadmap und Prioritaeten), `docs/todo-next.md` (aktueller Arbeitsstand), `docs/architecture.md`, thematische Detaildocs.
 - Vor jeder Arbeit an der RL-Collector-/Datenpipeline oder an `pokerogue/test/porubot/` zuerst `docs/pokerogue-headless-test-harness-mechanics.md` lesen (Phasen-/Prompt-Mechanik im Headless-Testharness, bekannte Timeout-Ursachen).
 
 ## 2. Harte Regeln

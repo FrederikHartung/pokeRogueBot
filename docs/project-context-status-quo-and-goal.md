@@ -47,6 +47,8 @@ Der Kern-Loop ist damit bereits im Zielmuster aufgebaut:
 
 ## Aktueller Fokus (naechste Schritte)
 
+Prioritaeten und Reihenfolge der fachlichen Ziele (Modifier, Attacken lernen, Fangen/Teamaufbau): [docs/strategy-roadmap.md](strategy-roadmap.md).
+
 Fokus liegt aktuell auf schneller, grosser Experience-Generierung fuer Combat-/Switch-RL:
 
 - Simulierte/headless Battle-Datengenerierung statt langsamer Browser-Interaktion
