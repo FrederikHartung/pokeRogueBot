@@ -571,3 +571,66 @@ Nachtrag 2026-10-13, Einzelvergleich Haiku gegen DQN main:
 - Die Einzeldaten des DQN-`main`-Laufs vom Maerz waren nicht mehr vorhanden (der Remote-Benchmark ueberschreibt `eval-dqn-benchmarked.jsonl` pro Checkpoint). `main` daher auf dem Server mit dem aktuellen Collector neu gespielt (`3.5 min`, `parallelism` 3): `310/311` Kaempfe, Win Rate `0.929`, Avg Reward `9.1543`, Avg Turns `6.38`, Truncated `0.000`, `1979` Transitions; `1` technischer Fehler (`wild-w6-66cfee77fee6`, `collector_episode_timeout` / `advance_timeout:CommandPhase`).
 - Auf den `310` gemeinsamen Szenarien: beide gewinnen `281`, beide verlieren `19`, nur DQN gewinnt `7`, nur Haiku gewinnt `3`.
 - `9` der `10` Unterschiede sind Rivalenkaempfe gegen Ivy in Wave `8` (`33` Szenarien, Haiku `10` Siege, DQN `14`). Der Gegner wechselt dort bedrohte Pokemon aus, sodass Haikus Angriff den eingewechselten Flug-Typ trifft. Haiku haelt Pflanze faelschlich fuer sehr effektiv gegen Flug und nutzt praktisch nie Status-Attacken (`2` von `1348` Entscheidungen). Das DQN setzt in diesen Kaempfen in `38 %` der Zuege `Growl` ein und kommt mit der Heilung durch Grassy Terrain laenger durch.
+
+## Run 20
+
+- Datum: 2026-10-14
+- Beschreibung: Erstes combat-v4-DQN gegen V3 main, Full-Benchmark ueber alle `311` V3-Szenarien (Waves `1-24`); alle Policies mit dem aktuellen v4-Collector neu gespielt (Kampfstil SWITCH, d. h. inkl. Wechselangeboten)
+- Laufnummer: 20
+- Benchmark-Typ: full
+- Trainingsdaten: `168754` Transitionen (`15550` Episoden) aus `data/rl/dataset-pools/combat-v4/random-only/wave-library-random-collection-remote-v4-50ep-20261013-204504/`
+- Training: `data/rl/train-dqn-offline-wave-library-random-valid-action-v4-server.json`, Hyperparameter wie V3 main (`[128, 128]`, `lr 1e-4`, `gamma 0.99`, `target_update_steps 1000`, `20` Epochen), `23 min`
+- Checkpoint: `data/rl/models/dqn-combat-wave-library-random-valid-action-v4-w1-24-50ep.pt`
+- Benchmark-Config: `data/rl/benchmark-dqn-wave-library-v4-compare.json` (Runtime `data/rl/benchmark-runs/dqn-wave-library-v4-compare/`, `parallelism` 3, `23 min`)
+
+Ergebnisse:
+
+| Policy | Episoden | Win Rate | Avg Reward | Avg Turns | Truncated | Benchmark-Transitions |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `random` | 311 | 0.862 | 5.1679 | 9.72 | 0.013 | 3360 |
+| `always_move_0` | 311 | 0.859 | 6.4458 | 7.71 | 0.013 | 2727 |
+| `dqn` v4-main | 210 | 0.762 | -68.2610 | 42.20 | 0.024 | 9118 |
+| `dqn` v3-main | 311 | 0.923 | 8.7668 | 5.56 | 0.010 | 1987 |
+
+Kurzfazit:
+
+- v4-main ist deutlich schlechter als V3 main und als beide Baselines. Ursache sind Wechsel-Schleifen: `26 %` der command-Entscheidungen sind Wechsel (V3 main `7 %`), `117` der `210` Episoden haben mehr als `30` Schritte; die mit der Kettenlaenge wachsende Wechselstrafe erzeugt Einzel-Rewards bis `-51`.
+- `101` Episoden fehlen: Die drei Worker-Tests liefen in das damals fest verdrahtete `test_timeout_ms` von `600000` (gilt fuer alle ca. `104` Szenarien eines Workers). Die `210` gewerteten Episoden sind keine Zufallsstichprobe.
+- Trainingsstabilitaet: Der Loss sinkt bis Epoche `10` (`0.33`) und steigt dann bis `1.75` (V3 main stetig bis `0.22`).
+- Diagnose auf `12000` Datensatz-Zeilen: Q der gewaehlten Aktion `16.0` gegen abgezinsten Monte-Carlo-Return `4.7` (V3 main `8.2` gegen `5.8`), bei Wechselangeboten max Q `24.2` gegen `7.3`; v4-main bevorzugt in `34 %` der States einen Wechsel (V3 main `13 %`). Die Daten selbst zeigen keinen Vorteil fuer Wechsel (MC-Return Wechsel `4.5`, Moves `4.8`). Befund: Q-Ueberschaetzung im Offline-Training, besonders bei Wechseln; `consecutive_switch_bucket` ist bei `3` gedeckelt, die Kettenstrafe nicht.
+- Folge: Varianten mit Fruehstopp bzw. stabileren Lernzielen, siehe Run 21.
+
+## Run 21
+
+- Datum: 2026-10-14
+- Beschreibung: Full-Benchmark (`311` V3-Szenarien, Waves `1-24`) von drei combat-v4-Trainingsvarianten gegen die Q-Ueberschaetzung aus Run 20, Referenz V3 main; Baselines neu gespielt
+- Laufnummer: 21
+- Benchmark-Typ: full
+- Trainingsdaten: wie Run 20 (`168754` Transitionen, combat-v4)
+- Varianten (sonst wie v4-main aus Run 20):
+  - `v4-a1-ep8`: `8` statt `20` Epochen (Fruehstopp vor dem Loss-Anstieg), `9 min`
+  - `v4-a2-stable`: `lr 5e-5`, `target_update_steps 2000`, `gamma 0.95`, `20` Epochen, `23 min`
+  - `v4-a1a2-ep12`: wie `a2-stable`, aber `12` Epochen, `14 min`
+- Configs: `data/rl/train-dqn-offline-wave-library-random-valid-action-v4-server-{a1-ep8,a2-stable,a1a2-ep12}.json`, Benchmark `data/rl/benchmark-dqn-wave-library-v4-variants-compare.json` mit Collector-Config `data/rl/collector-run-benchmarked-wave-library-v4-full.json` (`test_timeout_ms` `1800000`; `eval_policy_compare.py` uebernimmt den Wert jetzt aus der Collector-Config statt fest `600000`)
+- Laufzeit Benchmark: `35 min` (`parallelism` 3), `0` technische Fehler, `0` Test-Timeouts
+
+Trainingsstabilitaet (mean loss Epoche 1 / 10 / letzte): `a1-ep8` `0.98` / - / `0.33` (identisch mit v4-main bis Epoche 8); `a2-stable` `0.92` / `0.29` / `0.26`, stetig fallend; `a1a2-ep12` identisch mit `a2-stable` bis Epoche 12 (`0.29`). Der Loss ist wegen `gamma 0.95` nur bedingt mit Run 20 vergleichbar.
+
+Ergebnisse:
+
+| Policy | Episoden | Win Rate | Avg Reward | Avg Turns | Truncated | Benchmark-Transitions |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `random` | 311 | 0.865 | 5.2950 | 9.49 | 0.013 | 3288 |
+| `always_move_0` | 311 | 0.859 | 6.4458 | 7.71 | 0.013 | 2727 |
+| `dqn` v4-a1-ep8 | 311 | 0.904 | -0.6370 | 40.17 | 0.016 | 12784 |
+| `dqn` v4-a2-stable | 311 | 0.939 | 9.5166 | 3.61 | 0.010 | 1365 |
+| `dqn` v4-a1a2-ep12 | 311 | 0.942 | 9.5657 | 3.75 | 0.010 | 1408 |
+| `dqn` v3-main | 311 | 0.923 | 8.7666 | 5.56 | 0.010 | 1987 |
+
+Kurzfazit:
+
+- Die stabileren Lernziele beheben das Problem: `a2-stable` und `a1a2-ep12` sind die bisher staerksten Policies auf diesem Set (Win Rate `+0.016` bzw. `+0.019`, Avg Reward `+0.75` bzw. `+0.80` gegen V3 main) und gewinnen deutlich schneller (`3.6-3.75` gegen `5.56` Zuege).
+- Fruehstopp allein reicht nicht: `a1-ep8` gewinnt zwar mehr als v4-main (`0.904`), haengt aber weiter in Wechsel-Schleifen (`40` Zuege, Avg Reward negativ).
+- `a2-stable` und `a1a2-ep12` liegen praktisch gleichauf; die laengeren `20` Epochen bringen keinen messbaren Vorteil.
+- V3 main liefert mit demselben Collector exakt dieselben Zahlen wie in Run 20 (Win Rate, Avg Turns, Transitions); fuer deterministische Policies ist der Benchmark auf diesem Stand also reproduzierbar. Unterschiede von wenigen Siegen sind damit echte Unterschiede auf diesen `311` Szenarien, sagen aber noch nichts ueber Generalisierung auf andere Kaempfe.
+- Die Varianten unterscheiden sich in drei Stellschrauben zugleich (`lr`, Zielnetz, `gamma`); welche den Ausschlag gibt, ist nicht isoliert.

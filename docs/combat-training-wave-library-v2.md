@@ -330,6 +330,9 @@ Combat-v4-Collection (aktueller Pfad, State-Contract `docs/combat-state-v4.md`):
   - `bash scripts/01-data-generation/pipeline/run-wave-library-random-collection-remote.sh start-v4`
 - `collect.collector.check_switch_decisions` (Standard `true`) stellt den Kampfstil auf SWITCH, damit zu Beginn von Wildkaempfen ab Wave 2 auch `decision_kind = 2` (Wechselangebot) gesammelt wird; `false` sammelt nur command- und Zwangswechsel-Entscheidungen.
 - Training: Der Trainer erkennt die Feature-Version aus dem Datensatz (`6` = combat-v3 mit 166 Features, `7` = combat-v4 mit 469 Features) und speichert sie im Checkpoint; Inferenz, Worker (`{"describe":true}`) und Live-Bot waehlen den Encoder pro Checkpoint. Gemischte v3/v4-Datensaetze lehnt `rl:check:dataset` ab.
+- Erstes v4-Training mit denselben Hyperparametern wie V3 main: `bash scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh start data/rl/train-dqn-offline-wave-library-random-valid-action-v4-server.json` (Checkpoint `data/rl/models/dqn-combat-wave-library-random-valid-action-v4-w1-24-50ep.pt`). Mit diesen Einstellungen ueberschaetzt das Modell die Q-Werte (v. a. Wechsel) und spielt Wechsel-Schleifen (`docs/benchmark-history.md`, Run 20).
+- Stabile v4-Einstellungen (Run 21): `learning_rate 5e-5`, `target_update_steps 2000`, `gamma 0.95`, Configs `...-v4-server-a2-stable.json` (20 Epochen) und `...-v4-server-a1a2-ep12.json` (12 Epochen); beide schlagen V3 main.
+- Benchmark v4 gegen V3 main mit neu gespielten Baselines: `bash scripts/03-benchmark/eval/run-dqn-benchmark-compare-remote.sh start data/rl/benchmark-dqn-wave-library-v4-compare.json`. Der V3-Checkpoint laeuft dabei mit dem v3-Encoder auf dem v4-Collector; Zwangswechsel und Wechselangebote entscheidet er ueber die Q-Werte seiner Wechsel-Aktionen, ohne `decision_kind` zu kennen.
 
 Serverseitige Pool-Ablage fuer wiederverwendbare Trainingsdaten:
 

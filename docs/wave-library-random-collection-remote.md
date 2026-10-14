@@ -225,7 +225,7 @@ Episoden enthalten mehr Transitions als unter V3, weil Zwangswechsel und Wechsel
 
 ### Laufzeit im Vergleich zu V3 (Stand 2026-10-13)
 
-Der V4-50ep-Lauf dauert deutlich laenger als der V3-50ep-Lauf vom Maerz 2026 (damals ca. `2,5 h` gesamt). Fuer Laeufe ueber Nacht ist das unkritisch; Optimierung ist bewusst zurueckgestellt.
+Der V4-50ep-Lauf dauerte `6 h 21 min` (2026-10-13/14, `311/311` Batches, Mittel `147 s` pro Batch), der V3-50ep-Lauf vom Maerz 2026 ca. `2,5 h`, also etwa Faktor `2,6`. Fuer Laeufe ueber Nacht ist das unkritisch; Optimierung ist bewusst zurueckgestellt.
 
 Gemessen auf dem Server, gleiche Szenarien, `parallelism: 2` in beiden 50ep-Configs:
 
@@ -242,7 +242,7 @@ Einordnung (Schaetzung; die feste Startzeit pro Batch von grob `15-20 s` ist aus
 - combat-v4 kostet zusaetzlich etwa Faktor `1,5-2`: pro Entscheidung simuliert der Builder den Schaden jedes Moves ueber das Spiel (`getAttackDamage({simulated:true})`) und baut Status, Feld und Gegnerteam zusammen. Wechselangebote spielen in Wave 1 noch keine Rolle.
 - Saubere Messung des v4-Anteils, falls spaeter noetig: dasselbe Szenario mit gleichem Seed lokal auf `504d06b` (vor combat-v4) und auf dem aktuellen Stand laufen lassen. Moeglicher Hebel: simulierte Schadenswerte pro Entscheidung zwischenspeichern.
 
-Die `ETA` im `status` rechnet `average_batch_duration_ms * verbleibende Batches` und ignoriert `parallelism`. Bei `parallelism: 2` ist die tatsaechliche Restzeit etwa halb so lang wie angezeigt (V4-50ep: angezeigt ca. `9,5 h`, realistisch ca. `4,5-5 h`).
+Die `ETA` im `status` rechnet `average_batch_duration_ms * verbleibende Batches` und ignoriert `parallelism`. Bei `parallelism: 2` ist die tatsaechliche Restzeit etwa halb so lang wie angezeigt (V4-50ep: zu Beginn angezeigt ca. `9,5 h`, tatsaechlich `6,3 h`). Die Anzeige beruht anfangs nur auf Wave-1-Batches; spaetere Waves dauern laenger, daher steigt der Mittelwert im Lauf noch (V4-50ep: `111 s` nach 4 Batches, `147 s` am Ende).
 
 ## V3-Startpunkt (historisch)
 
