@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit
 
 @Component
 class DqnInferenceWorkerClient(
-    @param:Value("\${bot.dqn.python-command:python3}") private val pythonCommand: String,
+    @param:Value("\${bot.dqn.python-command:.venv/bin/python}") private val pythonCommand: String,
     @param:Value("\${bot.dqn.infer-script:scripts/02-training/inference/dqn_policy_infer_worker.py}") private val inferScriptPath: String,
     @param:Value("\${bot.dqn.combat-checkpoint:data/rl/models/dqn-combat-wave-library-random-valid-action-6800-stable.pt}") private val checkpointPath: String,
     @param:Value("\${bot.dqn.device:cpu}") private val device: String,
@@ -114,9 +114,10 @@ class DqnInferenceWorkerClient(
             "--device",
             device,
         )
-            .redirectErrorStream(true)
             .start()
 
+        // stderr getrennt lesen: Python-Warnungen (z. B. beim torch-Import) duerfen den JSON-Strom auf stdout nicht stoeren.
+        startStderrLogger(startedProcess)
         process = startedProcess
         writer = startedProcess.outputStream.bufferedWriter(StandardCharsets.UTF_8)
         reader = startedProcess.inputStream.bufferedReader(StandardCharsets.UTF_8)
@@ -125,6 +126,18 @@ class DqnInferenceWorkerClient(
             checkpointFile.path,
             inferScriptPath,
         )
+    }
+
+    private fun startStderrLogger(startedProcess: Process) {
+        Thread({
+            try {
+                startedProcess.errorStream.bufferedReader(StandardCharsets.UTF_8).useLines { lines ->
+                    lines.forEach { line -> log.warn("DQN worker stderr: {}", line) }
+                }
+            } catch (_: Exception) {
+                // Stream wird beim Beenden des Workers geschlossen.
+            }
+        }, "dqn-infer-worker-stderr").apply { isDaemon = true }.start()
     }
 
     @Synchronized

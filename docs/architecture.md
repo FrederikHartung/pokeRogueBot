@@ -56,7 +56,7 @@ Fehlerbehandlung: Bei Fehlern speichert der Bot und startet neu; Save-Slots roti
 
 - PokeRogue liegt als Submodul in `pokerogue/`; der bot-kompatible Stand ist der im Hauptrepo versionierte Submodul-Pointer (Custom-Fork auf Basis `v1.12.0.10`).
 - Der Bot erwartet eine lokale Instanz unter `http://localhost:8000/` (`cd pokerogue && npm run start:dev`) und die Spielsprache Englisch.
-- Die Kampf-Inferenz startet einen Python-Worker mit `bot.dqn.python-command` (Default `.venv/bin/python`, relativ zum Repo-Root). Die venv braucht `torch` und `numpy`; der Worker leitet stderr in denselben Strom wie die JSON-Antworten, eine Python-Warnung beim Import fuehrt deshalb zum Heuristik-Fallback.
+- Die Kampf-Inferenz startet einen Python-Worker mit `bot.dqn.python-command` (Default `.venv/bin/python`, relativ zum Repo-Root). Die venv braucht `torch` (und `numpy`, sonst warnt torch beim Import). stdout traegt nur die JSON-Antworten; stderr des Workers landet zeilenweise als `DQN worker stderr` im Bot-Log.
 - Gratis-Belohnungen: Waehlt das Modifier-DQN `SKIP`, nimmt `FreeModifierFallback` das beste sicher anwendbare Gratis-Item (Details: `docs/modifier-state-v1-draft.md`, Abschnitt 6).
 
 ## Java -> Kotlin-Migration
