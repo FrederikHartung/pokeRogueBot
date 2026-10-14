@@ -257,7 +257,7 @@
           "$ref": "#/$defs/binary"
         },
         "purchases_this_phase": {
-          "description": "Kaeufe seit Beginn dieser SelectModifierPhase (vom Aufrufer gezaehlt).",
+          "description": "Kaeufe in dieser Belohnungsphase, ueber Rerolls hinweg (neue SelectModifierPhase mit gleichem Kampf); vom Aufrufer gezaehlt.",
           "type": "integer",
           "minimum": 0
         },

@@ -68,7 +68,12 @@
       "minLength": 1
     },
     "max_shop_purchases_per_phase": {
-      "description": "Kaufgrenze pro SelectModifierPhase (POKEROGUE_MODIFIER_MAX_SHOP_PURCHASES, Standard 3).",
+      "description": "Kaufgrenze pro Welle, ueber Rerolls hinweg (POKEROGUE_MODIFIER_MAX_SHOP_PURCHASES, Standard 3).",
+      "type": "integer",
+      "minimum": 0
+    },
+    "max_rerolls_per_wave": {
+      "description": "Reroll-Grenze pro Welle (POKEROGUE_MODIFIER_MAX_REROLLS, Standard 2, 0 = aus). Fehlt bei Ausgaben von vor dem Reroll-Support; dort war Reroll gesperrt.",
       "type": "integer",
       "minimum": 0
     },

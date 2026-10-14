@@ -292,6 +292,14 @@ Erkennbar ist das nur nachtraeglich ueber `hasLoggedTerminalPhaseSince` (die Adv
 
 **Belegt durch:** Replay `signature A` (`wild-w2-11610b8af6ec`, Gegner Abra mit Teleport) in `scripts/01-data-generation/collector/combat-collector-replays.test.ts`.
 
+### 3.16 Reroll in der `SelectModifierPhase` braucht einen neuen `to("SelectModifierPhase")`
+
+Ein Reroll (untere Zeile, Spalte 0 im `ModifierSelectUiHandler`) beendet die aktuelle `SelectModifierPhase` und schiebt eine neue mit `rerollCount + 1` ein. Die neue Phase wird "current", ihr `start()` laeuft aber erst ueber `phaseInterceptor.to(...)` (3.7). Ohne diesen Aufruf bleibt die UI in `MESSAGE` stehen, und der Collector lief in `step_timeout:execute_modifier_action`.
+
+Der Strategic Collector (`executeRerollAction` im Template) wartet deshalb, bis die alte Phase nicht mehr current ist, und ruft erst dann `waitForSelectModifierPhaseReady` auf (startet die neue Phase ueber `to("SelectModifierPhase")`). Vorher waere es ein zweiter Treiber, waehrend die alte Phase noch laeuft.
+
+**Belegt durch:** lokalen Collector-Lauf am 2026-10-14 (3 von 4 Runs mit Timeout vor dem Fix, 0 von 4 danach).
+
 ## 4. Was `phaseInterceptor.to(target)` tatsaechlich garantiert - und was nicht
 
 ```ts

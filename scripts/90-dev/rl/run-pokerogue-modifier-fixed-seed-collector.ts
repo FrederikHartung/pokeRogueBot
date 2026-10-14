@@ -28,6 +28,9 @@ const stepTimeoutMs = Number.parseInt(process.argv[10] ?? "", 10)
   || 15000;
 // Kaeufe pro SelectModifierPhase (modifier-v1, docs/modifier-state-v1-draft.md 2.4).
 const maxShopPurchases = Number.parseInt(process.env.POKEROGUE_MODIFIER_MAX_SHOP_PURCHASES ?? "", 10) || 3;
+// 0 ist erlaubt (Reroll aus), daher kein `|| 2`.
+const maxRerollsEnv = Number.parseInt(process.env.POKEROGUE_MODIFIER_MAX_REROLLS ?? "", 10);
+const maxRerollsPerWave = Number.isInteger(maxRerollsEnv) && maxRerollsEnv >= 0 ? maxRerollsEnv : 2;
 const defaultCombatCheckpointCandidates = [
   path.join(repoRoot, "data", "rl", "models", "dqn-combat-wave-library-random-valid-action-v3-w1-24-50ep.pt"),
   path.join(repoRoot, "data", "rl", "models", "dqn-combat-wave-library-random-valid-action-v3-w1-24-longer.pt"),
@@ -111,7 +114,8 @@ const testSource = templateSource
   .replaceAll("__COMBAT_DQN_PYTHON__", JSON.stringify(pythonBin))
   .replaceAll("__COMBAT_DQN_WORKER_SCRIPT__", JSON.stringify(combatInferWorkerScript))
   .replaceAll("__STEP_TIMEOUT_MS__", String(stepTimeoutMs))
-    .replaceAll("__MAX_SHOP_PURCHASES__", String(maxShopPurchases));
+    .replaceAll("__MAX_SHOP_PURCHASES__", String(maxShopPurchases))
+    .replaceAll("__MAX_REROLLS_PER_WAVE__", String(maxRerollsPerWave));
 
 // Gemeinsame Builder (combat-v4, modifier-v1) neben den generierten Test (Imports "#bot-ts/...").
 writeFileSync(tempTestPath, linkModifierObservationModule(testSource, tempDir, repoRoot), { encoding: "utf8" });

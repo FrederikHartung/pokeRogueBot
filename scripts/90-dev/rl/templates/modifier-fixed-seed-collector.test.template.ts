@@ -236,8 +236,10 @@ const COMBAT_DQN_PYTHON = __COMBAT_DQN_PYTHON__;
 const COMBAT_DQN_WORKER_SCRIPT = __COMBAT_DQN_WORKER_SCRIPT__;
 const STARTER_SPECIES = [SpeciesId.BULBASAUR, SpeciesId.CHARMANDER, SpeciesId.SQUIRTLE];
 const STEP_TIMEOUT_MS = __STEP_TIMEOUT_MS__;
-/** Kaeufe pro SelectModifierPhase, damit Zufallsruns nicht das ganze Geld verbrauchen (docs/modifier-state-v1-draft.md 2.4). */
+/** Kaeufe pro Welle (ueber Rerolls hinweg), damit Zufallsruns nicht das ganze Geld verbrauchen (docs/modifier-state-v1-draft.md 2.4). */
 const MAX_SHOP_PURCHASES = __MAX_SHOP_PURCHASES__;
+/** Rerolls pro Welle; die Kosten verdoppeln sich je Reroll, die Grenze haelt Zufallsruns trotzdem knapp. */
+const MAX_REROLLS_PER_WAVE = __MAX_REROLLS_PER_WAVE__;
 const MAX_COMBAT_TURNS_PER_WAVE = 200;
 const FORCE_NORMALIZE_IVS = process.env.POKEROGUE_MODIFIER_FORCE_NORMALIZE_IVS === "1";
 const FORCE_NORMALIZE_NATURES = process.env.POKEROGUE_MODIFIER_FORCE_NORMALIZE_NATURES === "1";
@@ -1356,12 +1358,15 @@ function getRewardTargetAvailability(game: GameManager, option: any, targetIndex
 
 /**
  * Sperren des Collectors zusaetzlich zu den Spielregeln des Builders: was die Ausfuehrung noch nicht kann
- * (getActionExecutability) und Zusatzregeln fuer Kauf und Ziel. Reroll und Lock sind noch nicht umgesetzt.
+ * (getActionExecutability) und Zusatzregeln fuer Kauf, Ziel und Reroll-Grenze. Lock ist noch nicht umgesetzt.
  */
-function createCollectorCandidateBlocker(game: GameManager): CandidateBlocker {
+function createCollectorCandidateBlocker(game: GameManager, rerollsThisWave: number): CandidateBlocker {
   return (candidate, option) => {
-    if (candidate.kind === "reroll" || candidate.kind === "toggle_lock_rarities") {
+    if (candidate.kind === "toggle_lock_rarities") {
       return "not_implemented_in_collector";
+    }
+    if (candidate.kind === "reroll") {
+      return rerollsThisWave >= MAX_REROLLS_PER_WAVE ? "reroll_limit_reached" : null;
     }
     if (!option || (candidate.kind !== "take_reward" && candidate.kind !== "buy_shop_item")) {
       return null;
@@ -1394,7 +1399,12 @@ interface SelectModifierPhaseLike {
   rerollCount?: number;
 }
 
-function buildCollectorObservation(game: GameManager, stage: DecisionStage, purchasesThisPhase: number): ModifierObservation {
+function buildCollectorObservation(
+  game: GameManager,
+  stage: DecisionStage,
+  purchasesThisPhase: number,
+  rerollsThisWave: number,
+): ModifierObservation {
   const handler = getModifierHandler(game);
   const phase = game.scene.phaseManager.getCurrentPhase() as unknown as SelectModifierPhaseLike;
   return buildModifierObservation({
@@ -1405,7 +1415,7 @@ function buildCollectorObservation(game: GameManager, stage: DecisionStage, purc
     rerollCost: phase.getRerollCost(game.scene.lockModifierTiers),
     rerollCount: phase.rerollCount ?? 0,
     purchasesThisPhase,
-    blockCandidate: createCollectorCandidateBlocker(game),
+    blockCandidate: createCollectorCandidateBlocker(game, rerollsThisWave),
   });
 }
 
@@ -2131,6 +2141,38 @@ async function executeBuyShopItemAction(
   return waitForModifierSelectOrCommandPhaseAfterShopAction(game, STEP_TIMEOUT_MS);
 }
 
+/**
+ * Reroll ueber die untere Zeile (ShopCursorTarget.REROLL, Spalte 0). Das Spiel beendet die Phase und schiebt eine neue
+ * SelectModifierPhase mit rerollCount + 1 ein. Die neue Phase wird zwar "current", startet im Testharness aber erst
+ * ueber phaseInterceptor.to(...) (docs/pokerogue-headless-test-harness-mechanics.md, 3.7); das uebernimmt
+ * waitForSelectModifierPhaseReady, sobald die alte Phase beendet ist.
+ */
+async function executeRerollAction(game: GameManager): Promise<"modifier_select"> {
+  await waitForModifierInputReady(game);
+  const previousPhase = game.scene.phaseManager.getCurrentPhase();
+  const handler = getModifierHandler(game);
+  handler.setRowCursor(ShopCursorTarget.REROLL);
+  handler.setCursor(0);
+  if (!handler.processInput(Button.ACTION)) {
+    throw new Error("Reroll was rejected by the modifier select handler");
+  }
+
+  const startedAt = Date.now();
+  while (game.scene.phaseManager.getCurrentPhase() === previousPhase) {
+    if (Date.now() - startedAt >= STEP_TIMEOUT_MS) {
+      throw new Error(`step_timeout:reroll_phase_end:${STEP_TIMEOUT_MS}`);
+    }
+    await sleep(25);
+  }
+  if (!game.isCurrentPhase("SelectModifierPhase")) {
+    const phaseName = game.scene.phaseManager.getCurrentPhase()?.constructor?.name ?? "unknown";
+    throw new Error(`reroll_unexpected_phase:${phaseName}`);
+  }
+  await waitForSelectModifierPhaseReady(game, STEP_TIMEOUT_MS);
+  await waitForModifierInputReady(game);
+  return "modifier_select";
+}
+
 async function executeModifierCandidate(
   game: GameManager,
   candidate: ModifierCandidate,
@@ -2157,6 +2199,8 @@ async function executeModifierCandidate(
     case "finish_shop":
       // Keine Spieleingabe: die Phase bleibt offen, es folgt die Gratis-Wahl.
       return "modifier_select";
+    case "reroll":
+      return executeRerollAction(game);
     default:
       throw new Error(`Modifier candidate kind not executable in collector: ${candidate.kind}`);
   }
@@ -2854,7 +2898,9 @@ describe("modifier fixed seed collector", () => {
 
             let modifierPhaseContinues = true;
             let firstModifierActionInWave = true;
+            // Kaufgrenze und Reroll-Grenze gelten pro Welle, also ueber Rerolls hinweg.
             let purchasesThisPhase = 0;
+            let rerollsThisWave = 0;
             let decisionStage: DecisionStage = "shop";
             while (modifierPhaseContinues) {
               if (!game.isCurrentPhase("SelectModifierPhase")) {
@@ -2863,7 +2909,7 @@ describe("modifier fixed seed collector", () => {
               }
 
               // Zwei Stufen wie im Spiel: erst kaufen (bis finish_shop oder Kaufgrenze), dann Gratis-Wahl.
-              const observation = buildCollectorObservation(game, decisionStage, purchasesThisPhase);
+              const observation = buildCollectorObservation(game, decisionStage, purchasesThisPhase, rerollsThisWave);
               if (
                 decisionStage === "shop"
                 && (purchasesThisPhase >= MAX_SHOP_PURCHASES
@@ -2907,6 +2953,12 @@ describe("modifier fixed seed collector", () => {
               );
               if (selectedCandidate.kind === "buy_shop_item") {
                 purchasesThisPhase += 1;
+              }
+              if (selectedCandidate.kind === "reroll") {
+                // Neues Angebot in einer neuen SelectModifierPhase: wieder erst Shop, dann Gratis-Wahl.
+                rerollsThisWave += 1;
+                decisionStage = "shop";
+                continue;
               }
 
               if (modifierOutcome === "command_phase") {
@@ -3008,6 +3060,7 @@ describe("modifier fixed seed collector", () => {
       step_timeout_ms: STEP_TIMEOUT_MS,
       modifier_policy: MODIFIER_POLICY,
       max_shop_purchases_per_phase: MAX_SHOP_PURCHASES,
+      max_rerolls_per_wave: MAX_REROLLS_PER_WAVE,
       combat_dqn_checkpoint: COMBAT_DQN_CHECKPOINT,
       combat_dqn_device: COMBAT_DQN_DEVICE,
       generated_at: new Date().toISOString(),

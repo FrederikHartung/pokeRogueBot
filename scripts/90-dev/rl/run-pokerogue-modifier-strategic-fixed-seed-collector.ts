@@ -26,6 +26,9 @@ const stepTimeoutMs = Number.parseInt(process.argv[10] ?? "", 10)
   || 15000;
 // Kaeufe pro SelectModifierPhase (modifier-v1, docs/modifier-state-v1-draft.md 2.4).
 const maxShopPurchases = Number.parseInt(process.env.POKEROGUE_MODIFIER_MAX_SHOP_PURCHASES ?? "", 10) || 3;
+// 0 ist erlaubt (Reroll aus), daher kein `|| 2`.
+const maxRerollsEnv = Number.parseInt(process.env.POKEROGUE_MODIFIER_MAX_REROLLS ?? "", 10);
+const maxRerollsPerWave = Number.isInteger(maxRerollsEnv) && maxRerollsEnv >= 0 ? maxRerollsEnv : 2;
 const runProcessTimeoutMs = Number.parseInt(process.argv[11] ?? "", 10)
   || Number.parseInt(process.env.POKEROGUE_MODIFIER_RUN_TIMEOUT_MS ?? "", 10)
   || 300000;
@@ -142,6 +145,7 @@ type CollectorPayload = {
   step_timeout_ms: number;
   modifier_policy: string;
   max_shop_purchases_per_phase?: number;
+  max_rerolls_per_wave?: number;
   combat_dqn_checkpoint: string;
   combat_dqn_device: string;
   generated_at: string;
@@ -175,7 +179,8 @@ function buildTestSource(runOutputPath: string, runIndexOffset: number): string 
     .replaceAll("__COMBAT_DQN_PYTHON__", JSON.stringify(pythonBin))
     .replaceAll("__COMBAT_DQN_WORKER_SCRIPT__", JSON.stringify(combatInferWorkerScript))
     .replaceAll("__STEP_TIMEOUT_MS__", String(stepTimeoutMs))
-    .replaceAll("__MAX_SHOP_PURCHASES__", String(maxShopPurchases));
+    .replaceAll("__MAX_SHOP_PURCHASES__", String(maxShopPurchases))
+    .replaceAll("__MAX_REROLLS_PER_WAVE__", String(maxRerollsPerWave));
 }
 
 function isTechnicalTerminationReason(reason: string | undefined): boolean {
@@ -307,6 +312,7 @@ try {
     step_timeout_ms: metadataPayload?.step_timeout_ms ?? stepTimeoutMs,
     modifier_policy: metadataPayload?.modifier_policy ?? modifierPolicy,
     max_shop_purchases_per_phase: metadataPayload?.max_shop_purchases_per_phase ?? maxShopPurchases,
+    max_rerolls_per_wave: metadataPayload?.max_rerolls_per_wave ?? maxRerollsPerWave,
     combat_dqn_checkpoint: metadataPayload?.combat_dqn_checkpoint ?? combatCheckpoint,
     combat_dqn_device: metadataPayload?.combat_dqn_device ?? combatDevice,
     generated_at: new Date().toISOString(),

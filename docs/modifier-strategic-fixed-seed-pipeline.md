@@ -979,6 +979,8 @@ Pflichtfelder pro Step:
 
 Seit `modifier_strategic_fixed_seed_output_v2` (2026-10-14) gibt es pro `SelectModifierPhase` zwei Stufen: Shop-Entscheidungen (`buy_shop_item` / `finish_shop`, hoechstens `max_shop_purchases_per_phase` Kaeufe, Env `POKEROGUE_MODIFIER_MAX_SHOP_PURCHASES`, Standard 3) und danach die Gratis-Wahl (`take_reward` / `skip`; `skip` nur, wenn keine Belohnung waehlbar ist). Shop-Stufen, in denen nur `finish_shop` waehlbar waere, erzeugen keinen Step. `random_executable` wuerfelt erst gleichverteilt eine Wahl (Belohnung, Shop-Platz, `finish_shop`, `skip`), dann ein gueltiges Ziel. Aeltere `v1`-Outputs (durchnummerierte Aktionen) lehnt der Contract ab; ihnen fehlt der State.
 
+Reroll (seit 2026-10-14): `reroll` ist in der Gratis-Wahl ein eigener Kandidat. Der Collector fuehrt ihn ueber die untere Zeile der Shop-UI aus; danach beginnt eine neue `SelectModifierPhase` mit neuem Angebot, und es folgt wieder erst die Shop-Stufe. Hoechstens `max_rerolls_per_wave` Rerolls pro Welle (Env `POKEROGUE_MODIFIER_MAX_REROLLS`, Standard 2, `0` schaltet Reroll ab; danach `mask_reason: reroll_limit_reached`). Kaufgrenze und Reroll-Grenze gelten pro Welle, also ueber Rerolls hinweg. Ausgaben ohne `max_rerolls_per_wave` stammen von vor dem Reroll-Support (Reroll war dort mit `not_implemented_in_collector` gesperrt); der Contract akzeptiert beide. `toggle_lock_rarities` bleibt gesperrt.
+
 Wichtig fuer die Reproduzierbarkeit:
 
 - `decision_rng_seed` soll den Zufallsstrom fuer Modifier-Entscheidungen pro Run eindeutig benennen

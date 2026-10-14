@@ -45,7 +45,7 @@ Auf Waves mit `waveIndex % 10 == 0` ist der Shop leer; dann entfaellt die `shop`
 ### 2.2 Masking-Regeln
 
 - `skip` ist maskiert, solange ein `take_reward`-Kandidat mit `mask = 1` existiert (`mask_reason: skip_while_free_reward`).
-- `reroll` ist maskiert, wenn `reroll_cost < 0` oder `money < reroll_cost`.
+- `reroll` ist maskiert, wenn `reroll_cost < 0` oder `money < reroll_cost`. Im Collector zusaetzlich nach `max_rerolls_per_wave` Rerolls pro Welle (`reroll_limit_reached`).
 - `toggle_lock_rarities` nur mit Lock Capsule (`requires_lock_capsule`).
 - `buy_shop_item`: bestehende Regeln (`insufficient_money`, `no_injured_pokemon`, `no_status_problem`, `no_fainted_pokemon`, `no_missing_pp`), Kosten inklusive `HealShopCostModifier` (Black Sludge).
 - Ziel-Pokemon: `selectFilter` des Items plus bestehende Zusatzregeln (STAB fuer Typ-Booster, Art fuer Species-Booster, Stack-Cap).
@@ -54,11 +54,18 @@ Auf Waves mit `waveIndex % 10 == 0` ist der Shop leer; dann entfaellt die `shop`
 
 | Prioritaet | Items | Umsetzung |
 |---|---|---|
-| 1 | `TM_*` | Party-Ziel; nur Pokemon mit freiem Attacken-Slot (`move_count < 4`), solange es keine Learn-Move-Policy gibt. Danach `target_move_index` = zu ersetzende Attacke. |
-| 1 | `ETHER`, `MAX_ETHER`, `PP_UP`, `PP_MAX` (Belohnung) | Kandidat pro Party x Attacke (`target_move_index`); Maske ueber `moveSelectFilter`. |
+| 1 | `reroll` | Neue Phase mit `rerollCount + 1`; danach wieder `shop`-Stufe mit neuem Angebot. |
+| 1 | `ETHER`, `MAX_ETHER`, `PP_UP`, `PP_MAX` (Belohnung) | Kandidat pro Party x Attacke (`target_move_index`, liefert der Builder schon); Maske ueber `moveSelectFilter`. Der Collector braucht nur den UI-Ablauf der Attacken-Auswahl. |
 | 1 | `ETHER`, `MAX_ETHER`, `ELIXIR`, `MAX_ELIXIR` (Shop) | Ausfuehrung analog zu den Heil-Items; Ether mit Attacken-Auswahl. |
 | 2 | `VOUCHER*`, `SHINY_CHARM`, `HEALING_CHARM`, `ABILITY_CHARM`, `CATCHING_CHARM`, `IV_SCANNER`, `LOCK_CAPSULE`, `MEGA_BRACELET`, `DYNAMAX_BAND`, `TERA_ORB` | Kein Ziel, technisch trivial. Freigeben, damit das Modell den (geringen) Run-Wert lernt und live keine Luecke entsteht. |
-| 3 | `MEMORY_MUSHROOM`, `DNA_SPLICERS`, `TERA_SHARD`, `MAP`, Formwechsel Gruppe 2, `EVIOLITE`, `LEEK`, Orbs, `BATON`, `SOUL_DEW` | Bleiben gesperrt, bis es eine passende Folge-Policy gibt. |
+| nach Ziel 2 | `TM_*`, `MEMORY_MUSHROOM` | Erst nach der Learn-Move-Policy (Ziel 2 in `docs/strategy-roadmap.md`), siehe unten. |
+| 3 | `DNA_SPLICERS`, `TERA_SHARD`, `MAP`, Formwechsel Gruppe 2, `EVIOLITE`, `LEEK`, Orbs, `BATON`, `SOUL_DEW` | Bleiben gesperrt, bis es eine passende Folge-Policy gibt. |
+
+TMs und Erinnerungspilz fuehren nach der Item-Entscheidung in dieselbe Lern-Entscheidung wie ein Level-Up (welche Attacke wird vergessen, oder gar nicht lernen). Ihr Wert haengt vor allem an dieser zweiten Entscheidung:
+
+- Heute trifft sie eine feste Regel (`decideLearnMoveSlot` in `pokerogue/test/porubot/harness/battle-command-advance.ts`), die Status-Attacken, 5-AP-Attacken und typfremde Attacken pauschal ablehnt. Viele TMs wuerden genommen, aber nicht gelernt. Das Modell bekaeme Credit fuer einen Effekt, den es nicht steuert, und die Daten waeren nach einer besseren Lern-Policy veraltet.
+- Fuer eine sinnvolle Bewertung braucht ein TM-Kandidat ein Effekt-Merkmal "wie viel besser wird das Attacken-Set". Das liefert das Bewertungsnetz fuer Attacken-Sets aus Ziel 2; ohne es muesste eine zweite, spaeter verworfene Heuristik her.
+- Freischalten nur bei freiem Attacken-Slot waere moeglich (die Collector-Starter haben 3 Attacken), deckt aber gerade die spaeteren, interessanten Faelle nicht ab und lohnt sich deshalb nicht.
 
 Item-Transfer (Held Items verschieben) bleibt ausserhalb von v1; der Action-Space waere Quelle x Item x Ziel und braucht eine eigene Stufe.
 
@@ -149,7 +156,8 @@ Solange das Modifier-DQN nur Heilung/Revive kennt:
    - Die Item-Suite prueft fuer jeden Fall, dass die v1-Kandidaten dieselben Ziele freigeben wie die Spielfilter, und wertet die Collector-Regeln fuer jedes Item aus dem echten Pool aus. Die Matrix-Spalte `Strategic Collector` wird dagegen geprueft.
    - Befund dabei: Formwechsel-Items der Gruppe 2 (z. B. `DARK_STONE`) waren im Collector ausfuehrbar, obwohl als gesperrt dokumentiert. Generierte Items tragen die Pool-id `RARE_FORM_CHANGE_ITEM`, die Regel verglich aber den Item-Namen; der Gruppe-2-Test hatte eine eigene, abweichende Kopie der Regel. Jetzt entscheidet `formChangeItem`.
 5. Smoke-Lauf, danach erster Remote-Lauf mit v1. Grosse Laeufe mit dem alten Step-Format bis dahin nicht mehr starten (State fehlt und ist nicht nachruestbar).
-6. Reroll und Freischaltungen Prioritaet 1 aus 2.3.
+6. Reroll und Freischaltungen Prioritaet 1 aus 2.3 (Reroll zuerst, dann Attacken-Ziele fuer Ether/PP-Items, dann Shop-Ether/-Elixiere). TMs und Erinnerungspilz erst nach Ziel 2 der Roadmap.
+   - Reroll umgesetzt 2026-10-14: Ausfuehrung ueber die untere UI-Zeile, danach neue `SelectModifierPhase` mit `shop`-Stufe; Grenze pro Welle (`POKEROGUE_MODIFIER_MAX_REROLLS`, Standard 2). Die neue Phase startet im Testharness erst ueber `phaseInterceptor.to(...)` (Harness-Doku 3.7). Kaufgrenze und `purchases_this_phase` zaehlen pro Welle, ueber Rerolls hinweg.
 7. PyTorch-Training (Kandidaten-Bewertung), Inferenz-Worker, Kotlin-Anbindung ueber die JS-Bridge (Phasen 3/4 des Migrationsplans).
 8. DL4J-Modifier-Modell und Online-Lernen im Live-Bot entfernen, sobald der Python-Worker live laeuft.
 

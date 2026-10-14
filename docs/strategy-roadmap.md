@@ -32,7 +32,7 @@ Schritte (Details und Reihenfolge in `docs/modifier-state-v1-draft.md`, Abschnit
    - Schon in Stufe 1 sieht das Modell das **ganze Angebot inklusive Gratis-Items** (das Spiel zeigt beides gleichzeitig): Ein Trank-Kauf kann entfallen, wenn ein Gratis-Trank da ist; ein starkes Gratis-Item kann wichtiger sein als ein Kauf.
    - Ebenfalls im State: Abstand zur naechsten Rivalen-, Boss- und Trainerwelle (z. B. vor dem Rivalenkampf in Welle 8 das ganze Team heilen).
    - Lernsignal: Shop-Kaeufe wirken sofort (geheilte HP, naechster Kampf ueberstanden) plus Anteil am Run-Ergebnis. Gratis-Items mit spaeter Wirkung (EP-Teiler, Sonderbonbon-Glas) ueber verzweigte Laeufe. Gutscheine haben keinen Run-Wert und zaehlen nur ueber den Meta-Anteil (siehe "Ziel-Profile und Meta-Wert").
-6. **Freischaltungen:** TMs, Ether/Elixier, Reroll, Lock Capsule nach Prioritaet aus dem Entwurf.
+6. **Freischaltungen:** Reroll, Ether/Elixier/AP-Items, Lock Capsule nach Prioritaet aus dem Entwurf. TMs und Erinnerungspilz erst nach Ziel 2: Ihr Wert haengt an der anschliessenden Lern-Entscheidung, und das Bewertungsnetz fuer Attacken-Sets liefert ihr Effekt-Merkmal (`docs/modifier-state-v1-draft.md`, Abschnitt 2.3).
 
 Erfolgskriterium: hoehere `average_wave_reached` als Zufalls-Policy und als Live-Fallback auf denselben Seeds.
 
@@ -41,6 +41,7 @@ Erfolgskriterium: hoehere `average_wave_reached` als Zufalls-Policy und als Live
 Umfang zunaechst bewusst eng:
 
 - nur Attacken, die beim Level-Up angeboten werden (keine TMs, kein Memory Mushroom)
+- TMs und Memory Mushroom nutzen danach dieselbe Lern-Entscheidung; ihre Freischaltung im Modifier-Collector wartet auf dieses Ziel (siehe Ziel 1, Schritt 6)
 - nur die Standard-Starter Bisasam, Glumanda, Schiggy (`data/rl/combat/starter-defaults.json`) bis Level 30
 
 ### Entscheidung

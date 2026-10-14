@@ -219,6 +219,7 @@ export function validateModifierStrategicFixedSeedOutput(value: unknown): Record
       "step_timeout_ms",
       "modifier_policy",
       "max_shop_purchases_per_phase",
+      "max_rerolls_per_wave",
       "combat_dqn_checkpoint",
       "combat_dqn_device",
       "generated_at",
@@ -263,6 +264,10 @@ export function validateModifierStrategicFixedSeedOutput(value: unknown): Record
   assertInteger(value.step_timeout_ms, context, "step_timeout_ms", { min: 1 });
   assertString(value.modifier_policy, context, "modifier_policy");
   assertInteger(value.max_shop_purchases_per_phase, context, "max_shop_purchases_per_phase");
+  // Optional: Ausgaben von vor dem Reroll-Support (Reroll damals gesperrt) haben das Feld nicht.
+  if (value.max_rerolls_per_wave !== undefined) {
+    assertInteger(value.max_rerolls_per_wave, context, "max_rerolls_per_wave", { min: 0 });
+  }
   assertString(value.combat_dqn_checkpoint, context, "combat_dqn_checkpoint");
   assertString(value.combat_dqn_device, context, "combat_dqn_device");
   assertString(value.generated_at, context, "generated_at");
