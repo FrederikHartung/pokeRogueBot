@@ -2,6 +2,8 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { linkModifierObservationModule } from "../../01-data-generation/collector/combat-observation-module.ts";
+import { checkItemMatrix, type CollectorExecutabilityEntry } from "./modifier-item-matrix-check.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,6 +17,7 @@ const tempDir = path.join(pokerogueRoot, "test", ".external-rl", runId);
 const tempTestRelativePath = path.join("test", ".external-rl", runId, "modifier-item-suite.test.ts");
 const tempTestPath = path.join(pokerogueRoot, tempTestRelativePath);
 
+const matrixPath = path.join(repoRoot, "docs", "select-modifier-shop-item-matrix.md");
 const defaultOutputPath = path.join(repoRoot, "data", "temp", "rl", "modifier-item-suite-test.json");
 const outputPath = process.argv[2] ? path.resolve(process.argv[2]) : defaultOutputPath;
 
@@ -34,7 +37,11 @@ mkdirSync(path.dirname(outputPath), { recursive: true });
 mkdirSync(tempDir, { recursive: true });
 
 const templateSource = readFileSync(templatePath, "utf8");
-const testSource = templateSource.replaceAll("__OUTPUT_PATH__", JSON.stringify(outputPath));
+const testSource = linkModifierObservationModule(templateSource, tempDir, repoRoot).replaceAll(
+  "__OUTPUT_PATH__",
+  JSON.stringify(outputPath),
+);
+rmSync(outputPath, { force: true });
 
 writeFileSync(tempTestPath, testSource, { encoding: "utf8" });
 
@@ -55,16 +62,35 @@ const result = spawnSync(
 
 cleanup();
 
-if (result.status !== 0 && !existsSync(outputPath)) {
-  process.exit(result.status ?? 1);
+if (!existsSync(outputPath)) {
+  console.error("Modifier item suite wrote no output.");
+  process.exit(result.status || 1);
 }
 
-if (existsSync(outputPath)) {
-  const payload = JSON.parse(readFileSync(outputPath, "utf8"));
-  console.log("Modifier item suite output:", outputPath);
-  console.log("Validated items:", payload.validated_items ?? []);
+const payload = JSON.parse(readFileSync(outputPath, "utf8")) as {
+  validated_items?: Array<{ item_id: string }>;
+  collector_executability?: CollectorExecutabilityEntry[];
+  not_generated_item_ids?: string[];
+};
+console.log("Modifier item suite output:", outputPath);
+console.log("Validated items:", (payload.validated_items ?? []).map(item => item.item_id).join(", "));
+
+const matrix = checkItemMatrix(readFileSync(matrixPath, "utf8"), payload.collector_executability ?? []);
+console.log(`Item matrix: ${matrix.rows.length} rows, ${matrix.unchecked_rows.length} without generated items`);
+for (const row of matrix.unchecked_rows) {
+  console.log(`  not checked (line ${row.line}): ${row.item_ids.join(", ")} documented "${row.documented}"`);
+}
+for (const row of matrix.mismatches) {
+  console.error(
+    `  MISMATCH (line ${row.line}, ${row.source}): ${row.item_ids.join(", ")} documented "${row.documented}", collector rules say "${row.expected}"`,
+  );
 }
 
 if (result.status !== 0) {
-  console.log("Vitest exited non-zero, but output exists. Continuing.");
+  console.error("Vitest exited non-zero.");
+  process.exit(result.status ?? 1);
+}
+if (matrix.mismatches.length > 0) {
+  console.error(`Item matrix out of date: ${matrix.mismatches.length} row(s) disagree with the collector rules.`);
+  process.exit(1);
 }

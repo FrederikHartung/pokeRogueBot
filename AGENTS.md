@@ -127,7 +127,7 @@ Fallstricke auf dem Server:
 **Skripte und Pipeline (Node/TypeScript):**
 - `npm run typecheck:scripts`: prueft alle `scripts/**/*.ts` gegen die `#alias/*`-Pfad-Map der Root-`tsconfig.json` (siehe 7.)
 - `npm run rl:test:porubot:regressions`: Regressionstests im Submodul (vitest)
-- `npm run rl:test:policy-contract`, `npm run rl:test:modifier:strategic-contract`, `npm run rl:test:modifier:item-suite`: Contract- und Masking-Tests
+- `npm run rl:test:policy-contract`, `npm run rl:test:modifier:strategic-contract`, `npm run rl:test:modifier:item-suite`: Contract- und Masking-Tests. Die Item-Suite prueft zusaetzlich die Spalte `Strategic Collector` in `docs/select-modifier-shop-item-matrix.md` gegen `src/main/ts/lib/modifier-collector-policy.ts`; wer die Collector-Regeln aendert, zieht die Spalte mit.
 - `npm run rl:test:modifier:observation-v1`: Spieltest des modifier-v1-Builders (`src/main/ts/lib/modifier-observation.ts`) inkl. Schema-Validierung
 - `npm run rl:test:pipeline:technical-failures`: Fehlererfassung beider Pipelines (Signaturen, Notausschalter)
 - `npm run rl:test:combat:collector-replays`: Replays frueherer Combat-Collector-Timeouts gegen den echten Collector (ca. 2-3 min)

@@ -47,123 +47,134 @@ Status:
 - `offen`
   - kann auftreten, ist aber noch nicht explizit in eigener Matrix-/Suite bewertet
 
+Spalte `Strategic Collector`: ob der strategische Modifier-Collector das Item ausfuehren kann (Shop-Tabelle: kaufen, sonst: als Gratis-Belohnung nehmen). Nicht ausfuehrbare Kandidaten bekommen in `modifier-transition-v1` `mask = 0` mit dem Grund aus den Collector-Regeln.
+
+- `ja`: ausfuehrbar; Ziel-Pokemon bzw. Attacke maskiert weiterhin der Builder nach den Spielregeln
+- `nein (gesperrt)`: bewusst gesperrt (`blocked_by_offline_modifier_policy`, ggf. mit `_todo`-Grund)
+- `nein (Attackenwahl nicht umgesetzt)`: braucht eine Attacken-Auswahl, die der Collector noch nicht faehrt (`requires_move_selection`)
+- `nein (Kauf nicht umgesetzt)`: als Shop-Kauf nicht umgesetzt (`shop_item_execution_not_implemented`)
+
+Quelle der Regeln ist `src/main/ts/lib/modifier-collector-policy.ts`. `npm run rl:test:modifier:item-suite` erzeugt jedes Item ueber den echten Spiel-Pool, wertet die Regeln aus und bricht ab, wenn eine Zeile hier nicht dazu passt. Bei Aenderungen an den Regeln also diese Spalte mitziehen.
+
+Nicht in den Tabellen, weil nicht ueber die normalen Reward-Pools der `SelectModifierPhase` angeboten (z. B. `GOLDEN_POKEBALL` als feste Belohnung nach Bossen ueber `ModifierRewardPhase`): `GOLDEN_POKEBALL`, `SILVER_POKEBALL`, `GOLDEN_EXP_CHARM`, `OVAL_CHARM`, `COIN_CASE`, `EXP_BALANCE`, `MYSTERY_ENCOUNTER_*`, `ENEMY_*`. Der Collector fuehrt sie nicht aus (`requires_followup_selection`).
+
 ## Kaufpflichtige Shop-Items
 
 Quelle:
 
 - `pokerogue/src/modifier/modifier-type.ts#getPlayerShopModifierTypeOptionsForWave`
 
-| Familie | Items | Zieltyp | Action Masking | Status | Nachweis / Hinweis |
-|---|---|---|---|---|---|
-| HP-Heilung | `POTION`, `SUPER_POTION`, `HYPER_POTION`, `MAX_POTION`, `FULL_RESTORE` | Party-Ziel | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` |
-| Statusheilung | `FULL_HEAL` | Party-Ziel | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` |
-| Revives | `REVIVE`, `MAX_REVIVE`, `SACRED_ASH` | Party-Ziel bzw. global | Ja bei `REVIVE`/`MAX_REVIVE`, nein bei `SACRED_ASH` | abgesichert | `run-pokerogue-modifier-item-suite-test.ts`; strategic Collector fuehrt Shop-Revivals inzwischen ebenfalls aus |
-| PP-Heilung | `ETHER`, `MAX_ETHER`, `ELIXIR`, `MAX_ELIXIR` | Party-Ziel bzw. Party+Move | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` |
-| Spezial-Learn-Move | `MEMORY_MUSHROOM` | Party+Move | Ja | bewusst geblockt | `remember_move_todo`, `run-pokerogue-modifier-memory-mushroom-mask-test.ts` |
+| Familie | Items | Zieltyp | Action Masking | Status | Nachweis / Hinweis | Strategic Collector |
+|---|---|---|---|---|---|---|
+| HP-Heilung | `POTION`, `SUPER_POTION`, `HYPER_POTION`, `MAX_POTION`, `FULL_RESTORE` | Party-Ziel | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` | ja |
+| Statusheilung | `FULL_HEAL` | Party-Ziel | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` | ja |
+| Revives | `REVIVE`, `MAX_REVIVE`, `SACRED_ASH` | Party-Ziel bzw. global | Ja bei `REVIVE`/`MAX_REVIVE`, nein bei `SACRED_ASH` | abgesichert | `run-pokerogue-modifier-item-suite-test.ts`; strategic Collector fuehrt Shop-Revivals inzwischen ebenfalls aus | ja |
+| PP-Heilung | `ETHER`, `MAX_ETHER`, `ELIXIR`, `MAX_ELIXIR` | Party-Ziel bzw. Party+Move | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` | nein (Kauf nicht umgesetzt) |
+| Spezial-Learn-Move | `MEMORY_MUSHROOM` | Party+Move | Ja | bewusst geblockt | `remember_move_todo`, `run-pokerogue-modifier-memory-mushroom-mask-test.ts` | nein (Kauf nicht umgesetzt) |
 
 ## Freie Reward-Items nach Familie / Typ
 
 ### Baelle und Encounter-Utility
 
-| Items | Reward-Tiers | Zieltyp | Action Masking | Status | Hinweis |
-|---|---|---|---|---|---|
-| `POKEBALL`, `GREAT_BALL`, `ULTRA_BALL`, `ROGUE_BALL`, `MASTER_BALL` | Common / Great / Ultra / Rogue / Master | kein Ziel | Nein | abgesichert | bewusst kein Action Masking; normale Add-Pokeball-Modifier ohne Zielauswahl |
-| `LURE`, `SUPER_LURE`, `MAX_LURE` | Common / Great / Ultra | kein Ziel | Nein | abgesichert | bewusst kein Action Masking; Double-Battle-Chance-Booster mit direktem Einfluss auf den aktuellen Run |
-| `MAP` | Great | kein Ziel | Nein | bewusst geblockt | vorerst aus Offline-DQN-Action-Space herausnehmen; spaeter nur mit dediziertem Nachweistest und klarer Biome-/Routing-Policy re-enablen |
+| Items | Reward-Tiers | Zieltyp | Action Masking | Status | Hinweis | Strategic Collector |
+|---|---|---|---|---|---|---|
+| `POKEBALL`, `GREAT_BALL`, `ULTRA_BALL`, `ROGUE_BALL`, `MASTER_BALL` | Common / Great / Ultra / Rogue / Master | kein Ziel | Nein | abgesichert | bewusst kein Action Masking; normale Add-Pokeball-Modifier ohne Zielauswahl | ja |
+| `LURE`, `SUPER_LURE`, `MAX_LURE` | Common / Great / Ultra | kein Ziel | Nein | abgesichert | bewusst kein Action Masking; Double-Battle-Chance-Booster mit direktem Einfluss auf den aktuellen Run | ja |
+| `MAP` | Great | kein Ziel | Nein | bewusst geblockt | vorerst aus Offline-DQN-Action-Space herausnehmen; spaeter nur mit dediziertem Nachweistest und klarer Biome-/Routing-Policy re-enablen | nein (gesperrt) |
 
 ### Heilung, Revive und PP
 
-| Items / Familien | Reward-Tiers | Zieltyp | Action Masking | Status | Nachweis |
-|---|---|---|---|---|---|
-| `POTION`, `SUPER_POTION`, `HYPER_POTION`, `MAX_POTION`, `FULL_RESTORE` | Common / Great / Ultra / Shop | Party-Ziel | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` |
-| `FULL_HEAL` | Great / Shop | Party-Ziel | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` |
-| `REVIVE`, `MAX_REVIVE` | Great / Ultra / Shop | Party-Ziel | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` |
-| `SACRED_ASH` | Great / Shop | kein Ziel bzw. global | Nein | abgesichert | in Item-Suite mitbeobachtet |
-| `ETHER`, `MAX_ETHER` | Common / Shop | Party+Move | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` |
-| `ELIXIR`, `MAX_ELIXIR` | Great / Shop | Party-Ziel | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` |
-| `PP_UP`, `PP_MAX` | Great / Ultra | Party+Move | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` |
+| Items / Familien | Reward-Tiers | Zieltyp | Action Masking | Status | Nachweis | Strategic Collector |
+|---|---|---|---|---|---|---|
+| `POTION`, `SUPER_POTION`, `HYPER_POTION`, `MAX_POTION`, `FULL_RESTORE` | Common / Great / Ultra / Shop | Party-Ziel | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` | ja |
+| `FULL_HEAL` | Great / Shop | Party-Ziel | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` | ja |
+| `REVIVE`, `MAX_REVIVE` | Great / Ultra / Shop | Party-Ziel | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` | ja |
+| `SACRED_ASH` | Great / Shop | kein Ziel bzw. global | Nein | abgesichert | in Item-Suite mitbeobachtet | ja |
+| `ETHER`, `MAX_ETHER` | Common / Shop | Party+Move | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` | nein (Attackenwahl nicht umgesetzt) |
+| `ELIXIR`, `MAX_ELIXIR` | Great / Shop | Party-Ziel | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` | ja |
+| `PP_UP`, `PP_MAX` | Great / Ultra | Party+Move | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` | nein (Attackenwahl nicht umgesetzt) |
 
 ### Level, Nature und direkte Charakterentwicklung
 
-| Items / Familien | Reward-Tiers | Zieltyp | Action Masking | Status | Nachweis / Hinweis |
-|---|---|---|---|---|---|
-| `RARE_CANDY` | Common | Party-Ziel | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` |
-| `RARER_CANDY` | Ultra | kein Ziel bzw. ganzes Team | Nein | abgesichert | bewusst kein Action Masking; globaler All-Pokemon-Level-Increment ohne Zielauswahl |
-| `MINT` | Ultra | Party-Ziel | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` |
-| `BASE_STAT_BOOSTER` | Great | Party-Ziel | Ja | abgesichert | dedizierter Stack-Cap-Test |
-| `TEMP_STAT_STAGE_BOOSTER`, `DIRE_HIT` | Common / Great | kein Ziel | Nein | abgesichert | bewusst kein Action Masking; globale temporaere Combat-Modifier ohne Zielauswahl |
-| `ATTACK_TYPE_BOOSTER` | Ultra | Party-Ziel | Ja | abgesichert | dedizierter STAB-Test |
-| `SPECIES_STAT_BOOSTER`, `RARE_SPECIES_STAT_BOOSTER` | Great / Ultra | Party-Ziel | Ja | abgesichert | dedizierter Species-Test |
+| Items / Familien | Reward-Tiers | Zieltyp | Action Masking | Status | Nachweis / Hinweis | Strategic Collector |
+|---|---|---|---|---|---|---|
+| `RARE_CANDY` | Common | Party-Ziel | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` | ja |
+| `RARER_CANDY` | Ultra | kein Ziel bzw. ganzes Team | Nein | abgesichert | bewusst kein Action Masking; globaler All-Pokemon-Level-Increment ohne Zielauswahl | ja |
+| `MINT` | Ultra | Party-Ziel | Ja | abgesichert | `run-pokerogue-modifier-item-suite-test.ts` | ja |
+| `BASE_STAT_BOOSTER` | Great | Party-Ziel | Ja | abgesichert | dedizierter Stack-Cap-Test | ja |
+| `TEMP_STAT_STAGE_BOOSTER`, `DIRE_HIT` | Common / Great | kein Ziel | Nein | abgesichert | bewusst kein Action Masking; globale temporaere Combat-Modifier ohne Zielauswahl | ja |
+| `ATTACK_TYPE_BOOSTER` | Ultra | Party-Ziel | Ja | abgesichert | dedizierter STAB-Test | ja |
+| `SPECIES_STAT_BOOSTER`, `RARE_SPECIES_STAT_BOOSTER` | Great / Ultra | Party-Ziel | Ja | abgesichert | dedizierter Species-Test | ja |
 
 ### Evolution, Formwechsel und Learn-Move
 
-| Items / Familien | Reward-Tiers | Zieltyp | Action Masking | Status | Nachweis / Hinweis |
-|---|---|---|---|---|---|
-| `EVOLUTION_ITEM`, `RARE_EVOLUTION_ITEM` | Great / Ultra | Party-Ziel | Ja | abgesichert | dedizierter Evolution-Item-Test |
-| `FORM_CHANGE_ITEM` Group 1 | Ultra | Party-Ziel | Ja | abgesichert | `run-pokerogue-modifier-form-change-item-group1-mask-test.ts` |
-| `RARE_FORM_CHANGE_ITEM` Group 2 / Rest | Rogue | Party-Ziel | Ja | bewusst geblockt | `form_change_group2_todo` |
-| `TM_COMMON`, `TM_GREAT`, `TM_ULTRA` | Common / Great / Ultra | Party+Move | Ja | bewusst geblockt | `tm_selection_todo`, dedizierter TM-Test |
-| `MEMORY_MUSHROOM` | Great / Shop | Party+Move | Ja | bewusst geblockt | `remember_move_todo` |
-| `DNA_SPLICERS` | Great / Master | Mehrschritt | Ja | bewusst geblockt | `fuse_todo`, dedizierter Fuse-Test |
+| Items / Familien | Reward-Tiers | Zieltyp | Action Masking | Status | Nachweis / Hinweis | Strategic Collector |
+|---|---|---|---|---|---|---|
+| `EVOLUTION_ITEM`, `RARE_EVOLUTION_ITEM` | Great / Ultra | Party-Ziel | Ja | abgesichert | dedizierter Evolution-Item-Test | ja |
+| `FORM_CHANGE_ITEM` Group 1 | Ultra | Party-Ziel | Ja | abgesichert | `run-pokerogue-modifier-form-change-item-group1-mask-test.ts` | ja |
+| `RARE_FORM_CHANGE_ITEM` Group 2 / Rest | Rogue | Party-Ziel | Ja | bewusst geblockt | `form_change_group2_todo` | nein (gesperrt, `form_change_group2_todo`) |
+| `TM_COMMON`, `TM_GREAT`, `TM_ULTRA` | Common / Great / Ultra | Party+Move | Ja | bewusst geblockt | `tm_selection_todo`, dedizierter TM-Test | nein (gesperrt, `tm_selection_todo`) |
+| `MEMORY_MUSHROOM` | Great / Shop | Party+Move | Ja | bewusst geblockt | `remember_move_todo` | nein (gesperrt, `remember_move_todo`) |
+| `DNA_SPLICERS` | Great / Master | Mehrschritt | Ja | bewusst geblockt | `fuse_todo`, dedizierter Fuse-Test | nein (gesperrt, `fuse_todo`) |
 
 ### Tera, Mega, Dynamax und sonstige Run-Systeme
 
-| Items | Reward-Tiers | Zieltyp | Action Masking | Status | Hinweis |
-|---|---|---|---|---|---|
-| `TERA_SHARD` | Great | Party-Ziel | Ja | bewusst geblockt | `tera_shard_todo` |
-| `TERA_ORB` | Ultra | kein Ziel | Nein | bewusst geblockt | kein Target-Masking noetig; Item-Action fuer Offline-DQN vorerst aus dem Action Space genommen |
-| `MEGA_BRACELET` | Rogue | kein Ziel | Nein | bewusst geblockt | kein Target-Masking noetig; Item-Action fuer Offline-DQN vorerst aus dem Action Space genommen |
-| `DYNAMAX_BAND` | Rogue | kein Ziel | Nein | bewusst geblockt | kein Target-Masking noetig; Item-Action fuer Offline-DQN vorerst aus dem Action Space genommen |
-| `LOCK_CAPSULE` | Rogue | kein Ziel | Nein | bewusst geblockt | kein Target-Masking noetig; Item-Action fuer Offline-DQN vorerst aus dem Action Space genommen |
+| Items | Reward-Tiers | Zieltyp | Action Masking | Status | Hinweis | Strategic Collector |
+|---|---|---|---|---|---|---|
+| `TERA_SHARD` | Great | Party-Ziel | Ja | bewusst geblockt | `tera_shard_todo` | nein (gesperrt, `tera_shard_todo`) |
+| `TERA_ORB` | Ultra | kein Ziel | Nein | bewusst geblockt | kein Target-Masking noetig; Item-Action fuer Offline-DQN vorerst aus dem Action Space genommen | nein (gesperrt) |
+| `MEGA_BRACELET` | Rogue | kein Ziel | Nein | bewusst geblockt | kein Target-Masking noetig; Item-Action fuer Offline-DQN vorerst aus dem Action Space genommen | nein (gesperrt) |
+| `DYNAMAX_BAND` | Rogue | kein Ziel | Nein | bewusst geblockt | kein Target-Masking noetig; Item-Action fuer Offline-DQN vorerst aus dem Action Space genommen | nein (gesperrt) |
+| `LOCK_CAPSULE` | Rogue | kein Ziel | Nein | bewusst geblockt | kein Target-Masking noetig; Item-Action fuer Offline-DQN vorerst aus dem Action Space genommen | nein (gesperrt) |
 
 ### Geld, Voucher und Meta-Permanents
 
-| Items | Reward-Tiers | Zieltyp | Action Masking | Status | Hinweis |
-|---|---|---|---|---|---|
-| `NUGGET`, `BIG_NUGGET`, `RELIC_GOLD` | Great / Ultra / Rogue | kein Ziel | Nein | abgesichert | bewusst kein Action Masking; Money-Reward-Modifier mit direktem Einfluss auf den aktuellen Run |
-| `VOUCHER`, `VOUCHER_PLUS`, `VOUCHER_PREMIUM` | Great / Rogue / Master | kein Ziel | Nein | bewusst geblockt | kein Target-Masking noetig; fuer Offline-DQN vorerst aus dem Action Space genommen, da kein direkter Run-Effekt. Unterstützung ist zeitnah geplant |
-| `AMULET_COIN` | Ultra | kein Ziel | Nein | abgesichert | bewusst kein Action Masking; globaler Geld-Multiplikator mit direktem Run-Effekt |
-| `CANDY_JAR` | Ultra | kein Ziel | Nein | abgesichert | bewusst kein Action Masking; globaler Level-Increment-Booster mit direktem Run-Effekt |
-| `GOLDEN_PUNCH` | Ultra | Party-Ziel | Ja | abgesichert | erlaubt fuer Offline-DQN; dedizierter Stack-Cap-/Target-Mask-Test `run-pokerogue-modifier-golden-punch-mask-test.ts` |
-| `IV_SCANNER` | Ultra | kein Ziel | Nein | bewusst geblockt | kein Target-Masking noetig; fuer Offline-DQN vorerst aus dem Action Space genommen, da primär Informations-/Encounter-Utility |
-| `EXP_CHARM`, `SUPER_EXP_CHARM` | Ultra / Rogue | kein Ziel | Nein | abgesichert | bewusst kein Action Masking; globale EXP-Booster mit direktem Run-Effekt |
-| `EXP_SHARE` | Ultra | kein Ziel | Nein | abgesichert | bewusst kein Action Masking; globaler EXP-Share-Modifier mit direktem Run-Effekt |
-| `SHINY_CHARM`, `HEALING_CHARM`, `ABILITY_CHARM`, `CATCHING_CHARM` | Master / Rogue / Master / Rogue | kein Ziel | Nein | bewusst geblockt | kein Target-Masking noetig; fuer Offline-DQN vorerst aus dem Action Space genommen. Unterstützung ist zeitnah geplant |
-| `BERRY_POUCH` | Rogue | kein Ziel | Nein | abgesichert | bewusst kein Action Masking; globaler Berry-Preserve-Modifier mit direktem Run-Effekt |
+| Items | Reward-Tiers | Zieltyp | Action Masking | Status | Hinweis | Strategic Collector |
+|---|---|---|---|---|---|---|
+| `NUGGET`, `BIG_NUGGET`, `RELIC_GOLD` | Great / Ultra / Rogue | kein Ziel | Nein | abgesichert | bewusst kein Action Masking; Money-Reward-Modifier mit direktem Einfluss auf den aktuellen Run | ja |
+| `VOUCHER`, `VOUCHER_PLUS`, `VOUCHER_PREMIUM` | Great / Rogue / Master | kein Ziel | Nein | bewusst geblockt | kein Target-Masking noetig; fuer Offline-DQN vorerst aus dem Action Space genommen, da kein direkter Run-Effekt. Unterstützung ist zeitnah geplant | nein (gesperrt) |
+| `AMULET_COIN` | Ultra | kein Ziel | Nein | abgesichert | bewusst kein Action Masking; globaler Geld-Multiplikator mit direktem Run-Effekt | ja |
+| `CANDY_JAR` | Ultra | kein Ziel | Nein | abgesichert | bewusst kein Action Masking; globaler Level-Increment-Booster mit direktem Run-Effekt | ja |
+| `GOLDEN_PUNCH` | Ultra | Party-Ziel | Ja | abgesichert | erlaubt fuer Offline-DQN; dedizierter Stack-Cap-/Target-Mask-Test `run-pokerogue-modifier-golden-punch-mask-test.ts` | ja |
+| `IV_SCANNER` | Ultra | kein Ziel | Nein | bewusst geblockt | kein Target-Masking noetig; fuer Offline-DQN vorerst aus dem Action Space genommen, da primär Informations-/Encounter-Utility | nein (gesperrt) |
+| `EXP_CHARM`, `SUPER_EXP_CHARM` | Ultra / Rogue | kein Ziel | Nein | abgesichert | bewusst kein Action Masking; globale EXP-Booster mit direktem Run-Effekt | ja |
+| `EXP_SHARE` | Ultra | kein Ziel | Nein | abgesichert | bewusst kein Action Masking; globaler EXP-Share-Modifier mit direktem Run-Effekt | ja |
+| `SHINY_CHARM`, `HEALING_CHARM`, `ABILITY_CHARM`, `CATCHING_CHARM` | Master / Rogue / Master / Rogue | kein Ziel | Nein | bewusst geblockt | kein Target-Masking noetig; fuer Offline-DQN vorerst aus dem Action Space genommen. Unterstützung ist zeitnah geplant | nein (gesperrt) |
+| `BERRY_POUCH` | Rogue | kein Ziel | Nein | abgesichert | bewusst kein Action Masking; globaler Berry-Preserve-Modifier mit direktem Run-Effekt | ja |
 
 ### Gezielte Held-Items: bereits dediziert abgesichert
 
 Diese Gruppe hat Party-Zielauswahl und ist inzwischen entweder konservativ ueber echten Stack-Cap abgesichert oder bewusst als Nicht-Shop-Fall dokumentiert.
 
-| Items / Familien | Reward-Tiers | Action Masking | Status | Nachweis / Hinweis |
-|---|---|---|---|---|
-| `SOOTHE_BELL` | Great | Ja | abgesichert | dedizierter Stack-Cap-Test |
-| `LUCKY_EGG`, `GOLDEN_EGG` | Rogue / Wild / Reward-Kontexte | Ja | abgesichert | dedizierter Stack-Cap-Test |
-| `WIDE_LENS` | Ultra | Ja | abgesichert | dedizierter Stack-Cap-Test |
-| `MULTI_LENS` | Master | Ja | abgesichert | dedizierter Stack-Cap-Test |
-| `GRIP_CLAW` | Rogue | Ja | abgesichert | dedizierter Stack-Cap-Test |
-| `MINI_BLACK_HOLE` | Master | Ja | abgesichert | dedizierter Stack-Cap-Test |
-| `REVIVER_SEED` | Ultra / Shop | Ja | abgesichert | dedizierter Stack-Cap-Test |
-| `WHITE_HERB` | Wild/Trainer-Kontexte und Reward-Kontexte | Ja | abgesichert | dedizierter Stack-Cap-Test |
-| `MYSTICAL_ROCK` | Ultra | Ja | abgesichert | dedizierter Pool+Masking-Test |
-| `GOLDEN_PUNCH` | Ultra | Ja | abgesichert | dedizierter Stack-Cap-Test |
-| `SCOPE_LENS` | Ultra / Rogue | Ja | abgesichert | dedizierter Stack-Cap-Test |
-| `EVOLUTION_TRACKER_GIMMIGHOUL` | kein normaler Reward-Pool | Ja, theoretisch | bewusst nicht supportet | kein normaler `SelectModifier`-Shop-Fall |
+| Items / Familien | Reward-Tiers | Action Masking | Status | Nachweis / Hinweis | Strategic Collector |
+|---|---|---|---|---|---|
+| `SOOTHE_BELL` | Great | Ja | abgesichert | dedizierter Stack-Cap-Test | ja |
+| `LUCKY_EGG`, `GOLDEN_EGG` | Rogue / Wild / Reward-Kontexte | Ja | abgesichert | dedizierter Stack-Cap-Test | ja |
+| `WIDE_LENS` | Ultra | Ja | abgesichert | dedizierter Stack-Cap-Test | ja |
+| `MULTI_LENS` | Master | Ja | abgesichert | dedizierter Stack-Cap-Test | ja |
+| `GRIP_CLAW` | Rogue | Ja | abgesichert | dedizierter Stack-Cap-Test | ja |
+| `MINI_BLACK_HOLE` | Master | Ja | abgesichert | dedizierter Stack-Cap-Test | ja |
+| `REVIVER_SEED` | Ultra / Shop | Ja | abgesichert | dedizierter Stack-Cap-Test | ja |
+| `WHITE_HERB` | Wild/Trainer-Kontexte und Reward-Kontexte | Ja | abgesichert | dedizierter Stack-Cap-Test | ja |
+| `MYSTICAL_ROCK` | Ultra | Ja | abgesichert | dedizierter Pool+Masking-Test | ja |
+| `GOLDEN_PUNCH` | Ultra | Ja | abgesichert | dedizierter Stack-Cap-Test | ja |
+| `SCOPE_LENS` | Ultra / Rogue | Ja | abgesichert | dedizierter Stack-Cap-Test | ja |
+| `EVOLUTION_TRACKER_GIMMIGHOUL` | kein normaler Reward-Pool | Ja, theoretisch | bewusst nicht supportet | kein normaler `SelectModifier`-Shop-Fall | ja |
 
 ### Gezielte Held-Items: noch offen
 
 Diese Items koennen als freie Rewards auftauchen und haben Party-Zielauswahl. Fuer sie brauchen wir mindestens eine bewusste Aussage, ob nur echter Stack-Cap maskiert wird oder ob fachliche Zusatzheuristiken gelten sollen.
 
-| Items | Reward-Tiers | Erwarteter Zieltyp | Vermuteter Masking-Bedarf | Status | Hinweis |
-|---|---|---|---|---|---|
-| `EVIOLITE` | Ultra | Party-Ziel | wahrscheinlich Species-/Evo-Heuristik plus Stack-Cap | bewusst geblockt | vorerst aus Offline-DQN-Action-Space genommen; Re-Enable erst mit konsistenter Evo-/No-Evo-Policy. Pool-Heuristik bereits vorhanden |
-| `LEEK` | Ultra | Party-Ziel | Species-Heuristik plus Stack-Cap | bewusst geblockt | vorerst aus Offline-DQN-Action-Space genommen; Pool-Heuristik vorhanden, aber Party-Zielmaske aktuell noch nicht species-basiert. Farfetch’d-/Sirfetch’d-spezifisch |
-| `TOXIC_ORB`, `FLAME_ORB` | Ultra | Party-Ziel | fachliche Status-/Moveset-/Ability-Heuristik plus Stack-Cap | bewusst geblockt | vorerst aus Offline-DQN-Action-Space genommen; Re-Enable erst mit sauberer Synergie-Policy fuer Status-/Moveset-/Ability-Kombinationen. Pool-Heuristik bereits vorhanden |
-| `QUICK_CLAW`, `LEFTOVERS` | Ultra / Rogue | Party-Ziel | vermutlich konservativ: nur echter Stack-Cap | abgesichert | erlaubt fuer Offline-DQN; vorerst konservativ ohne Zusatzheuristik, mit geplantem dedizierten Stack-Cap-Nachweis |
-| `SHELL_BELL`, `FOCUS_BAND`, `KINGS_ROCK` | Ultra / Rogue | Party-Ziel | vermutlich konservativ: nur echter Stack-Cap | abgesichert | erlaubt fuer Offline-DQN; vorerst konservativ ohne Zusatzheuristik, mit geplantem dedizierten Stack-Cap-Nachweis |
-| `SCOPE_LENS` | Ultra / Rogue | Party-Ziel | vermutlich konservativ: nur echter Stack-Cap | abgesichert | dedizierter Stack-Cap-Test `run-pokerogue-modifier-scope-lens-mask-test.ts` |
-| `BATON` | Ultra / Rogue | Party-Ziel | vermutlich konservativ: nur echter Stack-Cap | bewusst geblockt | vorerst aus Offline-DQN-Action-Space genommen; Re-Enable erst mit sauberer Switch-/Transfer-Policy |
-| `SOUL_DEW` | Ultra / Rogue | Party-Ziel | Nature-Heuristik plus Stack-Cap | bewusst geblockt | vorerst aus Offline-DQN-Action-Space genommen; Re-Enable erst mit sauberer Nature-/Stat-Policy |
+| Items | Reward-Tiers | Erwarteter Zieltyp | Vermuteter Masking-Bedarf | Status | Hinweis | Strategic Collector |
+|---|---|---|---|---|---|---|
+| `EVIOLITE` | Ultra | Party-Ziel | wahrscheinlich Species-/Evo-Heuristik plus Stack-Cap | bewusst geblockt | vorerst aus Offline-DQN-Action-Space genommen; Re-Enable erst mit konsistenter Evo-/No-Evo-Policy. Pool-Heuristik bereits vorhanden | nein (gesperrt) |
+| `LEEK` | Ultra | Party-Ziel | Species-Heuristik plus Stack-Cap | bewusst geblockt | vorerst aus Offline-DQN-Action-Space genommen; Pool-Heuristik vorhanden, aber Party-Zielmaske aktuell noch nicht species-basiert. Farfetch’d-/Sirfetch’d-spezifisch | nein (gesperrt) |
+| `TOXIC_ORB`, `FLAME_ORB` | Ultra | Party-Ziel | fachliche Status-/Moveset-/Ability-Heuristik plus Stack-Cap | bewusst geblockt | vorerst aus Offline-DQN-Action-Space genommen; Re-Enable erst mit sauberer Synergie-Policy fuer Status-/Moveset-/Ability-Kombinationen. Pool-Heuristik bereits vorhanden | nein (gesperrt) |
+| `QUICK_CLAW`, `LEFTOVERS` | Ultra / Rogue | Party-Ziel | vermutlich konservativ: nur echter Stack-Cap | abgesichert | erlaubt fuer Offline-DQN; vorerst konservativ ohne Zusatzheuristik, mit geplantem dedizierten Stack-Cap-Nachweis | ja |
+| `SHELL_BELL`, `FOCUS_BAND`, `KINGS_ROCK` | Ultra / Rogue | Party-Ziel | vermutlich konservativ: nur echter Stack-Cap | abgesichert | erlaubt fuer Offline-DQN; vorerst konservativ ohne Zusatzheuristik, mit geplantem dedizierten Stack-Cap-Nachweis | ja |
+| `SCOPE_LENS` | Ultra / Rogue | Party-Ziel | vermutlich konservativ: nur echter Stack-Cap | abgesichert | dedizierter Stack-Cap-Test `run-pokerogue-modifier-scope-lens-mask-test.ts` | ja |
+| `BATON` | Ultra / Rogue | Party-Ziel | vermutlich konservativ: nur echter Stack-Cap | bewusst geblockt | vorerst aus Offline-DQN-Action-Space genommen; Re-Enable erst mit sauberer Switch-/Transfer-Policy | nein (gesperrt) |
+| `SOUL_DEW` | Ultra / Rogue | Party-Ziel | Nature-Heuristik plus Stack-Cap | bewusst geblockt | vorerst aus Offline-DQN-Action-Space genommen; Re-Enable erst mit sauberer Nature-/Stat-Policy | nein (gesperrt) |
 
 ## Bereits dediziert abgesicherte Ziel-Familien
 

@@ -82,6 +82,14 @@ import {
   type ModifierCandidate,
   type ModifierObservation,
 } from "#bot-ts/modifier-observation";
+import {
+  getActionExecutability,
+  getModifierTypeId,
+  isSupportedHpRestoreShopItem,
+  isSupportedReviveShopItem,
+  isSupportedStatusHealShopItem,
+  normalizeModifierTypeId,
+} from "#bot-ts/modifier-collector-policy";
 
 type ModifierPolicy = "random_executable";
 type CollectorVariant = "sanity_masking" | "strategic_fixed_seed";
@@ -261,106 +269,6 @@ const WAVE_LIB_W1_STARTERS = [
     moveset: [MoveId.TACKLE, MoveId.TAIL_WHIP, MoveId.WATER_GUN],
   },
 ];
-// Central offline policy for SelectModifierPhase reward actions.
-// Reward actions are either:
-// - explicitly blocked for the current offline DQN setup,
-// - allowed as direct no-target actions,
-// - allowed as party-target actions via selectFilter-based target masking,
-// - or still unsupported because they require move/multi-step follow-up selection.
-const OFFLINE_BLOCKED_REWARD_IDS = new Set([
-  "MAP",
-  "MEMORY_MUSHROOM",
-  "DNA_SPLICERS",
-  "TERA_SHARD",
-  "TERA_ORB",
-  "MEGA_BRACELET",
-  "DYNAMAX_BAND",
-  "LOCK_CAPSULE",
-  "VOUCHER",
-  "VOUCHER_PLUS",
-  "VOUCHER_PREMIUM",
-  "IV_SCANNER",
-  "SHINY_CHARM",
-  "HEALING_CHARM",
-  "ABILITY_CHARM",
-  "CATCHING_CHARM",
-  "EVIOLITE",
-  "LEEK",
-  "TOXIC_ORB",
-  "FLAME_ORB",
-  "BATON",
-  "SOUL_DEW",
-]);
-const OFFLINE_ALLOWED_DIRECT_REWARD_IDS = new Set([
-  "LURE",
-  "SUPER_LURE",
-  "MAX_LURE",
-  "POKEBALL",
-  "GREAT_BALL",
-  "ULTRA_BALL",
-  "ROGUE_BALL",
-  "MASTER_BALL",
-  "BERRY",
-  "SACRED_ASH",
-  "RARER_CANDY",
-  "TEMP_STAT_STAGE_BOOSTER",
-  "DIRE_HIT",
-  "NUGGET",
-  "BIG_NUGGET",
-  "RELIC_GOLD",
-  "AMULET_COIN",
-  "CANDY_JAR",
-  "EXP_CHARM",
-  "SUPER_EXP_CHARM",
-  "EXP_SHARE",
-  "BERRY_POUCH",
-]);
-const BLOCKED_GROUP2_FORM_CHANGE_ITEM_IDS = new Set([
-  "DARK_STONE",
-  "LIGHT_STONE",
-  "N_SOLARIZER",
-  "N_LUNARIZER",
-  "ULTRANECROZIUM_Z",
-  "ICY_REINS_OF_UNITY",
-  "SHADOW_REINS_OF_UNITY",
-  "FIST_PLATE",
-  "SKY_PLATE",
-  "TOXIC_PLATE",
-  "EARTH_PLATE",
-  "STONE_PLATE",
-  "INSECT_PLATE",
-  "SPOOKY_PLATE",
-  "IRON_PLATE",
-  "FLAME_PLATE",
-  "SPLASH_PLATE",
-  "MEADOW_PLATE",
-  "ZAP_PLATE",
-  "MIND_PLATE",
-  "ICICLE_PLATE",
-  "DRACO_PLATE",
-  "DREAD_PLATE",
-  "PIXIE_PLATE",
-  "BLANK_PLATE",
-  "LEGEND_PLATE",
-  "FIGHTING_MEMORY",
-  "FLYING_MEMORY",
-  "POISON_MEMORY",
-  "GROUND_MEMORY",
-  "ROCK_MEMORY",
-  "BUG_MEMORY",
-  "GHOST_MEMORY",
-  "STEEL_MEMORY",
-  "FIRE_MEMORY",
-  "WATER_MEMORY",
-  "GRASS_MEMORY",
-  "ELECTRIC_MEMORY",
-  "PSYCHIC_MEMORY",
-  "ICE_MEMORY",
-  "DRAGON_MEMORY",
-  "DARK_MEMORY",
-  "FAIRY_MEMORY",
-  "NORMAL_MEMORY",
-]);
 const SPECIES_STAT_BOOSTER_ELIGIBLE_SPECIES: Record<string, SpeciesId[]> = {
   LIGHT_BALL: [SpeciesId.PIKACHU],
   THICK_CLUB: [SpeciesId.CUBONE, SpeciesId.MAROWAK, SpeciesId.ALOLA_MAROWAK],
@@ -369,12 +277,6 @@ const SPECIES_STAT_BOOSTER_ELIGIBLE_SPECIES: Record<string, SpeciesId[]> = {
   DEEP_SEA_SCALE: [SpeciesId.CLAMPERL],
   DEEP_SEA_TOOTH: [SpeciesId.CLAMPERL],
 };
-const OFFLINE_BLOCKED_MODIFIER_TYPE_NAMES = new Set([
-  "RememberMoveModifierType",
-  "TerastallizeModifierType",
-  "FusePokemonModifierType",
-]);
-
 interface PersistentExternalPolicyWorker {
   child: ReturnType<typeof spawn>;
   readline: Interface;
@@ -1342,33 +1244,6 @@ function getModifierHandler(game: GameManager): ModifierSelectUiHandler {
   return handler;
 }
 
-function getModifierTypeId(option: any): string {
-  const modifierType = option.modifierTypeOption?.type;
-  return modifierType?.id ?? modifierType?.name ?? modifierType?.constructor?.name ?? "unknown";
-}
-
-function normalizeModifierTypeId(modifierTypeId?: string | null): string {
-  return String(modifierTypeId ?? "").trim().toUpperCase().replaceAll(" ", "_");
-}
-
-function isSupportedHpRestoreShopItem(modifierTypeId: string): boolean {
-  return new Set(["POTION", "SUPER_POTION", "HYPER_POTION", "MAX_POTION", "FULL_RESTORE"]).has(
-    normalizeModifierTypeId(modifierTypeId),
-  );
-}
-
-function isSupportedStatusHealShopItem(modifierTypeId: string): boolean {
-  return normalizeModifierTypeId(modifierTypeId) === "FULL_HEAL";
-}
-
-function isSupportedReviveShopItem(modifierTypeId: string): boolean {
-  return new Set(["REVIVE", "MAX_REVIVE"]).has(normalizeModifierTypeId(modifierTypeId));
-}
-
-function isSupportedDirectShopItem(modifierTypeId: string): boolean {
-  return normalizeModifierTypeId(modifierTypeId) === "SACRED_ASH";
-}
-
 function getPartyResourceFlags(game: GameManager): {
   hasMissingHp: boolean;
   hasFaintedPokemon: boolean;
@@ -1406,66 +1281,6 @@ function getActionAvailability(game: GameManager, option: any): { available: boo
     return { available: false, reason: "no_missing_pp" };
   }
   return { available: true };
-}
-
-function getActionExecutability(
-  actionType: "take_reward" | "buy_shop_item",
-  option: any,
-): { executable: boolean; reason?: string; requiresPartyTarget?: boolean } {
-  const modifierTypeId = getModifierTypeId(option);
-  const normalizedModifierTypeId = normalizeModifierTypeId(modifierTypeId);
-  const modifierType = option?.modifierTypeOption?.type;
-  const modifierTypeName = String(modifierType?.constructor?.name ?? "");
-  if (actionType === "take_reward") {
-    if (normalizedModifierTypeId === "MEMORY_MUSHROOM" || modifierTypeName === "RememberMoveModifierType") {
-      return { executable: false, reason: "blocked_by_offline_modifier_policy:remember_move_todo" };
-    }
-    if (normalizedModifierTypeId === "TERA_SHARD" || modifierTypeName === "TerastallizeModifierType") {
-      return { executable: false, reason: "blocked_by_offline_modifier_policy:tera_shard_todo" };
-    }
-    if (normalizedModifierTypeId === "DNA_SPLICERS" || modifierTypeName === "FusePokemonModifierType") {
-      return { executable: false, reason: "blocked_by_offline_modifier_policy:fuse_todo" };
-    }
-    if (
-      modifierTypeName === "FormChangeItemModifierType"
-      && BLOCKED_GROUP2_FORM_CHANGE_ITEM_IDS.has(String(normalizedModifierTypeId))
-    ) {
-      return { executable: false, reason: "blocked_by_offline_modifier_policy:form_change_group2_todo" };
-    }
-    if (normalizedModifierTypeId.startsWith("TM")) {
-      return { executable: false, reason: "blocked_by_offline_modifier_policy:tm_selection_todo" };
-    }
-    if (
-      OFFLINE_BLOCKED_REWARD_IDS.has(normalizedModifierTypeId)
-      || OFFLINE_BLOCKED_MODIFIER_TYPE_NAMES.has(modifierTypeName)
-    ) {
-      return { executable: false, reason: "blocked_by_offline_modifier_policy" };
-    }
-    if (typeof modifierType?.moveSelectFilter === "function") {
-      return { executable: false, reason: "requires_move_selection" };
-    }
-    if (typeof modifierType?.selectFilter === "function") {
-      return { executable: true, requiresPartyTarget: true };
-    }
-    if (OFFLINE_ALLOWED_DIRECT_REWARD_IDS.has(normalizedModifierTypeId)) {
-      return { executable: true };
-    }
-    return { executable: false, reason: "requires_followup_selection" };
-  }
-
-  if (
-    (isSupportedHpRestoreShopItem(modifierTypeId)
-      || isSupportedStatusHealShopItem(modifierTypeId)
-      || isSupportedReviveShopItem(modifierTypeId))
-    && typeof modifierType?.selectFilter === "function"
-  ) {
-    return { executable: true, requiresPartyTarget: true };
-  }
-  if (isSupportedDirectShopItem(modifierTypeId)) {
-    return { executable: true };
-  }
-
-  return { executable: false, reason: "shop_item_execution_not_implemented" };
 }
 
 function getFirstValidPartyTargetIndex(game: GameManager): number {

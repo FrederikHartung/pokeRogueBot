@@ -29,9 +29,17 @@ export function modifierObservationSourcePath(repoRoot: string): string {
   return path.join(repoRoot, "src", "main", "ts", "lib", "modifier-observation.ts");
 }
 
+// Statische Item-Regeln des Strategic Collectors (Collector-Template und Item-Suite).
+const MODIFIER_COLLECTOR_POLICY_IMPORT = 'from "#bot-ts/modifier-collector-policy"';
+const MODIFIER_COLLECTOR_POLICY_LOCAL_IMPORT = 'from "./modifier-collector-policy"';
+
+export function modifierCollectorPolicySourcePath(repoRoot: string): string {
+  return path.join(repoRoot, "src", "main", "ts", "lib", "modifier-collector-policy.ts");
+}
+
 /**
- * Schreibt modifier-observation.ts und combat-observation.ts nach `targetDir` und gibt die Template-Quelle mit lokalen
- * Imports zurueck.
+ * Schreibt modifier-observation.ts, combat-observation.ts und modifier-collector-policy.ts nach `targetDir` und gibt
+ * die Template-Quelle mit lokalen Imports zurueck.
  */
 export function linkModifierObservationModule(templateSource: string, targetDir: string, repoRoot: string): string {
   writeFileSync(
@@ -39,8 +47,12 @@ export function linkModifierObservationModule(templateSource: string, targetDir:
     readFileSync(modifierObservationSourcePath(repoRoot), "utf8"),
     { encoding: "utf8" },
   );
-  return linkCombatObservationModule(templateSource, targetDir, repoRoot).replaceAll(
-    MODIFIER_OBSERVATION_IMPORT,
-    MODIFIER_OBSERVATION_LOCAL_IMPORT,
+  writeFileSync(
+    path.join(targetDir, "modifier-collector-policy.ts"),
+    readFileSync(modifierCollectorPolicySourcePath(repoRoot), "utf8"),
+    { encoding: "utf8" },
   );
+  return linkCombatObservationModule(templateSource, targetDir, repoRoot)
+    .replaceAll(MODIFIER_OBSERVATION_IMPORT, MODIFIER_OBSERVATION_LOCAL_IMPORT)
+    .replaceAll(MODIFIER_COLLECTOR_POLICY_IMPORT, MODIFIER_COLLECTOR_POLICY_LOCAL_IMPORT);
 }
