@@ -72,7 +72,7 @@ Item-Transfer (Held Items verschieben) bleibt ausserhalb von v1; der Action-Spac
 ### 2.4 Exploration im Collector
 
 - Gleichverteilt ueber Items wuerfeln (je `reward_index` bzw. Shop-Position plus `reroll`/`skip`/`finish_shop`), danach gleichverteilt ueber die gueltigen Ziele.
-- Statt reinem Zufall eine Mischung aus Basis-Heuristik und Zufall (Vorschlag 70/30, als Collector-Config). Heute enden Laeufe bei Wave 7-12; Ultra- und Rogue-Pools tauchen so kaum auf.
+- Statt reinem Zufall eine Mischung aus Basis-Heuristik und Zufall. Umgesetzt als `modifier_policy: heuristic_mix_v1` (2026-10-15): pro Entscheidung mit 30 % Wahrscheinlichkeit Zufall (`random_executable`), sonst `heuristic_v1` (`docs/modifier-benchmark-design.md`). Der Wurf nutzt den Entscheidungs-Zufall des Runs, Runs bleiben reproduzierbar. Erster Lauf: `data/rl/modifier-strategic-seeded-remote-50seeds-8runs-heuristic-mix-wave50.json` (50 Trainings-Seeds `modifier-strategic-mix-train-s*` x 8 Runs, bis Welle 50, Reroll aus).
 - Shop-Kaeufe pro Phase begrenzen (Config, Vorschlag 3), damit Zufallsruns nicht das ganze Geld verbrauchen.
 
 ## 3. State

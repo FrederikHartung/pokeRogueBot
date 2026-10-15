@@ -97,9 +97,18 @@ import {
 } from "#bot-ts/modifier-collector-policy";
 import { pickHeuristicV1CandidateIndex } from "#bot-ts/modifier-heuristic-policy";
 
-/** `random_executable`: Exploration fuer Trainingsdaten. `heuristic_v1`: feste Regel als Benchmark-Vergleich. */
-type ModifierPolicy = "random_executable" | "heuristic_v1";
-const MODIFIER_POLICIES: readonly ModifierPolicy[] = ["random_executable", "heuristic_v1"];
+/**
+ * `random_executable`: reine Exploration. `heuristic_v1`: feste Regel (Benchmark-Vergleich).
+ * `heuristic_mix_v1`: Trainingsdaten; pro Entscheidung mit HEURISTIC_MIX_RANDOM_SHARE Zufall, sonst heuristic_v1.
+ */
+type ModifierPolicy = "random_executable" | "heuristic_v1" | "heuristic_mix_v1";
+const MODIFIER_POLICIES: readonly ModifierPolicy[] = ["random_executable", "heuristic_v1", "heuristic_mix_v1"];
+/**
+ * Anteil zufaelliger Entscheidungen in heuristic_mix_v1 (docs/modifier-state-v1-draft.md 2.4). Bei rund 23
+ * Entscheidungen pro Run weicht ein Run etwa 7-mal ab; die Runs eines Seeds unterscheiden sich so, und die
+ * Heuristik bringt sie weiter als reiner Zufall. Der Wurf nutzt den Entscheidungs-Zufall des Runs (reproduzierbar).
+ */
+const HEURISTIC_MIX_RANDOM_SHARE = 0.3;
 type CollectorVariant = "sanity_masking" | "strategic_fixed_seed";
 const SCHEMA_VERSION = "modifier_strategic_fixed_seed_output_v2";
 const STARTER_CONFIG_ID = "wave_lib_w1_starters_v1";
@@ -2348,6 +2357,10 @@ function selectModifierCandidateIndex(observation: ModifierObservation, random: 
       return pickRandomCandidateIndex(observation, random);
     case "heuristic_v1":
       return pickHeuristicV1CandidateIndex(observation);
+    case "heuristic_mix_v1":
+      return random() < HEURISTIC_MIX_RANDOM_SHARE
+        ? pickRandomCandidateIndex(observation, random)
+        : pickHeuristicV1CandidateIndex(observation);
   }
 }
 

@@ -247,7 +247,7 @@ function validateRuntimeRetentionConfig(value, context) {
 }
 
 /** Policies des Strategic Collectors (ModifierPolicy im Collector-Template). */
-const MODIFIER_STRATEGIC_POLICIES = new Set(["random_executable", "heuristic_v1"]);
+const MODIFIER_STRATEGIC_POLICIES = new Set(["random_executable", "heuristic_v1", "heuristic_mix_v1"]);
 
 function validateModifierStrategicCollectConfig(value, context) {
   assertPlainObject(value, context, "modifier strategic collect config");

@@ -1,0 +1,29 @@
+{
+  "seed_prefix": "modifier-strategic-mix-train-s",
+  "seed_start_index": 1,
+  "seed_count": 50,
+  "output_root": "./pipeline-runs/modifier-strategic-seeded-remote-50seeds-8runs-heuristic-mix-wave50",
+  "manifest_path": "./pipeline-runs/modifier-strategic-seeded-remote-50seeds-8runs-heuristic-mix-wave50/manifest.json",
+  "collect": {
+    "runs_per_seed": 8,
+    "runs_per_instance": 4,
+    "parallelism": 3,
+    "max_waves": 50,
+    "modifier_policy": "heuristic_mix_v1",
+    "max_shop_purchases_per_phase": 3,
+    "max_rerolls_per_wave": 0,
+    "step_timeout_ms": 15000,
+    "run_process_timeout_ms": 2400000,
+    "combat_dqn_device": "cpu",
+    "combat_dqn_python": "python3"
+  },
+  "postprocess": {
+    "enabled": true,
+    "gamma": 0.99,
+    "output_path": "./pipeline-runs/modifier-strategic-seeded-remote-50seeds-8runs-heuristic-mix-wave50/merged/modifier-strategic-training-transitions.jsonl"
+  },
+  "archive": {
+    "format": "tar.gz",
+    "output_path": "./pipeline-runs/modifier-strategic-seeded-remote-50seeds-8runs-heuristic-mix-wave50/artifacts/modifier-strategic-seeded-runtime.tar.gz"
+  }
+}
