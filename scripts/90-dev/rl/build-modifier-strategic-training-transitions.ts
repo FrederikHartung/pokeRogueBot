@@ -5,11 +5,18 @@ import { validateModifierStrategicFixedSeedOutput } from "./modifier-strategic-f
 /**
  * v2: State und Kandidaten aus modifier-transition-v1 statt Positions-Maske.
  * v3: stetiger seed-lokaler rank_score (z-Score von wave_reached) statt +1/0/-1, dazu seed_run_count.
+ * v4: z-Score auf ln(1 + wave_reached) statt auf der Welle, Kappung +-3, dazu run_weight.
  */
-export const MODIFIER_TRAINING_TRANSITION_SCHEMA_VERSION = "modifier_training_transition_v3";
+export const MODIFIER_TRAINING_TRANSITION_SCHEMA_VERSION = "modifier_training_transition_v4";
 
 /** rank_score wird auf [-RANK_SCORE_CLIP, RANK_SCORE_CLIP] gekappt (docs/modifier-state-v1-draft.md, Abschnitt 5). */
-export const RANK_SCORE_CLIP = 2;
+export const RANK_SCORE_CLIP = 3;
+
+/**
+ * Untergrenze der Streuung auf der Log-Skala. 0,1 entspricht rund einer Welle Unterschied um Welle 8-10 und verhindert,
+ * dass fast gleiche Runs auf die Kappung aufgeblasen werden.
+ */
+export const RANK_SCORE_MIN_LOG_SPREAD = 0.1;
 
 export interface PostprocessOptions {
   gamma?: number;
@@ -39,6 +46,8 @@ export interface ModifierTrainingTransition {
   rank_score: number;
   /** Regulaere Runs dieses Seeds; bei 1 ist rank_score immer 0 und traegt kein Signal. */
   seed_run_count: number;
+  /** 1 / Anzahl Schritte des Runs: im Training zaehlt so jeder Run gleich viel, unabhaengig von seiner Laenge. */
+  run_weight: number;
   distance_to_end: number;
   discount_factor: number;
   posthoc_credit: number;
@@ -154,19 +163,21 @@ function assertNoDuplicateRuns(episodes: NormalizedEpisode[]): void {
 }
 
 /**
- * Seed-lokaler stetiger Score: (wave_reached - Mittelwert) / max(Standardabweichung, 1), gekappt auf [-2, 2].
- * Gleichstaende bekommen denselben Wert; der geshapte Sofort-Reward beeinflusst den Score nicht.
- * Die Untergrenze 1 fuer die Streuung verhindert, dass eine Welle Unterschied bei fast gleichen Runs auf +-2 aufgeblasen wird.
+ * Seed-lokaler stetiger Score: z-Score von ln(1 + wave_reached) ueber die Runs desselben Seeds, gekappt auf [-3, 3].
+ * Die Log-Skala gewichtet fruehe Wellen staerker (Welle 7 -> 8 zaehlt mehr als 23 -> 24) und macht die schiefe
+ * Verteilung (viele fruehe Tode, wenige weite Runs) symmetrischer. Gleichstaende bekommen denselben Wert; der geshapte
+ * Sofort-Reward beeinflusst den Score nicht.
  */
 export function rankScoresForSeed(wavesReached: number[]): number[] {
   if (wavesReached.length === 0) {
     return [];
   }
-  const mean = wavesReached.reduce((sum, wave) => sum + wave, 0) / wavesReached.length;
-  const variance = wavesReached.reduce((sum, wave) => sum + (wave - mean) ** 2, 0) / wavesReached.length;
-  const scale = Math.max(Math.sqrt(variance), 1);
-  return wavesReached.map(wave => {
-    const score = (wave - mean) / scale;
+  const logWaves = wavesReached.map(wave => Math.log1p(Math.max(0, wave)));
+  const mean = logWaves.reduce((sum, value) => sum + value, 0) / logWaves.length;
+  const variance = logWaves.reduce((sum, value) => sum + (value - mean) ** 2, 0) / logWaves.length;
+  const scale = Math.max(Math.sqrt(variance), RANK_SCORE_MIN_LOG_SPREAD);
+  return logWaves.map(value => {
+    const score = (value - mean) / scale;
     // +0 statt -0, damit JSON und Gleichheitsvergleiche stabil bleiben.
     return Math.min(RANK_SCORE_CLIP, Math.max(-RANK_SCORE_CLIP, score)) + 0;
   });
@@ -210,6 +221,7 @@ function buildTransition(
     termination_reason: episode.termination_reason,
     rank_score: rankScore,
     seed_run_count: seedRunCount,
+    run_weight: 1 / episode.steps.length,
     distance_to_end: distanceToEnd,
     discount_factor: discountFactor,
     posthoc_credit: rankScore * discountFactor,

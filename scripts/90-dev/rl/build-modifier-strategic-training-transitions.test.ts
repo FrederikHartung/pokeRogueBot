@@ -80,23 +80,38 @@ function createWorkerOutput({
   };
 }
 
-test("buildModifierStrategicTrainingTransitions scores runs as seed-local z-scores", () => {
+/** Erwarteter Score nach Definition: z-Score von ln(1 + Welle), Populations-Streuung. */
+function expectedLogScores(waves: number[]): number[] {
+  const logs = waves.map(wave => Math.log1p(wave));
+  const mean = logs.reduce((sum, value) => sum + value, 0) / logs.length;
+  const spread = Math.sqrt(logs.reduce((sum, value) => sum + (value - mean) ** 2, 0) / logs.length);
+  return logs.map(value => (value - mean) / spread);
+}
+
+test("buildModifierStrategicTrainingTransitions scores runs as seed-local z-scores of log waves", () => {
   const seed = "seed-a";
   const outputs = [
-    createWorkerOutput({ workerId: "worker-0", seed, runIndex: 0, waveReached: 10 }),
+    createWorkerOutput({ workerId: "worker-0", seed, runIndex: 0, waveReached: 10, stepCount: 4 }),
     createWorkerOutput({ workerId: "worker-1", seed, runIndex: 1, waveReached: 7 }),
     createWorkerOutput({ workerId: "worker-2", seed, runIndex: 2, waveReached: 4 }),
   ];
 
   const transitions = buildModifierStrategicTrainingTransitions(outputs, { gamma: 0.99 });
   const scoreOf = (runIndex: number) => transitions.find(row => row.run_index === runIndex)?.rank_score;
-  // Mittelwert 7, Standardabweichung sqrt(6).
-  assert.ok(Math.abs(scoreOf(0)! - 3 / Math.sqrt(6)) < 1e-12);
-  assert.equal(scoreOf(1), 0);
-  assert.ok(Math.abs(scoreOf(2)! + 3 / Math.sqrt(6)) < 1e-12);
+  const expected = expectedLogScores([10, 7, 4]);
+  [0, 1, 2].forEach(runIndex => assert.ok(Math.abs(scoreOf(runIndex)! - expected[runIndex]!) < 1e-12));
   assert.ok(transitions.every(row => row.seed_run_count === 3));
-  // Jeder Schritt eines Runs bekommt denselben Score.
-  assert.ok(transitions.filter(row => row.run_index === 0).every(row => row.rank_score === scoreOf(0)));
+  // Jeder Schritt eines Runs bekommt denselben Score; das Gewicht ist 1 / Schritte des Runs.
+  const run0 = transitions.filter(row => row.run_index === 0);
+  assert.ok(run0.every(row => row.rank_score === scoreOf(0) && row.run_weight === 0.25));
+  assert.ok(transitions.filter(row => row.run_index === 1).every(row => row.run_weight === 0.5));
+});
+
+test("rankScoresForSeed weights early waves more than late waves", () => {
+  // Gleicher Abstand in Wellen, aber 7 -> 8 liegt auf der Log-Skala weiter auseinander als 23 -> 24.
+  const early = rankScoresForSeed([7, 8, 15]);
+  const late = rankScoresForSeed([7, 23, 24]);
+  assert.ok(early[1]! - early[0]! > late[2]! - late[1]!);
 });
 
 test("rankScoresForSeed gives ties the same score regardless of the shaped reward", () => {
@@ -106,12 +121,15 @@ test("rankScoresForSeed gives ties the same score regardless of the shaped rewar
   assert.ok(a! > 0 && c! < 0);
 });
 
-test("rankScoresForSeed floors the spread at one wave and clips to [-2, 2]", () => {
-  // Eine Welle Unterschied: Streuung 0.5 wird auf 1 angehoben.
-  assert.deepEqual(rankScoresForSeed([5, 6]), [-0.5, 0.5]);
+test("rankScoresForSeed floors the log spread and clips to [-3, 3]", () => {
+  // Eine Welle Unterschied auf hohem Niveau: Log-Streuung ~0.02 wird auf 0.1 angehoben.
+  const [low, high] = rankScoresForSeed([40, 41]);
+  const halfGap = (Math.log1p(41) - Math.log1p(40)) / 2;
+  assert.ok(Math.abs(high! - halfGap / 0.1) < 1e-12);
+  assert.ok(Math.abs(low! + halfGap / 0.1) < 1e-12);
   // Ein Ausreisser unter vielen gleichen Runs wird gekappt.
-  const scores = rankScoresForSeed([30, ...Array.from({ length: 19 }, () => 5)]);
-  assert.equal(scores[0], 2);
+  const scores = rankScoresForSeed([30, ...Array.from({ length: 30 }, () => 5)]);
+  assert.equal(scores[0], 3);
   assert.ok(scores.slice(1).every(score => score < 0 && score > -1));
   assert.deepEqual(rankScoresForSeed([9]), [0]);
 });
@@ -151,7 +169,8 @@ test("buildModifierStrategicTrainingTransitions carries modifier-v1 state and ca
   ]);
 
   assert.equal(transitions.length, 1);
-  assert.equal(transitions[0]?.schema_version, "modifier_training_transition_v3");
+  assert.equal(transitions[0]?.schema_version, "modifier_training_transition_v4");
+  assert.equal(transitions[0]?.run_weight, 1);
   assert.equal(transitions[0]?.seed_run_count, 1);
   assert.equal(transitions[0]?.rank_score, 0);
   assert.equal(transitions[0]?.decision_stage, exampleTransition.decision_stage);
@@ -225,9 +244,9 @@ test("buildModifierStrategicTrainingTransitions ignores technical terminations a
 
   assert.deepEqual(Array.from(new Set(transitions.map(entry => entry.seed))), ["seed-a"]);
   assert.deepEqual(Array.from(new Set(transitions.map(entry => entry.run_index))).sort(), [0, 1]);
-  // Score nur ueber die beiden regulaeren Runs von seed-a (Wellen 5 und 3, Streuung 1): +1 bzw. -1.
-  assert.equal(transitions.find(entry => entry.run_index === 0)?.rank_score, 1);
-  assert.equal(transitions.find(entry => entry.run_index === 1)?.rank_score, -1);
+  // Score nur ueber die beiden regulaeren Runs von seed-a (Wellen 5 und 3): bei zwei Runs immer +1 bzw. -1.
+  assert.ok(Math.abs(transitions.find(entry => entry.run_index === 0)!.rank_score - 1) < 1e-12);
+  assert.ok(Math.abs(transitions.find(entry => entry.run_index === 1)!.rank_score + 1) < 1e-12);
 });
 
 test("buildModifierStrategicTrainingTransitions returns no transitions when every run was technical", () => {

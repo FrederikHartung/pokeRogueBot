@@ -790,15 +790,19 @@ Wichtig:
 
 ### Seed-lokales Rank-Signal
 
-Umgesetzt ist seit `modifier_training_transition_v3` ein stetiger seed-lokaler Score (`rankScoresForSeed` in `scripts/90-dev/rl/build-modifier-strategic-training-transitions.ts`):
+Umgesetzt ist seit `modifier_training_transition_v4` ein stetiger seed-lokaler Score auf der Log-Skala (`rankScoresForSeed` in `scripts/90-dev/rl/build-modifier-strategic-training-transitions.ts`):
 
-- `rank_score = (wave_reached - mean_seed) / max(std_seed, 1)`, gekappt auf `[-2, 2]`
-- `mean_seed` und `std_seed` (Populations-Standardabweichung) ueber die regulaeren Runs desselben Seeds
-- die Untergrenze 1 fuer die Streuung verhindert, dass eine Welle Unterschied zwischen fast gleichen Runs auf `+-2` aufgeblasen wird
-- Gleichstaende bei `wave_reached` bekommen denselben Wert; `local_reward_sum` (geshapter Sofort-Reward) beeinflusst den Score nicht mehr
+- `rank_score = (ln(1 + wave_reached) - mean_seed) / max(std_seed, 0.1)`, gekappt auf `[-3, 3]`
+- `mean_seed` und `std_seed` (Populations-Standardabweichung) ueber `ln(1 + wave_reached)` der regulaeren Runs desselben Seeds
+- Log-Skala, weil die erreichten Wellen schief verteilt sind (viele Runs sterben am ersten Rivalen auf Welle 8, wenige kommen weit) und weil ein Schritt frueh mehr bedeutet als spaet (Welle 7 -> 8 mehr als 23 -> 24)
+- die Untergrenze 0,1 fuer die Streuung entspricht rund einer Welle um Welle 8-10 und verhindert, dass fast gleiche Runs auf die Kappung aufgeblasen werden
+- Gleichstaende bei `wave_reached` bekommen denselben Wert; `local_reward_sum` (geshapter Sofort-Reward) beeinflusst den Score nicht
 - bei nur einem Run pro Seed ist der Score immer `0`; `seed_run_count` in jeder Transition macht solche Seeds fuer das Training filterbar
+- `run_weight = 1 / Schritte des Runs`: Im Training zaehlt damit jeder Run gleich viel. Ohne Gewicht praegen lange Runs (bis ~34 Schritte) das Modell bis zu viermal so stark wie kurze (~9 Schritte)
 
-Bis `v2` galt eine grobe Einteilung (oberste 20 % `+1`, mittlere 60 % `0`, unterste 20 % `-1`, Gleichstaende ueber `completed_waves` und `local_reward_sum` aufgeloest). Dabei bekam der Grossteil der Schritte Credit 0, und das Vorzeichen hing bei Gleichstand am Sofort-Reward.
+Wirkung auf den ersten v1-Datensatz (`modifier-strategic-seeded-remote-10seeds-20runs-wave30`, 200 Runs): Unter `v3` (lineare Wellen, Kappung +-2) lag der beste Run jedes Seeds auf `+2`, und 59 % der Transitions hatten positiven Credit (Mittel `+0,22`). Unter `v4` erreichen 3 von 200 Runs die Kappung, mit `run_weight` sind 48 % positiv und der gewichtete mittlere Credit liegt bei `-0,03`.
+
+Bis `v2` galt eine grobe Einteilung (oberste 20 % `+1`, mittlere 60 % `0`, unterste 20 % `-1`, Gleichstaende ueber `completed_waves` und `local_reward_sum` aufgeloest). `v3` nutzte den z-Score der Welle selbst mit Untergrenze 1 und Kappung +-2.
 
 ### Step-Discounting innerhalb eines Runs
 
@@ -874,7 +878,7 @@ Ein solcher Datensatz soll pro Zeile mindestens enthalten:
 - `collector_variant`
 - `decision_stage`, `state`, `candidates`, `selected_candidate_index` (aus `modifier-transition-v1`, seit `modifier_training_transition_v2`)
 - `posthoc_credit`
-- `rank_score`, `seed_run_count`
+- `rank_score`, `seed_run_count`, `run_weight`
 - `immediate_reward` (Sofort-Reward aus `modifier-transition-v1`, getrennt vom post-hoc Credit)
 - `decision_rng_seed`
 - `wave_index`

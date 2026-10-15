@@ -34,7 +34,7 @@ Schritte (Details und Reihenfolge in `docs/modifier-state-v1-draft.md`, Abschnit
    - Lernsignal: Shop-Kaeufe wirken sofort (geheilte HP, naechster Kampf ueberstanden) plus Anteil am Run-Ergebnis. Gratis-Items mit spaeter Wirkung (EP-Teiler, Sonderbonbon-Glas) ueber verzweigte Laeufe. Gutscheine haben keinen Run-Wert und zaehlen nur ueber den Meta-Anteil (siehe "Ziel-Profile und Meta-Wert").
 6. **Freischaltungen:** Reroll, Ether/Elixier/AP-Items, Lock Capsule nach Prioritaet aus dem Entwurf. TMs und Erinnerungspilz erst nach Ziel 2: Ihr Wert haengt an der anschliessenden Lern-Entscheidung, und das Bewertungsnetz fuer Attacken-Sets liefert ihr Effekt-Merkmal (`docs/modifier-state-v1-draft.md`, Abschnitt 2.3).
 
-Erfolgskriterium: hoehere `average_wave_reached` als Zufalls-Policy und als Live-Fallback auf denselben Seeds.
+Erfolgskriterium: hoehere `average_wave_reached` als Zufalls-Policy und als feste Regel (`heuristic_v1`) auf denselben, nicht im Training genutzten Seeds. Benchmark-Entwurf: `docs/modifier-benchmark-design.md`. Vor dem ersten Modell klaert `random` gegen `heuristic_v1`, wie viel Spielraum Modifier-Entscheidungen ueberhaupt haben.
 
 ## Ziel 2: Attacken beim Level-Up lernen
 

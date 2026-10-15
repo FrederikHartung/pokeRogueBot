@@ -1,6 +1,6 @@
 # Modifier-State v1 (Entwurf)
 
-Status: **Entwurf; Schema, Builder und Strategic Collector umgesetzt (Output `modifier_strategic_fixed_seed_output_v2`), Credit-Score umgesetzt (`modifier_training_transition_v3`), Training offen.** Deckt Phase 1 aus `docs/modifier-dqn-migration-plan.md` ab (eigener State-/Action-Contract fuer die `SelectModifierPhase`). Dateien:
+Status: **Entwurf; Schema, Builder und Strategic Collector umgesetzt (Output `modifier_strategic_fixed_seed_output_v2`), Credit-Score umgesetzt (`modifier_training_transition_v4`), Training offen.** Deckt Phase 1 aus `docs/modifier-dqn-migration-plan.md` ab (eigener State-/Action-Contract fuer die `SelectModifierPhase`). Dateien:
 
 - Schema: `docs/rl-schema/modifier-transition-v1.schema.json`
 - Beispiel: `docs/rl-schema/modifier-transition-v1.example.json` (echte Builder-Ausgabe aus dem Spieltest, validiert gegen das Schema)
@@ -124,7 +124,7 @@ Training offline in Python wie beim Combat-DQN; das DL4J-Modell (`ModifierDQNAge
 
 ## 5. Credit und Reward
 
-- Seed-lokaler stetiger Score statt +1/0/-1: `rank_score = (wave_reached - mean_seed) / max(std_seed, 1)`, gekappt auf [-2, 2]. Gleichstaende bekommen denselben Wert; der geshapte Sofort-Reward entscheidet nicht mehr ueber das Vorzeichen. Umgesetzt (`modifier_training_transition_v3`, Details in `docs/modifier-strategic-fixed-seed-pipeline.md`); `seed_run_count` markiert Seeds mit nur einem Run, deren Score immer 0 ist.
+- Seed-lokaler stetiger Score statt +1/0/-1: z-Score von `ln(1 + wave_reached)` ueber die Runs desselben Seeds, gekappt auf [-3, 3]. Gleichstaende bekommen denselben Wert; der geshapte Sofort-Reward entscheidet nicht mehr ueber das Vorzeichen. Umgesetzt (`modifier_training_transition_v4`, Details und Wirkung auf den ersten Datensatz in `docs/modifier-strategic-fixed-seed-pipeline.md`); `seed_run_count` markiert Seeds mit nur einem Run, deren Score immer 0 ist, `run_weight = 1 / Schritte des Runs` gleicht unterschiedlich lange Runs aus.
 - Discounting wie bisher (`gamma^distance_to_end`).
 - Sofort-Reward nur noch fuer klar messbare Effekte: geheilter HP-Anteil bzw. wiederbelebte Pokemon, kleiner Malus fuer bezahlte Heilung bei vorhandener Gratis-Heilung. Der Skip-Malus entfaellt, weil Skip maskiert ist.
 - Ausbaustufe "verzweigte Laeufe": Seed und Entscheidungsfolge sind reproduzierbar (identische Outputs bei Wiederholung). Ein Lauf kann bis zu einer Entscheidung nachgespielt und dort mit K Alternativen fortgesetzt werden. Das bewertet die einzelne Entscheidung direkt (gemeinsame Zufallszahlen) statt eine Rangfolge ganzer Runs auf alle Schritte zu verteilen. Kosten: der Praefix wird pro Alternative neu gespielt.
@@ -150,7 +150,7 @@ Solange das Modifier-DQN nur Heilung/Revive kennt:
 
 1. Live-Fallback (Abschnitt 6) mit Kotlin-Tests. Umgesetzt und live getestet (2026-10-14, Wellen 12-20: Poke Ball, X-Item, Sonderbonbon inkl. Party-Menue).
 2. Gemeinsamen TS-Builder fuer `state` und `candidates` schreiben; Strategic Collector auf `modifier-transition-v1` umstellen (zwei Stufen, Skip-Maske, Item-gleichverteilte Exploration, Kaufgrenze). Umgesetzt 2026-10-14: Builder mit Spieltest, Collector-Output `v2`; die collector-spezifischen Sperren (`getActionExecutability`) gehen als `blockCandidate` an den Builder, Reroll und Lock sind dort noch gesperrt (`not_implemented_in_collector`). Sofort-Reward nach Abschnitt 5 (geheilter Anteil, Malus fuer bezahlte Heilung bei Gratis-Heilung).
-3. `build-modifier-strategic-training-transitions.ts`: `state`/`candidates` aus v1 (umgesetzt, `modifier_training_transition_v2`); neuer Credit-Score nach Abschnitt 5 (umgesetzt 2026-10-14, `modifier_training_transition_v3`).
+3. `build-modifier-strategic-training-transitions.ts`: `state`/`candidates` aus v1 (umgesetzt, `modifier_training_transition_v2`); neuer Credit-Score nach Abschnitt 5 (umgesetzt 2026-10-14 als `v3`, seit 2026-10-15 auf der Log-Skala mit `run_weight` als `modifier_training_transition_v4`).
 4. Contract-Tests (`rl:test:modifier:strategic-contract`, umgesetzt: JSON-Schema-Validierung, Determinismus ueber State und Kandidaten) und Item-Suite auf v1 ziehen; Item-Matrix um Spalte "im Strategic Collector ausfuehrbar" ergaenzen. Umgesetzt 2026-10-14:
    - Die statischen Item-Regeln des Collectors liegen in `src/main/ts/lib/modifier-collector-policy.ts` (Collector-Template und Item-Suite nutzen dieselbe Datei).
    - Die Item-Suite prueft fuer jeden Fall, dass die v1-Kandidaten dieselben Ziele freigeben wie die Spielfilter, und wertet die Collector-Regeln fuer jedes Item aus dem echten Pool aus. Die Matrix-Spalte `Strategic Collector` wird dagegen geprueft.
@@ -159,6 +159,7 @@ Solange das Modifier-DQN nur Heilung/Revive kennt:
 6. Reroll und Freischaltungen Prioritaet 1 aus 2.3 (Reroll zuerst, dann Attacken-Ziele fuer Ether/PP-Items, dann Shop-Ether/-Elixiere). TMs und Erinnerungspilz erst nach Ziel 2 der Roadmap.
    - Reroll umgesetzt 2026-10-14: Ausfuehrung ueber die untere UI-Zeile, danach neue `SelectModifierPhase` mit `shop`-Stufe; Grenze pro Welle (`POKEROGUE_MODIFIER_MAX_REROLLS`, Standard 2). Die neue Phase startet im Testharness erst ueber `phaseInterceptor.to(...)` (Harness-Doku 3.7). Kaufgrenze und `purchases_this_phase` zaehlen pro Welle, ueber Rerolls hinweg.
    - Attacken-Ziele umgesetzt 2026-10-14: `ETHER`, `MAX_ETHER`, `PP_UP`, `PP_MAX` als Gratis-Belohnung (`MOVE_TARGET_REWARD_IDS` in `src/main/ts/lib/modifier-collector-policy.ts`). Ablauf im Party-Menue (`PartyUiMode.MOVE_MODIFIER`): Pokemon waehlen, im Optionsmenue die Attacke (`MOVE_1` + `target_move_index`), bestaetigen. Nachweis: `npm run rl:test:modifier:collector-actions` (Spieltests im Collector-Template, laufen nur mit `POKEROGUE_MODIFIER_COLLECTOR_ACTION_TESTS=1`; prueft, dass genau die gewaehlte Attacke PP bzw. AP-Plus bekommt). In Zufallslaeufen werden diese Items selten angeboten (lokal 1 von rund 80 Entscheidungen).
+   - Danach, vor dem ersten Modell: Benchmark `random` gegen `heuristic_v1` auf eigenen Test-Seeds (`docs/modifier-benchmark-design.md`).
 7. PyTorch-Training (Kandidaten-Bewertung), Inferenz-Worker, Kotlin-Anbindung ueber die JS-Bridge (Phasen 3/4 des Migrationsplans).
 8. DL4J-Modifier-Modell und Online-Lernen im Live-Bot entfernen, sobald der Python-Worker live laeuft.
 
