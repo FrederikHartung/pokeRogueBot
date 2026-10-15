@@ -61,6 +61,8 @@ data/rl/combat/*-report.json
 data/rl/dataset-pools/
 data/rl/pipeline-runs/
 data/rl/models/*.pt
+# Modell-Ordner (z. B. Modifier-Modell: Checkpoint plus training-summary.json)
+data/rl/models/*/
 data/rl/training-runs/
 
 # Productive wave library runtime artifacts
