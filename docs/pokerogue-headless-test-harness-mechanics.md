@@ -306,7 +306,7 @@ Der Strategic Collector (`executeRerollAction` im Template) wartet deshalb, bis 
 
 Der Strategic Modifier Collector haelt den Seed deshalb fest (`pinSceneSeed` im Template): `override.seed`, danach eine Property auf `scene.seed`, die nur die Zuweisung `"test"` ignoriert; nach `startBattle` prueft er `scene.seed === SEED` und bricht sonst mit `seed_not_applied` ab.
 
-**Auswirkung:** Alle Strategic-Collector-Daten bis 2026-10-15 (u. a. `modifier-strategic-seeded-remote-10seeds-20runs-wave30`) stammen aus einer einzigen Welt; Unterschiede zwischen "Seeds" kamen nur aus dem Entscheidungs-Zufall (`decision_rng_seed`). Der Combat-Collector (`experience-collector.helpers.template.ts`) nutzt dasselbe Muster und ist vermutlich ebenso betroffen; dort legen die Szenarien Gegner und Welle aber selbst fest.
+**Auswirkung:** Alle Strategic-Collector-Daten bis 2026-10-15 (u. a. `modifier-strategic-seeded-remote-10seeds-20runs-wave30`) stammen aus einer einzigen Welt; Unterschiede zwischen "Seeds" kamen nur aus dem Entscheidungs-Zufall (`decision_rng_seed`). Der Combat-Collector (`experience-collector.helpers.template.ts`, `startScenarioBattle`) ruft `generateStarters` ebenfalls auf. Dort setzen aber weder die Szenarien (`data/rl/scenarios/generated-wave-library-v3-w1-24`, kein `seed`) noch die Configs (`seeds`) einen Seed; alle Combat-Daten und -Benchmarks liefen deshalb deterministisch mit `"test"`, und das bleibt ohne Seed so. Wird ein Seed gesetzt, stellt `startScenarioBattle` ihn seit 2026-10-15 nach `generateStarters` wieder her (Pruefung `seed_not_applied`). Die Replays in `combat-collector-replays.test.ts` setzen `POKEROGUE_COMBAT_KEEP_HARNESS_SEED=1`, damit sie die aufgezeichneten Lagen exakt nachstellen.
 
 **Belegt durch:** Spieltest am 2026-10-15 (`scene.seed` nach `startBattle` bei zwei verschiedenen Seeds jeweils `"test"`, gleicher Gegner; mit `pinSceneSeed` verschiedene Angebote ab Welle 1, gleicher Seed reproduzierbar).
 
@@ -316,11 +316,11 @@ Endet ein Feldeffekt am Rundenende ("The effects of Water Sport have faded."), s
 
 In der festen Welt `"test"` (3.17) kam diese Lage nie vor; mit echten Seeds traf sie im ersten Benchmark-Versuch 3 von 9 Runs (Wellen 3, 10, 15).
 
-Workaround ausserhalb des Submoduls: `withIdleMessagePhasePump` im Strategic-Collector-Template laeuft neben `advanceCombatAfterAction`/`advanceDoubleCombatAfterAction` und faehrt eine `MessagePhase`, die laenger als 500 ms bei Interceptor-State `idling` current ist, einmal mit `phaseInterceptor.to("MessagePhase")`. Danach greift die vorhandene `TurnInitPhase`-Behandlung der Harness. Der saubere Fix gehoert in die Harness (z. B. `resolved` vor dem ACTION-Druck pruefen oder eine treiberlose `MessagePhase` selbst starten); das ist eine nicht-additive Aenderung an einer bestehenden Harness-Funktion und braucht deshalb Rueckfrage.
+Derselbe Mechanismus traf Doppelkaempfe: Nach dem Bosskampf und einem Biomwechsel blieben `ToggleDoublePositionPhase`, `CheckSwitchPhase`, `InitEncounterPhase` und `PostSummonPhase` innerhalb von `advanceDoubleCombatAfterAction` ungefahren (`step_timeout:advance_double_combat_after_action` in `CheckSwitchPhase`/`MESSAGE`, Modifier-Benchmark Run 22: 5 von 100 Runs auf Welle 11).
 
-**Belegt durch:** Repro von `modifier-strategic-eval-s12` (Welle 3) am 2026-10-15: vorher Timeout, mit der Pumpe bis zur Obergrenze durchgelaufen.
+**Fix in der Harness** (`test/porubot/harness/idle-phase-driver.ts`, seit 2026-10-15): `advanceCombatAfterAction` und `advanceDoubleCombatAfterAction` laufen in `withIdlePhaseDriver`. Ist eine Phase laenger als 500 ms "current", ohne dass ein `phaseInterceptor.to(...)` sie faehrt (Interceptor-State `idling`), faehrt der Driver genau diese Phase einmal mit `to(<Phasenname>)`. Phasen, die die Harness selbst bedient (`CommandPhase`, `TurnInitPhase`, `SelectModifierPhase`, `SwitchPhase`, `LearnMovePhase`, `SelectTargetPhase`, Kampf- und Spielende), fasst er nicht an. Der Collector-eigene Workaround (`withIdleMessagePhasePump`) ist damit entfallen.
 
-Noch offen (Modifier-Benchmark Run 22): Doppelkampf auf Welle 11 haengt in `CheckSwitchPhase`/`MESSAGE` (`step_timeout:advance_double_combat_after_action`), 5 von 100 Runs, reproduzierbar u. a. mit `modifier-strategic-eval-s27`. Die Pumpe fasst `CheckSwitchPhase` bewusst nicht an, weil die Harness sie selbst behandelt.
+**Belegt durch:** Regressionstest `test/porubot/regressions/end-of-turn-message-needs-a-driver.test.ts` (Water Sport endet nach 5 Runden; ohne Driver `timeout`, mit Driver `ok`) sowie Repros von `modifier-strategic-eval-s12` (Welle 3) und `s27` (Doppelkampf Welle 11) am 2026-10-15.
 
 ## 4. Was `phaseInterceptor.to(target)` tatsaechlich garantiert - und was nicht
 

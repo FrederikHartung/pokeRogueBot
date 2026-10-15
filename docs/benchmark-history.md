@@ -662,4 +662,4 @@ Kurzfazit:
 - Der Vorteil entsteht nicht am ersten Rivalen (Welle 8, beide rund 80 %), sondern danach: Mehr Runs kommen bis Welle 25 und ueberstehen den zweiten Rivalen haeufiger. Die Heuristik nimmt fast keine wirkungslosen Items (7 % gegen 44 %) und investiert frueh in EP-Teiler, Sonderbonbons und getragene Items.
 - In 19 von 46 Seeds sind beide Policies gleich weit gekommen; dort entscheidet offenbar der Kampf, nicht die Item-Wahl.
 - Erster Lauf mit echten Seeds: Bis 2026-10-15 spielten alle Seeds dieselbe Welt (`docs/pokerogue-headless-test-harness-mechanics.md` 3.17); Ergebnisse vor diesem Lauf sind damit nicht vergleichbar.
-- Einschraenkungen: 50 Seeds und 1 `random`-Run pro Seed; der Doppelkampf-Haenger auf Welle 11 nimmt 5 Runs aus der Wertung und sollte vor groesseren Laeufen behoben werden.
+- Einschraenkungen: 50 Seeds und 1 `random`-Run pro Seed; der Doppelkampf-Haenger auf Welle 11 nimmt 5 Runs aus der Wertung. Behoben nach diesem Lauf in der Harness (`withIdlePhaseDriver`, Mechanik-Doku 3.18).
