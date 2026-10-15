@@ -18,8 +18,8 @@ POLL_SECONDS="${POKEROGUE_BENCHMARK_POLL_SECONDS:-60}"
 
 # Reihenfolge: zuerst die kuerzere deterministische Policy. Label = modifier_policy der Config.
 BENCHMARK_CONFIGS=(
-  "heuristic_v1=data/rl/modifier-benchmark-eval-100seeds-heuristic-v1.json"
-  "random_executable=data/rl/modifier-benchmark-eval-100seeds-random.json"
+  "heuristic_v1=data/rl/modifier-benchmark-eval-50seeds-heuristic-v1.json"
+  "random_executable=data/rl/modifier-benchmark-eval-50seeds-random.json"
 )
 BASELINE_LABEL="random_executable"
 # Nur fuer Tests: "label=config,label=config" (Pfade relativ zum Repo) ersetzt die Liste oben.

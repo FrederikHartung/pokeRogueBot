@@ -310,6 +310,16 @@ Der Strategic Modifier Collector haelt den Seed deshalb fest (`pinSceneSeed` im 
 
 **Belegt durch:** Spieltest am 2026-10-15 (`scene.seed` nach `startBattle` bei zwei verschiedenen Seeds jeweils `"test"`, gleicher Gegner; mit `pinSceneSeed` verschiedene Angebote ab Welle 1, gleicher Seed reproduzierbar).
 
+### 3.18 Meldungen nach dem Rundenende ohne Treiber (`advanceCombatAfterAction`)
+
+Endet ein Feldeffekt am Rundenende ("The effects of Water Sport have faded."), steht nach `TurnEndPhase` eine `MessagePhase` an. `advanceCombatAfterAction` wartet in `waitForPromiseOrTerminal` auf `toEndOfTurn()`. Das ist schon erfuellt, aber die Schleife prueft zuerst `advanceCurrentUiPromptIfPossible`: Die UI steht auf `MESSAGE`, also drueckt sie ACTION und faengt von vorn an, ohne je `resolved` zu pruefen. Die `MessagePhase` selbst ist "current", aber nicht gestartet (Interceptor-State `idling`, siehe 3.7), endet also nie. Ergebnis: `step_timeout:advance_combat_after_action` in `MessagePhase`/`MESSAGE`.
+
+In der festen Welt `"test"` (3.17) kam diese Lage nie vor; mit echten Seeds traf sie im ersten Benchmark-Versuch 3 von 9 Runs (Wellen 3, 10, 15).
+
+Workaround ausserhalb des Submoduls: `withIdleMessagePhasePump` im Strategic-Collector-Template laeuft neben `advanceCombatAfterAction`/`advanceDoubleCombatAfterAction` und faehrt eine `MessagePhase`, die laenger als 500 ms bei Interceptor-State `idling` current ist, einmal mit `phaseInterceptor.to("MessagePhase")`. Danach greift die vorhandene `TurnInitPhase`-Behandlung der Harness. Der saubere Fix gehoert in die Harness (z. B. `resolved` vor dem ACTION-Druck pruefen oder eine treiberlose `MessagePhase` selbst starten); das ist eine nicht-additive Aenderung an einer bestehenden Harness-Funktion und braucht deshalb Rueckfrage.
+
+**Belegt durch:** Repro von `modifier-strategic-eval-s12` (Welle 3) am 2026-10-15: vorher Timeout, mit der Pumpe bis zur Obergrenze durchgelaufen.
+
 ## 4. Was `phaseInterceptor.to(target)` tatsaechlich garantiert - und was nicht
 
 ```ts

@@ -1,15 +1,15 @@
 {
   "seed_prefix": "modifier-strategic-eval-s",
   "seed_start_index": 1,
-  "seed_count": 100,
-  "output_root": "./pipeline-runs/modifier-benchmark-eval-100seeds-random",
-  "manifest_path": "./pipeline-runs/modifier-benchmark-eval-100seeds-random/manifest.json",
+  "seed_count": 50,
+  "output_root": "./pipeline-runs/modifier-benchmark-eval-50seeds-heuristic-v1",
+  "manifest_path": "./pipeline-runs/modifier-benchmark-eval-50seeds-heuristic-v1/manifest.json",
   "collect": {
-    "runs_per_seed": 2,
-    "runs_per_instance": 2,
+    "runs_per_seed": 1,
+    "runs_per_instance": 1,
     "parallelism": 3,
     "max_waves": 50,
-    "modifier_policy": "random_executable",
+    "modifier_policy": "heuristic_v1",
     "max_shop_purchases_per_phase": 3,
     "max_rerolls_per_wave": 0,
     "step_timeout_ms": 15000,
@@ -22,6 +22,6 @@
   },
   "archive": {
     "format": "tar.gz",
-    "output_path": "./pipeline-runs/modifier-benchmark-eval-100seeds-random/artifacts/modifier-benchmark-runtime.tar.gz"
+    "output_path": "./pipeline-runs/modifier-benchmark-eval-50seeds-heuristic-v1/artifacts/modifier-benchmark-runtime.tar.gz"
   }
 }

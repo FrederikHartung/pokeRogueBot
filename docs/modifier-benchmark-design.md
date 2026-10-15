@@ -64,8 +64,9 @@ Offene Punkte, bewusst einfach gehalten:
 
 ## 5. Seeds und Rahmenbedingungen
 
-- **Eigene Test-Seeds:** Praefix `modifier-strategic-eval-s`, Indizes 1-100. Trainingsdaten nutzen `modifier-strategic-remote-train-s`; Eval-Seeds duerfen nie ins Training (Benchmark-Configs mit `postprocess.enabled: false`).
-- **Gepaart:** Alle Policies laufen auf denselben 100 Seeds.
+- **Eigene Test-Seeds:** Praefix `modifier-strategic-eval-s`, Indizes 1-100 (erste Runde: 1-50, siehe unten). Trainingsdaten nutzen `modifier-strategic-remote-train-s`; Eval-Seeds duerfen nie ins Training (Benchmark-Configs mit `postprocess.enabled: false`).
+- **Gepaart:** Alle Policies laufen auf denselben Seeds.
+- **Erste Runde mit 50 Seeds:** Mit echten Welten (nach dem Seed-Fix) kommen Runs deutlich weiter und dauern laenger; 100 Seeds haetten ueber 8 h gebraucht. Mit 50 Seeds liegt der Standardfehler der gepaarten Differenz bei etwa 0,7 Wellen, sichtbar werden Unterschiede ab etwa 1,5 Wellen. Bei knappem Ergebnis mit `seed_start_index: 51` die zweite Haelfte nachlaufen lassen. In dieser Runde laeuft auch `random` mit 1 Run pro Seed (statt 2), damit beide Laeufe in einer Nacht fertig werden; der Mittelwert bleibt unverzerrt, die gepaarte Differenz streut etwas mehr.
 - **Viele Seeds statt Wiederholungen:** Deterministische Policies 1 Run pro Seed. `random` 2 Runs pro Seed; der Seed-Mittelwert senkt das Rauschen im gepaarten Vergleich.
 - **Fest fuer alle Policies:** Kampf-DQN-Checkpoint, Starter (`starter_config_id`), Kaufgrenze 3, Reroll aus.
 - **`max_waves: 50`:** deckt `RIVAL_2` (Welle 25) und `EVIL_GRUNT_1` (Welle 35) ab; bessere Policies sollen nicht an der Obergrenze haengen bleiben. Erreicht eine Policy oft 50, wird die Grenze erhoeht.
@@ -88,7 +89,7 @@ Entscheidungsregel: B ist "klar besser", wenn die untere Grenze des Konfidenzint
 
 ## 7. Ablauf und Artefakte
 
-1. Configs `data/rl/modifier-benchmark-eval-100seeds-<policy>.json` (Seeds, `runs_per_seed`, `modifier_policy`, `max_waves: 50`, `postprocess.enabled: false`, eigener `output_root`).
+1. Configs `data/rl/modifier-benchmark-eval-50seeds-<policy>.json` (Seeds, `runs_per_seed`, `modifier_policy`, `max_waves: 50`, `postprocess.enabled: false`, eigener `output_root`).
 2. Lauf ueber den bestehenden Remote-Helper (`run-modifier-strategic-seeded-remote.sh start <config>`), vorher `start-smoke`.
 3. Auswertung `scripts/03-benchmark/eval/compare-modifier-policies.ts <runtime-A> <runtime-B>`: liest die Roh-Outputs (`collect_dataset/batches/*.json`), schreibt `modifier-benchmark-compare.json` und eine Markdown-Tabelle.
 4. Eintrag in `docs/benchmark-history.md` mit `Benchmark-Typ: modifier`, Commit, Configs, Kampf-Checkpoint und Ergebnis.
@@ -103,7 +104,7 @@ Aufwand: Bei etwa 0,75 Runs pro Minute (Parallelitaet 2, erster Datensatz) brauc
 | Policy-Auswahl im Collector | `scripts/90-dev/rl/templates/modifier-fixed-seed-collector.test.template.ts` (`selectModifierCandidateIndex`) |
 | HP zu Beginn fester Kaempfe | Episode-Feld `fixed_battle_entries` (optional in Contract und `docs/rl-schema/modifier-strategic-fixed-seed-output.schema.json`) |
 | Kauf- und Reroll-Grenze per Config | `collect.max_shop_purchases_per_phase`, `collect.max_rerolls_per_wave` (Pipeline setzt die Env des Runners) |
-| Configs | `data/rl/modifier-benchmark-eval-100seeds-random.json`, `data/rl/modifier-benchmark-eval-100seeds-heuristic-v1.json` (Parallelitaet 3) |
+| Configs | `data/rl/modifier-benchmark-eval-50seeds-random.json`, `data/rl/modifier-benchmark-eval-50seeds-heuristic-v1.json` (Parallelitaet 3) |
 | Auswertung | `scripts/03-benchmark/eval/compare-modifier-policies.ts`, Tests `npm run rl:test:modifier:benchmark-compare` |
 | Kette auf dem Server | `scripts/03-benchmark/eval/run-modifier-benchmark-remote.sh` |
 

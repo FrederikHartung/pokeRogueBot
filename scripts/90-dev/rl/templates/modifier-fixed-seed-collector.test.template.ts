@@ -204,6 +204,8 @@ interface TimeoutDebugSnapshot {
   party_options_cursor: number | null;
   party_options: string[];
   recent_messages: string[];
+  /** Text einer haengenden MessagePhase (privates Feld der Phase, nur zur Diagnose gelesen). */
+  current_message_text: string | null;
   selected_modifier_action?: SelectedModifierActionDebugSnapshot;
   party: PartyMemberDebugSnapshot[];
 }
@@ -304,6 +306,12 @@ const MAX_REROLLS_PER_WAVE = __MAX_REROLLS_PER_WAVE__;
  */
 const COLLECTOR_ACTION_TESTS = process.env.POKEROGUE_MODIFIER_COLLECTOR_ACTION_TESTS === "1";
 const MAX_COMBAT_TURNS_PER_WAVE = 200;
+/**
+ * Vitest-Timeout des Sammel-Tests. Frueher RUN_COUNT * MAX_WAVES * 6 s (mindestens 5 min): Mit echten Seeds dauern
+ * lange Runs deutlich laenger (Welle 24 nach ueber 5 min). Die harte Grenze pro Run setzt der Runner
+ * (run_process_timeout_ms).
+ */
+const COLLECTION_TEST_TIMEOUT_MS = Math.max(4 * 60 * 60 * 1000, RUN_COUNT * MAX_WAVES * 60_000);
 const FORCE_NORMALIZE_IVS = process.env.POKEROGUE_MODIFIER_FORCE_NORMALIZE_IVS === "1";
 const FORCE_NORMALIZE_NATURES = process.env.POKEROGUE_MODIFIER_FORCE_NORMALIZE_NATURES === "1";
 const MOVE_ACTIONS = 4;
@@ -1519,6 +1527,78 @@ function buildModifierPhaseLogSnapshot(game: GameManager): Record<string, unknow
   };
 }
 
+const IDLE_PHASE_GRACE_MS = 500;
+
+/**
+ * Phasen, die die Harness selbst behandelt (Eingabe, Wechsel, Kampfende) oder die eine eigene Erholung haben
+ * (TurnInitPhase): die Pumpe fasst sie nicht an.
+ */
+const HARNESS_HANDLED_PHASES = [
+  "CommandPhase",
+  "TurnInitPhase",
+  "SelectModifierPhase",
+  "SwitchPhase",
+  "CheckSwitchPhase",
+  "LearnMovePhase",
+  "SelectTargetPhase",
+  "BattleEndPhase",
+  "GameOverPhase",
+  "PostGameOverPhase",
+  "TitlePhase",
+] as const;
+
+/**
+ * Laeuft neben einer Harness-Advance-Funktion und startet Phasen, die "current" sind, aber von keinem
+ * phaseInterceptor.to(...) gefahren werden (Interceptor-State "idling"). Typischer Fall: Effekte nach dem Rundenende
+ * wie "The effects of Water Sport have faded." (MessagePhase) oder Schaden durch Infestation (MessagePhase, dann
+ * CommonAnimPhase), docs/pokerogue-headless-test-harness-mechanics.md 3.18. Die Warte-Schleife der Harness drueckt
+ * dann nur ACTION, die Phase endet ohne start() nie. Gefahren wird immer genau die aktuelle Phase.
+ */
+async function withIdleMessagePhasePump<T>(game: GameManager, advance: () => Promise<T>): Promise<T> {
+  let finished = false;
+  const pump = (async () => {
+    let idleSince: number | null = null;
+    let lastPumped: unknown = null;
+    while (!finished) {
+      const phase = game.scene.phaseManager.getCurrentPhase();
+      const phaseName = phase?.phaseName;
+      const interceptorState = (game.phaseInterceptor as unknown as { state?: string }).state;
+      const idle =
+        phaseName !== undefined
+        && interceptorState === "idling"
+        && phase !== lastPumped
+        && !HARNESS_HANDLED_PHASES.some(name => game.isCurrentPhase(name));
+      if (!idle) {
+        idleSince = null;
+      } else if (idleSince === null) {
+        idleSince = Date.now();
+      } else if (Date.now() - idleSince >= IDLE_PHASE_GRACE_MS) {
+        lastPumped = phase;
+        idleSince = null;
+        console.error(
+          `[modifier-fixed-seed-idle-phase-pump] wave=${game.scene.currentBattle?.waveIndex ?? "unknown"} phase=${phaseName} text=${JSON.stringify(readCurrentMessageText(game))}`,
+        );
+        await game.phaseInterceptor.to(phaseName).catch(() => undefined);
+      }
+      await sleep(50);
+    }
+  })();
+  try {
+    return await advance();
+  } finally {
+    finished = true;
+    await pump;
+  }
+}
+
+function readCurrentMessageText(game: GameManager): string | null {
+  const phase = game.scene.phaseManager?.getCurrentPhase?.() as unknown as { phaseName?: string; text?: unknown } | undefined;
+  if (phase?.phaseName !== "MessagePhase" || typeof phase.text !== "string") return null;
+  const interceptor = game.phaseInterceptor as unknown as { state?: string; target?: string };
+  const handler = game.scene.ui.getHandler() as unknown as { awaitingActionInput?: boolean; pendingPrompt?: boolean } | undefined;
+  return `${phase.text} [interceptor=${interceptor.state ?? "?"} target=${interceptor.target ?? "?"} awaitingInput=${String(handler?.awaitingActionInput)} pendingPrompt=${String(handler?.pendingPrompt)} queue=${game.scene.phaseManager.getCurrentPhase()?.phaseName}]`;
+}
+
 function buildTimeoutDebugSnapshot(game: GameManager): TimeoutDebugSnapshot {
   const phaseName = game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown_phase";
   const uiModeValue = game.scene.ui.getMode();
@@ -1566,6 +1646,7 @@ function buildTimeoutDebugSnapshot(game: GameManager): TimeoutDebugSnapshot {
     party_options_cursor: Number.isInteger(currentHandler?.optionsCursor) ? currentHandler.optionsCursor : null,
     party_options: getPartyOptionNames(currentHandler),
     recent_messages: Array.isArray(game.textInterceptor?.logs) ? game.textInterceptor.logs.slice(-8) : [],
+    current_message_text: readCurrentMessageText(game),
     party: game.scene.getPlayerParty().map((pokemon: any) => buildPartyMemberDebugSnapshot(pokemon)),
   };
 }
@@ -2796,7 +2877,9 @@ describe("modifier fixed seed collector", () => {
                 );
                 executeDoubleSlotAction(game, selectedDoubleAction);
 
-                const advanceStatus = await advanceDoubleCombatAfterAction(game, selectedDoubleAction, STEP_TIMEOUT_MS);
+                const advanceStatus = await withIdleMessagePhasePump(game, () =>
+                  advanceDoubleCombatAfterAction(game, selectedDoubleAction, STEP_TIMEOUT_MS),
+                );
                 if (advanceStatus === "timeout") {
                   throw new Error(`step_timeout:advance_double_combat_after_action:${STEP_TIMEOUT_MS}`);
                 }
@@ -2967,7 +3050,7 @@ describe("modifier fixed seed collector", () => {
               );
               executeCombatAction(game, action);
 
-              const advanceStatus = await advanceCombatAfterAction(game, STEP_TIMEOUT_MS);
+              const advanceStatus = await withIdleMessagePhasePump(game, () => advanceCombatAfterAction(game, STEP_TIMEOUT_MS));
               if (advanceStatus === "timeout") {
                 throw new Error(`step_timeout:advance_combat_after_action:${STEP_TIMEOUT_MS}`);
               }
@@ -3244,5 +3327,5 @@ describe("modifier fixed seed collector", () => {
 
     fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
     fs.writeFileSync(OUTPUT_PATH, JSON.stringify(payload, null, 2), { encoding: "utf8" });
-  }, Math.max(300000, RUN_COUNT * MAX_WAVES * 6000));
+  }, COLLECTION_TEST_TIMEOUT_MS);
 });
