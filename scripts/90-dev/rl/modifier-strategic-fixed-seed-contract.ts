@@ -134,6 +134,7 @@ function validateEpisode(value: unknown, context: string): Record<string, unknow
       "terminal_reward",
       "total_reward",
       "steps",
+      "fixed_battle_entries",
       "retry_count",
       "timeout_debug",
       "error_debug",
@@ -158,6 +159,17 @@ function validateEpisode(value: unknown, context: string): Record<string, unknow
   assertNumber(value.terminal_reward, context, "terminal_reward");
   assertNumber(value.total_reward, context, "total_reward");
   assertArray(value.steps, context, "steps");
+  // Optional: Ausgaben von vor dem Modifier-Benchmark haben das Feld nicht.
+  if (value.fixed_battle_entries !== undefined) {
+    assertArray(value.fixed_battle_entries, context, "fixed_battle_entries");
+    value.fixed_battle_entries.forEach((entry, index) => {
+      const entryContext = `${context}.fixed_battle_entries[${index}]`;
+      assertPlainObject(entry, entryContext, "fixed_battle_entry");
+      assertInteger(entry.wave_index, entryContext, "wave_index", { min: 1 });
+      assertNumber(entry.party_hp_ratio_sum, entryContext, "party_hp_ratio_sum");
+      assertInteger(entry.alive_count, entryContext, "alive_count");
+    });
+  }
   if (value.retry_count !== undefined) {
     assertInteger(value.retry_count, context, "retry_count");
   }

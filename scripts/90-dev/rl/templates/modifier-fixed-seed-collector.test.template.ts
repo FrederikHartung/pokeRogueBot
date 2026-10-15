@@ -95,8 +95,11 @@ import {
   isSupportedStatusHealShopItem,
   normalizeModifierTypeId,
 } from "#bot-ts/modifier-collector-policy";
+import { pickHeuristicV1CandidateIndex } from "#bot-ts/modifier-heuristic-policy";
 
-type ModifierPolicy = "random_executable";
+/** `random_executable`: Exploration fuer Trainingsdaten. `heuristic_v1`: feste Regel als Benchmark-Vergleich. */
+type ModifierPolicy = "random_executable" | "heuristic_v1";
+const MODIFIER_POLICIES: readonly ModifierPolicy[] = ["random_executable", "heuristic_v1"];
 type CollectorVariant = "sanity_masking" | "strategic_fixed_seed";
 const SCHEMA_VERSION = "modifier_strategic_fixed_seed_output_v2";
 const STARTER_CONFIG_ID = "wave_lib_w1_starters_v1";
@@ -205,6 +208,26 @@ interface TimeoutDebugSnapshot {
   party: PartyMemberDebugSnapshot[];
 }
 
+interface FixedBattleEntry {
+  wave_index: number;
+  party_hp_ratio_sum: number;
+  alive_count: number;
+}
+
+/** Party-Zustand zu Kampfbeginn einer festen Welle; liest nur, beruehrt den Spiel-Zufall nicht. */
+function buildFixedBattleEntry(game: GameManager, waveIndex: number): FixedBattleEntry {
+  const party = game.scene.getPlayerParty();
+  const hpRatioSum = party.reduce(
+    (sum, pokemon) => sum + (pokemon.isFainted() ? 0 : pokemon.hp / Math.max(1, pokemon.getMaxHp())),
+    0,
+  );
+  return {
+    wave_index: waveIndex,
+    party_hp_ratio_sum: Math.round(hpRatioSum * 1000) / 1000,
+    alive_count: party.filter(pokemon => !pokemon.isFainted()).length,
+  };
+}
+
 interface EpisodeRecord {
   schema_version: string;
   run_index: number;
@@ -222,6 +245,8 @@ interface EpisodeRecord {
   terminal_reward: number;
   total_reward: number;
   steps: ModifierStepRecord[];
+  /** HP der Party zu Beginn fester Kaempfe (Rivale, Team Rocket, ...); Benchmark-Messgroesse. */
+  fixed_battle_entries: FixedBattleEntry[];
   retry_count?: number;
   timeout_debug?: TimeoutDebugSnapshot;
   error_debug?: TimeoutDebugSnapshot;
@@ -235,6 +260,9 @@ const RUN_INDEX_OFFSET = __RUN_INDEX_OFFSET__;
 const MAX_WAVES = __MAX_WAVES__;
 const COLLECTOR_VARIANT = __COLLECTOR_VARIANT__ as CollectorVariant;
 const MODIFIER_POLICY = __MODIFIER_POLICY__ as ModifierPolicy;
+if (!MODIFIER_POLICIES.includes(MODIFIER_POLICY)) {
+  throw new Error(`Unsupported modifier policy: ${String(MODIFIER_POLICY)}`);
+}
 const COMBAT_DQN_CHECKPOINT = __COMBAT_DQN_CHECKPOINT__;
 const COMBAT_DQN_DEVICE = __COMBAT_DQN_DEVICE__;
 const COMBAT_DQN_PYTHON = __COMBAT_DQN_PYTHON__;
@@ -2263,6 +2291,15 @@ function pickRandomCandidateIndex(observation: ModifierObservation, random: () =
   return choice[Math.floor(random() * choice.length)]!;
 }
 
+function selectModifierCandidateIndex(observation: ModifierObservation, random: () => number): number {
+  switch (MODIFIER_POLICY) {
+    case "random_executable":
+      return pickRandomCandidateIndex(observation, random);
+    case "heuristic_v1":
+      return pickHeuristicV1CandidateIndex(observation);
+  }
+}
+
 const HEAL_FAMILIES = new Set(["heal_hp", "revive", "revive_all"]);
 
 /**
@@ -2620,6 +2657,7 @@ describe("modifier fixed seed collector", () => {
         const random = createDeterministicRandom(`${SEED}::${runIndex}`);
         const decisionRngSeed = `${SEED}::${runIndex}`;
         const steps: ModifierStepRecord[] = [];
+        const fixedBattleEntries: FixedBattleEntry[] = [];
         let completedWaves = 0;
         let terminationReason = "unknown";
         let timeoutDebug: TimeoutDebugSnapshot | undefined;
@@ -2647,6 +2685,12 @@ describe("modifier fixed seed collector", () => {
               if (!currentBattle) {
                 terminationReason = "missing_current_battle";
                 break;
+              }
+              if (
+                game.scene.gameMode.isFixedBattle(currentBattle.waveIndex)
+                && !fixedBattleEntries.some(entry => entry.wave_index === currentBattle.waveIndex)
+              ) {
+                fixedBattleEntries.push(buildFixedBattleEntry(game, currentBattle.waveIndex));
               }
               if (isCombatTerminalPhase(game) && !game.isCurrentPhase("SelectModifierPhase")) {
                 if (game.isCurrentPhase("BattleEndPhase")) {
@@ -3018,8 +3062,7 @@ describe("modifier fixed seed collector", () => {
               }
 
               combatTurns.push(...drainSwitchDecisionSnapshots());
-              expect(MODIFIER_POLICY).toBe("random_executable");
-              const selectedIndex = pickRandomCandidateIndex(observation, random);
+              const selectedIndex = selectModifierCandidateIndex(observation, random);
               const selectedCandidate = observation.candidates[selectedIndex]!;
               selectedModifierActionForDebug = toSelectedCandidateDebug(observation, selectedIndex);
               const immediateReward = calculateImmediateReward(observation, selectedCandidate);
@@ -3126,6 +3169,7 @@ describe("modifier fixed seed collector", () => {
           terminal_reward: terminalReward,
           total_reward: localRewardSum + terminalReward,
           steps,
+          fixed_battle_entries: fixedBattleEntries,
           retry_count: attemptIndex,
           timeout_debug: timeoutDebug,
           error_debug: errorDebug,

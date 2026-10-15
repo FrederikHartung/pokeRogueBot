@@ -1,6 +1,6 @@
 # Modifier-Benchmark (Entwurf)
 
-Status: **Entwurf, noch nicht umgesetzt** (2026-10-15). Misst, wie gut eine Modifier-Policy (Shop-Kaeufe und Gratis-Belohnungen in der `SelectModifierPhase`) ist, und vergleicht Policies fair miteinander. Grundlage: Strategic Collector mit `modifier-transition-v1` (`docs/modifier-state-v1-draft.md`), Remote-Pipeline `docs/modifier-strategic-seeded-remote.md`.
+Status: **umgesetzt, erster Lauf `random_executable` gegen `heuristic_v1` gestartet** (2026-10-15). Misst, wie gut eine Modifier-Policy (Shop-Kaeufe und Gratis-Belohnungen in der `SelectModifierPhase`) ist, und vergleicht Policies fair miteinander. Grundlage: Strategic Collector mit `modifier-transition-v1` (`docs/modifier-state-v1-draft.md`), Remote-Pipeline `docs/modifier-strategic-seeded-remote.md`.
 
 ## 1. Fragen, die der Benchmark beantwortet
 
@@ -94,10 +94,39 @@ Entscheidungsregel: B ist "klar besser", wenn die untere Grenze des Konfidenzint
 
 Aufwand: Bei etwa 0,75 Runs pro Minute (Parallelitaet 2, erster Datensatz) braucht `random` mit 200 Runs rund 4,5 h und `heuristic_v1` mit 100 Runs rund 2,5 h, eher mehr, wenn die Runs weiter kommen.
 
-## 8. Umsetzungsschritte
+## 8. Umsetzung und Befehle
 
-1. `heuristic_v1` als Modifier-Policy im Collector-Template (`ModifierPolicy`-Typ erweitern), Auswahl als eigene Funktion ueber Observation und Kandidaten; gezielte Spieltests ueber `rl:test:modifier:collector-actions` (z. B. heilt vor dem Rivalen, kauft nicht ueber die Grenze).
-2. `fixed_battle_entries` im Collector-Output plus Contract, Schema, Beispiel.
-3. Benchmark-Configs und Auswertungsskript mit Unit-Tests (gepaarte Differenz, Bootstrap, Ueberlebensquoten).
+| Teil | Datei |
+|---|---|
+| Regel `heuristic_v1` (reine Funktion ueber die Observation) | `src/main/ts/lib/modifier-heuristic-policy.ts`, Tests `npm run rl:test:modifier:heuristic` |
+| Policy-Auswahl im Collector | `scripts/90-dev/rl/templates/modifier-fixed-seed-collector.test.template.ts` (`selectModifierCandidateIndex`) |
+| HP zu Beginn fester Kaempfe | Episode-Feld `fixed_battle_entries` (optional in Contract und `docs/rl-schema/modifier-strategic-fixed-seed-output.schema.json`) |
+| Kauf- und Reroll-Grenze per Config | `collect.max_shop_purchases_per_phase`, `collect.max_rerolls_per_wave` (Pipeline setzt die Env des Runners) |
+| Configs | `data/rl/modifier-benchmark-eval-100seeds-random.json`, `data/rl/modifier-benchmark-eval-100seeds-heuristic-v1.json` (Parallelitaet 3) |
+| Auswertung | `scripts/03-benchmark/eval/compare-modifier-policies.ts`, Tests `npm run rl:test:modifier:benchmark-compare` |
+| Kette auf dem Server | `scripts/03-benchmark/eval/run-modifier-benchmark-remote.sh` |
+
+Auf dem Server (Repo-Clone, nach `start-smoke`):
+
+```bash
+bash scripts/03-benchmark/eval/run-modifier-benchmark-remote.sh start
+bash scripts/03-benchmark/eval/run-modifier-benchmark-remote.sh status
+```
+
+Die Kette startet die Configs nacheinander ueber `run-modifier-strategic-seeded-remote.sh start <config>` (mit dessen Preflight-Tests und Telegram-Meldungen je Lauf), wartet jeweils auf das Ende, ueberspringt bereits abgeschlossene Configs und schickt zum Schluss den Vergleich (`modifier-benchmark-telegram.txt`) per Telegram (`send-pipeline-notification.mjs --text-file`). Ergebnis-Dateien: `data/rl/pipeline-runs/modifier-benchmark-control/compare/`. Bei einem Fehler meldet sie den Abbruch per Telegram.
+
+Lokal gegen fertige Laufordner:
+
+```bash
+node scripts/03-benchmark/eval/compare-modifier-policies.ts --policy random_executable=<runtime-dir> --policy heuristic_v1=<runtime-dir> --baseline random_executable --out data/temp/rl/modifier-benchmark
+```
+
+Messdetail: `wave_reached` zaehlt abgeschlossene Wellen. Einen festen Kampf auf Welle W hat ein Run erreicht, wenn `wave_reached >= W - 1`, und ueberstanden, wenn `wave_reached >= W`.
+
+## 9. Umsetzungsschritte (Stand)
+
+1. Erledigt: `heuristic_v1` als Modifier-Policy im Collector-Template (`ModifierPolicy`-Typ erweitern), Auswahl als eigene Funktion ueber Observation und Kandidaten; gezielte Spieltests ueber `rl:test:modifier:collector-actions` (z. B. heilt vor dem Rivalen, kauft nicht ueber die Grenze).
+2. Erledigt: `fixed_battle_entries` im Collector-Output plus Contract, Schema, Beispiel.
+3. Erledigt: Benchmark-Configs und Auswertungsskript mit Unit-Tests (gepaarte Differenz, Bootstrap, Ueberlebensquoten).
 4. Lokaler Mini-Lauf (5 Seeds je Policy), dann `start-smoke` und die beiden Remote-Laeufe.
 5. Ergebnis dokumentieren und entscheiden: Modell trainieren, Daten verbessern (Mischung aus `heuristic_v1` und Zufall, mehr Seeds) oder Prioritaet verschieben.

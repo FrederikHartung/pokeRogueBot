@@ -29,7 +29,8 @@ const benchmarkSummary = loadOptionalJson(cli.benchmarkSummaryPath);
 const collectionMetrics = loadOptionalJson(cli.collectionMetricsPath);
 const trainingSummary = loadOptionalJson(cli.trainingSummaryPath);
 
-const message = buildMessage({
+// --text-file: fertig formulierte Nachricht (z. B. Benchmark-Vergleich) unveraendert senden.
+const message = cli.textFilePath ? truncate(readFileSync(cli.textFilePath, "utf8").trim(), 4000) : buildMessage({
   event: cli.event,
   runtimeDir: cli.runtimeDir,
   manifestPath: cli.manifestPath,
@@ -69,6 +70,7 @@ function parseCli(args) {
     benchmarkSummaryPath: null,
     collectionMetricsPath: null,
     trainingSummaryPath: null,
+    textFilePath: null,
   };
 
   for (let index = 0; index < args.length; index += 1) {
@@ -116,6 +118,11 @@ function parseCli(args) {
     }
     if (arg === "--training-summary") {
       state.trainingSummaryPath = resolveOptionalPath(args[index + 1] ?? null);
+      index += 1;
+      continue;
+    }
+    if (arg === "--text-file") {
+      state.textFilePath = resolveOptionalPath(args[index + 1] ?? null);
       index += 1;
     }
   }

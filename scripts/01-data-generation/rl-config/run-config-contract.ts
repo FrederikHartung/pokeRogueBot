@@ -246,6 +246,9 @@ function validateRuntimeRetentionConfig(value, context) {
   return structuredClone(value);
 }
 
+/** Policies des Strategic Collectors (ModifierPolicy im Collector-Template). */
+const MODIFIER_STRATEGIC_POLICIES = new Set(["random_executable", "heuristic_v1"]);
+
 function validateModifierStrategicCollectConfig(value, context) {
   assertPlainObject(value, context, "modifier strategic collect config");
   assertAllowedKeys(
@@ -256,6 +259,8 @@ function validateModifierStrategicCollectConfig(value, context) {
       "parallelism",
       "max_waves",
       "modifier_policy",
+      "max_shop_purchases_per_phase",
+      "max_rerolls_per_wave",
       "step_timeout_ms",
       "run_process_timeout_ms",
       "combat_dqn_checkpoint",
@@ -282,6 +287,13 @@ function validateModifierStrategicCollectConfig(value, context) {
   if ("run_process_timeout_ms" in value) {
     assertPositiveInteger(value.run_process_timeout_ms, context, "run_process_timeout_ms");
   }
+  if ("max_shop_purchases_per_phase" in value) {
+    assertPositiveInteger(value.max_shop_purchases_per_phase, context, "max_shop_purchases_per_phase");
+  }
+  // 0 schaltet Reroll ab (Modifier-Benchmark random gegen heuristic_v1).
+  if ("max_rerolls_per_wave" in value && (!Number.isInteger(value.max_rerolls_per_wave) || value.max_rerolls_per_wave < 0)) {
+    throw new Error(`Invalid max_rerolls_per_wave${describeContext(context)}: ${String(value.max_rerolls_per_wave)}`);
+  }
   for (const key of ["combat_dqn_checkpoint", "combat_dqn_device", "combat_dqn_python"]) {
     if (key in value) {
       assertOptionalString(value[key], context, key);
@@ -289,7 +301,7 @@ function validateModifierStrategicCollectConfig(value, context) {
   }
 
   const modifierPolicy = value.modifier_policy ?? "random_executable";
-  if (modifierPolicy !== "random_executable") {
+  if (!MODIFIER_STRATEGIC_POLICIES.has(modifierPolicy)) {
     throw new Error(`Unsupported modifier_policy${describeContext(context)}: ${String(modifierPolicy)}`);
   }
 

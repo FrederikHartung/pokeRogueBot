@@ -183,6 +183,20 @@
         "total_reward": {
           "type": "number"
         },
+        "fixed_battle_entries": {
+          "description": "HP der Party zu Beginn fester Kaempfe (z. B. Rivale auf Welle 8 und 25), fuer den Modifier-Benchmark. Fehlt bei aelteren Ausgaben.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["wave_index", "party_hp_ratio_sum", "alive_count"],
+            "properties": {
+              "wave_index": { "type": "integer", "minimum": 1 },
+              "party_hp_ratio_sum": { "type": "number", "minimum": 0 },
+              "alive_count": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
         "retry_count": {
           "type": "integer",
           "minimum": 0

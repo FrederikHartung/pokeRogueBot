@@ -90,6 +90,7 @@ Das Projekt: ein Bot, der das Browserspiel PokeRogue automatisiert (Spring Boot,
 | Wave-Library-Bootstrap | `scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh` | `docs/combat-training-wave-library-v2.md` |
 | Offline-DQN-Training | `scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh` | `docs/combat-training-wave-library-v2.md` |
 | DQN-Benchmark-Vergleich | `scripts/03-benchmark/eval/run-dqn-benchmark-compare-remote.sh` | `docs/benchmark-history.md` |
+| Modifier-Benchmark (Policies auf denselben Test-Seeds, Ergebnis per Telegram) | `scripts/03-benchmark/eval/run-modifier-benchmark-remote.sh` (Kette ueber den Modifier-Helper; `start`, `status`, `logs`, `compare`) | `docs/modifier-benchmark-design.md` |
 
 - Gemeinsame Subkommandos: `start`, `status`, `logs`, `last`, `issues`, `notify-test`, `stop` (einige zusaetzlich `start-smoke`, der Modifier-Helper `quick-smoke`). Vor einem grossen Lauf nach Code- oder Submodul-Updates zuerst einen Smoke-Lauf machen.
 
@@ -129,6 +130,7 @@ Fallstricke auf dem Server:
 - `npm run rl:test:porubot:regressions`: Regressionstests im Submodul (vitest)
 - `npm run rl:test:policy-contract`, `npm run rl:test:modifier:strategic-contract`, `npm run rl:test:modifier:item-suite`: Contract- und Masking-Tests. Die Item-Suite prueft zusaetzlich die Spalte `Strategic Collector` in `docs/select-modifier-shop-item-matrix.md` gegen `src/main/ts/lib/modifier-collector-policy.ts`; wer die Collector-Regeln aendert, zieht die Spalte mit.
 - `npm run rl:test:modifier:collector-actions`: gezielte Spieltests der Ausfuehrungspfade im Strategic Collector (z. B. Ether/AP-Items mit Attacken-Ziel), die in Zufallslaeufen zu selten vorkommen
+- `npm run rl:test:modifier:heuristic`, `npm run rl:test:modifier:benchmark-compare`: feste Modifier-Regel `heuristic_v1` und Auswertung des Modifier-Benchmarks
 - `npm run rl:test:modifier:observation-v1`: Spieltest des modifier-v1-Builders (`src/main/ts/lib/modifier-observation.ts`) inkl. Schema-Validierung
 - `npm run rl:test:pipeline:technical-failures`: Fehlererfassung beider Pipelines (Signaturen, Notausschalter)
 - `npm run rl:test:combat:collector-replays`: Replays frueherer Combat-Collector-Timeouts gegen den echten Collector (ca. 2-3 min)
