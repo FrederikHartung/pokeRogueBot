@@ -62,6 +62,7 @@ import {
   waitForPromiseOrTerminal,
   withTimeout,
 } from "#test/porubot/harness/battle-command-advance";
+import { isCurrentPhaseUndriven } from "#test/porubot/harness/idle-phase-driver";
 import { installSingleDriverPhaseInterceptor } from "#test/porubot/harness/single-driver-phase-interceptor";
 import {
   setSwitchDecisionProvider,
@@ -3098,6 +3099,15 @@ describe("modifier fixed seed collector", () => {
             if (!game.isCurrentPhase("SelectModifierPhase")) {
               terminationReason = `expected_select_modifier_phase_but_got:${game.scene.phaseManager?.getCurrentPhase?.()?.constructor?.name ?? "unknown"}`;
               break;
+            }
+            if (isCurrentPhaseUndriven(game)) {
+              // Der Kampf endete, ohne dass ein phaseInterceptor.to(...) die SelectModifierPhase startet (z. B. nach
+              // EggLapsePhase im Doppelkampf, Mechanik-Doku 3.18). Ohne Start erscheint das Item-Menue nie.
+              await withTimeout(
+                waitForSelectModifierPhaseReady(game, STEP_TIMEOUT_MS),
+                STEP_TIMEOUT_MS,
+                "undriven_select_modifier_phase",
+              );
             }
 
             console.error(

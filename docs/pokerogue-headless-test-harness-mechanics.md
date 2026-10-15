@@ -320,6 +320,11 @@ Derselbe Mechanismus traf Doppelkaempfe: Nach dem Bosskampf und einem Biomwechse
 
 **Fix in der Harness** (`test/porubot/harness/idle-phase-driver.ts`, seit 2026-10-15): `advanceCombatAfterAction` und `advanceDoubleCombatAfterAction` laufen in `withIdlePhaseDriver`. Ist eine Phase laenger als 500 ms "current", ohne dass ein `phaseInterceptor.to(...)` sie faehrt (Interceptor-State `idling`), faehrt der Driver genau diese Phase einmal mit `to(<Phasenname>)`. Phasen, die die Harness selbst bedient (`CommandPhase`, `TurnInitPhase`, `SelectModifierPhase`, `SwitchPhase`, `LearnMovePhase`, `SelectTargetPhase`, Kampf- und Spielende), fasst er nicht an. Der Collector-eigene Workaround (`withIdleMessagePhasePump`) ist damit entfallen.
 
+Zwei weitere Faelle aus dem Trainingslauf `50seeds-8runs-heuristic-mix` (2 von 400 Runs, beide Doppelkaempfe, beide lokal nicht reproduzierbar, also zeitabhaengig):
+
+- `LearnMovePhase` nach einem Level-Up blieb ungefahren (`resolveLearnMoveIfNeeded` bedient nur die Prompts einer gestarteten Phase). Seit Harness-Commit `f640523` faehrt der Driver auch sie; eine gestartete `LearnMovePhase` steht nie auf `idling`.
+- `SelectModifierPhase` nach `EggLapsePhase` blieb ungefahren; der Collector wartete vergeblich auf das Item-Menue (`Timed out waiting for modifier input readiness`). Die Advance-Funktionen sind da schon zurueckgekehrt (die Phase gilt ihnen als Kampfende). Der Strategic Collector startet sie deshalb selbst: Ist die `SelectModifierPhase` nach dem Kampf ungefahren (`isCurrentPhaseUndriven`), ruft er `waitForSelectModifierPhaseReady` auf.
+
 **Belegt durch:** Regressionstest `test/porubot/regressions/end-of-turn-message-needs-a-driver.test.ts` (Water Sport endet nach 5 Runden; ohne Driver `timeout`, mit Driver `ok`) sowie Repros von `modifier-strategic-eval-s12` (Welle 3) und `s27` (Doppelkampf Welle 11) am 2026-10-15.
 
 ## 4. Was `phaseInterceptor.to(target)` tatsaechlich garantiert - und was nicht

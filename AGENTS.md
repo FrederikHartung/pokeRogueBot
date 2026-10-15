@@ -139,6 +139,7 @@ Fallstricke auf dem Server:
 
 **Training und Eval (Python):**
 - Repo-venv unter `.venv/` verwenden; die Remote-Helper nutzen sie automatisch.
+- Modifier-Modell (Kandidaten-Bewertung, modifier-v1): `.venv/bin/python scripts/02-training/modifier/train_modifier_candidate_model.py --input <transitions.jsonl> --output-dir <dir>` (Details im Docstring)
 - Training: `npm run rl:train:dqn:wave-lib:v3` (bzw. `python3 scripts/02-training/offline-dqn/train_dqn_offline.py --config <config>`)
 - Eval: `npm run rl:eval:compare -- <args>`
 - Claude-Session als vierte Benchmark-Policy (einmal lokal erzeugen, dann per `--extra-baseline` einlesen; nur aus einem normalen Terminal, nicht aus einer Claude-Code-Session): `node scripts/03-benchmark/eval/run-claude-session-baseline.ts --model haiku --label <label>`, siehe `docs/claude-session-benchmark-policy.md`
