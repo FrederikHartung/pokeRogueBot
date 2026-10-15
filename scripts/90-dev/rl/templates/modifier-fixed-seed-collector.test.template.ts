@@ -215,6 +215,31 @@ interface FixedBattleEntry {
 }
 
 /** Party-Zustand zu Kampfbeginn einer festen Welle; liest nur, beruehrt den Spiel-Zufall nicht. */
+/**
+ * Setzt den Spiel-Seed und haelt ihn fest. `classicMode.startBattle` ruft `generateStarters`
+ * (pokerogue/test/utils/game-manager-utils.ts) auf, das `scene.seed` hart auf "test" setzt, nachdem
+ * `game.override.seed()` gelaufen ist. Ohne diesen Schutz spielen alle Seeds dieselbe Welt (Befund 2026-10-15,
+ * docs/pokerogue-headless-test-harness-mechanics.md 3.17). Andere Seed-Wechsel (setSeed) bleiben wirksam.
+ */
+const TEST_HARNESS_DEFAULT_SEED = "test";
+
+function pinSceneSeed(game: GameManager, seed: string): void {
+  game.override.seed(seed);
+  const scene = game.scene;
+  let currentSeed = scene.seed;
+  Object.defineProperty(scene, "seed", {
+    configurable: true,
+    enumerable: true,
+    get: () => currentSeed,
+    set: (value: string) => {
+      if (value === TEST_HARNESS_DEFAULT_SEED && seed !== TEST_HARNESS_DEFAULT_SEED) {
+        return;
+      }
+      currentSeed = value;
+    },
+  });
+}
+
 function buildFixedBattleEntry(game: GameManager, waveIndex: number): FixedBattleEntry {
   const party = game.scene.getPlayerParty();
   const hpRatioSum = party.reduce(
@@ -2634,7 +2659,7 @@ describe("modifier fixed seed collector", () => {
         resetCombatDecisionTracker();
         setSwitchDecisionProvider(game, decideSwitchWithCombatDqn);
 
-        game.override.seed(SEED);
+        pinSceneSeed(game, SEED);
 
         if (COLLECTOR_VARIANT === "sanity_masking") {
           game.override
@@ -2668,6 +2693,9 @@ describe("modifier fixed seed collector", () => {
 
         try {
           await game.classicMode.startBattle(...STARTER_SPECIES);
+          if (game.scene.seed !== SEED) {
+            throw new Error(`seed_not_applied:${game.scene.seed}`);
+          }
           applyWaveLibW1StarterLayout(game);
 
           while (completedWaves < MAX_WAVES) {

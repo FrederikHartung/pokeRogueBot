@@ -300,6 +300,16 @@ Der Strategic Collector (`executeRerollAction` im Template) wartet deshalb, bis 
 
 **Belegt durch:** lokalen Collector-Lauf am 2026-10-14 (3 von 4 Runs mit Timeout vor dem Fix, 0 von 4 danach).
 
+### 3.17 `classicMode.startBattle` setzt den Seed auf `"test"` zurueck
+
+`game.override.seed(seed)` setzt `scene.seed`. `classicMode.startBattle` → `runToSummon` ruft danach im `TitlePhase`-Prompt `generateStarters` auf (`test/utils/game-manager-utils.ts`), und das setzt `scene.seed = "test"` hart, bevor die erste Welle erzeugt wird. Jeder Run mit `override.seed` vor `startBattle` spielt deshalb dieselbe Welt (Seed `"test"`), egal welcher Seed angefordert war. `vi.spyOn(activeOverrides, "SEED_OVERRIDE", "get")` hilft nicht, weil `generateStarters` den Wert direkt zuweist.
+
+Der Strategic Modifier Collector haelt den Seed deshalb fest (`pinSceneSeed` im Template): `override.seed`, danach eine Property auf `scene.seed`, die nur die Zuweisung `"test"` ignoriert; nach `startBattle` prueft er `scene.seed === SEED` und bricht sonst mit `seed_not_applied` ab.
+
+**Auswirkung:** Alle Strategic-Collector-Daten bis 2026-10-15 (u. a. `modifier-strategic-seeded-remote-10seeds-20runs-wave30`) stammen aus einer einzigen Welt; Unterschiede zwischen "Seeds" kamen nur aus dem Entscheidungs-Zufall (`decision_rng_seed`). Der Combat-Collector (`experience-collector.helpers.template.ts`) nutzt dasselbe Muster und ist vermutlich ebenso betroffen; dort legen die Szenarien Gegner und Welle aber selbst fest.
+
+**Belegt durch:** Spieltest am 2026-10-15 (`scene.seed` nach `startBattle` bei zwei verschiedenen Seeds jeweils `"test"`, gleicher Gegner; mit `pinSceneSeed` verschiedene Angebote ab Welle 1, gleicher Seed reproduzierbar).
+
 ## 4. Was `phaseInterceptor.to(target)` tatsaechlich garantiert - und was nicht
 
 ```ts

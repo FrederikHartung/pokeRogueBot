@@ -12,6 +12,7 @@ Status: **umgesetzt, erster Lauf `random_executable` gegen `heuristic_v1` gestar
 
 Datensatz `modifier-strategic-seeded-remote-10seeds-20runs-wave30` (200 Runs, Policy `random_executable`, 2026-10-15):
 
+- **Nur eine Welt:** Bis 2026-10-15 griff der Seed im Collector nicht; `generateStarters` im Testharness setzte ihn auf `"test"` zurueck (`docs/pokerogue-headless-test-harness-mechanics.md` 3.17). Alle 10 "Seeds" des Datensatzes sind dieselbe Welt, die 200 Runs unterscheiden sich nur durch den Entscheidungs-Zufall. Die Unterschiede zwischen den Seed-Mittelwerten (8,7 bis 11,8) sind damit Rauschen bei 20 Runs. Behoben mit `pinSceneSeed`; der erste Benchmark-Start wurde deshalb nach wenigen Runs abgebrochen und neu gestartet.
 - **Deterministisch pro Seed:** PokeRogue setzt den Spiel-Zufall zu Beginn jeder Welle auf Seed + Wellennummer (`resetSeed(waveIndex)` in `pokerogue/src/battle-scene.ts`), und das Kampf-DQN entscheidet deterministisch. Alle Runs eines Seeds sehen dieselben Gegner; Unterschiede entstehen nur durch die Modifier-Entscheidungen. Eine deterministische Policy liefert auf demselben Seed daher immer dasselbe Ergebnis.
 - **Klippen an festen Kaempfen:** `RIVAL_1` auf Welle 8 und `RIVAL_2` auf Welle 25 (`pokerogue/src/enums/fixed-boss-waves.ts`). In Seed s3 scheitern 11 von 20 Runs an Welle 8 oder 9; der beste Run aller Seeds endet auf Welle 25.
 - **Streuung:** innerhalb eines Seeds etwa 4-5 Wellen Standardabweichung (s3: Welle 7 bis 23), Seed-Mittelwerte zwischen 8,7 und 11,8.
