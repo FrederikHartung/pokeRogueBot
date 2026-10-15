@@ -1,6 +1,6 @@
 # Modifier-Benchmark (Entwurf)
 
-Status: **umgesetzt, erster Lauf `random_executable` gegen `heuristic_v1` gestartet** (2026-10-15). Misst, wie gut eine Modifier-Policy (Shop-Kaeufe und Gratis-Belohnungen in der `SelectModifierPhase`) ist, und vergleicht Policies fair miteinander. Grundlage: Strategic Collector mit `modifier-transition-v1` (`docs/modifier-state-v1-draft.md`), Remote-Pipeline `docs/modifier-strategic-seeded-remote.md`.
+Status: **umgesetzt; erster Lauf 2026-10-15: `heuristic_v1` +3,04 Wellen gegen `random_executable` (95-%-KI [0,76; 5,46], 46 gepaarte Seeds), Details `docs/benchmark-history.md` Run 22.** Misst, wie gut eine Modifier-Policy (Shop-Kaeufe und Gratis-Belohnungen in der `SelectModifierPhase`) ist, und vergleicht Policies fair miteinander. Grundlage: Strategic Collector mit `modifier-transition-v1` (`docs/modifier-state-v1-draft.md`), Remote-Pipeline `docs/modifier-strategic-seeded-remote.md`.
 
 ## 1. Fragen, die der Benchmark beantwortet
 

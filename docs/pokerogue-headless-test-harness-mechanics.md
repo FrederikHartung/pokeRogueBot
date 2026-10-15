@@ -320,6 +320,8 @@ Workaround ausserhalb des Submoduls: `withIdleMessagePhasePump` im Strategic-Col
 
 **Belegt durch:** Repro von `modifier-strategic-eval-s12` (Welle 3) am 2026-10-15: vorher Timeout, mit der Pumpe bis zur Obergrenze durchgelaufen.
 
+Noch offen (Modifier-Benchmark Run 22): Doppelkampf auf Welle 11 haengt in `CheckSwitchPhase`/`MESSAGE` (`step_timeout:advance_double_combat_after_action`), 5 von 100 Runs, reproduzierbar u. a. mit `modifier-strategic-eval-s27`. Die Pumpe fasst `CheckSwitchPhase` bewusst nicht an, weil die Harness sie selbst behandelt.
+
 ## 4. Was `phaseInterceptor.to(target)` tatsaechlich garantiert - und was nicht
 
 ```ts

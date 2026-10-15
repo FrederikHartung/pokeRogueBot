@@ -634,3 +634,32 @@ Kurzfazit:
 - `a2-stable` und `a1a2-ep12` liegen praktisch gleichauf; die laengeren `20` Epochen bringen keinen messbaren Vorteil.
 - V3 main liefert mit demselben Collector exakt dieselben Zahlen wie in Run 20 (Win Rate, Avg Turns, Transitions); fuer deterministische Policies ist der Benchmark auf diesem Stand also reproduzierbar. Unterschiede von wenigen Siegen sind damit echte Unterschiede auf diesen `311` Szenarien, sagen aber noch nichts ueber Generalisierung auf andere Kaempfe.
 - Die Varianten unterscheiden sich in drei Stellschrauben zugleich (`lr`, Zielnetz, `gamma`); welche den Ausschlag gibt, ist nicht isoliert.
+
+## Run 22
+
+- Laufnummer: 22
+- Benchmark-Typ: modifier (`docs/modifier-benchmark-design.md`)
+- Datum: 2026-10-15, Commit `2ce6fb6` (Branch `feature/modifier-v1`)
+- Vergleich: Modifier-Policies `random_executable` gegen `heuristic_v1` im Strategic Collector, gepaart auf denselben Test-Seeds
+- Seeds: `modifier-strategic-eval-s1` bis `s50` (nie im Training), 1 Run pro Seed und Policy, `max_waves` 50, Kaufgrenze 3 pro Welle, Reroll aus
+- Kampf: `dqn-combat-wave-library-random-valid-action-v3-w1-24-50ep.pt` (CPU), Starter `wave_lib_w1_starters_v1`
+- Configs: `data/rl/modifier-benchmark-eval-50seeds-{heuristic-v1,random}.json`, Kette `scripts/03-benchmark/eval/run-modifier-benchmark-remote.sh`, Auswertung `scripts/03-benchmark/eval/compare-modifier-policies.ts`
+- Laufzeit: `heuristic_v1` 83 min, `random_executable` 64 min (Parallelitaet 3)
+- Technische Abbrueche: 1 (`heuristic_v1`) bzw. 4 (`random_executable`), alle derselbe Fall: Doppelkampf auf Welle 11, Haenger in `CheckSwitchPhase`/`MESSAGE` (`step_timeout:advance_double_combat_after_action`). Betroffene Runs fehlen in der Auswertung; gepaart bleiben 46 Seeds.
+
+Ergebnisse:
+
+| Policy | Runs | Welle Mittel | Median | Min-Max | Rivale W8 ueberlebt | Rivale W25 ueberlebt | HP vor W8 (von 3) | Baelle/Lockmittel unter Gratis-Picks |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `random_executable` | 46 | 15.87 | 16.5 | 7-29 | 80 % (37/46) | 27 % (3/11) | 2.89 | 44 % |
+| `heuristic_v1` | 49 | 18.86 | 19.0 | 7-49 | 78 % (38/49) | 41 % (7/17) | 2.97 | 7 % |
+
+Gepaart (`heuristic_v1` minus `random_executable`, 46 Seeds): `+3.04` Wellen, 95-%-KI per Bootstrap `[0.76, 5.46]`, besser / gleich / schlechter `20 / 19 / 7`. Urteil nach Entscheidungsregel: `heuristic_v1` klar besser.
+
+Kurzfazit:
+
+- Modifier-Entscheidungen haben messbaren Spielraum: Eine einfache feste Regel erreicht im Mittel rund 3 Wellen mehr als Zufall. Das rechtfertigt ein gelerntes Modifier-Modell; Messlatte fuer das Modell ist `heuristic_v1`, nicht `random`.
+- Der Vorteil entsteht nicht am ersten Rivalen (Welle 8, beide rund 80 %), sondern danach: Mehr Runs kommen bis Welle 25 und ueberstehen den zweiten Rivalen haeufiger. Die Heuristik nimmt fast keine wirkungslosen Items (7 % gegen 44 %) und investiert frueh in EP-Teiler, Sonderbonbons und getragene Items.
+- In 19 von 46 Seeds sind beide Policies gleich weit gekommen; dort entscheidet offenbar der Kampf, nicht die Item-Wahl.
+- Erster Lauf mit echten Seeds: Bis 2026-10-15 spielten alle Seeds dieselbe Welt (`docs/pokerogue-headless-test-harness-mechanics.md` 3.17); Ergebnisse vor diesem Lauf sind damit nicht vergleichbar.
+- Einschraenkungen: 50 Seeds und 1 `random`-Run pro Seed; der Doppelkampf-Haenger auf Welle 11 nimmt 5 Runs aus der Wertung und sollte vor groesseren Laeufen behoben werden.
