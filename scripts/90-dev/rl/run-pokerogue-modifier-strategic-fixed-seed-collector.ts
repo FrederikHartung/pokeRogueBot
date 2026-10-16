@@ -83,6 +83,10 @@ const modifierModelCheckpoint = process.env.POKEROGUE_MODIFIER_MODEL_CHECKPOINT
   ? path.resolve(process.env.POKEROGUE_MODIFIER_MODEL_CHECKPOINT)
   : "";
 const modifierModelWorkerScript = path.join(repoRoot, "scripts", "02-training", "modifier", "modifier_candidate_infer_worker.py");
+// Rollout-Auftrag fuer die Policy rollout_replay_v1 (docs/modifier-rollout-plan.md), gesetzt vom Rollout-Orchestrator.
+const modifierRolloutSpec = process.env.POKEROGUE_MODIFIER_ROLLOUT_SPEC
+  ? path.resolve(process.env.POKEROGUE_MODIFIER_ROLLOUT_SPEC)
+  : "";
 
 function cleanup(): void {
   try {
@@ -107,6 +111,12 @@ if (!existsSync(combatInferWorkerScript)) {
 if (modifierPolicy === "model_v1" && (!modifierModelCheckpoint || !existsSync(modifierModelCheckpoint))) {
   throw new Error(
     `Modifier policy model_v1 needs an existing checkpoint in env POKEROGUE_MODIFIER_MODEL_CHECKPOINT (got: "${modifierModelCheckpoint}")`,
+  );
+}
+
+if (modifierPolicy === "rollout_replay_v1" && (!modifierRolloutSpec || !existsSync(modifierRolloutSpec))) {
+  throw new Error(
+    `Modifier policy rollout_replay_v1 needs an existing spec file in env POKEROGUE_MODIFIER_ROLLOUT_SPEC (got: "${modifierRolloutSpec}")`,
   );
 }
 
@@ -191,6 +201,7 @@ function buildTestSource(runOutputPath: string, runIndexOffset: number): string 
     .replaceAll("__COMBAT_DQN_WORKER_SCRIPT__", JSON.stringify(combatInferWorkerScript))
     .replaceAll("__MODIFIER_MODEL_CHECKPOINT__", JSON.stringify(modifierModelCheckpoint))
     .replaceAll("__MODIFIER_MODEL_WORKER_SCRIPT__", JSON.stringify(modifierModelWorkerScript))
+    .replaceAll("__MODIFIER_ROLLOUT_SPEC_PATH__", JSON.stringify(modifierRolloutSpec))
     .replaceAll("__STEP_TIMEOUT_MS__", String(stepTimeoutMs))
     .replaceAll("__MAX_SHOP_PURCHASES__", String(maxShopPurchases))
     .replaceAll("__MAX_REROLLS_PER_WAVE__", String(maxRerollsPerWave));

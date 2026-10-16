@@ -62,6 +62,26 @@ test("modifier strategic fixed-seed contract accepts optional episode debug fiel
   assert.doesNotThrow(() => validateModifierStrategicFixedSeedOutput(payload));
 });
 
+test("modifier strategic fixed-seed contract requires the rollout field for rollout_replay_v1", () => {
+  const examplePath = path.join(repoRoot, "docs", "rl-schema", "modifier-strategic-fixed-seed-output.example.json");
+  const payload = JSON.parse(readFileSync(examplePath, "utf8")) as Record<string, unknown>;
+  const episode = ((payload.episodes as Array<Record<string, unknown>>)[0])!;
+  episode.modifier_policy = "rollout_replay_v1";
+  assert.throws(() => validateModifierStrategicFixedSeedOutput(payload), /requires rollout/);
+
+  episode.rollout = {
+    reference_id: "seed-a/reference",
+    branch_step: 0,
+    alternative_label: "take_reward|POTION||1|||0|",
+    alternative_candidate_index: 2,
+    replay_verified_steps: 1,
+  };
+  assert.doesNotThrow(() => validateModifierStrategicFixedSeedOutput(payload));
+
+  (episode.rollout as Record<string, unknown>).unexpected = 1;
+  assert.throws(() => validateModifierStrategicFixedSeedOutput(payload), /unexpected/);
+});
+
 test("strategic fixed-seed collector smoke output matches the contract", () => {
   const tempDir = mkdtempSync(path.join(os.tmpdir(), "modifier-strategic-contract-"));
   const outputPath = path.join(tempDir, "collector-output.json");

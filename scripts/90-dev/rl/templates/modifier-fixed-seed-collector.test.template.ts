@@ -97,6 +97,12 @@ import {
   normalizeModifierTypeId,
 } from "#bot-ts/modifier-collector-policy";
 import { pickHeuristicV1CandidateIndex } from "#bot-ts/modifier-heuristic-policy";
+import {
+  type RolloutEpisodeInfo,
+  RolloutReplayController,
+  type RolloutSpec,
+  validateRolloutSpec,
+} from "#bot-ts/modifier-rollout";
 
 /**
  * `random_executable`: reine Exploration. `heuristic_v1`: feste Regel (Benchmark-Vergleich).
@@ -104,9 +110,18 @@ import { pickHeuristicV1CandidateIndex } from "#bot-ts/modifier-heuristic-policy
  * `model_v1`: gelerntes Modifier-Modell (Kandidaten-Bewertung) ueber den persistenten Python-Worker
  * `scripts/02-training/modifier/modifier_candidate_infer_worker.py`; waehlt den gueltigen Kandidaten mit dem hoechsten
  * Wert. Ohne Checkpoint oder bei Worker-Fehlern bricht der Run ab, statt auf eine andere Policy auszuweichen.
+ * `rollout_replay_v1`: Rollout (docs/modifier-rollout-plan.md): Referenzentscheidungen aus der Spec-Datei nachspielen
+ * (mit State-Hash-Pruefung), bei `branch_step` die Alternative, danach heuristic_v1. Abweichungen beenden den Run als
+ * technischen Fehler `replay_divergence:...`.
  */
-type ModifierPolicy = "random_executable" | "heuristic_v1" | "heuristic_mix_v1" | "model_v1";
-const MODIFIER_POLICIES: readonly ModifierPolicy[] = ["random_executable", "heuristic_v1", "heuristic_mix_v1", "model_v1"];
+type ModifierPolicy = "random_executable" | "heuristic_v1" | "heuristic_mix_v1" | "model_v1" | "rollout_replay_v1";
+const MODIFIER_POLICIES: readonly ModifierPolicy[] = [
+  "random_executable",
+  "heuristic_v1",
+  "heuristic_mix_v1",
+  "model_v1",
+  "rollout_replay_v1",
+];
 /**
  * Anteil zufaelliger Entscheidungen in heuristic_mix_v1 (docs/modifier-state-v1-draft.md 2.4). Bei rund 23
  * Entscheidungen pro Run weicht ein Run etwa 7-mal ab; die Runs eines Seeds unterscheiden sich so, und die
@@ -289,6 +304,7 @@ interface EpisodeRecord {
   steps: ModifierStepRecord[];
   /** HP der Party zu Beginn fester Kaempfe (Rivale, Team Rocket, ...); Benchmark-Messgroesse. */
   fixed_battle_entries: FixedBattleEntry[];
+  rollout?: RolloutEpisodeInfo;
   retry_count?: number;
   timeout_debug?: TimeoutDebugSnapshot;
   error_debug?: TimeoutDebugSnapshot;
@@ -314,6 +330,14 @@ const MODIFIER_MODEL_CHECKPOINT: string = __MODIFIER_MODEL_CHECKPOINT__;
 const MODIFIER_MODEL_WORKER_SCRIPT: string = __MODIFIER_MODEL_WORKER_SCRIPT__;
 if (MODIFIER_POLICY === "model_v1" && MODIFIER_MODEL_CHECKPOINT.length === 0) {
   throw new Error("modifier policy model_v1 requires a modifier model checkpoint");
+}
+/** Spec-Datei des Rollouts; nur fuer `rollout_replay_v1` gesetzt, sonst leer. */
+const MODIFIER_ROLLOUT_SPEC_PATH: string = __MODIFIER_ROLLOUT_SPEC_PATH__;
+const ROLLOUT_SPEC: RolloutSpec | null = MODIFIER_POLICY === "rollout_replay_v1"
+  ? validateRolloutSpec(JSON.parse(fs.readFileSync(MODIFIER_ROLLOUT_SPEC_PATH, "utf8")))
+  : null;
+if (ROLLOUT_SPEC && ROLLOUT_SPEC.seed !== SEED) {
+  throw new Error(`Rollout spec seed ${ROLLOUT_SPEC.seed} does not match collector seed ${SEED}`);
 }
 const STARTER_SPECIES = [SpeciesId.BULBASAUR, SpeciesId.CHARMANDER, SpeciesId.SQUIRTLE];
 const STEP_TIMEOUT_MS = __STEP_TIMEOUT_MS__;
@@ -409,6 +433,15 @@ function isTransientStartupMysteryEncounterError(
     && waveReached === 0
     && steps.length === 0
   );
+}
+
+/** Spielerisches Run-Ende (wie isTechnicalTerminationReason im Runner, nur umgekehrt). */
+function isRegularRunEnd(terminationReason: string): boolean {
+  return terminationReason === "max_waves_reached"
+    || terminationReason === "team_wipe_or_game_over"
+    || terminationReason === "combat_terminal:GameOverPhase"
+    || terminationReason === "combat_terminal:PostGameOverPhase"
+    || terminationReason === "combat_terminal:TitlePhase";
 }
 
 function shouldRetryRun(
@@ -2390,7 +2423,12 @@ async function pickModelV1CandidateIndex(observation: ModifierObservation): Prom
   return selectedIndex;
 }
 
-async function selectModifierCandidateIndex(observation: ModifierObservation, random: () => number): Promise<number> {
+async function selectModifierCandidateIndex(
+  observation: ModifierObservation,
+  random: () => number,
+  stepIndex: number,
+  rollout: RolloutReplayController | null,
+): Promise<number> {
   switch (MODIFIER_POLICY) {
     case "random_executable":
       return pickRandomCandidateIndex(observation, random);
@@ -2402,6 +2440,13 @@ async function selectModifierCandidateIndex(observation: ModifierObservation, ra
         : pickHeuristicV1CandidateIndex(observation);
     case "model_v1":
       return await pickModelV1CandidateIndex(observation);
+    case "rollout_replay_v1": {
+      if (!rollout) {
+        throw new Error("rollout_replay_v1 without rollout controller");
+      }
+      const choice = rollout.choose(stepIndex, observation);
+      return choice.source === "continuation" ? pickHeuristicV1CandidateIndex(observation) : choice.candidateIndex;
+    }
   }
 }
 
@@ -2769,6 +2814,7 @@ describe("modifier fixed seed collector", () => {
         let errorDebug: TimeoutDebugSnapshot | undefined;
         let errorStack: string | undefined;
         let selectedModifierActionForDebug: SelectedModifierActionDebugSnapshot | undefined;
+        const rolloutController = ROLLOUT_SPEC ? new RolloutReplayController(ROLLOUT_SPEC) : null;
         const runStartedAt = Date.now();
 
         try {
@@ -3179,7 +3225,7 @@ describe("modifier fixed seed collector", () => {
               }
 
               combatTurns.push(...drainSwitchDecisionSnapshots());
-              const selectedIndex = await selectModifierCandidateIndex(observation, random);
+              const selectedIndex = await selectModifierCandidateIndex(observation, random, steps.length, rolloutController);
               const selectedCandidate = observation.candidates[selectedIndex]!;
               selectedModifierActionForDebug = toSelectedCandidateDebug(observation, selectedIndex);
               const immediateReward = calculateImmediateReward(observation, selectedCandidate);
@@ -3256,6 +3302,15 @@ describe("modifier fixed seed collector", () => {
           }
         }
 
+        if (rolloutController && isRegularRunEnd(terminationReason)) {
+          // Endet ein Rollout vor der Verzweigung, kam die Referenz mit denselben Entscheidungen weiter: Abweichung.
+          try {
+            rolloutController.assertBranchReached();
+          } catch (error) {
+            terminationReason = error instanceof Error ? error.message : String(error);
+          }
+        }
+
         const waveReached = completedWaves;
         const runtimeMs = Date.now() - runStartedAt;
         const localRewardSum = steps.reduce((sum, step) => sum + step.modifier_transition.immediate_reward, 0);
@@ -3287,6 +3342,7 @@ describe("modifier fixed seed collector", () => {
           total_reward: localRewardSum + terminalReward,
           steps,
           fixed_battle_entries: fixedBattleEntries,
+          ...(rolloutController ? { rollout: rolloutController.episodeInfo() } : {}),
           retry_count: attemptIndex,
           timeout_debug: timeoutDebug,
           error_debug: errorDebug,

@@ -60,6 +60,7 @@ data/rl/combat/*.jsonl
 data/rl/combat/*-report.json
 data/rl/dataset-pools/
 data/rl/pipeline-runs/
+data/rl/modifier-rollouts/
 data/rl/models/*.pt
 # Modell-Ordner (z. B. Modifier-Modell: Checkpoint plus training-summary.json)
 data/rl/models/*/

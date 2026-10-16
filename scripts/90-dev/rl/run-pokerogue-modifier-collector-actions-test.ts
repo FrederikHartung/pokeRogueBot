@@ -34,6 +34,7 @@ const PLACEHOLDERS: Record<string, string> = {
   __COMBAT_DQN_PYTHON__: JSON.stringify("python3"),
   __COMBAT_DQN_WORKER_SCRIPT__: JSON.stringify("unused"),
   __MODIFIER_MODEL_CHECKPOINT__: JSON.stringify(""),
+  __MODIFIER_ROLLOUT_SPEC_PATH__: JSON.stringify(""),
   __MODIFIER_MODEL_WORKER_SCRIPT__: JSON.stringify("unused"),
   __STEP_TIMEOUT_MS__: "15000",
   __MAX_SHOP_PURCHASES__: "3",

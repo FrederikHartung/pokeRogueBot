@@ -1,6 +1,6 @@
 # Plan: Rollout-Daten fuer Modifier-Entscheidungen
 
-Stand: 2026-10-16. Status: **Plan, nicht umgesetzt.** Hintergrund und bisherige Befunde: `docs/modifier-learning-findings.md`.
+Stand: 2026-10-16. Status: **Schritte 3 und 4 umgesetzt** (Rollout-Collector, Orchestrierung, Rollout-Format; Doku: `docs/modifier-rollout-collection.md`). Offen: Profiling (1), State-Erweiterung (2), Pilot (5) und alles danach. Hintergrund und bisherige Befunde: `docs/modifier-learning-findings.md`.
 
 ## 1. Ziel
 
@@ -109,8 +109,8 @@ Gestaffelter Zufallsanteil pro Run statt fest 30 %: pro Seed ein Lauf mit 0 % (R
 |---|---|---|
 | 1 | Profiling eines Runs | Laufzeit pro Run, ggf. Fix in Harness oder Collector |
 | 2 | State-Erweiterung (Schema, alle Consumer) | Roh-State enthaelt Spezies, Stats, Attacken |
-| 3 | Rollout-Collector + Tests | `rollout_replay_v1`, `replay_divergence`-Pruefung |
-| 4 | Orchestrierung + Rollout-Format | Pipeline Referenz -> Jobs -> Datensatz |
+| 3 | Rollout-Collector + Tests | `rollout_replay_v1`, `replay_divergence`-Pruefung (umgesetzt) |
+| 4 | Orchestrierung + Rollout-Format | Pipeline Referenz -> Jobs -> Datensatz (umgesetzt, lokal; Remote-Helper offen) |
 | 5 | Pilot: 5 Trainings-Seeds lokal | Wie viel Abstand hat die Rollout-Policy zur Heuristik? Lohnt der grosse Lauf? |
 | 6 | Grosser Lauf (z. B. 50 Seeds, Server und Mac) | Rollout-Datensatz |
 | 7 | Training mit Listwise-Loss, Regret-Auswahl | Modell-Kandidaten |

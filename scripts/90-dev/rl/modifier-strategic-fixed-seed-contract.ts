@@ -135,6 +135,7 @@ function validateEpisode(value: unknown, context: string): Record<string, unknow
       "total_reward",
       "steps",
       "fixed_battle_entries",
+      "rollout",
       "retry_count",
       "timeout_debug",
       "error_debug",
@@ -169,6 +170,25 @@ function validateEpisode(value: unknown, context: string): Record<string, unknow
       assertNumber(entry.party_hp_ratio_sum, entryContext, "party_hp_ratio_sum");
       assertInteger(entry.alive_count, entryContext, "alive_count");
     });
+  }
+  // Nur bei modifier_policy rollout_replay_v1 (docs/modifier-rollout-plan.md): Verzweigung und Pruefstand des Replays.
+  if (value.modifier_policy === "rollout_replay_v1" && value.rollout === undefined) {
+    throw new Error(`modifier_policy rollout_replay_v1 requires rollout${describeContext(context)}`);
+  }
+  if (value.rollout !== undefined) {
+    const rolloutContext = `${context}.rollout`;
+    assertPlainObject(value.rollout, rolloutContext, "rollout");
+    assertAllowedKeys(
+      value.rollout,
+      new Set(["reference_id", "branch_step", "alternative_label", "alternative_candidate_index", "replay_verified_steps"]),
+      rolloutContext,
+      "rollout",
+    );
+    assertString(value.rollout.reference_id, rolloutContext, "reference_id");
+    assertInteger(value.rollout.branch_step, rolloutContext, "branch_step", { min: 0 });
+    assertString(value.rollout.alternative_label, rolloutContext, "alternative_label");
+    assertInteger(value.rollout.alternative_candidate_index, rolloutContext, "alternative_candidate_index", { min: 0 });
+    assertInteger(value.rollout.replay_verified_steps, rolloutContext, "replay_verified_steps", { min: 0 });
   }
   if (value.retry_count !== undefined) {
     assertInteger(value.retry_count, context, "retry_count");

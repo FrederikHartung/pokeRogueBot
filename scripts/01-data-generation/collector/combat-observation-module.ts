@@ -30,8 +30,8 @@ export function modifierObservationSourcePath(repoRoot: string): string {
 }
 
 // Weitere Module unter src/main/ts/lib/, die der Modifier-Collector importiert ("#bot-ts/<name>"): statische Item-Regeln
-// (Collector-Template und Item-Suite) und die feste Regel heuristic_v1.
-const MODIFIER_COLLECTOR_LIB_MODULES = ["modifier-collector-policy", "modifier-heuristic-policy"] as const;
+// (Collector-Template und Item-Suite), die feste Regel heuristic_v1 und die Rollout-Steuerung.
+const MODIFIER_COLLECTOR_LIB_MODULES = ["modifier-collector-policy", "modifier-heuristic-policy", "modifier-rollout"] as const;
 
 /**
  * Schreibt modifier-observation.ts, combat-observation.ts und die Module aus MODIFIER_COLLECTOR_LIB_MODULES nach

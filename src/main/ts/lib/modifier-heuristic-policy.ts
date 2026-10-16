@@ -163,6 +163,24 @@ function pickReward(observation: ModifierObservation): number {
   throw new Error("heuristic_v1: no executable reward candidate");
 }
 
+/**
+ * Ziel nach heuristic_v1-Regeln fuer genau ein Item (z. B. eine Gratis-Belohnung, die die Heuristik selbst nicht
+ * waehlt): Wiederbelebung auf das kampfunfaehige Pokemon, Heilung auf den Slot mit dem niedrigsten HP-Anteil, sonst
+ * `pickTarget`. `candidateIndices` sind die gueltigen Kandidaten dieses Items. Fuer Rollout-Alternativen
+ * (docs/modifier-rollout-plan.md); die Wahl von heuristic_v1 selbst bleibt unveraendert.
+ */
+export function pickHeuristicV1TargetIndex(observation: ModifierObservation, candidateIndices: readonly number[]): number | undefined {
+  const entries = candidateIndices
+    .map(index => ({ candidate: observation.candidates[index]!, index }))
+    .filter(entry => entry.candidate.mask === 1);
+  if (entries.length === 0) return undefined;
+  const choice =
+    pickRevive(observation, entries)
+    ?? pickHeal(observation, entries, 1 - HP_EPSILON)
+    ?? pickTarget(observation, entries);
+  return choice?.index;
+}
+
 /** Index des gewaehlten Kandidaten; wirft nur, wenn die Observation keinen ausfuehrbaren Kandidaten hat. */
 export function pickHeuristicV1CandidateIndex(observation: ModifierObservation): number {
   return observation.decision_stage === "shop" ? pickShop(observation) : pickReward(observation);

@@ -124,6 +124,8 @@ const testSource = templateSource
   .replaceAll("__COMBAT_DQN_PYTHON__", JSON.stringify(pythonBin))
   .replaceAll("__COMBAT_DQN_WORKER_SCRIPT__", JSON.stringify(combatInferWorkerScript))
   .replaceAll("__MODIFIER_MODEL_CHECKPOINT__", JSON.stringify(modifierModelCheckpoint))
+  // Rollouts laufen nur ueber den Strategic Collector.
+  .replaceAll("__MODIFIER_ROLLOUT_SPEC_PATH__", JSON.stringify(""))
   .replaceAll("__MODIFIER_MODEL_WORKER_SCRIPT__", JSON.stringify(modifierModelWorkerScript))
   .replaceAll("__STEP_TIMEOUT_MS__", String(stepTimeoutMs))
     .replaceAll("__MAX_SHOP_PURCHASES__", String(maxShopPurchases))
