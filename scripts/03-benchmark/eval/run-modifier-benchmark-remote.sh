@@ -21,8 +21,9 @@ BENCHMARK_CONFIGS=(
   "heuristic_v1=data/rl/modifier-benchmark-eval-50seeds-heuristic-v1.json"
   "random_executable=data/rl/modifier-benchmark-eval-50seeds-random.json"
 )
-BASELINE_LABEL="random_executable"
-# Nur fuer Tests: "label=config,label=config" (Pfade relativ zum Repo) ersetzt die Liste oben.
+BASELINE_LABEL="${POKEROGUE_MODIFIER_BENCHMARK_BASELINE:-random_executable}"
+# "label=config,label=config" (Pfade relativ zum Repo) ersetzt die Liste oben (Tests, Versuchsreihen wie
+# docs/modifier-learning-findings.md); POKEROGUE_MODIFIER_BENCHMARK_BASELINE setzt das Vergleichs-Label.
 if [ -n "${POKEROGUE_MODIFIER_BENCHMARK_CONFIGS:-}" ]; then
   IFS=',' read -r -a BENCHMARK_CONFIGS <<< "${POKEROGUE_MODIFIER_BENCHMARK_CONFIGS}"
 fi

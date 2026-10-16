@@ -5,6 +5,11 @@ Wert. Gelernt wird nur am jeweils gewaehlten Kandidaten, per gewichteter Regress
 (Monte-Carlo-Wert, `posthoc_credit` + optional anteilig `immediate_reward`), gewichtet mit `run_weight`. Kein
 Bootstrapping (docs/modifier-state-v1-draft.md, Abschnitt 4).
 
+Optional (`--pairwise-weight > 0`) kommt ein Vergleichs-Loss an Gabelungen dazu: Runs desselben Seeds sind bis zur
+ersten abweichenden Entscheidung identisch (docs/modifier-state-v1-draft.md, Abschnitt 5). An einer Gabelung wird
+der Kandidat des Zweigs mit der hoeheren mittleren Welle im selben State hoeher bewertet als der des schwaecheren
+(logistischer Paar-Loss, gewichtet mit min(|Differenz| / PAIRWISE_WAVE_SCALE, 1)). Gleichstaende zaehlen nicht.
+
 Eingabe: `modifier_training_transition_v4` JSONL (Postprocessing der Strategic-Pipeline). Das Feature-Layout wird mit
 dem Checkpoint gespeichert, damit Inferenz und Training dasselbe Encoding nutzen.
 
@@ -25,6 +30,8 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 import torch
 import torch.nn as nn
+
+from modifier_decision_objectives import train_bc, train_dqn
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 SCHEMA_PATH = os.path.join(REPO_ROOT, "docs", "rl-schema", "modifier-transition-v1.schema.json")
@@ -218,6 +225,98 @@ def build_tensors(rows: Sequence[dict], encoder: FeatureEncoder, immediate_weigh
     )
 
 
+PAIRWISE_WAVE_SCALE = 5.0
+
+
+def _decision_key(row: dict) -> str:
+    return json.dumps([row["decision_stage"], row["state"], row["candidates"]], sort_keys=True)
+
+
+def _choice_key(row: dict) -> str:
+    candidate = row["candidates"][row["selected_candidate_index"]]
+    return "|".join(
+        str(candidate.get(key) if candidate.get(key) is not None else "")
+        for key in ("kind", "item_id", "target_party_index", "target_move_index")
+    )
+
+
+def find_branch_pairs(rows: Sequence[dict]) -> Tuple[List[Tuple[dict, dict, float]], int]:
+    """Paare (besserer Zweig, schlechterer Zweig, Wellen-Differenz) an allen Gabelungen; wie
+    scripts/90-dev/rl/analyze-modifier-branch-points.ts. Liefert ausserdem die Zahl der State-Abweichungen."""
+    by_seed: Dict[str, Dict[int, List[dict]]] = {}
+    for row in rows:
+        by_seed.setdefault(row["seed"], {}).setdefault(row["run_index"], []).append(row)
+    pairs: List[Tuple[dict, dict, float]] = []
+    divergences = 0
+    for runs in by_seed.values():
+        run_steps = [sorted(steps, key=lambda step: step["step_index"]) for steps in runs.values()]
+        stack = [(run_steps, 0)]
+        while stack:
+            group, depth = stack.pop()
+            active = [steps for steps in group if len(steps) > depth]
+            if len(active) < 2:
+                continue
+            contexts: Dict[str, List[List[dict]]] = {}
+            for steps in active:
+                contexts.setdefault(_decision_key(steps[depth]), []).append(steps)
+            if len(contexts) > 1:
+                divergences += 1
+                stack.extend((subgroup, depth) for subgroup in contexts.values())
+                continue
+            branches: Dict[str, List[List[dict]]] = {}
+            for steps in active:
+                branches.setdefault(_choice_key(steps[depth]), []).append(steps)
+            if len(branches) > 1:
+                summaries = [
+                    (steps_list[0][depth], sum(steps[0]["wave_reached"] for steps in steps_list) / len(steps_list))
+                    for steps_list in branches.values()
+                ]
+                for index, (row_a, wave_a) in enumerate(summaries):
+                    for row_b, wave_b in summaries[index + 1:]:
+                        if wave_a > wave_b:
+                            pairs.append((row_a, row_b, wave_a - wave_b))
+                        elif wave_b > wave_a:
+                            pairs.append((row_b, row_a, wave_b - wave_a))
+            stack.extend((steps_list, depth + 1) for steps_list in branches.values())
+    return pairs, divergences
+
+
+def build_pair_tensors(pairs: Sequence[Tuple[dict, dict, float]], encoder: "FeatureEncoder"):
+    states, better, better_items, worse, worse_items, weights = [], [], [], [], [], []
+    for row_better, row_worse, difference in pairs:
+        # Beide Zeilen haben denselben State (gleiche Vorgeschichte), nur der gewaehlte Kandidat unterscheidet sich.
+        states.append(encoder.encode_state(row_better))
+        vector, item = encoder.encode_candidate(row_better, row_better["candidates"][row_better["selected_candidate_index"]])
+        better.append(vector)
+        better_items.append(item)
+        vector, item = encoder.encode_candidate(row_worse, row_worse["candidates"][row_worse["selected_candidate_index"]])
+        worse.append(vector)
+        worse_items.append(item)
+        weights.append(min(difference / PAIRWISE_WAVE_SCALE, 1.0))
+    return (
+        torch.tensor(states, dtype=torch.float32),
+        torch.tensor(better, dtype=torch.float32),
+        torch.tensor(better_items, dtype=torch.long),
+        torch.tensor(worse, dtype=torch.float32),
+        torch.tensor(worse_items, dtype=torch.long),
+        torch.tensor(weights, dtype=torch.float32),
+    )
+
+
+def pairwise_loss(model: "CandidateScorer", pairs, index: Optional[torch.Tensor] = None) -> torch.Tensor:
+    tensors = [tensor[index] for tensor in pairs] if index is not None else list(pairs)
+    state, better, better_item, worse, worse_item, weight = tensors
+    margin = model(state, better, better_item) - model(state, worse, worse_item)
+    return (weight * nn.functional.softplus(-margin)).sum() / weight.sum().clamp_min(1e-8)
+
+
+def pairwise_accuracy(model: "CandidateScorer", pairs) -> float:
+    with torch.no_grad():
+        state, better, better_item, worse, worse_item, weight = pairs
+        margin = model(state, better, better_item) - model(state, worse, worse_item)
+        return float((weight * (margin > 0).float()).sum() / weight.sum().clamp_min(1e-8))
+
+
 def weighted_mse(prediction: torch.Tensor, target: torch.Tensor, weight: torch.Tensor) -> torch.Tensor:
     return (weight * (prediction - target) ** 2).sum() / weight.sum().clamp_min(1e-8)
 
@@ -253,6 +352,25 @@ def main() -> None:
     parser.add_argument("--immediate-reward-weight", type=float, default=0.5)
     parser.add_argument("--validation-share", type=float, default=0.15, help="Anteil der Seeds fuer die Validierung (nach Seed getrennt)")
     parser.add_argument("--seed", type=int, default=7)
+    parser.add_argument(
+        "--pairwise-weight",
+        type=float,
+        default=0.0,
+        help="Gewicht des Vergleichs-Loss an Gabelungen (0 = aus, nur Regression wie Modell 1/2)",
+    )
+    # Versuchsreihe docs/modifier-learning-findings.md
+    parser.add_argument(
+        "--objective",
+        choices=["mc", "bc", "dqn"],
+        default="mc",
+        help="mc: Regression auf posthoc_credit (Modell 1/2); bc: Imitation von heuristic_v1; dqn: Double DQN mit Zielnetz",
+    )
+    parser.add_argument("--init-seed", type=int, default=None, help="Zufall fuer Gewichte und Batches (Standard: --seed); --seed bestimmt den Validierungs-Split")
+    parser.add_argument("--no-run-weight", action="store_true", help="mc: jeden Schritt gleich gewichten statt run_weight = 1/Schritte")
+    parser.add_argument("--gamma", type=float, default=0.99, help="dqn: Discount pro Entscheidung")
+    parser.add_argument("--target-update-epochs", type=int, default=1, help="dqn: Zielnetz alle N Epochen aktualisieren")
+    parser.add_argument("--conservative-weight", type=float, default=0.0, help="dqn: Gewicht des konservativen Zusatz-Loss (CQL-Prinzip)")
+    parser.add_argument("--init-checkpoint", default=None, help="Gewichte aus diesem Checkpoint uebernehmen (gleiches Encoding noetig), z. B. BC vor DQN")
     args = parser.parse_args()
 
     random.seed(args.seed)
@@ -269,8 +387,32 @@ def main() -> None:
     encoder = FeatureEncoder.build(train_rows)
     train = build_tensors(train_rows, encoder, args.immediate_reward_weight)
     validation = build_tensors(validation_rows, encoder, args.immediate_reward_weight) if validation_rows else None
+    # Gabelungen immer bestimmen: die Paar-Trefferquote auf den Validierungs-Seeds ist auch ohne Paar-Loss ein
+    # Diagnosewert (ordnet das Modell Zweige im selben State richtig?).
+    train_pairs_raw, train_divergences = find_branch_pairs(train_rows)
+    validation_pairs_raw, validation_divergences = find_branch_pairs(validation_rows)
+    train_pairs = build_pair_tensors(train_pairs_raw, encoder) if train_pairs_raw else None
+    validation_pairs = build_pair_tensors(validation_pairs_raw, encoder) if validation_pairs_raw else None
+    print(json.dumps({
+        "branch_pairs_train": len(train_pairs_raw),
+        "branch_pairs_validation": len(validation_pairs_raw),
+        "state_divergences": train_divergences + validation_divergences,
+    }))
+    if args.pairwise_weight > 0 and train_pairs is None:
+        raise ValueError("--pairwise-weight > 0, but the training data has no branch points")
 
+    if args.no_run_weight:
+        train = (*train[:4], torch.ones_like(train[4]))
+        if validation is not None:
+            validation = (*validation[:4], torch.ones_like(validation[4]))
+
+    torch.manual_seed(args.init_seed if args.init_seed is not None else args.seed)
     model = CandidateScorer(encoder.state_dim, encoder.candidate_dim, len(encoder.item_vocab), hidden=args.hidden)
+    if args.init_checkpoint:
+        initial = torch.load(args.init_checkpoint, map_location="cpu", weights_only=False)
+        if initial["encoder"] != encoder.to_json():
+            raise ValueError("--init-checkpoint uses a different encoding (item vocabulary or families)")
+        model.load_state_dict(initial["model_state"])
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
     def evaluate(tensors) -> Dict[str, float]:
@@ -288,7 +430,28 @@ def main() -> None:
     history = []
     started = time.time()
     count = train[0].shape[0]
-    for epoch in range(1, args.epochs + 1):
+
+    def log_epoch(epoch: int, entry: dict) -> None:
+        if epoch == 1 or epoch % 5 == 0 or epoch == args.epochs:
+            print(json.dumps(entry))
+
+    if args.objective == "bc":
+        history = train_bc(model, optimizer, train_rows, validation_rows, encoder, args.epochs, args.batch_size, log_epoch)
+    elif args.objective == "dqn":
+        history = train_dqn(
+            model,
+            optimizer,
+            train_rows,
+            validation_rows,
+            encoder,
+            args.epochs,
+            args.batch_size,
+            args.gamma,
+            args.target_update_epochs,
+            args.conservative_weight,
+            log_epoch,
+        )
+    for epoch in range(1, args.epochs + 1 if args.objective == "mc" else 1):
         model.train()
         order = torch.randperm(count)
         total = 0.0
@@ -296,6 +459,10 @@ def main() -> None:
             index = order[start:start + args.batch_size]
             prediction = model(train[0][index], train[1][index], train[2][index])
             loss = weighted_mse(prediction, train[3][index], train[4][index])
+            if args.pairwise_weight > 0:
+                pair_count = train_pairs[0].shape[0]
+                pair_index = torch.randint(0, pair_count, (min(args.batch_size, pair_count),))
+                loss = loss + args.pairwise_weight * pairwise_loss(model, train_pairs, pair_index)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -303,9 +470,14 @@ def main() -> None:
         entry = {"epoch": epoch, "train_loss": total / count}
         if validation is not None:
             entry.update({f"val_{key}": value for key, value in evaluate(validation).items()})
+        if validation_pairs is not None:
+            model.eval()
+            entry["val_pair_accuracy"] = pairwise_accuracy(model, validation_pairs)
+        if train_pairs is not None:
+            model.eval()
+            entry["train_pair_accuracy"] = pairwise_accuracy(model, train_pairs)
         history.append(entry)
-        if epoch == 1 or epoch % 5 == 0 or epoch == args.epochs:
-            print(json.dumps(entry))
+        log_epoch(epoch, entry)
 
     os.makedirs(args.output_dir, exist_ok=True)
     checkpoint_path = os.path.join(args.output_dir, "modifier-candidate-model.pt")
@@ -330,6 +502,8 @@ def main() -> None:
         "validation_rows": len(validation_rows),
         "train_seeds": len({row["seed"] for row in train_rows}),
         "validation_seeds": validation_seeds,
+        "branch_pairs_train": len(train_pairs_raw),
+        "branch_pairs_validation": len(validation_pairs_raw),
         "item_vocab_size": len(encoder.item_vocab),
         "state_dim": encoder.state_dim,
         "candidate_dim": encoder.candidate_dim,
@@ -341,6 +515,14 @@ def main() -> None:
             "hidden": args.hidden,
             "immediate_reward_weight": args.immediate_reward_weight,
             "seed": args.seed,
+            "pairwise_weight": args.pairwise_weight,
+            "objective": args.objective,
+            "init_seed": args.init_seed,
+            "no_run_weight": args.no_run_weight,
+            "gamma": args.gamma,
+            "target_update_epochs": args.target_update_epochs,
+            "conservative_weight": args.conservative_weight,
+            "init_checkpoint": args.init_checkpoint,
         },
         "train_seconds": round(time.time() - started, 1),
         "history": history,
