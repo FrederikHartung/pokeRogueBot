@@ -696,3 +696,37 @@ Kurzfazit:
 - Rivale 2 (W25) ueberlebt das Modell haeufiger (9/14 gegen 7/17), erreicht ihn aber seltener; bei so kleinen Zahlen ist das kein belastbarer Befund.
 - Einschraenkungen: 50 Seeds, KI gegen `heuristic_v1` rund +-2,5 Wellen breit; kleine Unterschiede sind damit nicht messbar. Die Modell-Runs liefen teils lokal (macOS), teils auf dem Server; das Spiel ist pro Seed deterministisch, kleine Gleitkommaunterschiede der Kampf-Inferenz zwischen Rechnern sind nicht ausgeschlossen.
 - Naechster Schritt: Modell 2 mit 48 + 52 Trainings-Seeds, gleicher Benchmark.
+
+## Run 24
+
+- Laufnummer: 24
+- Benchmark-Typ: modifier (`docs/modifier-benchmark-design.md`)
+- Datum: 2026-10-16, Commit `cdf0d9f` (Branch `feature/modifier-v1`), komplett auf dem Server
+- Vergleich: zweites Modifier-Modell `model_v2` (Policy `model_v1`, Checkpoint `data/rl/models/modifier-candidate-v1-100seeds`) gegen Modell 1 (Run 23), `heuristic_v1` und `random_executable` (Run 22), gepaart auf denselben Test-Seeds
+- Modell: gleiche Architektur und Hyperparameter wie Modell 1 (10 Epochen), Daten verdoppelt: 100 Trainings-Seeds aus `heuristic_mix_v1` (48 aus `50seeds-8runs` ohne s13/s22, 52 aus `52seeds-8runs`), 17.095 Zeilen. Validierung 0,548 gegen 0,655 (Mittelwert-Baseline), Pearson 0,44; nur Trainingsstabilitaet, kein Qualitaetsbeleg.
+- Seeds und Bedingungen wie Run 22/23: `modifier-strategic-eval-s1` bis `s50`, 1 Run pro Seed, `max_waves` 50, Kaufgrenze 3, Reroll aus, Kampf `dqn-combat-wave-library-random-valid-action-v3-w1-24-50ep.pt`
+- Config: `data/rl/modifier-benchmark-eval-50seeds-model-v1-100seeds.json`
+- Laufzeit: rund 78 min (Parallelitaet 3)
+- Technische Abbrueche: 0
+
+Ergebnisse:
+
+| Policy | Runs | Welle Mittel | Median | Min-Max | Rivale W8 ueberlebt | Rivale W25 ueberlebt | Baelle/Lockmittel unter Gratis-Picks | Geld am Ende |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Modell 2 (100 Seeds) | 50 | 17.96 | 17.5 | 7-50 | 66 % (33/50) | 71 % (12/17) | 30 % | 309 |
+| Modell 1 (48 Seeds, Run 23) | 50 | 19.04 | 19.0 | 7-49 | 82 % (41/50) | 64 % (9/14) | 18 % | 537 |
+| `heuristic_v1` (Run 22) | 49 | 18.86 | 19.0 | 7-49 | 78 % (38/49) | 41 % (7/17) | 7 % | 414 |
+| `random_executable` (Run 22) | 46 | 15.87 | 16.5 | 7-29 | 80 % (37/46) | 27 % (3/11) | 44 % | 414 |
+
+Gepaart (Modell 2 minus ...):
+
+- Modell 1 (50 Seeds): `-1.08` Wellen, 95-%-KI `[-3.96, 1.72]`, besser / gleich / schlechter `13 / 19 / 18`. Kein klarer Unterschied.
+- `heuristic_v1` (49 Seeds): `-0.82`, KI `[-3.16, 1.63]`, `10 / 20 / 19`. Kein klarer Unterschied.
+- `random_executable` (46 Seeds): `+2.11`, KI `[-0.39, 4.80]`, `19 / 16 / 11`. Kein klarer Unterschied (Modell 1 war hier klar besser).
+
+Kurzfazit:
+
+- Doppelt so viele Daten haben das Modell nicht verbessert, eher verschlechtert: Am ersten Rivalen (W8) scheitern deutlich mehr Runs (66 % gegen 82 %).
+- Ursache im Verhalten: In den Wellen 1-7 nimmt Modell 2 doppelt so oft Baelle (17 % gegen 8 % der Entscheidungen; `heuristic_v1` 1 %) und Lockmittel (9 % gegen 4 %), dafuer weniger X-Items (20 % gegen 30 %) und Beeren (8 % gegen 15 %). Baelle sind im Collector wirkungslos (Fangen aus).
+- Ursache im Lernsignal (Befund aus den Trainingsdaten): Der mittlere post-hoc Credit gewaehlter Gratis-Items unterscheidet sich zwischen den Familien kaum (Baelle 0,19, Beeren 0,19, Lockmittel 0,18, X-Items 0,25). Der Credit ist der Rang des ganzen Runs; der Effekt einer einzelnen Item-Wahl geht im Rauschen der Run-Ergebnisse unter. Das Modell lernt nur am gewaehlten Kandidaten und sieht keine Alternative im selben State. Mehr Daten derselben Art loesen das nicht.
+- Folgerung: Vor weiteren Datenmengen das Lernsignal verbessern (z. B. Vergleich von Runs desselben Seeds ab ihrer ersten abweichenden Entscheidung), nicht die Datenmenge.
