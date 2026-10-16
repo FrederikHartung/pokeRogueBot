@@ -61,12 +61,12 @@ interface RolloutCollectionConfig {
   combat_dqn_device?: string;
   combat_dqn_python?: string;
   /**
-   * Notausschalter: Abbruch, wenn nach mindestens 20 Versuchen dieser Anteil mit replay_divergence endete (Default
+   * Notausschalter: Abbruch, wenn nach mindestens 20 Jobs dieser Anteil mit replay_divergence endete (Default
    * 0,25). Einzelne Abweichungen kommen vor (Pilot 2026-10-16: Doppel- statt Einzelkampf bei gleichem State) und
    * werden wiederholt.
    */
   max_replay_divergence_share?: number;
-  /** Notausschalter: Abbruch, wenn nach mindestens 20 Runs dieser Anteil technisch scheiterte. */
+  /** Notausschalter: Abbruch, wenn nach mindestens 20 Jobs dieser Anteil technisch scheiterte (Endergebnis je Job). */
   max_technical_failure_share?: number;
 }
 
@@ -268,8 +268,8 @@ class CircuitBreaker {
     }
   }
 
-  counts(): { attempts: number; failed_attempts: number; replay_divergence_attempts: number } {
-    return { attempts: this.runs, failed_attempts: this.failures, replay_divergence_attempts: this.divergences };
+  counts(): { jobs: number; failed: number; replay_divergence: number } {
+    return { jobs: this.runs, failed: this.failures, replay_divergence: this.divergences };
   }
 }
 
@@ -381,15 +381,22 @@ async function main(): Promise<void> {
   // 3. Rollouts
   const results = new Map<string, JobResult[]>();
   const pending: Array<{ seed: string; job: RolloutJob; jobNumber: number }> = [];
+  const previouslyFailed: typeof pending = [];
+  let retryAttempts = 0;
   allJobs.forEach(({ seed, job }, index) => {
     const outputPath = path.join(seedPaths(outputRoot, seed).dir, "rollouts", `${job.job_id}.json`);
     const existing = readRunResult(outputPath);
     if (existing?.status === "regular") {
       results.set(seed, [...(results.get(seed) ?? []), { job, status: "regular", outcome: episodeOutcome(existing.episode as never) }]);
+    } else if (existing) {
+      // Schon einmal gescheitert (oft reproduzierbar): ans Ende, damit neue Jobs zuerst laufen und der
+      // Notausschalter nicht von bekannten Fehlern ausgeloest wird.
+      previouslyFailed.push({ seed, job, jobNumber: index + 1 });
     } else {
       pending.push({ seed, job, jobNumber: index + 1 });
     }
   });
+  pending.push(...previouslyFailed);
   console.log(`[modifier-rollout] Rollouts: ${allJobs.length - pending.length} vorhanden, ${pending.length} zu laufen`);
   let done = 0;
   await runPool(pending, config.parallelism, async ({ seed, job, jobNumber }) => {
@@ -405,17 +412,18 @@ async function main(): Promise<void> {
     };
     // Technische Fehler einmal wiederholen (Zeitueberschreitungen unter Last), replay_divergence bis zu zweimal:
     // die Abweichung ist nicht reproduzierbar, ein neuer Versuch folgt meist wieder der Referenz.
+    // Der Notausschalter zaehlt das Endergebnis je Job, nicht jeden Versuch.
     let result = await executeRun(config, request);
-    breaker.record(result);
     for (let attempt = 1; result.status === "failed" && !stopping; attempt += 1) {
       const maxRetries = result.reason.includes("replay_divergence") ? 2 : 1;
       if (attempt > maxRetries) {
         break;
       }
+      retryAttempts += 1;
       console.error(`[modifier-rollout] ${request.label} Wiederholung ${attempt} nach ${result.reason}`);
       result = await executeRun(config, request);
-      breaker.record(result);
     }
+    breaker.record(result);
     done += 1;
     const entry: JobResult = result.status === "regular"
       ? { job, status: "regular", outcome: episodeOutcome(result.episode as never) }
@@ -446,7 +454,7 @@ async function main(): Promise<void> {
   const summary = summarizeRolloutRecords(records);
   writeFileSync(
     path.join(outputRoot, "rollout-summary.json"),
-    `${JSON.stringify({ ...summary, run_attempts: breaker.counts(), failures, runtime_minutes: (Date.now() - startedAt) / 60000 }, null, 2)}\n`,
+    `${JSON.stringify({ ...summary, job_results: breaker.counts(), retry_attempts: retryAttempts, failures, runtime_minutes: (Date.now() - startedAt) / 60000 }, null, 2)}\n`,
     "utf8",
   );
   const markdown = formatRolloutSummary(summary);

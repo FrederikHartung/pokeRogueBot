@@ -1,6 +1,6 @@
 # Plan: Rollout-Daten fuer Modifier-Entscheidungen
 
-Stand: 2026-10-16. Status: **Schritte 3 und 4 umgesetzt** (Rollout-Collector, Orchestrierung, Rollout-Format; Doku: `docs/modifier-rollout-collection.md`). Offen: Profiling (1), State-Erweiterung (2), Pilot (5) und alles danach. Hintergrund und bisherige Befunde: `docs/modifier-learning-findings.md`.
+Stand: 2026-10-16. Status: **Schritte 3 und 4 umgesetzt** (Rollout-Collector, Orchestrierung, Rollout-Format; Doku: `docs/modifier-rollout-collection.md`). Pilot (5) gelaufen, Ergebnis in `docs/modifier-learning-findings.md`, Abschnitt 7. Offen: Profiling (1), State-Erweiterung (2), Entscheidung ueber den grossen Lauf (6) und alles danach. Hintergrund und bisherige Befunde: `docs/modifier-learning-findings.md`.
 
 ## 1. Ziel
 

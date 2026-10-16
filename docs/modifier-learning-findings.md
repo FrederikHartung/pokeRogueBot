@@ -72,7 +72,7 @@ Items wirken unterschiedlich lange: EP-Teiler, EP-Boost oder Sonderbonbonglas wi
 - Wir wuerden unsere eigenen Annahmen hineinschreiben; falsch gewaehlte Boni verzerren das Modell (Reward-Hacking).
 - Die Unterscheidung steckt schon im State: Ein EP-Teiler bleibt im Inventar (`global_items` bzw. getragene Items), eine benutzte Beere verschwindet. Ein Verfahren mit Bootstrapping (DQN) bewertet einen State ueber den Wert seines Nachfolgers. Fuehren States mit EP-Teiler weiter, traegt sich das ueber alle folgenden Entscheidungen bis zur Wahl zurueck; der Wert einer Beere endet nach dem naechsten Kampf.
 - Discounting ist dafuer nicht das Hindernis: `0.99^20 = 0,82`, fruehe Entscheidungen werden kaum abgewertet.
-- Meisterball und Meta-Progression haben in der Collector-Welt keinen Wert (Fangen aus, Ziel nur Wellen). Sollen sie zaehlen, muessen Fangen und ein Meta-Progressions-Anteil ins Ziel (offene Richtungsentscheidung, Abschnitt 7).
+- Meisterball und Meta-Progression haben in der Collector-Welt keinen Wert (Fangen aus, Ziel nur Wellen). Sollen sie zaehlen, muessen Fangen und ein Meta-Progressions-Anteil ins Ziel (offene Richtungsentscheidung, Abschnitt 8).
 
 ## 5. Alternativen
 
@@ -140,7 +140,57 @@ Folgen, sobald die Kette auf dem Server abgeschlossen ist (`scripts/03-benchmark
 
 Naechster Schritt nach Versuchsreihe 1: Rollout-Daten, Plan in `docs/modifier-rollout-plan.md`.
 
-## 7. Offene Entscheidungen
+## 7. Rollout-Pilot (2026-10-16, lokal)
+
+Umsetzung: `docs/modifier-rollout-collection.md`. Config: `data/rl/modifier-rollout-pilot-5seeds.json`.
+- 5 Trainings-Seeds `modifier-rollout-train-s1..s5`, max_waves 50, keine Rerolls, Combat-Checkpoint wie bei den Benchmarks.
+- Pro Entscheidung der heuristic_v1-Referenz wurde jede Alternative bis zum Run-Ende ausgespielt.
+- Umfang: 220 Jobs, 216 regulaer, 4 reproduzierbare Harness-Timeouts. Das ergibt 148 ausgewertete Entscheidungen.
+- Laufzeit: rund 4 h auf dem Mac mit 10 parallelen Runs, einschliesslich zwei Neustarts.
+
+**Determinismus, gemessen mit je 4 Wiederholungen jeder Referenz mit identischen Entscheidungen:**
+- s1, s2, s3 und s5: 16 von 16 Wiederholungen identisch, jeder State-Hash gleich, gleiche Welle.
+- s4: 3 von 4 Wiederholungen wichen in Welle 35 ab (Doppel- statt Einzelkampf gegen ein Team-Grunt) und erreichten Welle 50 statt 48. In den Rollouts lag diese Stelle bei 4 von rund 20.
+- Folge fuer s4: Rollouts mit Verzweigung vor Schritt 42 sind fuer die Welle verrauscht. Ihr Ergebnis haengt auch von dieser Stelle ab.
+- Die Ursache ist nicht geklaert, Kandidaten in `docs/modifier-rollout-collection.md`, Abschnitt 7.
+- Fazit: Abgesehen von solchen Einzelstellen sind die Rollouts exakte Gegenproben fuer den jeweiligen Seed.
+
+**Ergebnisse ohne s4** (4 Seeds, 98 Entscheidungen, 142 Rollouts, Referenz im Mittel Welle 22,25):
+
+| Kennzahl | Wert |
+|---|---|
+| Entscheidungen, bei denen eine Alternative eine spaetere Welle erreicht | 9,2 % (Gewinn dann im Mittel +13,9 Wellen) |
+| Entscheidungen, bei denen jede Alternative schlechter ist | 16,3 % |
+| alle Alternativen gleich | 68,4 % |
+| beste einzelne Abweichung pro Seed | +14,0 Wellen im Mittel |
+
+- Mit s4 (alle 5 Seeds, 148 Entscheidungen) sind es 15,5 % / 17,6 % / 60,8 %. Die beste einzelne Abweichung bringt dann +11,6 Wellen.
+- Vorteil der Alternative nach Familie (ohne s4):
+  - Ball −1,33 (besser 3 %, schlechter 19 %)
+  - Lockmittel −1,09 (17 % / 48 %)
+  - `finish_shop` statt Kauf +1,22 (6 % / 0 %)
+  - Geld +2,70 (10 % / 0 %)
+  - X-Items −0,60 (10 % / 10 %)
+  - AP-Plus −4,00 und Ether/Elixier −3,75, beide nie besser
+- Kontrolle mit dem Ball (in der Collector-Welt wirkungslos, entspricht "Item der Heuristik weglassen"), alle 5 Seeds:
+  - X-Item weglassen: 5 von 22 schlechter, nie besser.
+  - Sonderbonbon weglassen: 5 von 19 schlechter, nie besser.
+  - Lockmittel, Ether und Elixier weglassen: deutlich schlechter.
+  - Beere weglassen: neutral (2 besser, 1 schlechter).
+  - Die Heuristik waehlt also ueberwiegend Items mit messbarem Nutzen.
+
+**Einordnung:**
+
+- Die Ergebnisse sind gestuft. Runs enden fast immer an denselben Stellen, z. B. auf s1 bei 19, 24, 29 oder 34 Wellen. Eine Entscheidung entscheidet daher meist nur, ob ein bestimmter Kampf spaeter verloren geht, und das in Stufen von mehreren Wellen.
+- Bessere Alternativen sind selten, aber wenn, dann gross. Beispiele: s1, Nugget statt EP-Teiler in Welle 3 ergibt Welle 51 statt 24. s3: 3 von 25 Alternativen erreichen Welle 35 oder 41 statt 13.
+  - Das sind fuer diesen Seed echte Effekte (die Wiederholungen sind deterministisch). Sie sehen aber chaotisch aus: Ein wirkungsloser Ball statt EP-Teiler bringt auf s1 ebenfalls +10 Wellen.
+  - Vermutlich wirkt die Wahl ueber eine geaenderte Kampfabfolge (Level, Wechsel, Zufallszahlen im Kampf) und nicht ueber den Wert des Items.
+- Fuer ein Modell zaehlt, was ueber Seeds hinweg im Mittel besser ist. Die Familienmittel zeigen hier kein Item, das die Heuristik systematisch zu selten waehlt. Einzig `finish_shop` und Geld liegen knapp im Plus, auf sehr kleiner Basis (18 bzw. 10 Rollouts).
+- **Vorlaeufiges Fazit:** heuristic_v1 liegt in dieser Collector-Welt nahe an dem, was einzelne Abweichungen im Mittel bringen. Der grosse Spielraum pro Seed (+14 Wellen) ist ueberwiegend seed-spezifisch.
+  - Ob ein Modell davon etwas verallgemeinern kann, laesst sich mit 5 Seeds nicht entscheiden.
+  - Fuer belastbare Familienmittel braucht es eher 50 oder mehr Seeds. Bei rund 45 Rollouts pro Seed und rund 7 min pro Rollout sind das grob 260 Run-Stunden: auf dem Mac (rund 8 Runs effektiv parallel) rund 1,5 Tage, auf dem Server (3 parallel) rund 3,5 Tage.
+
+## 8. Offene Entscheidungen
 
 - Soll die Collector-Welt Fangen und Mystery Encounters erlauben (naeher am Live-Spiel), und soll Meta-Progression ins Ziel? Davon haengen Action-Space (Baelle), State und alle weiteren Daten ab.
 - State-Erweiterung: physisch/speziell, Attacken (Staerke, Typ, Kategorie), Stats und Typen im Encoding, strukturierte Item-Merkmale statt nur Item-ID.
