@@ -44,9 +44,9 @@ node scripts/01-data-generation/pipeline/run-modifier-rollout-collection.ts data
 - `--stage reference` laesst nur die Referenzlaeufe laufen, `--stage jobs` erzeugt zusaetzlich die Jobs (nuetzlich fuer eine Kostenabschaetzung).
 - Wiederaufnehmbar: Vorhandene regulaere Outputs (Referenz und Rollouts) werden uebersprungen, fehlgeschlagene werden neu gestartet.
 - Jeder Run ist ein Aufruf des Strategic-Collector-Runners.
-  - Laeuft ein Run technisch fehl, wird er einmal wiederholt, ausser bei `replay_divergence`.
+  - Laeuft ein Run technisch fehl, wird er einmal wiederholt, nach `replay_divergence` bis zu zweimal (die Abweichung ist nicht reproduzierbar, siehe Abschnitt 7).
   - Logs bleiben nur bei Fehlern erhalten (`<seed>/logs/`).
-- Notausschalter: mehr als `max_replay_divergences` Abweichungen (Default 3) oder mehr als `max_technical_failure_share` technische Fehler nach mindestens 20 Runs (Default 10 %). Laufende Runs werden dann beendet.
+- Notausschalter, jeweils nach mindestens 20 Versuchen: Anteil `replay_divergence` ueber `max_replay_divergence_share` (Default 25 %) oder Anteil sonstiger technischer Fehler ueber `max_technical_failure_share` (Default 10 %). Laufende Runs werden dann beendet. `rollout-summary.json` zaehlt alle Versuche (`run_attempts`).
 - Ein Seed und alle seine Rollouts muessen auf demselben Rechner laufen.
 
 **Config-Felder:**
@@ -62,7 +62,7 @@ node scripts/01-data-generation/pipeline/run-modifier-rollout-collection.ts data
 | `max_shop_purchases_per_phase`, `max_rerolls_per_wave` | Default 3 bzw. 0, wie Runs 22-24 |
 | `step_timeout_ms`, `run_process_timeout_ms` | Default 15000 bzw. 2400000 |
 | `combat_dqn_checkpoint`, `combat_dqn_device`, `combat_dqn_python` | Combat-Policy, Defaults wie im Runner |
-| `max_replay_divergences`, `max_technical_failure_share` | Notausschalter |
+| `max_replay_divergence_share`, `max_technical_failure_share` | Notausschalter |
 
 **Ausgabe** unter `output_root`:
 
@@ -105,3 +105,14 @@ Ein Record pro Entscheidung der Referenz, fuer die mindestens ein Rollout regula
   - einen Rollout, der beim letzten Schritt die Referenzwahl nimmt: Hashes und Wahlen muessen identisch sein
   - einen Rollout mit echter Alternative
   - eine manipulierte Spec, die mit `replay_divergence` abbrechen muss
+
+## 7. Bekannte Grenzen
+
+- **Nicht vollstaendig deterministisch (Pilot 2026-10-16).** Auf `modifier-rollout-train-s4` wurde Welle 35, ein fester Kampf gegen ein Team-Grunt mit Slugma und Torkoal, in 4 von rund 20 Rollouts zum Doppelkampf. In der Referenz war es ein Einzelkampf.
+  - Die Rollouts hatten die Schritte 0-41 mit identischem Hash nachgespielt. Der Hash bei Schritt 42 wich trotzdem ab, und zwar viermal gleich.
+  - Die Ursache ist nicht geklaert. Vermutung: Der Harness-Code in `pokerogue/test/porubot/harness/battle-command-advance.ts` faehrt zeitabhaengig Recovery-Pfade (z. B. nach 250 ms festhaengender TurnInitPhase). Er koennte unter Last Zufallszahlen in anderer Menge verbrauchen, ohne dass sich der beobachtete State aendert.
+  - Folgen:
+    - Die Hash-Pruefung faengt solche Faelle vor der Verzweigung ab.
+    - Nach der Verzweigung kann derselbe Zufall das Ergebnis eines Rollouts zusaetzlich verrauschen.
+    - Zu klaeren vor dem grossen Lauf: wiederholte Referenzlaeufe pro Seed, um die Streuung bei gleichen Entscheidungen zu messen.
+- **Reproduzierbare Harness-Timeouts.** Manche Pfade enden auch bei Wiederholung mit `step_timeout` (z. B. `advance_double_combat_after_action`, `combat_turn_limit:200`). Diese Jobs fehlen im Datensatz und stehen in `failed_job_ids`.

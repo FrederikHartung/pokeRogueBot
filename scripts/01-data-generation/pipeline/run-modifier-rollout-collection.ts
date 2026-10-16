@@ -60,8 +60,12 @@ interface RolloutCollectionConfig {
   combat_dqn_checkpoint?: string;
   combat_dqn_device?: string;
   combat_dqn_python?: string;
-  /** Notausschalter: Abbruch, sobald so viele Rollouts mit replay_divergence endeten. */
-  max_replay_divergences?: number;
+  /**
+   * Notausschalter: Abbruch, wenn nach mindestens 20 Versuchen dieser Anteil mit replay_divergence endete (Default
+   * 0,25). Einzelne Abweichungen kommen vor (Pilot 2026-10-16: Doppel- statt Einzelkampf bei gleichem State) und
+   * werden wiederholt.
+   */
+  max_replay_divergence_share?: number;
   /** Notausschalter: Abbruch, wenn nach mindestens 20 Runs dieser Anteil technisch scheiterte. */
   max_technical_failure_share?: number;
 }
@@ -253,14 +257,19 @@ class CircuitBreaker {
         this.divergences += 1;
       }
     }
-    const maxDivergences = this.config.max_replay_divergences ?? 3;
-    if (this.divergences > maxDivergences) {
-      throw new Error(`circuit_breaker:replay_divergence:${this.divergences}>${maxDivergences}`);
+    const maxDivergenceShare = this.config.max_replay_divergence_share ?? 0.25;
+    if (this.runs >= 20 && this.divergences / this.runs > maxDivergenceShare) {
+      throw new Error(`circuit_breaker:replay_divergence:${this.divergences}/${this.runs}`);
     }
     const maxShare = this.config.max_technical_failure_share ?? 0.1;
-    if (this.runs >= 20 && this.failures / this.runs > maxShare) {
-      throw new Error(`circuit_breaker:technical_failures:${this.failures}/${this.runs}`);
+    const otherFailures = this.failures - this.divergences;
+    if (this.runs >= 20 && otherFailures / this.runs > maxShare) {
+      throw new Error(`circuit_breaker:technical_failures:${otherFailures}/${this.runs}`);
     }
+  }
+
+  counts(): { attempts: number; failed_attempts: number; replay_divergence_attempts: number } {
+    return { attempts: this.runs, failed_attempts: this.failures, replay_divergence_attempts: this.divergences };
   }
 }
 
@@ -394,13 +403,19 @@ async function main(): Promise<void> {
       policy: MODIFIER_ROLLOUT_POLICY,
       specPath: path.join(paths.dir, "specs", `${job.job_id}.json`),
     };
+    // Technische Fehler einmal wiederholen (Zeitueberschreitungen unter Last), replay_divergence bis zu zweimal:
+    // die Abweichung ist nicht reproduzierbar, ein neuer Versuch folgt meist wieder der Referenz.
     let result = await executeRun(config, request);
-    if (result.status === "failed" && !result.reason.includes("replay_divergence") && !stopping) {
-      // Zeitueberschreitungen unter Last sind meist voruebergehend: einmal wiederholen. Abweichungen nicht.
-      console.error(`[modifier-rollout] ${request.label} Wiederholung nach ${result.reason}`);
-      result = await executeRun(config, request);
-    }
     breaker.record(result);
+    for (let attempt = 1; result.status === "failed" && !stopping; attempt += 1) {
+      const maxRetries = result.reason.includes("replay_divergence") ? 2 : 1;
+      if (attempt > maxRetries) {
+        break;
+      }
+      console.error(`[modifier-rollout] ${request.label} Wiederholung ${attempt} nach ${result.reason}`);
+      result = await executeRun(config, request);
+      breaker.record(result);
+    }
     done += 1;
     const entry: JobResult = result.status === "regular"
       ? { job, status: "regular", outcome: episodeOutcome(result.episode as never) }
@@ -431,7 +446,7 @@ async function main(): Promise<void> {
   const summary = summarizeRolloutRecords(records);
   writeFileSync(
     path.join(outputRoot, "rollout-summary.json"),
-    `${JSON.stringify({ ...summary, failures, runtime_minutes: (Date.now() - startedAt) / 60000 }, null, 2)}\n`,
+    `${JSON.stringify({ ...summary, run_attempts: breaker.counts(), failures, runtime_minutes: (Date.now() - startedAt) / 60000 }, null, 2)}\n`,
     "utf8",
   );
   const markdown = formatRolloutSummary(summary);

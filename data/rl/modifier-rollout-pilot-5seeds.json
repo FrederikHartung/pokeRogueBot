@@ -12,6 +12,6 @@
   "run_process_timeout_ms": 2400000,
   "combat_dqn_checkpoint": "data/rl/models/dqn-combat-wave-library-random-valid-action-v3-w1-24-50ep.pt",
   "combat_dqn_device": "cpu",
-  "max_replay_divergences": 3,
+  "max_replay_divergence_share": 0.25,
   "max_technical_failure_share": 0.1
 }
