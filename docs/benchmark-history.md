@@ -634,3 +634,99 @@ Kurzfazit:
 - `a2-stable` und `a1a2-ep12` liegen praktisch gleichauf; die laengeren `20` Epochen bringen keinen messbaren Vorteil.
 - V3 main liefert mit demselben Collector exakt dieselben Zahlen wie in Run 20 (Win Rate, Avg Turns, Transitions); fuer deterministische Policies ist der Benchmark auf diesem Stand also reproduzierbar. Unterschiede von wenigen Siegen sind damit echte Unterschiede auf diesen `311` Szenarien, sagen aber noch nichts ueber Generalisierung auf andere Kaempfe.
 - Die Varianten unterscheiden sich in drei Stellschrauben zugleich (`lr`, Zielnetz, `gamma`); welche den Ausschlag gibt, ist nicht isoliert.
+
+## Run 22
+
+- Laufnummer: 22
+- Benchmark-Typ: modifier (`docs/modifier-benchmark-design.md`)
+- Datum: 2026-10-15, Commit `2ce6fb6` (Branch `feature/modifier-v1`)
+- Vergleich: Modifier-Policies `random_executable` gegen `heuristic_v1` im Strategic Collector, gepaart auf denselben Test-Seeds
+- Seeds: `modifier-strategic-eval-s1` bis `s50` (nie im Training), 1 Run pro Seed und Policy, `max_waves` 50, Kaufgrenze 3 pro Welle, Reroll aus
+- Kampf: `dqn-combat-wave-library-random-valid-action-v3-w1-24-50ep.pt` (CPU), Starter `wave_lib_w1_starters_v1`
+- Configs: `data/rl/modifier-benchmark-eval-50seeds-{heuristic-v1,random}.json`, Kette `scripts/03-benchmark/eval/run-modifier-benchmark-remote.sh`, Auswertung `scripts/03-benchmark/eval/compare-modifier-policies.ts`
+- Laufzeit: `heuristic_v1` 83 min, `random_executable` 64 min (Parallelitaet 3)
+- Technische Abbrueche: 1 (`heuristic_v1`) bzw. 4 (`random_executable`), alle derselbe Fall: Doppelkampf auf Welle 11, Haenger in `CheckSwitchPhase`/`MESSAGE` (`step_timeout:advance_double_combat_after_action`). Betroffene Runs fehlen in der Auswertung; gepaart bleiben 46 Seeds.
+
+Ergebnisse:
+
+| Policy | Runs | Welle Mittel | Median | Min-Max | Rivale W8 ueberlebt | Rivale W25 ueberlebt | HP vor W8 (von 3) | Baelle/Lockmittel unter Gratis-Picks |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `random_executable` | 46 | 15.87 | 16.5 | 7-29 | 80 % (37/46) | 27 % (3/11) | 2.89 | 44 % |
+| `heuristic_v1` | 49 | 18.86 | 19.0 | 7-49 | 78 % (38/49) | 41 % (7/17) | 2.97 | 7 % |
+
+Gepaart (`heuristic_v1` minus `random_executable`, 46 Seeds): `+3.04` Wellen, 95-%-KI per Bootstrap `[0.76, 5.46]`, besser / gleich / schlechter `20 / 19 / 7`. Urteil nach Entscheidungsregel: `heuristic_v1` klar besser.
+
+Kurzfazit:
+
+- Modifier-Entscheidungen haben messbaren Spielraum: Eine einfache feste Regel erreicht im Mittel rund 3 Wellen mehr als Zufall. Das rechtfertigt ein gelerntes Modifier-Modell; Messlatte fuer das Modell ist `heuristic_v1`, nicht `random`.
+- Der Vorteil entsteht nicht am ersten Rivalen (Welle 8, beide rund 80 %), sondern danach: Mehr Runs kommen bis Welle 25 und ueberstehen den zweiten Rivalen haeufiger. Die Heuristik nimmt fast keine wirkungslosen Items (7 % gegen 44 %) und investiert frueh in EP-Teiler, Sonderbonbons und getragene Items.
+- In 19 von 46 Seeds sind beide Policies gleich weit gekommen; dort entscheidet offenbar der Kampf, nicht die Item-Wahl.
+- Erster Lauf mit echten Seeds: Bis 2026-10-15 spielten alle Seeds dieselbe Welt (`docs/pokerogue-headless-test-harness-mechanics.md` 3.17); Ergebnisse vor diesem Lauf sind damit nicht vergleichbar.
+- Einschraenkungen: 50 Seeds und 1 `random`-Run pro Seed; der Doppelkampf-Haenger auf Welle 11 nimmt 5 Runs aus der Wertung. Behoben nach diesem Lauf in der Harness (`withIdlePhaseDriver`, Mechanik-Doku 3.18).
+
+## Run 23
+
+- Laufnummer: 23
+- Benchmark-Typ: modifier (`docs/modifier-benchmark-design.md`)
+- Datum: 2026-10-15/16, Commit `177b76f` (Branch `feature/modifier-v1`; s1-s28 lokal auf dem Stand davor mit identischem Collector-Code, s29-s50 auf dem Server)
+- Vergleich: erstes gelerntes Modifier-Modell `model_v1` gegen `heuristic_v1` und `random_executable` (Werte aus Run 22), gepaart auf denselben Test-Seeds
+- Modell: `data/rl/models/modifier-candidate-v1-48seeds` (Kandidaten-Bewertung, 10 Epochen, 48 Trainings-Seeds `modifier-strategic-mix-train-s*` aus `heuristic_mix_v1`, ohne s13/s22), Inferenz ueber `scripts/02-training/modifier/modifier_candidate_infer_worker.py`, gewaehlt wird der gueltige Kandidat mit dem hoechsten Wert
+- Seeds und Bedingungen wie Run 22: `modifier-strategic-eval-s1` bis `s50`, 1 Run pro Seed, `max_waves` 50, Kaufgrenze 3 pro Welle, Reroll aus, Kampf `dqn-combat-wave-library-random-valid-action-v3-w1-24-50ep.pt` (CPU)
+- Configs: `data/rl/modifier-benchmark-eval-50seeds-model-v1-48seeds.json` (lokal, s1-s28) und `...-48seeds-part2.json` (Server, s29-s50)
+- Laufzeit: lokal 28 Seeds in rund 50 min, Server 22 Seeds in rund 42 min (jeweils Parallelitaet 3)
+- Technische Abbrueche: 0 in der Wertung. Der lokale Lauf brach um 23:58 ab, weil der Mac in den Ruhezustand ging (Deckel zu, `pmset`-Log); die danach gestarteten Runs s29-s34 liefen in Prozess- bzw. Worker-Timeouts. Diese Seeds wurden auf dem Server komplett neu gespielt, die abgebrochenen Ausgaben sind nicht in der Wertung.
+
+Ergebnisse:
+
+| Policy | Runs | Welle Mittel | Median | Min-Max | Rivale W8 ueberlebt | Rivale W25 ueberlebt | HP vor W8 (von 3) | Baelle/Lockmittel unter Gratis-Picks | Geld am Ende |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `model_v1` | 50 | 19.04 | 19.0 | 7-49 | 82 % (41/50) | 64 % (9/14) | 3.00 | 18 % | 537 |
+| `heuristic_v1` | 49 | 18.86 | 19.0 | 7-49 | 78 % (38/49) | 41 % (7/17) | 2.97 | 7 % | 414 |
+| `random_executable` | 46 | 15.87 | 16.5 | 7-29 | 80 % (37/46) | 27 % (3/11) | 2.89 | 44 % | 414 |
+
+Gepaart:
+
+- `model_v1` minus `heuristic_v1` (49 Seeds): `+0.20` Wellen, 95-%-KI `[-2.33, 2.76]`, besser / gleich / schlechter `15 / 21 / 13`. Urteil: kein klarer Unterschied.
+- `model_v1` minus `random_executable` (46 Seeds): `+3.57` Wellen, 95-%-KI `[1.09, 6.07]`, `23 / 15 / 8`. Urteil: `model_v1` klar besser.
+
+Kurzfazit:
+
+- Das Modell lernt aus den Daten ein brauchbares Verhalten: klar besser als Zufall, im Mittel gleichauf mit `heuristic_v1`. Die Messlatte (`heuristic_v1` schlagen) ist nicht erreicht.
+- Es entscheidet anders als die Heuristik, nicht als Kopie: deutlich weniger Beeren (8 % gegen 18 % der Entscheidungen) und Sonderbonbons (7 % gegen 14 %), deutlich mehr Baelle (10 % gegen 2 %), mehr Geld und AP-Plus. Die Ball-Picks gelten in der Auswertung als wirkungslos (Fangen ist im Collector aus) und sind ein klarer Verbesserungspunkt.
+- Rivale 2 (W25) ueberlebt das Modell haeufiger (9/14 gegen 7/17), erreicht ihn aber seltener; bei so kleinen Zahlen ist das kein belastbarer Befund.
+- Einschraenkungen: 50 Seeds, KI gegen `heuristic_v1` rund +-2,5 Wellen breit; kleine Unterschiede sind damit nicht messbar. Die Modell-Runs liefen teils lokal (macOS), teils auf dem Server; das Spiel ist pro Seed deterministisch, kleine Gleitkommaunterschiede der Kampf-Inferenz zwischen Rechnern sind nicht ausgeschlossen.
+- Naechster Schritt: Modell 2 mit 48 + 52 Trainings-Seeds, gleicher Benchmark.
+
+## Run 24
+
+- Laufnummer: 24
+- Benchmark-Typ: modifier (`docs/modifier-benchmark-design.md`)
+- Datum: 2026-10-16, Commit `cdf0d9f` (Branch `feature/modifier-v1`), komplett auf dem Server
+- Vergleich: zweites Modifier-Modell `model_v2` (Policy `model_v1`, Checkpoint `data/rl/models/modifier-candidate-v1-100seeds`) gegen Modell 1 (Run 23), `heuristic_v1` und `random_executable` (Run 22), gepaart auf denselben Test-Seeds
+- Modell: gleiche Architektur und Hyperparameter wie Modell 1 (10 Epochen), Daten verdoppelt: 100 Trainings-Seeds aus `heuristic_mix_v1` (48 aus `50seeds-8runs` ohne s13/s22, 52 aus `52seeds-8runs`), 17.095 Zeilen. Validierung 0,548 gegen 0,655 (Mittelwert-Baseline), Pearson 0,44; nur Trainingsstabilitaet, kein Qualitaetsbeleg.
+- Seeds und Bedingungen wie Run 22/23: `modifier-strategic-eval-s1` bis `s50`, 1 Run pro Seed, `max_waves` 50, Kaufgrenze 3, Reroll aus, Kampf `dqn-combat-wave-library-random-valid-action-v3-w1-24-50ep.pt`
+- Config: `data/rl/modifier-benchmark-eval-50seeds-model-v1-100seeds.json`
+- Laufzeit: rund 78 min (Parallelitaet 3)
+- Technische Abbrueche: 0
+
+Ergebnisse:
+
+| Policy | Runs | Welle Mittel | Median | Min-Max | Rivale W8 ueberlebt | Rivale W25 ueberlebt | Baelle/Lockmittel unter Gratis-Picks | Geld am Ende |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Modell 2 (100 Seeds) | 50 | 17.96 | 17.5 | 7-50 | 66 % (33/50) | 71 % (12/17) | 30 % | 309 |
+| Modell 1 (48 Seeds, Run 23) | 50 | 19.04 | 19.0 | 7-49 | 82 % (41/50) | 64 % (9/14) | 18 % | 537 |
+| `heuristic_v1` (Run 22) | 49 | 18.86 | 19.0 | 7-49 | 78 % (38/49) | 41 % (7/17) | 7 % | 414 |
+| `random_executable` (Run 22) | 46 | 15.87 | 16.5 | 7-29 | 80 % (37/46) | 27 % (3/11) | 44 % | 414 |
+
+Gepaart (Modell 2 minus ...):
+
+- Modell 1 (50 Seeds): `-1.08` Wellen, 95-%-KI `[-3.96, 1.72]`, besser / gleich / schlechter `13 / 19 / 18`. Kein klarer Unterschied.
+- `heuristic_v1` (49 Seeds): `-0.82`, KI `[-3.16, 1.63]`, `10 / 20 / 19`. Kein klarer Unterschied.
+- `random_executable` (46 Seeds): `+2.11`, KI `[-0.39, 4.80]`, `19 / 16 / 11`. Kein klarer Unterschied (Modell 1 war hier klar besser).
+
+Kurzfazit:
+
+- Doppelt so viele Daten haben das Modell nicht verbessert, eher verschlechtert: Am ersten Rivalen (W8) scheitern deutlich mehr Runs (66 % gegen 82 %).
+- Ursache im Verhalten: In den Wellen 1-7 nimmt Modell 2 doppelt so oft Baelle (17 % gegen 8 % der Entscheidungen; `heuristic_v1` 1 %) und Lockmittel (9 % gegen 4 %), dafuer weniger X-Items (20 % gegen 30 %) und Beeren (8 % gegen 15 %). Baelle sind im Collector wirkungslos (Fangen aus).
+- Ursache im Lernsignal (Befund aus den Trainingsdaten): Der mittlere post-hoc Credit gewaehlter Gratis-Items unterscheidet sich zwischen den Familien kaum (Baelle 0,19, Beeren 0,19, Lockmittel 0,18, X-Items 0,25). Der Credit ist der Rang des ganzen Runs; der Effekt einer einzelnen Item-Wahl geht im Rauschen der Run-Ergebnisse unter. Das Modell lernt nur am gewaehlten Kandidaten und sieht keine Alternative im selben State. Mehr Daten derselben Art loesen das nicht.
+- Folgerung: Vor weiteren Datenmengen das Lernsignal verbessern (z. B. Vergleich von Runs desselben Seeds ab ihrer ersten abweichenden Entscheidung), nicht die Datenmenge.

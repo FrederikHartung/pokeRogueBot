@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { linkCombatObservationModule } from "../../01-data-generation/collector/combat-observation-module.ts";
+import { linkModifierObservationModule } from "../../01-data-generation/collector/combat-observation-module.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,6 +24,11 @@ const collectorVariant = "strategic_fixed_seed";
 const stepTimeoutMs = Number.parseInt(process.argv[10] ?? "", 10)
   || Number.parseInt(process.env.POKEROGUE_MODIFIER_STEP_TIMEOUT_MS ?? "", 10)
   || 15000;
+// Kaeufe pro SelectModifierPhase (modifier-v1, docs/modifier-state-v1-draft.md 2.4).
+const maxShopPurchases = Number.parseInt(process.env.POKEROGUE_MODIFIER_MAX_SHOP_PURCHASES ?? "", 10) || 3;
+// 0 ist erlaubt (Reroll aus), daher kein `|| 2`.
+const maxRerollsEnv = Number.parseInt(process.env.POKEROGUE_MODIFIER_MAX_REROLLS ?? "", 10);
+const maxRerollsPerWave = Number.isInteger(maxRerollsEnv) && maxRerollsEnv >= 0 ? maxRerollsEnv : 2;
 const runProcessTimeoutMs = Number.parseInt(process.argv[11] ?? "", 10)
   || Number.parseInt(process.env.POKEROGUE_MODIFIER_RUN_TIMEOUT_MS ?? "", 10)
   || 300000;
@@ -73,6 +78,15 @@ const pythonBin = pythonOverride
   ? (path.isAbsolute(pythonOverride) ? pythonOverride : pythonOverride)
   : resolveFirstExisting(defaultPythonCandidates) ?? "python3";
 const combatInferWorkerScript = path.join(repoRoot, "scripts", "02-training", "inference", "dqn_policy_infer_worker.py");
+// Modifier-Modell fuer die Policy model_v1 (Pipeline-Config `modifier_model_checkpoint`, gesetzt als Env).
+const modifierModelCheckpoint = process.env.POKEROGUE_MODIFIER_MODEL_CHECKPOINT
+  ? path.resolve(process.env.POKEROGUE_MODIFIER_MODEL_CHECKPOINT)
+  : "";
+const modifierModelWorkerScript = path.join(repoRoot, "scripts", "02-training", "modifier", "modifier_candidate_infer_worker.py");
+// Rollout-Auftrag fuer die Policy rollout_replay_v1 (docs/modifier-rollout-plan.md), gesetzt vom Rollout-Orchestrator.
+const modifierRolloutSpec = process.env.POKEROGUE_MODIFIER_ROLLOUT_SPEC
+  ? path.resolve(process.env.POKEROGUE_MODIFIER_ROLLOUT_SPEC)
+  : "";
 
 function cleanup(): void {
   try {
@@ -93,6 +107,17 @@ if (!combatCheckpoint || !existsSync(combatCheckpoint)) {
 }
 if (!existsSync(combatInferWorkerScript)) {
   throw new Error(`Combat DQN worker script not found: ${combatInferWorkerScript}`);
+}
+if (modifierPolicy === "model_v1" && (!modifierModelCheckpoint || !existsSync(modifierModelCheckpoint))) {
+  throw new Error(
+    `Modifier policy model_v1 needs an existing checkpoint in env POKEROGUE_MODIFIER_MODEL_CHECKPOINT (got: "${modifierModelCheckpoint}")`,
+  );
+}
+
+if (modifierPolicy === "rollout_replay_v1" && (!modifierRolloutSpec || !existsSync(modifierRolloutSpec))) {
+  throw new Error(
+    `Modifier policy rollout_replay_v1 needs an existing spec file in env POKEROGUE_MODIFIER_ROLLOUT_SPEC (got: "${modifierRolloutSpec}")`,
+  );
 }
 
 mkdirSync(path.dirname(outputPath), { recursive: true });
@@ -139,8 +164,11 @@ type CollectorPayload = {
   decision_rng_strategy: string;
   step_timeout_ms: number;
   modifier_policy: string;
+  max_shop_purchases_per_phase?: number;
+  max_rerolls_per_wave?: number;
   combat_dqn_checkpoint: string;
   combat_dqn_device: string;
+  modifier_model_checkpoint?: string;
   generated_at: string;
   summary?: {
     average_wave_reached: number | null;
@@ -171,7 +199,12 @@ function buildTestSource(runOutputPath: string, runIndexOffset: number): string 
     .replaceAll("__COMBAT_DQN_DEVICE__", JSON.stringify(combatDevice))
     .replaceAll("__COMBAT_DQN_PYTHON__", JSON.stringify(pythonBin))
     .replaceAll("__COMBAT_DQN_WORKER_SCRIPT__", JSON.stringify(combatInferWorkerScript))
-    .replaceAll("__STEP_TIMEOUT_MS__", String(stepTimeoutMs));
+    .replaceAll("__MODIFIER_MODEL_CHECKPOINT__", JSON.stringify(modifierModelCheckpoint))
+    .replaceAll("__MODIFIER_MODEL_WORKER_SCRIPT__", JSON.stringify(modifierModelWorkerScript))
+    .replaceAll("__MODIFIER_ROLLOUT_SPEC_PATH__", JSON.stringify(modifierRolloutSpec))
+    .replaceAll("__STEP_TIMEOUT_MS__", String(stepTimeoutMs))
+    .replaceAll("__MAX_SHOP_PURCHASES__", String(maxShopPurchases))
+    .replaceAll("__MAX_REROLLS_PER_WAVE__", String(maxRerollsPerWave));
 }
 
 function isTechnicalTerminationReason(reason: string | undefined): boolean {
@@ -214,8 +247,8 @@ function runSingleCollectorBatch(runIndex: number): RunOutcome {
   const globalRunIndex = runIndexBase + runIndex;
 
   mkdirSync(runTempDir, { recursive: true });
-  // Gemeinsamer combat-v4-Builder neben den generierten Test (Import "#bot-ts/combat-observation").
-  const runTestSource = linkCombatObservationModule(buildTestSource(runOutputPath, globalRunIndex), runTempDir, repoRoot);
+  // Gemeinsame Builder (combat-v4, modifier-v1) neben den generierten Test (Imports "#bot-ts/...").
+  const runTestSource = linkModifierObservationModule(buildTestSource(runOutputPath, globalRunIndex), runTempDir, repoRoot);
   writeFileSync(runTempTestPath, runTestSource, { encoding: "utf8" });
 
   console.log(`[modifier-strategic-fixed-seed-runner] starting run ${runIndex + 1}/${runCount}`);
@@ -302,8 +335,11 @@ try {
     decision_rng_strategy: metadataPayload?.decision_rng_strategy ?? "seed_plus_run_index",
     step_timeout_ms: metadataPayload?.step_timeout_ms ?? stepTimeoutMs,
     modifier_policy: metadataPayload?.modifier_policy ?? modifierPolicy,
+    max_shop_purchases_per_phase: metadataPayload?.max_shop_purchases_per_phase ?? maxShopPurchases,
+    max_rerolls_per_wave: metadataPayload?.max_rerolls_per_wave ?? maxRerollsPerWave,
     combat_dqn_checkpoint: metadataPayload?.combat_dqn_checkpoint ?? combatCheckpoint,
     combat_dqn_device: metadataPayload?.combat_dqn_device ?? combatDevice,
+    ...(modifierPolicy === "model_v1" ? { modifier_model_checkpoint: modifierModelCheckpoint } : {}),
     generated_at: new Date().toISOString(),
     summary: {
       average_wave_reached: average(waves),

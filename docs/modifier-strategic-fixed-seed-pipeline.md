@@ -790,26 +790,21 @@ Wichtig:
 
 ### Seed-lokales Rank-Signal
 
-Der Phase-1-Vorschlag ist ein einfaches rank-basiertes Reward-Signal.
+Umgesetzt ist seit `modifier_training_transition_v4` ein stetiger seed-lokaler Score auf der Log-Skala (`rankScoresForSeed` in `scripts/90-dev/rl/build-modifier-strategic-training-transitions.ts`):
 
-Beispiel:
+- `rank_score = (ln(1 + wave_reached) - mean_seed) / max(std_seed, 0.1)`, gekappt auf `[-3, 3]`
+- `mean_seed` und `std_seed` (Populations-Standardabweichung) ueber `ln(1 + wave_reached)` der regulaeren Runs desselben Seeds
+- Log-Skala, weil die erreichten Wellen schief verteilt sind (viele Runs sterben am ersten Rivalen auf Welle 8, wenige kommen weit) und weil ein Schritt frueh mehr bedeutet als spaet (Welle 7 -> 8 mehr als 23 -> 24)
+- die Untergrenze 0,1 fuer die Streuung entspricht rund einer Welle um Welle 8-10 und verhindert, dass fast gleiche Runs auf die Kappung aufgeblasen werden
+- Gleichstaende bei `wave_reached` bekommen denselben Wert; `local_reward_sum` (geshapter Sofort-Reward) beeinflusst den Score nicht
+- bei nur einem Run pro Seed ist der Score immer `0`; `seed_run_count` in jeder Transition macht solche Seeds fuer das Training filterbar
+- `run_weight = 1 / Schritte des Runs`: Im Training zaehlt damit jeder Run gleich viel. Ohne Gewicht praegen lange Runs (bis ~34 Schritte) das Modell bis zu viermal so stark wie kurze (~9 Schritte)
 
-- oberes Segment eines Seeds: positives Signal
-- mittleres Segment: neutrales Signal
-- unteres Segment: negatives Signal
+Hinweis: In diesem Datensatz griff der Seed nicht (alle Seeds = Welt `"test"`, `docs/pokerogue-headless-test-harness-mechanics.md` 3.17); der seed-lokale Vergleich ist dort faktisch ein Vergleich innerhalb einer Welt. Seit `pinSceneSeed` (2026-10-15) erzeugen verschiedene Seeds verschiedene Welten.
 
-Eine moegliche erste praktische Einteilung:
+Wirkung auf den ersten v1-Datensatz (`modifier-strategic-seeded-remote-10seeds-20runs-wave30`, 200 Runs): Unter `v3` (lineare Wellen, Kappung +-2) lag der beste Run jedes Seeds auf `+2`, und 59 % der Transitions hatten positiven Credit (Mittel `+0,22`). Unter `v4` erreichen 3 von 200 Runs die Kappung, mit `run_weight` sind 48 % positiv und der gewichtete mittlere Credit liegt bei `-0,03`.
 
-- Top 20%: `+1.0`
-- mittlere 60%: `0.0`
-- untere 20%: `-1.0`
-
-Die genaue Prozentaufteilung ist spaeter feinjustierbar.
-
-Wichtig ist zunaechst nur:
-
-- gute Runs innerhalb desselben Seeds werden belohnt
-- schlechte Runs innerhalb desselben Seeds werden bestraft
+Bis `v2` galt eine grobe Einteilung (oberste 20 % `+1`, mittlere 60 % `0`, unterste 20 % `-1`, Gleichstaende ueber `completed_waves` und `local_reward_sum` aufgeloest). `v3` nutzte den z-Score der Welle selbst mit Untergrenze 1 und Kappung +-2.
 
 ### Step-Discounting innerhalb eines Runs
 
@@ -866,10 +861,9 @@ Diese Trennung ist wichtig:
 
 1. Worker-Outputs eines Seed-Blocks einlesen.
 2. Runs pro Seed gruppieren.
-3. Innerhalb jedes Seeds nach `wave_reached` ranken.
-4. `rank_score` pro Run berechnen.
-5. `rank_score` mit Discounting auf alle Modifier-Steps des Runs verteilen.
-6. Daraus ein trainierbares Step-Dataset schreiben.
+3. Innerhalb jedes Seeds `rank_score` pro Run aus `wave_reached` berechnen (z-Score, siehe oben).
+4. `rank_score` mit Discounting auf alle Modifier-Steps des Runs verteilen.
+5. Daraus ein trainierbares Step-Dataset schreiben.
 
 ### Geplantes Trainingsartefakt
 
@@ -884,12 +878,10 @@ Ein solcher Datensatz soll pro Zeile mindestens enthalten:
 - `run_index`
 - `step_index`
 - `collector_variant`
-- `state`
-- `action_mask`
-- `selected_action`
-- `selected_action_valid`
+- `decision_stage`, `state`, `candidates`, `selected_candidate_index` (aus `modifier-transition-v1`, seit `modifier_training_transition_v2`)
 - `posthoc_credit`
-- `rank_score`
+- `rank_score`, `seed_run_count`, `run_weight`
+- `immediate_reward` (Sofort-Reward aus `modifier-transition-v1`, getrennt vom post-hoc Credit)
 - `decision_rng_seed`
 - `wave_index`
 
@@ -968,6 +960,8 @@ Pflichtfelder im Top-Level:
 - `episodes`
 - `summary`
 
+Nur bei `modifier_policy: model_v1`: `modifier_model_checkpoint`.
+
 Pflichtfelder pro Episode:
 
 - `schema_version`
@@ -989,10 +983,11 @@ Pflichtfelder pro Step:
 - `decision_rng_seed`
 - `wave_index`
 - `combat_turns`
-- `modifier_decision`
-- `selected_action`
-- `selected_action_valid`
-- `immediate_reward`
+- `modifier_transition`: ein `modifier-transition-v1`-Datensatz (`docs/rl-schema/modifier-transition-v1.schema.json`) mit `decision_stage`, `state`, `candidates`, `selected_candidate_index` und `immediate_reward`; der Contract validiert ihn gegen das JSON-Schema und prueft, dass der gewaehlte Kandidat `mask = 1` hat
+
+Seit `modifier_strategic_fixed_seed_output_v2` (2026-10-14) gibt es pro `SelectModifierPhase` zwei Stufen: Shop-Entscheidungen (`buy_shop_item` / `finish_shop`, hoechstens `max_shop_purchases_per_phase` Kaeufe, Env `POKEROGUE_MODIFIER_MAX_SHOP_PURCHASES`, Standard 3) und danach die Gratis-Wahl (`take_reward` / `skip`; `skip` nur, wenn keine Belohnung waehlbar ist). Shop-Stufen, in denen nur `finish_shop` waehlbar waere, erzeugen keinen Step. `random_executable` wuerfelt erst gleichverteilt eine Wahl (Belohnung, Shop-Platz, `finish_shop`, `skip`), dann ein gueltiges Ziel. Aeltere `v1`-Outputs (durchnummerierte Aktionen) lehnt der Contract ab; ihnen fehlt der State.
+
+Reroll (seit 2026-10-14): `reroll` ist in der Gratis-Wahl ein eigener Kandidat. Der Collector fuehrt ihn ueber die untere Zeile der Shop-UI aus; danach beginnt eine neue `SelectModifierPhase` mit neuem Angebot, und es folgt wieder erst die Shop-Stufe. Hoechstens `max_rerolls_per_wave` Rerolls pro Welle (Env `POKEROGUE_MODIFIER_MAX_REROLLS`, Standard 2, `0` schaltet Reroll ab; danach `mask_reason: reroll_limit_reached`). Kaufgrenze und Reroll-Grenze gelten pro Welle, also ueber Rerolls hinweg. Ausgaben ohne `max_rerolls_per_wave` stammen von vor dem Reroll-Support (Reroll war dort mit `not_implemented_in_collector` gesperrt); der Contract akzeptiert beide. `toggle_lock_rarities` bleibt gesperrt.
 
 Wichtig fuer die Reproduzierbarkeit:
 

@@ -37,6 +37,7 @@
     "rl:eval:compare:wave-lib:v2:bootstrap": "python3 scripts/03-benchmark/eval/eval_policy_compare.py --collector-config ./data/rl/collector-run-benchmarked-wave-library-v2.json --checkpoint ./data/rl/models/dqn-combat-wave-library-bootstrap-combined-960.pt --report-path ./data/rl/combat/eval-policy-compare-wave-library-bootstrap-combined-960-report.json",
     "rl:smoke:tactical-harness": "node scripts/90-dev/rl/run-pokerogue-tactical-rl-sim-smoke.ts",
     "rl:smoke:modifier:fixed-seed": "node scripts/90-dev/rl/run-pokerogue-modifier-fixed-seed-collector.ts /tmp/modifier-fixed-seed-smoke.json modifier-fixed-seed 1 30 random_executable",
+    "rl:test:modifier:observation-v1": "node scripts/90-dev/rl/run-pokerogue-modifier-observation-v1-test.ts",
     "rl:test:modifier:target-mask": "node scripts/90-dev/rl/run-pokerogue-modifier-target-mask-test.ts",
     "rl:test:modifier:shop-target-mask": "node scripts/90-dev/rl/run-pokerogue-modifier-shop-target-mask-test.ts",
     "rl:test:modifier:memory-mushroom-mask": "node scripts/90-dev/rl/run-pokerogue-modifier-memory-mushroom-mask-test.ts",
@@ -65,7 +66,15 @@
     "rl:pipeline:learn": "node scripts/01-data-generation/pipeline/run-learn-pipeline.ts",
     "rl:test:porubot:regressions": "cd pokerogue && npx vitest run test/porubot/regressions",
     "dev:clean": "node scripts/90-dev/clean-temp-data.ts",
-    "ops:clean:pipeline-temp": "node scripts/04-automation/maintenance/clean-pipeline-temp-data.ts"
+    "ops:clean:pipeline-temp": "node scripts/04-automation/maintenance/clean-pipeline-temp-data.ts",
+    "rl:test:modifier:collector-actions": "node scripts/90-dev/rl/run-pokerogue-modifier-collector-actions-test.ts",
+    "rl:test:modifier:heuristic": "node --test scripts/90-dev/rl/modifier-heuristic-policy.test.ts",
+    "rl:test:modifier:benchmark-compare": "node --test scripts/03-benchmark/eval/compare-modifier-policies.test.ts",
+    "rl:test:modifier:branch-points": "node --test scripts/90-dev/rl/analyze-modifier-branch-points.test.ts",
+    "rl:test:modifier:rollout": "node --test scripts/90-dev/rl/modifier-rollout.test.ts scripts/90-dev/rl/modifier-rollout-records.test.ts",
+    "rl:test:modifier:rollout-replay": "node scripts/90-dev/rl/run-pokerogue-modifier-rollout-replay-test.ts",
+    "rl:pipeline:modifier:rollouts": "node scripts/01-data-generation/pipeline/run-modifier-rollout-collection.ts",
+    "rl:test:modifier:model-worker": ".venv/bin/python -m unittest discover -s scripts/02-training/modifier -p 'test_*.py'"
   },
   "devDependencies": {
     "@types/node": "^24.5.2",

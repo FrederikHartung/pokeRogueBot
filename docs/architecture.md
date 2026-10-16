@@ -43,6 +43,7 @@ Fehlerbehandlung: Bei Fehlern speichert der Bot und startet neu; Save-Slots roti
 - `tsconfig.json` spiegelt alle Pfad-Aliase von PokeRogue (`#app/*`, `#field/*`, `#data/*`, `#modifiers/*`, ...), damit transitive Typen aufloesen. Fuer volle Typaufloesung (z. B. Phaser): `cd pokerogue && pnpm install`.
 - esbuild bundelt jede TS-Datei auf oberster Ebene zu einer eigenstaendigen IIFE ohne `import`/`export`/`require`. Module unter `src/main/ts/lib/` sind keine eigenen Einstiegspunkte, sondern werden mitgebuendelt.
 - `src/main/ts/lib/combat-observation.ts` ist der einzige Builder fuer den Combat-State (combat-v4). Die Bridge (`combat.ts`, `window.poru.combat`) und beide Collector-Templates nutzen ihn; die Collector-Runner kopieren ihn neben den generierten Test (Alias `#bot-ts/*` in der Root-`tsconfig.json`).
+- `src/main/ts/lib/modifier-observation.ts` baut State und Kandidaten fuer modifier-v1 (`docs/modifier-state-v1-draft.md`); `src/main/ts/lib/modifier-collector-policy.ts` enthaelt die statischen Item-Regeln des Strategic Collectors. Beide werden wie der Combat-Builder neben die generierten Tests kopiert.
 - Selenium injiziert die Bridge in den Browser unter `window.poru.*` (z. B. `window.poru.uihandler`, `window.poru.util`). Die Bridge liest den Spielzustand nur, sie veraendert ihn nicht.
 - Manuell testbar in der Browser-Konsole, z. B. `window.poru.uihandler.getUiHandler(15)`.
 
@@ -56,6 +57,8 @@ Fehlerbehandlung: Bei Fehlern speichert der Bot und startet neu; Save-Slots roti
 
 - PokeRogue liegt als Submodul in `pokerogue/`; der bot-kompatible Stand ist der im Hauptrepo versionierte Submodul-Pointer (Custom-Fork auf Basis `v1.12.0.10`).
 - Der Bot erwartet eine lokale Instanz unter `http://localhost:8000/` (`cd pokerogue && npm run start:dev`) und die Spielsprache Englisch.
+- Die Kampf-Inferenz startet einen Python-Worker mit `bot.dqn.python-command` (Default `.venv/bin/python`, relativ zum Repo-Root). Die venv braucht `torch` (und `numpy`, sonst warnt torch beim Import). stdout traegt nur die JSON-Antworten; stderr des Workers landet zeilenweise als `DQN worker stderr` im Bot-Log.
+- Gratis-Belohnungen: Waehlt das Modifier-DQN `SKIP`, nimmt `FreeModifierFallback` das beste sicher anwendbare Gratis-Item (Details: `docs/modifier-state-v1-draft.md`, Abschnitt 6).
 
 ## Java -> Kotlin-Migration
 

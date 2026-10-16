@@ -292,6 +292,41 @@ Erkennbar ist das nur nachtraeglich ueber `hasLoggedTerminalPhaseSince` (die Adv
 
 **Belegt durch:** Replay `signature A` (`wild-w2-11610b8af6ec`, Gegner Abra mit Teleport) in `scripts/01-data-generation/collector/combat-collector-replays.test.ts`.
 
+### 3.16 Reroll in der `SelectModifierPhase` braucht einen neuen `to("SelectModifierPhase")`
+
+Ein Reroll (untere Zeile, Spalte 0 im `ModifierSelectUiHandler`) beendet die aktuelle `SelectModifierPhase` und schiebt eine neue mit `rerollCount + 1` ein. Die neue Phase wird "current", ihr `start()` laeuft aber erst ueber `phaseInterceptor.to(...)` (3.7). Ohne diesen Aufruf bleibt die UI in `MESSAGE` stehen, und der Collector lief in `step_timeout:execute_modifier_action`.
+
+Der Strategic Collector (`executeRerollAction` im Template) wartet deshalb, bis die alte Phase nicht mehr current ist, und ruft erst dann `waitForSelectModifierPhaseReady` auf (startet die neue Phase ueber `to("SelectModifierPhase")`). Vorher waere es ein zweiter Treiber, waehrend die alte Phase noch laeuft.
+
+**Belegt durch:** lokalen Collector-Lauf am 2026-10-14 (3 von 4 Runs mit Timeout vor dem Fix, 0 von 4 danach).
+
+### 3.17 `classicMode.startBattle` setzt den Seed auf `"test"` zurueck
+
+`game.override.seed(seed)` setzt `scene.seed`. `classicMode.startBattle` → `runToSummon` ruft danach im `TitlePhase`-Prompt `generateStarters` auf (`test/utils/game-manager-utils.ts`), und das setzt `scene.seed = "test"` hart, bevor die erste Welle erzeugt wird. Jeder Run mit `override.seed` vor `startBattle` spielt deshalb dieselbe Welt (Seed `"test"`), egal welcher Seed angefordert war. `vi.spyOn(activeOverrides, "SEED_OVERRIDE", "get")` hilft nicht, weil `generateStarters` den Wert direkt zuweist.
+
+Der Strategic Modifier Collector haelt den Seed deshalb fest (`pinSceneSeed` im Template): `override.seed`, danach eine Property auf `scene.seed`, die nur die Zuweisung `"test"` ignoriert; nach `startBattle` prueft er `scene.seed === SEED` und bricht sonst mit `seed_not_applied` ab.
+
+**Auswirkung:** Alle Strategic-Collector-Daten bis 2026-10-15 (u. a. `modifier-strategic-seeded-remote-10seeds-20runs-wave30`) stammen aus einer einzigen Welt; Unterschiede zwischen "Seeds" kamen nur aus dem Entscheidungs-Zufall (`decision_rng_seed`). Der Combat-Collector (`experience-collector.helpers.template.ts`, `startScenarioBattle`) ruft `generateStarters` ebenfalls auf. Dort setzen aber weder die Szenarien (`data/rl/scenarios/generated-wave-library-v3-w1-24`, kein `seed`) noch die Configs (`seeds`) einen Seed; alle Combat-Daten und -Benchmarks liefen deshalb deterministisch mit `"test"`, und das bleibt ohne Seed so. Wird ein Seed gesetzt, stellt `startScenarioBattle` ihn seit 2026-10-15 nach `generateStarters` wieder her (Pruefung `seed_not_applied`). Die Replays in `combat-collector-replays.test.ts` setzen `POKEROGUE_COMBAT_KEEP_HARNESS_SEED=1`, damit sie die aufgezeichneten Lagen exakt nachstellen.
+
+**Belegt durch:** Spieltest am 2026-10-15 (`scene.seed` nach `startBattle` bei zwei verschiedenen Seeds jeweils `"test"`, gleicher Gegner; mit `pinSceneSeed` verschiedene Angebote ab Welle 1, gleicher Seed reproduzierbar).
+
+### 3.18 Meldungen nach dem Rundenende ohne Treiber (`advanceCombatAfterAction`)
+
+Endet ein Feldeffekt am Rundenende ("The effects of Water Sport have faded."), steht nach `TurnEndPhase` eine `MessagePhase` an. `advanceCombatAfterAction` wartet in `waitForPromiseOrTerminal` auf `toEndOfTurn()`. Das ist schon erfuellt, aber die Schleife prueft zuerst `advanceCurrentUiPromptIfPossible`: Die UI steht auf `MESSAGE`, also drueckt sie ACTION und faengt von vorn an, ohne je `resolved` zu pruefen. Die `MessagePhase` selbst ist "current", aber nicht gestartet (Interceptor-State `idling`, siehe 3.7), endet also nie. Ergebnis: `step_timeout:advance_combat_after_action` in `MessagePhase`/`MESSAGE`.
+
+In der festen Welt `"test"` (3.17) kam diese Lage nie vor; mit echten Seeds traf sie im ersten Benchmark-Versuch 3 von 9 Runs (Wellen 3, 10, 15).
+
+Derselbe Mechanismus traf Doppelkaempfe: Nach dem Bosskampf und einem Biomwechsel blieben `ToggleDoublePositionPhase`, `CheckSwitchPhase`, `InitEncounterPhase` und `PostSummonPhase` innerhalb von `advanceDoubleCombatAfterAction` ungefahren (`step_timeout:advance_double_combat_after_action` in `CheckSwitchPhase`/`MESSAGE`, Modifier-Benchmark Run 22: 5 von 100 Runs auf Welle 11).
+
+**Fix in der Harness** (`test/porubot/harness/idle-phase-driver.ts`, seit 2026-10-15): `advanceCombatAfterAction` und `advanceDoubleCombatAfterAction` laufen in `withIdlePhaseDriver`. Ist eine Phase laenger als 500 ms "current", ohne dass ein `phaseInterceptor.to(...)` sie faehrt (Interceptor-State `idling`), faehrt der Driver genau diese Phase einmal mit `to(<Phasenname>)`. Phasen, die die Harness selbst bedient (`CommandPhase`, `TurnInitPhase`, `SelectModifierPhase`, `SwitchPhase`, `LearnMovePhase`, `SelectTargetPhase`, Kampf- und Spielende), fasst er nicht an. Der Collector-eigene Workaround (`withIdleMessagePhasePump`) ist damit entfallen.
+
+Zwei weitere Faelle aus dem Trainingslauf `50seeds-8runs-heuristic-mix` (2 von 400 Runs, beide Doppelkaempfe, beide lokal nicht reproduzierbar, also zeitabhaengig):
+
+- `LearnMovePhase` nach einem Level-Up blieb ungefahren (`resolveLearnMoveIfNeeded` bedient nur die Prompts einer gestarteten Phase). Seit Harness-Commit `f640523` faehrt der Driver auch sie; eine gestartete `LearnMovePhase` steht nie auf `idling`.
+- `SelectModifierPhase` nach `EggLapsePhase` blieb ungefahren; der Collector wartete vergeblich auf das Item-Menue (`Timed out waiting for modifier input readiness`). Die Advance-Funktionen sind da schon zurueckgekehrt (die Phase gilt ihnen als Kampfende). Der Strategic Collector startet sie deshalb selbst: Ist die `SelectModifierPhase` nach dem Kampf ungefahren (`isCurrentPhaseUndriven`), ruft er `waitForSelectModifierPhaseReady` auf.
+
+**Belegt durch:** Regressionstest `test/porubot/regressions/end-of-turn-message-needs-a-driver.test.ts` (Water Sport endet nach 5 Runden; ohne Driver `timeout`, mit Driver `ok`) sowie Repros von `modifier-strategic-eval-s12` (Welle 3) und `s27` (Doppelkampf Welle 11) am 2026-10-15.
+
 ## 4. Was `phaseInterceptor.to(target)` tatsaechlich garantiert - und was nicht
 
 ```ts

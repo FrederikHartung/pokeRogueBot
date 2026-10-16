@@ -90,6 +90,7 @@ Das Projekt: ein Bot, der das Browserspiel PokeRogue automatisiert (Spring Boot,
 | Wave-Library-Bootstrap | `scripts/01-data-generation/pipeline/run-wave-library-bootstrap-remote.sh` | `docs/combat-training-wave-library-v2.md` |
 | Offline-DQN-Training | `scripts/02-training/offline-dqn/run-train-dqn-offline-remote.sh` | `docs/combat-training-wave-library-v2.md` |
 | DQN-Benchmark-Vergleich | `scripts/03-benchmark/eval/run-dqn-benchmark-compare-remote.sh` | `docs/benchmark-history.md` |
+| Modifier-Benchmark (Policies auf denselben Test-Seeds, Ergebnis per Telegram) | `scripts/03-benchmark/eval/run-modifier-benchmark-remote.sh` (Kette ueber den Modifier-Helper; `start`, `status`, `logs`, `compare`) | `docs/modifier-benchmark-design.md` |
 
 - Gemeinsame Subkommandos: `start`, `status`, `logs`, `last`, `issues`, `notify-test`, `stop` (einige zusaetzlich `start-smoke`, der Modifier-Helper `quick-smoke`). Vor einem grossen Lauf nach Code- oder Submodul-Updates zuerst einen Smoke-Lauf machen.
 
@@ -127,7 +128,10 @@ Fallstricke auf dem Server:
 **Skripte und Pipeline (Node/TypeScript):**
 - `npm run typecheck:scripts`: prueft alle `scripts/**/*.ts` gegen die `#alias/*`-Pfad-Map der Root-`tsconfig.json` (siehe 7.)
 - `npm run rl:test:porubot:regressions`: Regressionstests im Submodul (vitest)
-- `npm run rl:test:policy-contract`, `npm run rl:test:modifier:strategic-contract`, `npm run rl:test:modifier:item-suite`: Contract- und Masking-Tests
+- `npm run rl:test:policy-contract`, `npm run rl:test:modifier:strategic-contract`, `npm run rl:test:modifier:item-suite`: Contract- und Masking-Tests. Die Item-Suite prueft zusaetzlich die Spalte `Strategic Collector` in `docs/select-modifier-shop-item-matrix.md` gegen `src/main/ts/lib/modifier-collector-policy.ts`; wer die Collector-Regeln aendert, zieht die Spalte mit.
+- `npm run rl:test:modifier:collector-actions`: gezielte Spieltests der Ausfuehrungspfade im Strategic Collector (z. B. Ether/AP-Items mit Attacken-Ziel), die in Zufallslaeufen zu selten vorkommen
+- `npm run rl:test:modifier:heuristic`, `npm run rl:test:modifier:benchmark-compare`: feste Modifier-Regel `heuristic_v1` und Auswertung des Modifier-Benchmarks
+- `npm run rl:test:modifier:observation-v1`: Spieltest des modifier-v1-Builders (`src/main/ts/lib/modifier-observation.ts`) inkl. Schema-Validierung
 - `npm run rl:test:pipeline:technical-failures`: Fehlererfassung beider Pipelines (Signaturen, Notausschalter)
 - `npm run rl:test:combat:collector-replays`: Replays frueherer Combat-Collector-Timeouts gegen den echten Collector (ca. 2-3 min)
 - Technischen Fehler aus einem Pipeline-Lauf nachstellen: `node scripts/01-data-generation/pipeline/repro-technical-failure.ts <collect_dataset/technical-failures/...json> [--repeat N]`
@@ -135,6 +139,8 @@ Fallstricke auf dem Server:
 
 **Training und Eval (Python):**
 - Repo-venv unter `.venv/` verwenden; die Remote-Helper nutzen sie automatisch.
+- Modifier-Modell (Kandidaten-Bewertung, modifier-v1): `.venv/bin/python scripts/02-training/modifier/train_modifier_candidate_model.py --input <transitions.jsonl> --output-dir <dir>` (Details im Docstring). Als Collector-Policy `model_v1` mit `collect.modifier_model_checkpoint`; Inferenz-Worker-Tests: `npm run rl:test:modifier:model-worker`. Lernziele `--objective mc|bc|dqn` (BC braucht `heuristic_candidate_index` aus `node scripts/90-dev/rl/annotate-modifier-heuristic-choice.ts <in> <out>`), Offline-Pruefung vor jedem Benchmark: `.venv/bin/python scripts/02-training/modifier/evaluate_modifier_model_offline.py --input <jsonl> --model <dir> ...`. Erkenntnisse und Versuchsreihen: `docs/modifier-learning-findings.md`
+- Rollout-Daten fuer Modifier-Entscheidungen (pro Entscheidung von heuristic_v1 jede Alternative bis zum Run-Ende ausspielen): `npm run rl:pipeline:modifier:rollouts -- <config.json> [--stage reference|jobs|all]`, Beispiel-Config `data/rl/modifier-rollout-pilot-5seeds.json`; Tests `npm run rl:test:modifier:rollout` (Unit) und `npm run rl:test:modifier:rollout-replay` (Spieltest, ca. 1,5 min). Plan: `docs/modifier-rollout-plan.md`, Umsetzung: `docs/modifier-rollout-collection.md`
 - Training: `npm run rl:train:dqn:wave-lib:v3` (bzw. `python3 scripts/02-training/offline-dqn/train_dqn_offline.py --config <config>`)
 - Eval: `npm run rl:eval:compare -- <args>`
 - Claude-Session als vierte Benchmark-Policy (einmal lokal erzeugen, dann per `--extra-baseline` einlesen; nur aus einem normalen Terminal, nicht aus einer Claude-Code-Session): `node scripts/03-benchmark/eval/run-claude-session-baseline.ts --model haiku --label <label>`, siehe `docs/claude-session-benchmark-policy.md`

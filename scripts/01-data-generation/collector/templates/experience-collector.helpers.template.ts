@@ -1086,6 +1086,9 @@ export function applyScenarioOverrides(
 
   if (effectiveSeed) {
     game.override.seed(effectiveSeed);
+    requestedSeeds.set(game, effectiveSeed);
+  } else {
+    requestedSeeds.delete(game);
   }
   if (Number.isFinite(waveIndex)) {
     game.override.startingWave(waveIndex);
@@ -1106,18 +1109,40 @@ export function applyScenarioOverrides(
   }
 }
 
+/**
+ * `generateStarters` (pokerogue/test/utils/game-manager-utils.ts) setzt `scene.seed` hart auf "test", nachdem
+ * `applyScenarioOverrides` den Szenario-Seed per `game.override.seed()` gesetzt hat. Ohne Wiederherstellung spielt jedes
+ * Szenario mit Seed "test" (Befund 2026-10-15, docs/pokerogue-headless-test-harness-mechanics.md 3.17).
+ * Wiederhergestellt wird nur ein ausdruecklich gesetzter Seed (Config `seeds` oder `scenario.seed`); ohne Seed bleibt
+ * es beim deterministischen "test", auf dem die bisherigen Combat-Daten und -Benchmarks beruhen.
+ * `POKEROGUE_COMBAT_KEEP_HARNESS_SEED=1` behaelt auch bei gesetztem Seed das alte Verhalten, damit die Replays frueherer
+ * Timeouts (combat-collector-replays.test.ts) exakt die damals aufgezeichnete Lage nachstellen.
+ */
+const KEEP_HARNESS_SEED = process.env.POKEROGUE_COMBAT_KEEP_HARNESS_SEED === "1";
+/** Von applyScenarioOverrides gesetzter Seed je GameManager. */
+const requestedSeeds = new WeakMap<GameManager, string>();
+
 export async function startScenarioBattle(game: GameManager, scenario: any, teamSpecies: number[]): Promise<void> {
+  const restoreSeed = KEEP_HARNESS_SEED ? null : (requestedSeeds.has(game) ? game.scene.seed : null);
   await game.runToTitle();
 
   game.onNextPrompt("TitlePhase", UiMode.TITLE, () => {
     game.scene.gameMode = getGameMode(GameModes.CLASSIC);
     const starters = generateStarters(game.scene, teamSpecies as any);
+    if (restoreSeed !== null) {
+      // Nur das Feld zuruecksetzen: die von setSeed abgeleiteten Werte (waveCycleOffset, offsetGym) stammen noch vom
+      // Szenario-Seed.
+      game.scene.seed = restoreSeed;
+    }
     const selectStarterPhase = new SelectStarterPhase();
     game.scene.phaseManager.pushPhase(new EncounterPhase(false));
     selectStarterPhase.initBattle(starters);
   });
 
   await game.phaseInterceptor.to("EncounterPhase", false);
+  if (restoreSeed !== null && game.scene.seed !== restoreSeed) {
+    throw new Error(`seed_not_applied:${game.scene.seed}`);
+  }
 
   prepareScenarioBattleBeforeEncounter(game, scenario);
   await advanceToFirstCommandPhase(game);

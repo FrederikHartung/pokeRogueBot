@@ -2,6 +2,22 @@ import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { validateModifierStrategicFixedSeedOutput } from "./modifier-strategic-fixed-seed-contract.ts";
 
+/**
+ * v2: State und Kandidaten aus modifier-transition-v1 statt Positions-Maske.
+ * v3: stetiger seed-lokaler rank_score (z-Score von wave_reached) statt +1/0/-1, dazu seed_run_count.
+ * v4: z-Score auf ln(1 + wave_reached) statt auf der Welle, Kappung +-3, dazu run_weight.
+ */
+export const MODIFIER_TRAINING_TRANSITION_SCHEMA_VERSION = "modifier_training_transition_v4";
+
+/** rank_score wird auf [-RANK_SCORE_CLIP, RANK_SCORE_CLIP] gekappt (docs/modifier-state-v1-draft.md, Abschnitt 5). */
+export const RANK_SCORE_CLIP = 3;
+
+/**
+ * Untergrenze der Streuung auf der Log-Skala. 0,1 entspricht rund einer Welle Unterschied um Welle 8-10 und verhindert,
+ * dass fast gleiche Runs auf die Kappung aufgeblasen werden.
+ */
+export const RANK_SCORE_MIN_LOG_SPREAD = 0.1;
+
 export interface PostprocessOptions {
   gamma?: number;
 }
@@ -20,15 +36,18 @@ export interface ModifierTrainingTransition {
   combat_dqn_checkpoint: string;
   decision_rng_seed: string;
   decision_rng_strategy: string;
+  decision_stage: string;
   state: Record<string, unknown>;
-  action_mask: number[];
-  selected_action: Record<string, unknown>;
-  selected_action_index: number;
-  selected_action_valid: boolean;
+  candidates: Array<Record<string, unknown>>;
+  selected_candidate_index: number;
   immediate_reward: number;
   wave_reached: number;
   termination_reason: string;
   rank_score: number;
+  /** Regulaere Runs dieses Seeds; bei 1 ist rank_score immer 0 und traegt kein Signal. */
+  seed_run_count: number;
+  /** 1 / Anzahl Schritte des Runs: im Training zaehlt so jeder Run gleich viel, unabhaengig von seiner Laenge. */
+  run_weight: number;
   distance_to_end: number;
   discount_factor: number;
   posthoc_credit: number;
@@ -42,10 +61,7 @@ interface NormalizedEpisode {
   worker_id: string;
   decision_rng_seed: string;
   wave_reached: number;
-  completed_waves: number;
   termination_reason: string;
-  local_reward_sum: number;
-  total_reward: number;
   steps: Array<Record<string, unknown>>;
   starter_config_id: string;
   combat_dqn_checkpoint: string;
@@ -117,10 +133,7 @@ function normalizeWorkerOutput(value: unknown): NormalizedOutput {
     worker_id: String(episode.worker_id ?? defaultWorkerId),
     decision_rng_seed: String(episode.decision_rng_seed),
     wave_reached: Number(episode.wave_reached),
-    completed_waves: Number(episode.completed_waves),
     termination_reason: String(episode.termination_reason),
-    local_reward_sum: Number(episode.local_reward_sum),
-    total_reward: Number(episode.total_reward),
     steps: (episode.steps as Array<Record<string, unknown>>).map(step => structuredClone(step)),
     starter_config_id: starterConfigId,
     combat_dqn_checkpoint: combatDqnCheckpoint,
@@ -149,35 +162,24 @@ function assertNoDuplicateRuns(episodes: NormalizedEpisode[]): void {
   }
 }
 
-function rankEpisodesForSeed(episodes: NormalizedEpisode[]): Array<{ episode: NormalizedEpisode; rank_score: number }> {
-  const sorted = [...episodes].sort((left, right) => {
-    if (right.wave_reached !== left.wave_reached) {
-      return right.wave_reached - left.wave_reached;
-    }
-    if (right.completed_waves !== left.completed_waves) {
-      return right.completed_waves - left.completed_waves;
-    }
-    if (right.local_reward_sum !== left.local_reward_sum) {
-      return right.local_reward_sum - left.local_reward_sum;
-    }
-    return left.run_index - right.run_index;
-  });
-
-  if (sorted.length === 1) {
-    return [{ episode: sorted[0]!, rank_score: 0 }];
+/**
+ * Seed-lokaler stetiger Score: z-Score von ln(1 + wave_reached) ueber die Runs desselben Seeds, gekappt auf [-3, 3].
+ * Die Log-Skala gewichtet fruehe Wellen staerker (Welle 7 -> 8 zaehlt mehr als 23 -> 24) und macht die schiefe
+ * Verteilung (viele fruehe Tode, wenige weite Runs) symmetrischer. Gleichstaende bekommen denselben Wert; der geshapte
+ * Sofort-Reward beeinflusst den Score nicht.
+ */
+export function rankScoresForSeed(wavesReached: number[]): number[] {
+  if (wavesReached.length === 0) {
+    return [];
   }
-
-  const edgeBucketSize = Math.max(1, Math.floor(sorted.length * 0.2));
-  const lastBottomIndex = sorted.length - edgeBucketSize;
-
-  return sorted.map((episode, index) => {
-    if (index < edgeBucketSize && index < lastBottomIndex) {
-      return { episode, rank_score: 1 };
-    }
-    if (index >= lastBottomIndex && index >= edgeBucketSize) {
-      return { episode, rank_score: -1 };
-    }
-    return { episode, rank_score: 0 };
+  const logWaves = wavesReached.map(wave => Math.log1p(Math.max(0, wave)));
+  const mean = logWaves.reduce((sum, value) => sum + value, 0) / logWaves.length;
+  const variance = logWaves.reduce((sum, value) => sum + (value - mean) ** 2, 0) / logWaves.length;
+  const scale = Math.max(Math.sqrt(variance), RANK_SCORE_MIN_LOG_SPREAD);
+  return logWaves.map(value => {
+    const score = (value - mean) / scale;
+    // +0 statt -0, damit JSON und Gleichheitsvergleiche stabil bleiben.
+    return Math.min(RANK_SCORE_CLIP, Math.max(-RANK_SCORE_CLIP, score)) + 0;
   });
 }
 
@@ -185,21 +187,20 @@ function buildTransition(
   episode: NormalizedEpisode,
   step: Record<string, unknown>,
   rankScore: number,
+  seedRunCount: number,
   gamma: number,
   collectorSchemaVersion: string,
 ): ModifierTrainingTransition {
   const stepIndex = Number(step.step_index);
-  const selectedAction = step.selected_action as Record<string, unknown>;
-  const modifierDecision = step.modifier_decision as Record<string, unknown>;
-  const actionMask = Array.isArray(modifierDecision.action_mask) ? (modifierDecision.action_mask as number[]) : [];
-  const selectedActionIndex = Number(selectedAction.action_index);
+  // modifier-transition-v1 (docs/rl-schema/modifier-transition-v1.schema.json), vom Contract bereits validiert.
+  const transition = step.modifier_transition as Record<string, unknown>;
   const lastStepIndex = episode.steps.length - 1;
   const distanceToEnd = Math.max(0, lastStepIndex - stepIndex);
   const discountFactor = Math.pow(gamma, distanceToEnd);
 
   return {
-    schema_version: "modifier_training_transition_v1",
-    training_schema_version: "modifier_training_transition_v1",
+    schema_version: MODIFIER_TRAINING_TRANSITION_SCHEMA_VERSION,
+    training_schema_version: MODIFIER_TRAINING_TRANSITION_SCHEMA_VERSION,
     collector_schema_version: collectorSchemaVersion,
     collector_variant: episode.collector_variant,
     seed: episode.seed,
@@ -211,15 +212,16 @@ function buildTransition(
     combat_dqn_checkpoint: episode.combat_dqn_checkpoint,
     decision_rng_seed: String(step.decision_rng_seed),
     decision_rng_strategy: episode.decision_rng_strategy,
-    state: structuredClone(modifierDecision),
-    action_mask: [...actionMask],
-    selected_action: structuredClone(selectedAction),
-    selected_action_index: selectedActionIndex,
-    selected_action_valid: Boolean(step.selected_action_valid),
-    immediate_reward: Number(step.immediate_reward),
+    decision_stage: String(transition.decision_stage),
+    state: structuredClone(transition.state as Record<string, unknown>),
+    candidates: structuredClone(transition.candidates as Array<Record<string, unknown>>),
+    selected_candidate_index: Number(transition.selected_candidate_index),
+    immediate_reward: Number(transition.immediate_reward),
     wave_reached: episode.wave_reached,
     termination_reason: episode.termination_reason,
     rank_score: rankScore,
+    seed_run_count: seedRunCount,
+    run_weight: 1 / episode.steps.length,
     distance_to_end: distanceToEnd,
     discount_factor: discountFactor,
     posthoc_credit: rankScore * discountFactor,
@@ -249,12 +251,12 @@ export function buildModifierStrategicTrainingTransitions(
 
   const transitions: ModifierTrainingTransition[] = [];
   for (const [, seedEpisodes] of groupBySeed(episodes)) {
-    const rankedEpisodes = rankEpisodesForSeed(seedEpisodes);
-    for (const { episode, rank_score } of rankedEpisodes) {
+    const rankScores = rankScoresForSeed(seedEpisodes.map(episode => episode.wave_reached));
+    seedEpisodes.forEach((episode, index) => {
       for (const step of episode.steps) {
-        transitions.push(buildTransition(episode, step, rank_score, gamma, collectorSchemaVersion));
+        transitions.push(buildTransition(episode, step, rankScores[index]!, seedEpisodes.length, gamma, collectorSchemaVersion));
       }
-    }
+    });
   }
 
   transitions.sort((left, right) => {

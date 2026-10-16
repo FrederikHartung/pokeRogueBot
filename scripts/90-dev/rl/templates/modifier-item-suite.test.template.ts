@@ -1,12 +1,17 @@
 import type { BattleScene } from "#app/battle-scene";
+import { getActionExecutability, type CollectorExecutability } from "#bot-ts/modifier-collector-policy";
+import { buildModifierObservation, itemIdOf, type ModifierCandidate } from "#bot-ts/modifier-observation";
+import { EvolutionItem } from "#balance/pokemon-evolutions";
 import { modifierTypes } from "#data/data-lists";
+import { FormChangeItem } from "#enums/form-change-item";
+import { PokemonType } from "#enums/pokemon-type";
 import { MoveId } from "#enums/move-id";
 import { Nature } from "#enums/nature";
 import { StatusEffect } from "#enums/status-effect";
 import { SpeciesId } from "#enums/species-id";
 import type { PlayerPokemon } from "#field/pokemon";
 import { Status } from "#data/status-effect";
-import { ModifierTypeOption } from "#modifiers/modifier-type";
+import { getPlayerShopModifierTypeOptionsForWave, ModifierTypeOption } from "#modifiers/modifier-type";
 import { generateModifierType } from "#mystery-encounters/encounter-phase-utils";
 import { GameManager } from "#test/framework/game-manager";
 import { initSceneWithoutEncounterPhase } from "#test/utils/game-manager-utils";
@@ -41,6 +46,13 @@ type ValidatedItemSummary = {
   item_id: string;
   target_type: "party" | "move";
   summary: string;
+};
+
+type CollectorExecutabilityEntry = {
+  item_id: string;
+  source: "reward" | "shop";
+  executable: boolean;
+  reason: string | null;
 };
 
 const OUTPUT_PATH = __OUTPUT_PATH__;
@@ -94,6 +106,42 @@ function buildMoveTargetSnapshot(option: ModifierTypeOption, pokemon: PlayerPoke
   });
 }
 
+/** take_reward-Kandidaten des modifier-v1-Builders fuer genau diese eine Option. */
+function v1RewardCandidates(option: ModifierTypeOption): ModifierCandidate[] {
+  return buildModifierObservation({
+    scene,
+    decisionStage: "reward",
+    rewardOptions: [option],
+    shopRows: [],
+    rerollCost: -1,
+    rerollCount: 0,
+    purchasesThisPhase: 0,
+  }).candidates.filter(candidate => candidate.kind === "take_reward");
+}
+
+/** Die v1-Kandidaten muessen dieselben Party-Ziele freigeben wie der selectFilter des Spiels. */
+function expectV1PartyMasks(option: ModifierTypeOption, targets: PartyTargetSnapshot[]): void {
+  const candidates = v1RewardCandidates(option);
+  expect(candidates.map(candidate => candidate.target_party_index)).toEqual(targets.map(target => target.target_party_index));
+  targets.forEach(target => {
+    const candidate = candidates.find(entry => entry.target_party_index === target.target_party_index);
+    expect(candidate?.mask).toBe(target.available ? 1 : 0);
+    if (!target.available) {
+      expect(candidate?.mask_reason).toMatch(/^select_filter:/);
+    }
+  });
+}
+
+/** Wie expectV1PartyMasks fuer Attacken-Ziele eines Party-Slots. */
+function expectV1MoveMasks(option: ModifierTypeOption, partyIndex: number, moveTargets: MoveTargetSnapshot[]): void {
+  const candidates = v1RewardCandidates(option).filter(candidate => candidate.target_party_index === partyIndex);
+  expect(candidates.map(candidate => candidate.target_move_index)).toEqual(moveTargets.map(target => target.move_index));
+  moveTargets.forEach(target => {
+    const candidate = candidates.find(entry => entry.target_move_index === target.move_index);
+    expect(candidate?.mask).toBe(target.available ? 1 : 0);
+  });
+}
+
 function expectOnlyAvailablePartyTarget(targets: PartyTargetSnapshot[], expectedTargetIndex: number): void {
   targets.forEach(target => {
     expect(target.available).toBe(target.target_party_index === expectedTargetIndex);
@@ -135,6 +183,7 @@ it.each(potionCases)("validates party target mask for $itemId", ({ itemId, optio
 
   const targets = party.map((pokemon, targetPartyIndex) => buildPartyTargetSnapshot(option(), pokemon, targetPartyIndex));
   expectOnlyAvailablePartyTarget(targets, 0);
+  expectV1PartyMasks(option(), targets);
   recordValidatedItem(itemId, "party", "nur verletztes, nicht fainted Pokemon darf gewaehlt werden");
 });
 
@@ -155,6 +204,7 @@ it.each(reviveCases)("validates party target mask for $itemId", ({ itemId, optio
 
   const targets = party.map((pokemon, targetPartyIndex) => buildPartyTargetSnapshot(option(), pokemon, targetPartyIndex));
   expectOnlyAvailablePartyTarget(targets, 1);
+  expectV1PartyMasks(option(), targets);
   recordValidatedItem(itemId, "party", "nur fainted Pokemon darf gewaehlt werden");
 });
 
@@ -162,6 +212,11 @@ it("validates direct no-target handling for SACRED_ASH", () => {
   const option = new ModifierTypeOption(modifierTypes.SACRED_ASH(), 0, 100);
   expect(typeof option.type.selectFilter).toBe("undefined");
   expect(typeof option.type.moveSelectFilter).toBe("undefined");
+  initStarterScene();
+  const candidates = v1RewardCandidates(option);
+  expect(candidates).toHaveLength(1);
+  expect(candidates[0]?.target_party_index).toBeUndefined();
+  expect(candidates[0]?.mask).toBe(1);
   recordValidatedItem("SACRED_ASH", "party", "globaler Revive ohne Party- oder Move-Zielauswahl");
 });
 
@@ -177,19 +232,19 @@ it("validates party target mask for FULL_HEAL", () => {
   charmander.hp = 0;
   charmander.status = new Status(StatusEffect.FAINT);
 
-  const targets = party.map((pokemon, targetPartyIndex) =>
-    buildPartyTargetSnapshot(new ModifierTypeOption(modifierTypes.FULL_HEAL(), 0, 100), pokemon, targetPartyIndex),
-  );
+  const option = new ModifierTypeOption(modifierTypes.FULL_HEAL(), 0, 100);
+  const targets = party.map((pokemon, targetPartyIndex) => buildPartyTargetSnapshot(option, pokemon, targetPartyIndex));
   expectOnlyAvailablePartyTarget(targets, 0);
+  expectV1PartyMasks(option, targets);
   recordValidatedItem("FULL_HEAL", "party", "nur Pokemon mit Statusproblem darf gewaehlt werden");
 });
 
 it("validates party target mask for RARE_CANDY", () => {
   const party = initStarterScene();
-  const targets = party.map((pokemon, targetPartyIndex) =>
-    buildPartyTargetSnapshot(new ModifierTypeOption(modifierTypes.RARE_CANDY(), 0, 0), pokemon, targetPartyIndex),
-  );
+  const option = new ModifierTypeOption(modifierTypes.RARE_CANDY(), 0, 0);
+  const targets = party.map((pokemon, targetPartyIndex) => buildPartyTargetSnapshot(option, pokemon, targetPartyIndex));
   targets.forEach(target => expect(target.available).toBe(true));
+  expectV1PartyMasks(option, targets);
   recordValidatedItem("RARE_CANDY", "party", "alle Party-Slots sind grundsaetzlich legale Ziele");
 });
 
@@ -211,9 +266,9 @@ it("validates party target mask for MINT", () => {
     throw new Error("Failed to generate deterministic ADAMANT mint");
   }
 
-  const targets = party.map((pokemon, targetPartyIndex) =>
-    buildPartyTargetSnapshot(new ModifierTypeOption(adamantMint, 0, 0), pokemon, targetPartyIndex),
-  );
+  const option = new ModifierTypeOption(adamantMint, 0, 0);
+  const targets = party.map((pokemon, targetPartyIndex) => buildPartyTargetSnapshot(option, pokemon, targetPartyIndex));
+  expectV1PartyMasks(option, targets);
 
   expect(targets[0]?.available).toBe(false);
   expect(targets[1]?.available).toBe(true);
@@ -236,6 +291,7 @@ it.each(elixirCases)("validates party target mask for $itemId", ({ itemId, optio
 
   const targets = party.map((pokemon, targetPartyIndex) => buildPartyTargetSnapshot(option(), pokemon, targetPartyIndex));
   expectOnlyAvailablePartyTarget(targets, 0);
+  expectV1PartyMasks(option(), targets);
   recordValidatedItem(itemId, "party", "nur Pokemon mit mindestens einem Move mit fehlender PP darf gewaehlt werden");
 });
 
@@ -255,6 +311,7 @@ it.each(etherCases)("validates move target mask for $itemId", ({ itemId, option 
   const moveTargets = buildMoveTargetSnapshot(option(), bulbasaur);
   expect(moveTargets[0]?.available).toBe(true);
   moveTargets.slice(1).forEach(target => expect(target.available).toBe(false));
+  expectV1MoveMasks(option(), 0, moveTargets);
   recordValidatedItem(itemId, "move", "nur Moves mit fehlender PP duerfen gewaehlt werden");
 });
 
@@ -281,7 +338,78 @@ it.each(ppUpCases)("validates move target mask for $itemId", ({ itemId, option }
   if (moveTargets[1]) {
     expect(moveTargets[1].available).toBe(false);
   }
+  expectV1MoveMasks(option(), 0, moveTargets);
   recordValidatedItem(itemId, "move", "nur Moves mit PP>=5 und noch nicht vollem PP-Up duerfen gewaehlt werden");
+});
+
+const collectorExecutability: CollectorExecutabilityEntry[] = [];
+const notGeneratedItemIds: string[] = [];
+
+function toExecutabilityEntry(
+  itemId: string,
+  source: "reward" | "shop",
+  result: CollectorExecutability,
+): CollectorExecutabilityEntry {
+  return { item_id: itemId, source, executable: result.executable, reason: result.reason ?? null };
+}
+
+// Generatoren, die mit der Starter-Party kein Item liefern, bekommen ein festes Beispiel.
+// RARE_FORM_CHANGE_ITEM mit DARK_STONE steht fuer Gruppe 2 (form_change_group2_todo).
+const PREGEN_ARGS: Record<string, unknown[]> = {
+  EVOLUTION_ITEM: [EvolutionItem.FIRE_STONE],
+  RARE_EVOLUTION_ITEM: [EvolutionItem.LINKING_CORD],
+  FORM_CHANGE_ITEM: [FormChangeItem.ABOMASITE],
+  RARE_FORM_CHANGE_ITEM: [FormChangeItem.DARK_STONE],
+  SPECIES_STAT_BOOSTER: ["METAL_POWDER"],
+  RARE_SPECIES_STAT_BOOSTER: ["LIGHT_BALL"],
+  TERA_SHARD: [PokemonType.FIRE],
+};
+
+it("blocks group 2 form change items in the strategic collector rules", () => {
+  initStarterScene();
+  const darkStone = generateModifierType(modifierTypes.RARE_FORM_CHANGE_ITEM, [FormChangeItem.DARK_STONE]);
+  const abomasite = generateModifierType(modifierTypes.FORM_CHANGE_ITEM, [FormChangeItem.ABOMASITE]);
+  if (!darkStone || !abomasite) {
+    throw new Error("Failed to generate form change items");
+  }
+  // Generierte Items tragen die Pool-id, nicht den Namen des Items.
+  expect(darkStone.id).toBe("RARE_FORM_CHANGE_ITEM");
+  expect(getActionExecutability("take_reward", { modifierTypeOption: new ModifierTypeOption(darkStone, 0) })).toEqual({
+    executable: false,
+    reason: "blocked_by_offline_modifier_policy:form_change_group2_todo",
+  });
+  expect(getActionExecutability("take_reward", { modifierTypeOption: new ModifierTypeOption(abomasite, 0) }).executable).toBe(true);
+});
+
+// Grundlage der Spalte "Strategic Collector" in docs/select-modifier-shop-item-matrix.md; der Runner gleicht sie ab.
+it("records strategic collector executability for every modifier type and shop item", () => {
+  initStarterScene();
+  for (const key of Object.keys(modifierTypes).sort()) {
+    let type: ReturnType<typeof generateModifierType> = null;
+    try {
+      type = generateModifierType(modifierTypes[key]!, PREGEN_ARGS[key]);
+    } catch {
+      type = null;
+    }
+    // Generatoren ohne passendes Ziel in dieser Party (z. B. Entwicklungs-Items) liefern kein Item.
+    if (!type) {
+      notGeneratedItemIds.push(key);
+      continue;
+    }
+    collectorExecutability.push(
+      toExecutabilityEntry(key, "reward", getActionExecutability("take_reward", { modifierTypeOption: new ModifierTypeOption(type, 0) })),
+    );
+  }
+
+  // Shop-Items entstehen ohne Pool-id; das prueft zugleich den localeKey-Pfad von Builder und Collector-Regeln.
+  const shopOptions = getPlayerShopModifierTypeOptionsForWave(201, 100);
+  expect(shopOptions.length).toBeGreaterThan(10);
+  for (const option of shopOptions) {
+    const itemId = itemIdOf(option.type);
+    expect(itemId).toMatch(/^[A-Z0-9_]+$/);
+    collectorExecutability.push(toExecutabilityEntry(itemId, "shop", getActionExecutability("buy_shop_item", { modifierTypeOption: option })));
+  }
+  expect(collectorExecutability.filter(entry => entry.source === "reward").length).toBeGreaterThan(50);
 });
 
 it("writes validated item summary", () => {
@@ -291,6 +419,8 @@ it("writes validated item summary", () => {
     JSON.stringify(
       {
         validated_items: validatedItems,
+        collector_executability: collectorExecutability,
+        not_generated_item_ids: notGeneratedItemIds,
       },
       null,
       2,

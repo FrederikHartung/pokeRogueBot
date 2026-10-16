@@ -1,0 +1,17 @@
+{
+  "seed_prefix": "modifier-rollout-train-s",
+  "seed_start_index": 1,
+  "seed_count": 5,
+  "output_root": "data/rl/modifier-rollouts/pilot-5seeds",
+  "max_waves": 50,
+  "parallelism": 10,
+  "max_alternatives": 5,
+  "max_shop_purchases_per_phase": 3,
+  "max_rerolls_per_wave": 0,
+  "step_timeout_ms": 15000,
+  "run_process_timeout_ms": 2400000,
+  "combat_dqn_checkpoint": "data/rl/models/dqn-combat-wave-library-random-valid-action-v3-w1-24-50ep.pt",
+  "combat_dqn_device": "cpu",
+  "max_replay_divergence_share": 0.25,
+  "max_technical_failure_share": 0.1
+}

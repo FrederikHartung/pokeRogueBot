@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://sfh.dev/pokerogue/rl-schema/modifier-transition-v1.schema.json",
   "title": "ModifierTransitionV1",
-  "description": "ENTWURF modifier-v1 (siehe docs/modifier-state-v1-draft.md). Eine Zeile pro Entscheidung in der SelectModifierPhase. Ersetzt als Step-Inhalt das freie Objekt modifier_decision im Strategic-Collector-Output und ist der state-Teil von modifier_training_transition. Noch nicht verbindlich.",
+  "description": "ENTWURF modifier-v1 (siehe docs/modifier-state-v1-draft.md). Eine Zeile pro Entscheidung in der SelectModifierPhase. state und candidates baut der gemeinsame Builder src/main/ts/lib/modifier-observation.ts; selected_candidate_index und immediate_reward ergaenzt der Collector. Noch nicht verbindlich.",
   "type": "object",
   "required": [
     "schema_version",
@@ -41,6 +41,10 @@
     }
   },
   "$defs": {
+    "binary": {
+      "type": "integer",
+      "enum": [0, 1]
+    },
     "status_effect": {
       "description": "StatusEffect 0..6 (NONE, POISON, TOXIC, PARALYSIS, SLEEP, FREEZE, BURN), wie combat-v4.",
       "type": "integer",
@@ -57,6 +61,160 @@
         "maximum": 18
       }
     },
+    "tier": {
+      "description": "ModifierTier 0 COMMON .. 4 MASTER, 5 LUXURY; -1 fuer Kandidaten ohne Item und Items ohne Tier.",
+      "type": "integer",
+      "minimum": -1,
+      "maximum": 5
+    },
+    "item_family": {
+      "description": "Grobe Wirkungsfamilie fuer das Encoding. Zuordnung ueber die Item-ID in modifier-observation.ts (itemFamilyOf).",
+      "enum": [
+        "heal_hp",
+        "heal_status",
+        "revive",
+        "revive_all",
+        "pp_restore",
+        "pp_up",
+        "level_up",
+        "level_up_all",
+        "base_stat_booster",
+        "temp_battle_booster",
+        "attack_type_booster",
+        "held_item",
+        "berry",
+        "evolution",
+        "form_change",
+        "nature",
+        "tm",
+        "remember_move",
+        "ball",
+        "lure",
+        "money",
+        "money_multiplier",
+        "exp_booster",
+        "exp_share",
+        "level_booster",
+        "berry_pouch",
+        "charm",
+        "voucher",
+        "battle_gimmick",
+        "lock_capsule",
+        "map",
+        "fusion",
+        "iv_scanner",
+        "extra_reward",
+        "other"
+      ]
+    },
+    "variant": {
+      "description": "Konkrete Variante generierter Items als Zahl (Enum-Wert): stat (BASE_STAT_BOOSTER, TEMP_STAT_STAGE_BOOSTER), move_type (ATTACK_TYPE_BOOSTER), berry_type (BERRY), nature (MINT), move_id (TM_*), evolution_item, form_change_item, pokeball_type und count (Baelle). Leer bei Items ohne Variante.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer"
+      }
+    },
+    "owned_item": {
+      "description": "Ein Item, das der Run schon hat: getragen (party_slots[].held_items) oder global (global_items).",
+      "type": "object",
+      "required": ["item_id", "item_family", "variant", "tier", "stacks", "max_stacks"],
+      "additionalProperties": false,
+      "properties": {
+        "item_id": {
+          "description": "ModifierType.id, gemeinsame Kennung mit Angebot und Kandidaten.",
+          "type": "string"
+        },
+        "item_family": {
+          "$ref": "#/$defs/item_family"
+        },
+        "variant": {
+          "$ref": "#/$defs/variant"
+        },
+        "tier": {
+          "$ref": "#/$defs/tier"
+        },
+        "stacks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_stacks": {
+          "description": "getMaxStackCount(); bei getragenen Items fuer genau dieses Pokemon.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "battles_remaining": {
+          "description": "Nur zeitlich begrenzte Items (LapsingPersistentModifier: X-Items, Lockmittel): getBattleCount() (zaehlt im Spiel herunter).",
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_battles": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "offer_item": {
+      "description": "Ein Eintrag des gesamten Angebots (Gratis-Belohnungen und Shop), unabhaengig von der Stufe.",
+      "type": "object",
+      "required": ["source", "item_id", "item_family", "variant", "tier", "upgrade_count", "cost"],
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "enum": ["reward", "shop"]
+        },
+        "reward_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "shop_row_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "shop_column_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "item_id": {
+          "type": "string"
+        },
+        "item_family": {
+          "$ref": "#/$defs/item_family"
+        },
+        "variant": {
+          "$ref": "#/$defs/variant"
+        },
+        "tier": {
+          "$ref": "#/$defs/tier"
+        },
+        "upgrade_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cost": {
+          "description": "ModifierTypeOption.cost (Shop); 0 fuer Gratis-Belohnungen.",
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "goal_profile": {
+      "description": "Ziel-Gewichte aus docs/strategy-roadmap.md (Run-Fortschritt vs. Meta-Wert). Vom Aufrufer gesetzt, Standard w_run=1, w_meta=0.",
+      "type": "object",
+      "required": ["w_run", "w_meta"],
+      "additionalProperties": false,
+      "properties": {
+        "w_run": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "w_meta": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
     "run_context": {
       "type": "object",
       "required": [
@@ -66,9 +224,11 @@
         "reroll_count",
         "lock_rarities",
         "shop_available",
-        "waves_until_next_trainer",
+        "purchases_this_phase",
         "waves_until_next_fixed_battle",
-        "waves_until_next_boss"
+        "waves_until_next_boss",
+        "party_luck",
+        "goal_profile"
       ],
       "additionalProperties": false,
       "properties": {
@@ -81,7 +241,7 @@
           "minimum": 0
         },
         "reroll_cost": {
-          "description": "getRerollCost(lockModifierTiers); -1, wenn Reroll in dieser Phase deaktiviert ist.",
+          "description": "SelectModifierPhase.getRerollCost(lockModifierTiers); -1, wenn Reroll in dieser Phase deaktiviert ist.",
           "type": "integer",
           "minimum": -1
         },
@@ -90,31 +250,37 @@
           "minimum": 0
         },
         "lock_rarities": {
-          "type": "integer",
-          "enum": [0, 1]
+          "$ref": "#/$defs/binary"
         },
         "shop_available": {
-          "description": "0 auf Waves mit waveIndex % 10 == 0 (Shop leer).",
-          "type": "integer",
-          "enum": [0, 1]
+          "description": "1, wenn der Shop mindestens ein Item anbietet.",
+          "$ref": "#/$defs/binary"
         },
-        "waves_until_next_trainer": {
-          "description": "Abstand zur naechsten Wave mit gameMode.isWaveTrainer, bei 30 gekappt.",
+        "purchases_this_phase": {
+          "description": "Kaeufe in dieser Belohnungsphase, ueber Rerolls hinweg (neue SelectModifierPhase mit gleichem Kampf); vom Aufrufer gezaehlt.",
           "type": "integer",
-          "minimum": 0,
-          "maximum": 30
+          "minimum": 0
         },
         "waves_until_next_fixed_battle": {
-          "description": "Abstand zur naechsten gameMode.isFixedBattle-Wave (Rivale, Evil-Team, Elite), bei 30 gekappt.",
+          "description": "Abstand zur naechsten festen Trainer-Wave (gameMode.isFixedBattle: Rivale, Evil-Team, Elite; dazu Arenaleiter-Waves wave % 30 == 20 bzw. 0 mit offsetGym), bei 30 gekappt. Zufaellige Trainer zaehlen nicht: gameMode.isWaveTrainer wuerfelt mit dem Spiel-RNG und darf vom Builder nicht aufgerufen werden.",
           "type": "integer",
-          "minimum": 0,
+          "minimum": 1,
           "maximum": 30
         },
         "waves_until_next_boss": {
-          "description": "Abstand zur naechsten Boss-Wave (waveIndex % 10 == 0), 1..10.",
+          "description": "Abstand zur naechsten Wave mit waveIndex % 10 == 0, 1..10.",
           "type": "integer",
           "minimum": 1,
           "maximum": 10
+        },
+        "party_luck": {
+          "description": "Summe getLuck() der kampffaehigen Pokemon, auf 0..14 gekappt (wie getPartyLuckValue, ohne Event-Boni).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 14
+        },
+        "goal_profile": {
+          "$ref": "#/$defs/goal_profile"
         }
       }
     },
@@ -128,20 +294,18 @@
         "level_ratio_to_cap",
         "status",
         "types",
+        "base_stat_total",
         "move_count",
         "min_pp_ratio",
-        "held_item_stacks",
-        "can_evolve_by_item"
+        "held_items"
       ],
       "additionalProperties": false,
       "properties": {
         "present": {
-          "type": "integer",
-          "enum": [0, 1]
+          "$ref": "#/$defs/binary"
         },
         "fainted": {
-          "type": "integer",
-          "enum": [0, 1]
+          "$ref": "#/$defs/binary"
         },
         "hp_ratio": {
           "type": "number",
@@ -153,7 +317,7 @@
           "minimum": 0
         },
         "level_ratio_to_cap": {
-          "description": "level / globalScene.getMaxExpLevel(); 0 fuer leere Slots.",
+          "description": "level / globalScene.getMaxExpLevel(); 0 fuer leere Slots. Kann ueber 1 liegen.",
           "type": "number",
           "minimum": 0
         },
@@ -162,6 +326,11 @@
         },
         "types": {
           "$ref": "#/$defs/type_ids"
+        },
+        "base_stat_total": {
+          "description": "Basiswertsumme der aktuellen Form (getSpeciesForm(true).getBaseStatTotal()); 0 fuer leere Slots.",
+          "type": "integer",
+          "minimum": 0
         },
         "move_count": {
           "type": "integer",
@@ -173,79 +342,17 @@
           "minimum": 0,
           "maximum": 1
         },
-        "held_item_stacks": {
-          "description": "Summe der Stacks aller PokemonHeldItemModifier dieses Pokemon.",
-          "type": "integer",
-          "minimum": 0
-        },
-        "can_evolve_by_item": {
-          "description": "1, wenn eine Item-Entwicklung fuer das aktuelle Level/die Form existiert (pokemonEvolutions mit item).",
-          "type": "integer",
-          "enum": [0, 1]
-        }
-      }
-    },
-    "inventory": {
-      "type": "object",
-      "required": [
-        "pokeball_counts",
-        "persistent_modifier_stacks",
-        "lure_waves_remaining",
-        "temp_battle_booster_waves_remaining"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "pokeball_counts": {
-          "description": "globalScene.pokeballCounts in der Reihenfolge POKEBALL, GREAT_BALL, ULTRA_BALL, ROGUE_BALL, MASTER_BALL.",
+        "held_items": {
           "type": "array",
-          "minItems": 5,
-          "maxItems": 5,
           "items": {
-            "type": "integer",
-            "minimum": 0
+            "$ref": "#/$defs/owned_item"
           }
-        },
-        "persistent_modifier_stacks": {
-          "description": "Stack-Anzahl globaler Run-Modifier (0, wenn nicht vorhanden).",
-          "type": "object",
-          "required": [
-            "EXP_SHARE",
-            "EXP_CHARM",
-            "SUPER_EXP_CHARM",
-            "AMULET_COIN",
-            "CANDY_JAR",
-            "BERRY_POUCH",
-            "HEALING_CHARM",
-            "CATCHING_CHARM",
-            "LOCK_CAPSULE",
-            "MEGA_BRACELET",
-            "DYNAMAX_BAND",
-            "TERA_ORB"
-          ],
-          "additionalProperties": {
-            "type": "integer",
-            "minimum": 0
-          }
-        },
-        "lure_waves_remaining": {
-          "description": "Restdauer aktiver DoubleBattleChanceBoosterModifier (Lures), 0 wenn keiner aktiv.",
-          "type": "integer",
-          "minimum": 0
-        },
-        "temp_battle_booster_waves_remaining": {
-          "description": "Maximale Restdauer aktiver X-Items / Dire Hit, 0 wenn keiner aktiv.",
-          "type": "integer",
-          "minimum": 0
         }
       }
     },
     "state": {
       "type": "object",
-      "required": [
-        "run",
-        "party_slots",
-        "inventory"
-      ],
+      "required": ["run", "party_slots", "global_items", "inventory", "offer"],
       "additionalProperties": false,
       "properties": {
         "run": {
@@ -259,17 +366,64 @@
             "$ref": "#/$defs/party_slot"
           }
         },
+        "global_items": {
+          "description": "Alle Run-weiten Modifier des Spielers (globalScene.modifiers ohne PokemonHeldItemModifier).",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/owned_item"
+          }
+        },
         "inventory": {
-          "$ref": "#/$defs/inventory"
+          "type": "object",
+          "required": ["pokeball_counts"],
+          "additionalProperties": false,
+          "properties": {
+            "pokeball_counts": {
+              "description": "globalScene.pokeballCounts in der Reihenfolge POKEBALL, GREAT_BALL, ULTRA_BALL, ROGUE_BALL, MASTER_BALL.",
+              "type": "array",
+              "minItems": 5,
+              "maxItems": 5,
+              "items": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "offer": {
+          "description": "Gesamtes Angebot: alle Gratis-Belohnungen und alle Shop-Items, in beiden Stufen.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/offer_item"
+          }
+        }
+      }
+    },
+    "candidate_effect": {
+      "description": "Effekt als Zahl, wo er sich ohne Spiel-RNG bestimmen laesst.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "hp_restore_ratio": {
+          "description": "Tatsaechlich geheilter Anteil der Max-KP des Ziels (Heilung) bzw. wiederhergestellter Anteil (Beleber).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "level_gain": {
+          "description": "Level pro Ziel (Sonderbonbon: 1 + Stacks des Sonderbonbon-Glases).",
+          "type": "integer",
+          "minimum": 0
+        },
+        "stab_match": {
+          "description": "Typ-Booster: 1, wenn der verstaerkte Typ ein Typ des Ziels ist.",
+          "$ref": "#/$defs/binary"
         }
       }
     },
     "candidate": {
       "type": "object",
-      "required": [
-        "kind",
-        "mask"
-      ],
+      "required": ["kind", "mask", "tier", "cost"],
       "additionalProperties": false,
       "properties": {
         "kind": {
@@ -277,11 +431,10 @@
           "enum": ["buy_shop_item", "finish_shop", "take_reward", "reroll", "toggle_lock_rarities", "skip"]
         },
         "mask": {
-          "type": "integer",
-          "enum": [0, 1]
+          "$ref": "#/$defs/binary"
         },
         "mask_reason": {
-          "description": "Grund fuer mask=0, z. B. insufficient_money, no_injured_pokemon, skip_while_free_reward, blocked_by_offline_modifier_policy:<grund>.",
+          "description": "Grund fuer mask=0: insufficient_money, missing_party_target, no_valid_move, skip_while_free_reward, requires_lock_capsule, reroll_unavailable, select_filter:<Text> bzw. move_select_filter:<Text> (uebersetzter Spieltext, nur Diagnose) oder ein Grund des Aufrufers (z. B. blocked_by_offline_modifier_policy:<grund>).",
           "type": "string"
         },
         "reward_index": {
@@ -297,67 +450,23 @@
           "minimum": 0
         },
         "item_id": {
-          "description": "Pool-ID (ModifierType.id), z. B. BERRY, TM_COMMON, EXP_SHARE.",
           "type": "string"
         },
         "item_family": {
-          "description": "Grobe Wirkungsfamilie fuer das Encoding (feste Liste, siehe Doku).",
-          "enum": [
-            "heal_hp",
-            "heal_status",
-            "revive",
-            "revive_all",
-            "pp_restore",
-            "pp_up",
-            "level_up",
-            "level_up_all",
-            "base_stat_booster",
-            "temp_battle_booster",
-            "attack_type_booster",
-            "held_item",
-            "berry",
-            "evolution",
-            "form_change",
-            "nature",
-            "tm",
-            "remember_move",
-            "ball",
-            "lure",
-            "money",
-            "money_multiplier",
-            "exp_booster",
-            "exp_share",
-            "level_booster",
-            "berry_pouch",
-            "charm",
-            "voucher",
-            "battle_gimmick",
-            "lock_capsule",
-            "map",
-            "fusion",
-            "iv_scanner",
-            "other"
-          ]
+          "$ref": "#/$defs/item_family"
         },
         "variant": {
-          "description": "Konkrete Variante generierter Items: stat (BASE_STAT_BOOSTER, TEMP_STAT_STAGE_BOOSTER), move_type (ATTACK_TYPE_BOOSTER), berry_type (BERRY), nature (MINT), move_id (TM_*), evolution_item (EVOLUTION_ITEM), form_change_item. Leer bei nicht generierten Items.",
-          "type": "object",
-          "additionalProperties": {
-            "type": ["integer", "string"]
-          }
+          "$ref": "#/$defs/variant"
         },
         "tier": {
-          "description": "ModifierTier 0 COMMON .. 4 MASTER; -1 fuer Nicht-Item-Kandidaten.",
-          "type": "integer",
-          "minimum": -1,
-          "maximum": 4
+          "$ref": "#/$defs/tier"
         },
         "upgrade_count": {
           "type": "integer",
           "minimum": 0
         },
         "cost": {
-          "description": "Tatsaechliche Kosten inkl. HealShopCostModifier; 0 fuer Gratis-Belohnungen, Reroll-Kosten bei reroll.",
+          "description": "Kosten in Geld: Shop-Preis, 0 fuer Gratis-Belohnungen, Reroll-Kosten bei reroll.",
           "type": "integer",
           "minimum": 0
         },
@@ -367,19 +476,23 @@
           "maximum": 5
         },
         "target_move_index": {
-          "description": "Fuer Ether/Max Ether/PP Up/PP Max bzw. die zu ersetzende Attacke bei TMs.",
+          "description": "Attacken-Ziel fuer Ether/Max Ether/PP Up/PP Max.",
           "type": "integer",
           "minimum": 0,
           "maximum": 3
         },
-        "target_current_stacks": {
-          "description": "Vorhandene Stacks desselben Items auf dem Ziel (Held Items) bzw. global.",
+        "owned_stacks": {
+          "description": "Vorhandene Stacks desselben Items (gleiche ID und Variante): auf dem Ziel bei Items zum Tragen, sonst global.",
           "type": "integer",
           "minimum": 0
         },
-        "target_max_stacks": {
+        "owned_max_stacks": {
+          "description": "Maximale Stacks, sofern das Item schon vorhanden ist (getMaxStackCount des vorhandenen Modifiers).",
           "type": "integer",
           "minimum": 0
+        },
+        "effect": {
+          "$ref": "#/$defs/candidate_effect"
         }
       }
     }

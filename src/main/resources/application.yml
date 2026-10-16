@@ -69,7 +69,7 @@ bot:
     snapshot-file-name: "productive-wave-snapshots-v1.jsonl"
     fingerprint-file-name: "productive-wave-fingerprints-v1.txt"
   dqn:
-    python-command: python3
+    python-command: .venv/bin/python # Repo-venv mit torch und numpy; relativ zum Startverzeichnis (Repo-Root)
     infer-script: scripts/02-training/inference/dqn_policy_infer_worker.py
     combat-checkpoint: data/rl/models/dqn-combat-wave-library-random-valid-action-6800-stable.pt
     device: cpu

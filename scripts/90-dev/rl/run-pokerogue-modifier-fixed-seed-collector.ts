@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { linkCombatObservationModule } from "../../01-data-generation/collector/combat-observation-module.ts";
+import { linkModifierObservationModule } from "../../01-data-generation/collector/combat-observation-module.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,6 +26,11 @@ const collectorVariant = "sanity_masking";
 const stepTimeoutMs = Number.parseInt(process.argv[10] ?? "", 10)
   || Number.parseInt(process.env.POKEROGUE_MODIFIER_STEP_TIMEOUT_MS ?? "", 10)
   || 15000;
+// Kaeufe pro SelectModifierPhase (modifier-v1, docs/modifier-state-v1-draft.md 2.4).
+const maxShopPurchases = Number.parseInt(process.env.POKEROGUE_MODIFIER_MAX_SHOP_PURCHASES ?? "", 10) || 3;
+// 0 ist erlaubt (Reroll aus), daher kein `|| 2`.
+const maxRerollsEnv = Number.parseInt(process.env.POKEROGUE_MODIFIER_MAX_REROLLS ?? "", 10);
+const maxRerollsPerWave = Number.isInteger(maxRerollsEnv) && maxRerollsEnv >= 0 ? maxRerollsEnv : 2;
 const defaultCombatCheckpointCandidates = [
   path.join(repoRoot, "data", "rl", "models", "dqn-combat-wave-library-random-valid-action-v3-w1-24-50ep.pt"),
   path.join(repoRoot, "data", "rl", "models", "dqn-combat-wave-library-random-valid-action-v3-w1-24-longer.pt"),
@@ -70,6 +75,11 @@ const pythonBin = pythonOverride
   ? (path.isAbsolute(pythonOverride) ? pythonOverride : pythonOverride)
   : resolveFirstExisting(defaultPythonCandidates) ?? "python3";
 const combatInferWorkerScript = path.join(repoRoot, "scripts", "02-training", "inference", "dqn_policy_infer_worker.py");
+// Modifier-Modell fuer die Policy model_v1 (Pipeline-Config `modifier_model_checkpoint`, gesetzt als Env).
+const modifierModelCheckpoint = process.env.POKEROGUE_MODIFIER_MODEL_CHECKPOINT
+  ? path.resolve(process.env.POKEROGUE_MODIFIER_MODEL_CHECKPOINT)
+  : "";
+const modifierModelWorkerScript = path.join(repoRoot, "scripts", "02-training", "modifier", "modifier_candidate_infer_worker.py");
 
 function cleanup(): void {
   try {
@@ -91,6 +101,11 @@ if (!combatCheckpoint || !existsSync(combatCheckpoint)) {
 if (!existsSync(combatInferWorkerScript)) {
   throw new Error(`Combat DQN worker script not found: ${combatInferWorkerScript}`);
 }
+if (modifierPolicy === "model_v1" && (!modifierModelCheckpoint || !existsSync(modifierModelCheckpoint))) {
+  throw new Error(
+    `Modifier policy model_v1 needs an existing checkpoint in env POKEROGUE_MODIFIER_MODEL_CHECKPOINT (got: "${modifierModelCheckpoint}")`,
+  );
+}
 
 mkdirSync(path.dirname(outputPath), { recursive: true });
 mkdirSync(tempDir, { recursive: true });
@@ -108,10 +123,16 @@ const testSource = templateSource
   .replaceAll("__COMBAT_DQN_DEVICE__", JSON.stringify(combatDevice))
   .replaceAll("__COMBAT_DQN_PYTHON__", JSON.stringify(pythonBin))
   .replaceAll("__COMBAT_DQN_WORKER_SCRIPT__", JSON.stringify(combatInferWorkerScript))
-  .replaceAll("__STEP_TIMEOUT_MS__", String(stepTimeoutMs));
+  .replaceAll("__MODIFIER_MODEL_CHECKPOINT__", JSON.stringify(modifierModelCheckpoint))
+  // Rollouts laufen nur ueber den Strategic Collector.
+  .replaceAll("__MODIFIER_ROLLOUT_SPEC_PATH__", JSON.stringify(""))
+  .replaceAll("__MODIFIER_MODEL_WORKER_SCRIPT__", JSON.stringify(modifierModelWorkerScript))
+  .replaceAll("__STEP_TIMEOUT_MS__", String(stepTimeoutMs))
+    .replaceAll("__MAX_SHOP_PURCHASES__", String(maxShopPurchases))
+    .replaceAll("__MAX_REROLLS_PER_WAVE__", String(maxRerollsPerWave));
 
-// Gemeinsamer combat-v4-Builder neben den generierten Test (Import "#bot-ts/combat-observation").
-writeFileSync(tempTestPath, linkCombatObservationModule(testSource, tempDir, repoRoot), { encoding: "utf8" });
+// Gemeinsame Builder (combat-v4, modifier-v1) neben den generierten Test (Imports "#bot-ts/...").
+writeFileSync(tempTestPath, linkModifierObservationModule(testSource, tempDir, repoRoot), { encoding: "utf8" });
 
 const runnerEnv = {
   ...process.env,

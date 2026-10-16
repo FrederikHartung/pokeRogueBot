@@ -59,7 +59,8 @@ function runCollectorReplay(scenarioName: string, episodes: number, options: Rep
 
   const result = spawnSync("node", ["scripts/01-data-generation/collector/run-pokerogue-experience-collector.ts", configPath], {
     cwd: repoRoot,
-    env: { ...process.env, ...options.env },
+    // Replays stellen Lagen nach, die mit dem damals wirkungslosen Seed ("test") aufgezeichnet wurden.
+    env: { ...process.env, POKEROGUE_COMBAT_KEEP_HARNESS_SEED: "1", ...options.env },
     encoding: "utf8",
     maxBuffer: 256 * 1024 * 1024,
   });

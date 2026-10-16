@@ -462,7 +462,7 @@ async function runCollectPhase(currentManifest: Record<string, unknown>) {
     const commandArgs = buildBatchRunnerArgs(batch);
     const child = spawn("node", commandArgs, {
       cwd: repoRoot,
-      env: process.env,
+      env: buildBatchRunnerEnv(),
       stdio: ["ignore", "pipe", "pipe"],
       detached: process.platform !== "win32",
     });
@@ -645,6 +645,7 @@ function buildModifierTechnicalFailure(batch: Batch, termination: Record<string,
     run_process_timeout_ms: collectConfig.run_process_timeout_ms ?? null,
     combat_dqn_checkpoint: collectConfig.combat_dqn_checkpoint ?? null,
     combat_dqn_device: collectConfig.combat_dqn_device ?? null,
+    modifier_model_checkpoint: collectConfig.modifier_model_checkpoint ?? null,
   };
   const waveFromDebug = Number(debug?.wave_index);
   const waveFromEpisode = Number(episode?.wave_reached);
@@ -711,6 +712,8 @@ function buildBatchRunConfig(batch: Batch) {
     runs: batch.runs,
     max_waves: batch.max_waves,
     modifier_policy: collectConfig.modifier_policy,
+    max_shop_purchases_per_phase: collectConfig.max_shop_purchases_per_phase ?? null,
+    max_rerolls_per_wave: collectConfig.max_rerolls_per_wave ?? null,
     step_timeout_ms: collectConfig.step_timeout_ms ?? null,
     run_process_timeout_ms: collectConfig.run_process_timeout_ms ?? null,
     combat_dqn_checkpoint: collectConfig.combat_dqn_checkpoint ?? null,
@@ -718,6 +721,25 @@ function buildBatchRunConfig(batch: Batch) {
     combat_dqn_python: collectConfig.combat_dqn_python ?? null,
     output_path: batch.output_path,
   };
+}
+
+/**
+ * Kauf- und Reroll-Grenze aus der Config (`collect.max_shop_purchases_per_phase`, `collect.max_rerolls_per_wave`) an den
+ * Runner; ohne Config-Wert gelten dessen Defaults bzw. die Env des Pipeline-Prozesses.
+ */
+function buildBatchRunnerEnv(): NodeJS.ProcessEnv {
+  const collectConfig = config.collect as Record<string, unknown>;
+  const env: NodeJS.ProcessEnv = { ...process.env };
+  if (collectConfig.max_shop_purchases_per_phase !== undefined) {
+    env.POKEROGUE_MODIFIER_MAX_SHOP_PURCHASES = String(collectConfig.max_shop_purchases_per_phase);
+  }
+  if (collectConfig.max_rerolls_per_wave !== undefined) {
+    env.POKEROGUE_MODIFIER_MAX_REROLLS = String(collectConfig.max_rerolls_per_wave);
+  }
+  if (typeof collectConfig.modifier_model_checkpoint === "string" && collectConfig.modifier_model_checkpoint.length > 0) {
+    env.POKEROGUE_MODIFIER_MODEL_CHECKPOINT = path.resolve(repoRoot, collectConfig.modifier_model_checkpoint);
+  }
+  return env;
 }
 
 function buildBatchRunnerArgs(batch: Batch): string[] {

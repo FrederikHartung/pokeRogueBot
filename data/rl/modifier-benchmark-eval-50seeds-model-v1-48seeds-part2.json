@@ -1,0 +1,48 @@
+{
+  "seeds": [
+    "modifier-strategic-eval-s29",
+    "modifier-strategic-eval-s30",
+    "modifier-strategic-eval-s31",
+    "modifier-strategic-eval-s32",
+    "modifier-strategic-eval-s33",
+    "modifier-strategic-eval-s34",
+    "modifier-strategic-eval-s35",
+    "modifier-strategic-eval-s36",
+    "modifier-strategic-eval-s37",
+    "modifier-strategic-eval-s38",
+    "modifier-strategic-eval-s39",
+    "modifier-strategic-eval-s40",
+    "modifier-strategic-eval-s41",
+    "modifier-strategic-eval-s42",
+    "modifier-strategic-eval-s43",
+    "modifier-strategic-eval-s44",
+    "modifier-strategic-eval-s45",
+    "modifier-strategic-eval-s46",
+    "modifier-strategic-eval-s47",
+    "modifier-strategic-eval-s48",
+    "modifier-strategic-eval-s49",
+    "modifier-strategic-eval-s50"
+  ],
+  "output_root": "./pipeline-runs/modifier-benchmark-eval-50seeds-model-v1-48seeds-part2",
+  "manifest_path": "./pipeline-runs/modifier-benchmark-eval-50seeds-model-v1-48seeds-part2/manifest.json",
+  "collect": {
+    "runs_per_seed": 1,
+    "runs_per_instance": 1,
+    "parallelism": 3,
+    "max_waves": 50,
+    "modifier_policy": "model_v1",
+    "modifier_model_checkpoint": "data/rl/models/modifier-candidate-v1-48seeds/modifier-candidate-model.pt",
+    "max_shop_purchases_per_phase": 3,
+    "max_rerolls_per_wave": 0,
+    "step_timeout_ms": 15000,
+    "run_process_timeout_ms": 2400000,
+    "combat_dqn_device": "cpu"
+  },
+  "postprocess": {
+    "enabled": false
+  },
+  "archive": {
+    "format": "tar.gz",
+    "output_path": "./pipeline-runs/modifier-benchmark-eval-50seeds-model-v1-48seeds-part2/artifacts/modifier-benchmark-runtime.tar.gz"
+  }
+}

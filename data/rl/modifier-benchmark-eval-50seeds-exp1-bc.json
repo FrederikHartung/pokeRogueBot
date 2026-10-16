@@ -1,0 +1,27 @@
+{
+  "seed_prefix": "modifier-strategic-eval-s",
+  "seed_start_index": 1,
+  "seed_count": 50,
+  "output_root": "./pipeline-runs/modifier-benchmark-eval-50seeds-exp1-bc",
+  "manifest_path": "./pipeline-runs/modifier-benchmark-eval-50seeds-exp1-bc/manifest.json",
+  "collect": {
+    "runs_per_seed": 1,
+    "runs_per_instance": 1,
+    "parallelism": 3,
+    "max_waves": 50,
+    "modifier_policy": "model_v1",
+    "modifier_model_checkpoint": "data/rl/models/modifier-exp/bc/modifier-candidate-model.pt",
+    "max_shop_purchases_per_phase": 3,
+    "max_rerolls_per_wave": 0,
+    "step_timeout_ms": 15000,
+    "run_process_timeout_ms": 2400000,
+    "combat_dqn_device": "cpu"
+  },
+  "postprocess": {
+    "enabled": false
+  },
+  "archive": {
+    "format": "tar.gz",
+    "output_path": "./pipeline-runs/modifier-benchmark-eval-50seeds-exp1-bc/artifacts/modifier-benchmark-runtime.tar.gz"
+  }
+}

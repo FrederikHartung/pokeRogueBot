@@ -1,3 +1,8 @@
+import { modifierTransitionV1Errors } from "./modifier-transition-v1-schema.ts";
+
+/** v2: Steps tragen einen modifier-transition-v1-Datensatz statt durchnummerierter Aktionen. */
+export const MODIFIER_STRATEGIC_OUTPUT_SCHEMA_VERSION = "modifier_strategic_fixed_seed_output_v2";
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -37,12 +42,6 @@ function assertNumber(value: unknown, context: string, fieldName: string): void 
   }
 }
 
-function assertBoolean(value: unknown, context: string, fieldName: string): void {
-  if (typeof value !== "boolean") {
-    throw new Error(`Invalid boolean field${describeContext(context)}: ${fieldName}`);
-  }
-}
-
 function assertInteger(value: unknown, context: string, fieldName: string, { min = 0 }: { min?: number } = {}): void {
   if (!Number.isInteger(value) || (value as number) < min) {
     throw new Error(`Invalid integer field${describeContext(context)}: ${fieldName}`);
@@ -76,6 +75,20 @@ function validateSummary(value: unknown, context: string): Record<string, unknow
   return structuredClone(value);
 }
 
+/** modifier-transition-v1 (JSON-Schema) plus: der gewaehlte Kandidat existiert und war waehlbar. */
+function validateModifierTransition(value: unknown, context: string): void {
+  assertPlainObject(value, context, "modifier_transition");
+  const errors = modifierTransitionV1Errors(value);
+  if (errors !== null) {
+    throw new Error(`Invalid modifier_transition${describeContext(context)}: ${errors}`);
+  }
+  const candidates = value.candidates as Array<{ mask: number }>;
+  const selected = candidates[value.selected_candidate_index as number];
+  if (!selected || selected.mask !== 1) {
+    throw new Error(`selected_candidate_index must point to a candidate with mask=1${describeContext(context)}`);
+  }
+}
+
 function validateModifierStep(value: unknown, context: string): Record<string, unknown> {
   assertPlainObject(value, context, "modifier step");
   assertAllowedKeys(
@@ -86,10 +99,7 @@ function validateModifierStep(value: unknown, context: string): Record<string, u
       "decision_rng_seed",
       "wave_index",
       "combat_turns",
-      "modifier_decision",
-      "selected_action",
-      "selected_action_valid",
-      "immediate_reward",
+      "modifier_transition",
     ]),
     context,
     "modifier step",
@@ -99,10 +109,7 @@ function validateModifierStep(value: unknown, context: string): Record<string, u
   assertString(value.decision_rng_seed, context, "decision_rng_seed");
   assertInteger(value.wave_index, context, "wave_index");
   assertArray(value.combat_turns, context, "combat_turns");
-  assertPlainObject(value.modifier_decision, context, "modifier_decision");
-  assertPlainObject(value.selected_action, context, "selected_action");
-  assertBoolean(value.selected_action_valid, context, "selected_action_valid");
-  assertNumber(value.immediate_reward, context, "immediate_reward");
+  validateModifierTransition(value.modifier_transition, context);
   return structuredClone(value);
 }
 
@@ -127,6 +134,8 @@ function validateEpisode(value: unknown, context: string): Record<string, unknow
       "terminal_reward",
       "total_reward",
       "steps",
+      "fixed_battle_entries",
+      "rollout",
       "retry_count",
       "timeout_debug",
       "error_debug",
@@ -151,6 +160,36 @@ function validateEpisode(value: unknown, context: string): Record<string, unknow
   assertNumber(value.terminal_reward, context, "terminal_reward");
   assertNumber(value.total_reward, context, "total_reward");
   assertArray(value.steps, context, "steps");
+  // Optional: Ausgaben von vor dem Modifier-Benchmark haben das Feld nicht.
+  if (value.fixed_battle_entries !== undefined) {
+    assertArray(value.fixed_battle_entries, context, "fixed_battle_entries");
+    value.fixed_battle_entries.forEach((entry, index) => {
+      const entryContext = `${context}.fixed_battle_entries[${index}]`;
+      assertPlainObject(entry, entryContext, "fixed_battle_entry");
+      assertInteger(entry.wave_index, entryContext, "wave_index", { min: 1 });
+      assertNumber(entry.party_hp_ratio_sum, entryContext, "party_hp_ratio_sum");
+      assertInteger(entry.alive_count, entryContext, "alive_count");
+    });
+  }
+  // Nur bei modifier_policy rollout_replay_v1 (docs/modifier-rollout-plan.md): Verzweigung und Pruefstand des Replays.
+  if (value.modifier_policy === "rollout_replay_v1" && value.rollout === undefined) {
+    throw new Error(`modifier_policy rollout_replay_v1 requires rollout${describeContext(context)}`);
+  }
+  if (value.rollout !== undefined) {
+    const rolloutContext = `${context}.rollout`;
+    assertPlainObject(value.rollout, rolloutContext, "rollout");
+    assertAllowedKeys(
+      value.rollout,
+      new Set(["reference_id", "branch_step", "alternative_label", "alternative_candidate_index", "replay_verified_steps"]),
+      rolloutContext,
+      "rollout",
+    );
+    assertString(value.rollout.reference_id, rolloutContext, "reference_id");
+    assertInteger(value.rollout.branch_step, rolloutContext, "branch_step", { min: 0 });
+    assertString(value.rollout.alternative_label, rolloutContext, "alternative_label");
+    assertInteger(value.rollout.alternative_candidate_index, rolloutContext, "alternative_candidate_index", { min: 0 });
+    assertInteger(value.rollout.replay_verified_steps, rolloutContext, "replay_verified_steps", { min: 0 });
+  }
   if (value.retry_count !== undefined) {
     assertInteger(value.retry_count, context, "retry_count");
   }
@@ -211,8 +250,11 @@ export function validateModifierStrategicFixedSeedOutput(value: unknown): Record
       "decision_rng_strategy",
       "step_timeout_ms",
       "modifier_policy",
+      "max_shop_purchases_per_phase",
+      "max_rerolls_per_wave",
       "combat_dqn_checkpoint",
       "combat_dqn_device",
+      "modifier_model_checkpoint",
       "generated_at",
       "episodes",
       "summary",
@@ -238,7 +280,7 @@ export function validateModifierStrategicFixedSeedOutput(value: unknown): Record
   }
 
   assertString(value.schema_version, context, "schema_version");
-  if (value.schema_version !== "modifier_strategic_fixed_seed_output_v1") {
+  if (value.schema_version !== MODIFIER_STRATEGIC_OUTPUT_SCHEMA_VERSION) {
     throw new Error(`Unsupported schema_version${describeContext(context)}: ${String(value.schema_version)}`);
   }
   assertString(value.seed, context, "seed");
@@ -254,8 +296,20 @@ export function validateModifierStrategicFixedSeedOutput(value: unknown): Record
   }
   assertInteger(value.step_timeout_ms, context, "step_timeout_ms", { min: 1 });
   assertString(value.modifier_policy, context, "modifier_policy");
+  assertInteger(value.max_shop_purchases_per_phase, context, "max_shop_purchases_per_phase");
+  // Optional: Ausgaben von vor dem Reroll-Support (Reroll damals gesperrt) haben das Feld nicht.
+  if (value.max_rerolls_per_wave !== undefined) {
+    assertInteger(value.max_rerolls_per_wave, context, "max_rerolls_per_wave", { min: 0 });
+  }
   assertString(value.combat_dqn_checkpoint, context, "combat_dqn_checkpoint");
   assertString(value.combat_dqn_device, context, "combat_dqn_device");
+  // Nur bei modifier_policy model_v1: Checkpoint des Modifier-Modells.
+  if (value.modifier_model_checkpoint !== undefined) {
+    assertString(value.modifier_model_checkpoint, context, "modifier_model_checkpoint");
+  }
+  if (value.modifier_policy === "model_v1" && value.modifier_model_checkpoint === undefined) {
+    throw new Error(`modifier_policy model_v1 requires modifier_model_checkpoint${describeContext(context)}`);
+  }
   assertString(value.generated_at, context, "generated_at");
   value.episodes.forEach((episode, index) => {
     const normalizedEpisode = validateEpisode(episode, `${context}.episodes[${index}]`);
