@@ -645,6 +645,7 @@ function buildModifierTechnicalFailure(batch: Batch, termination: Record<string,
     run_process_timeout_ms: collectConfig.run_process_timeout_ms ?? null,
     combat_dqn_checkpoint: collectConfig.combat_dqn_checkpoint ?? null,
     combat_dqn_device: collectConfig.combat_dqn_device ?? null,
+    modifier_model_checkpoint: collectConfig.modifier_model_checkpoint ?? null,
   };
   const waveFromDebug = Number(debug?.wave_index);
   const waveFromEpisode = Number(episode?.wave_reached);
@@ -734,6 +735,9 @@ function buildBatchRunnerEnv(): NodeJS.ProcessEnv {
   }
   if (collectConfig.max_rerolls_per_wave !== undefined) {
     env.POKEROGUE_MODIFIER_MAX_REROLLS = String(collectConfig.max_rerolls_per_wave);
+  }
+  if (typeof collectConfig.modifier_model_checkpoint === "string" && collectConfig.modifier_model_checkpoint.length > 0) {
+    env.POKEROGUE_MODIFIER_MODEL_CHECKPOINT = path.resolve(repoRoot, collectConfig.modifier_model_checkpoint);
   }
   return env;
 }

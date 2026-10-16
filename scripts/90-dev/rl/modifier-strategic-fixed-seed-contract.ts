@@ -234,6 +234,7 @@ export function validateModifierStrategicFixedSeedOutput(value: unknown): Record
       "max_rerolls_per_wave",
       "combat_dqn_checkpoint",
       "combat_dqn_device",
+      "modifier_model_checkpoint",
       "generated_at",
       "episodes",
       "summary",
@@ -282,6 +283,13 @@ export function validateModifierStrategicFixedSeedOutput(value: unknown): Record
   }
   assertString(value.combat_dqn_checkpoint, context, "combat_dqn_checkpoint");
   assertString(value.combat_dqn_device, context, "combat_dqn_device");
+  // Nur bei modifier_policy model_v1: Checkpoint des Modifier-Modells.
+  if (value.modifier_model_checkpoint !== undefined) {
+    assertString(value.modifier_model_checkpoint, context, "modifier_model_checkpoint");
+  }
+  if (value.modifier_policy === "model_v1" && value.modifier_model_checkpoint === undefined) {
+    throw new Error(`modifier_policy model_v1 requires modifier_model_checkpoint${describeContext(context)}`);
+  }
   assertString(value.generated_at, context, "generated_at");
   value.episodes.forEach((episode, index) => {
     const normalizedEpisode = validateEpisode(episode, `${context}.episodes[${index}]`);

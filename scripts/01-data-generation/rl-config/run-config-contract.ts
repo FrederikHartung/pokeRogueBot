@@ -247,7 +247,7 @@ function validateRuntimeRetentionConfig(value, context) {
 }
 
 /** Policies des Strategic Collectors (ModifierPolicy im Collector-Template). */
-const MODIFIER_STRATEGIC_POLICIES = new Set(["random_executable", "heuristic_v1", "heuristic_mix_v1"]);
+const MODIFIER_STRATEGIC_POLICIES = new Set(["random_executable", "heuristic_v1", "heuristic_mix_v1", "model_v1"]);
 
 function validateModifierStrategicCollectConfig(value, context) {
   assertPlainObject(value, context, "modifier strategic collect config");
@@ -266,6 +266,7 @@ function validateModifierStrategicCollectConfig(value, context) {
       "combat_dqn_checkpoint",
       "combat_dqn_device",
       "combat_dqn_python",
+      "modifier_model_checkpoint",
       "technical_failure_threshold",
     ]),
     context,
@@ -294,7 +295,7 @@ function validateModifierStrategicCollectConfig(value, context) {
   if ("max_rerolls_per_wave" in value && (!Number.isInteger(value.max_rerolls_per_wave) || value.max_rerolls_per_wave < 0)) {
     throw new Error(`Invalid max_rerolls_per_wave${describeContext(context)}: ${String(value.max_rerolls_per_wave)}`);
   }
-  for (const key of ["combat_dqn_checkpoint", "combat_dqn_device", "combat_dqn_python"]) {
+  for (const key of ["combat_dqn_checkpoint", "combat_dqn_device", "combat_dqn_python", "modifier_model_checkpoint"]) {
     if (key in value) {
       assertOptionalString(value[key], context, key);
     }
@@ -303,6 +304,10 @@ function validateModifierStrategicCollectConfig(value, context) {
   const modifierPolicy = value.modifier_policy ?? "random_executable";
   if (!MODIFIER_STRATEGIC_POLICIES.has(modifierPolicy)) {
     throw new Error(`Unsupported modifier_policy${describeContext(context)}: ${String(modifierPolicy)}`);
+  }
+  // model_v1 bewertet die Kandidaten mit dem gelernten Modifier-Modell (Checkpoint relativ zum Repo-Root).
+  if (modifierPolicy === "model_v1" && (typeof value.modifier_model_checkpoint !== "string" || value.modifier_model_checkpoint.length === 0)) {
+    throw new Error(`modifier_policy model_v1 requires modifier_model_checkpoint${describeContext(context)}`);
   }
 
   return {

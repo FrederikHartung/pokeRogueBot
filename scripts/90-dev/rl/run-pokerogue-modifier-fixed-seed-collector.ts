@@ -75,6 +75,11 @@ const pythonBin = pythonOverride
   ? (path.isAbsolute(pythonOverride) ? pythonOverride : pythonOverride)
   : resolveFirstExisting(defaultPythonCandidates) ?? "python3";
 const combatInferWorkerScript = path.join(repoRoot, "scripts", "02-training", "inference", "dqn_policy_infer_worker.py");
+// Modifier-Modell fuer die Policy model_v1 (Pipeline-Config `modifier_model_checkpoint`, gesetzt als Env).
+const modifierModelCheckpoint = process.env.POKEROGUE_MODIFIER_MODEL_CHECKPOINT
+  ? path.resolve(process.env.POKEROGUE_MODIFIER_MODEL_CHECKPOINT)
+  : "";
+const modifierModelWorkerScript = path.join(repoRoot, "scripts", "02-training", "modifier", "modifier_candidate_infer_worker.py");
 
 function cleanup(): void {
   try {
@@ -96,6 +101,11 @@ if (!combatCheckpoint || !existsSync(combatCheckpoint)) {
 if (!existsSync(combatInferWorkerScript)) {
   throw new Error(`Combat DQN worker script not found: ${combatInferWorkerScript}`);
 }
+if (modifierPolicy === "model_v1" && (!modifierModelCheckpoint || !existsSync(modifierModelCheckpoint))) {
+  throw new Error(
+    `Modifier policy model_v1 needs an existing checkpoint in env POKEROGUE_MODIFIER_MODEL_CHECKPOINT (got: "${modifierModelCheckpoint}")`,
+  );
+}
 
 mkdirSync(path.dirname(outputPath), { recursive: true });
 mkdirSync(tempDir, { recursive: true });
@@ -113,6 +123,8 @@ const testSource = templateSource
   .replaceAll("__COMBAT_DQN_DEVICE__", JSON.stringify(combatDevice))
   .replaceAll("__COMBAT_DQN_PYTHON__", JSON.stringify(pythonBin))
   .replaceAll("__COMBAT_DQN_WORKER_SCRIPT__", JSON.stringify(combatInferWorkerScript))
+  .replaceAll("__MODIFIER_MODEL_CHECKPOINT__", JSON.stringify(modifierModelCheckpoint))
+  .replaceAll("__MODIFIER_MODEL_WORKER_SCRIPT__", JSON.stringify(modifierModelWorkerScript))
   .replaceAll("__STEP_TIMEOUT_MS__", String(stepTimeoutMs))
     .replaceAll("__MAX_SHOP_PURCHASES__", String(maxShopPurchases))
     .replaceAll("__MAX_REROLLS_PER_WAVE__", String(maxRerollsPerWave));

@@ -25,7 +25,7 @@ Datensatz `modifier-strategic-seeded-remote-10seeds-20runs-wave30` (200 Runs, Po
 |---|---|---|---|
 | `random_executable` | gleichverteilt ueber gueltige Optionen, dann ueber Ziele (heutiger Collector) | 2 | vorhanden |
 | `heuristic_v1` | feste Regel, Abschnitt 4 | 1 | neu |
-| `model_<name>` | gelerntes Modell ueber Python-Worker (Migrationsschritt 7) | 1 | spaeter |
+| `model_v1` | gelerntes Modell (Kandidaten-Bewertung) ueber den persistenten Python-Worker `scripts/02-training/modifier/modifier_candidate_infer_worker.py`; Config `collect.modifier_model_checkpoint`, waehlt den gueltigen Kandidaten mit dem hoechsten Wert, bricht bei Worker-Fehlern ab (kein stiller Fallback). Tests: `npm run rl:test:modifier:model-worker` | 1 | umgesetzt 2026-10-15 |
 
 Alle Policies sehen dieselbe Kandidatenliste mit denselben Masken (Builder plus Collector-Sperren). Reroll und Lock bleiben fuer den Vergleich `random` gegen `heuristic_v1` gesperrt (`POKEROGUE_MODIFIER_MAX_REROLLS=0`), damit beide denselben Aktionsraum haben; Reroll kommt in einer spaeteren Runde dazu.
 

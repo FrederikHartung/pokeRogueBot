@@ -101,9 +101,12 @@ import { pickHeuristicV1CandidateIndex } from "#bot-ts/modifier-heuristic-policy
 /**
  * `random_executable`: reine Exploration. `heuristic_v1`: feste Regel (Benchmark-Vergleich).
  * `heuristic_mix_v1`: Trainingsdaten; pro Entscheidung mit HEURISTIC_MIX_RANDOM_SHARE Zufall, sonst heuristic_v1.
+ * `model_v1`: gelerntes Modifier-Modell (Kandidaten-Bewertung) ueber den persistenten Python-Worker
+ * `scripts/02-training/modifier/modifier_candidate_infer_worker.py`; waehlt den gueltigen Kandidaten mit dem hoechsten
+ * Wert. Ohne Checkpoint oder bei Worker-Fehlern bricht der Run ab, statt auf eine andere Policy auszuweichen.
  */
-type ModifierPolicy = "random_executable" | "heuristic_v1" | "heuristic_mix_v1";
-const MODIFIER_POLICIES: readonly ModifierPolicy[] = ["random_executable", "heuristic_v1", "heuristic_mix_v1"];
+type ModifierPolicy = "random_executable" | "heuristic_v1" | "heuristic_mix_v1" | "model_v1";
+const MODIFIER_POLICIES: readonly ModifierPolicy[] = ["random_executable", "heuristic_v1", "heuristic_mix_v1", "model_v1"];
 /**
  * Anteil zufaelliger Entscheidungen in heuristic_mix_v1 (docs/modifier-state-v1-draft.md 2.4). Bei rund 23
  * Entscheidungen pro Run weicht ein Run etwa 7-mal ab; die Runs eines Seeds unterscheiden sich so, und die
@@ -306,6 +309,12 @@ const COMBAT_DQN_CHECKPOINT = __COMBAT_DQN_CHECKPOINT__;
 const COMBAT_DQN_DEVICE = __COMBAT_DQN_DEVICE__;
 const COMBAT_DQN_PYTHON = __COMBAT_DQN_PYTHON__;
 const COMBAT_DQN_WORKER_SCRIPT = __COMBAT_DQN_WORKER_SCRIPT__;
+/** Checkpoint des Modifier-Modells; nur fuer `model_v1` gesetzt, sonst leer. */
+const MODIFIER_MODEL_CHECKPOINT: string = __MODIFIER_MODEL_CHECKPOINT__;
+const MODIFIER_MODEL_WORKER_SCRIPT: string = __MODIFIER_MODEL_WORKER_SCRIPT__;
+if (MODIFIER_POLICY === "model_v1" && MODIFIER_MODEL_CHECKPOINT.length === 0) {
+  throw new Error("modifier policy model_v1 requires a modifier model checkpoint");
+}
 const STARTER_SPECIES = [SpeciesId.BULBASAUR, SpeciesId.CHARMANDER, SpeciesId.SQUIRTLE];
 const STEP_TIMEOUT_MS = __STEP_TIMEOUT_MS__;
 /** Kaeufe pro Welle (ueber Rerolls hinweg), damit Zufallsruns nicht das ganze Geld verbrauchen (docs/modifier-state-v1-draft.md 2.4). */
@@ -2352,7 +2361,36 @@ function pickRandomCandidateIndex(observation: ModifierObservation, random: () =
   return choice[Math.floor(random() * choice.length)]!;
 }
 
-function selectModifierCandidateIndex(observation: ModifierObservation, random: () => number): number {
+function modifierModelPolicyConfig() {
+  return {
+    command: [
+      COMBAT_DQN_PYTHON,
+      MODIFIER_MODEL_WORKER_SCRIPT,
+      "--checkpoint",
+      MODIFIER_MODEL_CHECKPOINT,
+      "--device",
+      COMBAT_DQN_DEVICE,
+    ],
+    persistent: true,
+    timeout_ms: STEP_TIMEOUT_MS,
+  };
+}
+
+/** `model_v1`: der Worker bewertet alle Kandidaten mit Maske 1 und liefert den Index des besten. */
+async function pickModelV1CandidateIndex(observation: ModifierObservation): Promise<number> {
+  const actionMask = observation.candidates.map(candidate => candidate.mask);
+  const selectedIndex = await runPersistentExternalPolicy(
+    modifierModelPolicyConfig(),
+    observation as unknown as Record<string, unknown>,
+    actionMask,
+  );
+  if (observation.candidates[selectedIndex]?.mask !== 1) {
+    throw new Error(`Modifier model selected a masked or unknown candidate: ${selectedIndex}`);
+  }
+  return selectedIndex;
+}
+
+async function selectModifierCandidateIndex(observation: ModifierObservation, random: () => number): Promise<number> {
   switch (MODIFIER_POLICY) {
     case "random_executable":
       return pickRandomCandidateIndex(observation, random);
@@ -2362,6 +2400,8 @@ function selectModifierCandidateIndex(observation: ModifierObservation, random: 
       return random() < HEURISTIC_MIX_RANDOM_SHARE
         ? pickRandomCandidateIndex(observation, random)
         : pickHeuristicV1CandidateIndex(observation);
+    case "model_v1":
+      return await pickModelV1CandidateIndex(observation);
   }
 }
 
@@ -3139,7 +3179,7 @@ describe("modifier fixed seed collector", () => {
               }
 
               combatTurns.push(...drainSwitchDecisionSnapshots());
-              const selectedIndex = selectModifierCandidateIndex(observation, random);
+              const selectedIndex = await selectModifierCandidateIndex(observation, random);
               const selectedCandidate = observation.candidates[selectedIndex]!;
               selectedModifierActionForDebug = toSelectedCandidateDebug(observation, selectedIndex);
               const immediateReward = calculateImmediateReward(observation, selectedCandidate);
@@ -3281,6 +3321,7 @@ describe("modifier fixed seed collector", () => {
       max_rerolls_per_wave: MAX_REROLLS_PER_WAVE,
       combat_dqn_checkpoint: COMBAT_DQN_CHECKPOINT,
       combat_dqn_device: COMBAT_DQN_DEVICE,
+      ...(MODIFIER_POLICY === "model_v1" ? { modifier_model_checkpoint: MODIFIER_MODEL_CHECKPOINT } : {}),
       generated_at: new Date().toISOString(),
       summary: {
         average_wave_reached: averageWaveReached,

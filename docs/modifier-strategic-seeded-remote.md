@@ -111,6 +111,7 @@ Wichtige Felder:
   - `collect.combat_dqn_checkpoint`
   - `collect.combat_dqn_device`
   - `collect.combat_dqn_python`
+  - `collect.modifier_model_checkpoint` (Pflicht bei `modifier_policy: model_v1`; Checkpoint des Modifier-Modells relativ zum Repo-Root, an den Runner als Env `POKEROGUE_MODIFIER_MODEL_CHECKPOINT`)
 - `postprocess.enabled`
 - `postprocess.gamma`
 - `archive.format`

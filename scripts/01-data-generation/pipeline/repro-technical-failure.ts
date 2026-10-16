@@ -84,7 +84,13 @@ function reproModifierRun(input: TechnicalFailure, attempt: number): ReproRun {
     String(params.step_timeout_ms ?? ""),
     String(params.run_process_timeout_ms ?? ""),
     String(params.run_index),
-  ], { cwd: repoRoot, stdio: "inherit" });
+  ], {
+    cwd: repoRoot,
+    stdio: "inherit",
+    env: typeof params.modifier_model_checkpoint === "string" && params.modifier_model_checkpoint.length > 0
+      ? { ...process.env, POKEROGUE_MODIFIER_MODEL_CHECKPOINT: path.resolve(repoRoot, params.modifier_model_checkpoint) }
+      : process.env,
+  });
 
   if (result.status !== 0 || !existsSync(outputPath)) {
     return { attempt, status: "no_output", kind: null, reason: `runner_exit_${result.status ?? "none"}`, output_path: outputPath };

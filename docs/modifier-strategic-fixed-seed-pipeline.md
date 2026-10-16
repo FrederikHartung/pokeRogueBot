@@ -960,6 +960,8 @@ Pflichtfelder im Top-Level:
 - `episodes`
 - `summary`
 
+Nur bei `modifier_policy: model_v1`: `modifier_model_checkpoint`.
+
 Pflichtfelder pro Episode:
 
 - `schema_version`

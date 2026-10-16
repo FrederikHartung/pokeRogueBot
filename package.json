@@ -69,7 +69,8 @@
     "ops:clean:pipeline-temp": "node scripts/04-automation/maintenance/clean-pipeline-temp-data.ts",
     "rl:test:modifier:collector-actions": "node scripts/90-dev/rl/run-pokerogue-modifier-collector-actions-test.ts",
     "rl:test:modifier:heuristic": "node --test scripts/90-dev/rl/modifier-heuristic-policy.test.ts",
-    "rl:test:modifier:benchmark-compare": "node --test scripts/03-benchmark/eval/compare-modifier-policies.test.ts"
+    "rl:test:modifier:benchmark-compare": "node --test scripts/03-benchmark/eval/compare-modifier-policies.test.ts",
+    "rl:test:modifier:model-worker": ".venv/bin/python -m unittest discover -s scripts/02-training/modifier -p 'test_*.py'"
   },
   "devDependencies": {
     "@types/node": "^24.5.2",
