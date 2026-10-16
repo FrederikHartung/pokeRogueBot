@@ -138,6 +138,8 @@ Erste Befunde (offline, kein Qualitaetsbeweis):
 
 Folgen, sobald die Kette auf dem Server abgeschlossen ist (`scripts/03-benchmark/eval/run-modifier-benchmark-remote.sh` mit `POKEROGUE_MODIFIER_BENCHMARK_CONFIGS`, Vergleichsbasis `heuristic_v1`).
 
+Naechster Schritt nach Versuchsreihe 1: Rollout-Daten, Plan in `docs/modifier-rollout-plan.md`.
+
 ## 7. Offene Entscheidungen
 
 - Soll die Collector-Welt Fangen und Mystery Encounters erlauben (naeher am Live-Spiel), und soll Meta-Progression ins Ziel? Davon haengen Action-Space (Baelle), State und alle weiteren Daten ab.
