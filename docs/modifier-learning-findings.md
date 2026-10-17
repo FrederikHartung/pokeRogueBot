@@ -136,7 +136,33 @@ Erste Befunde (offline, kein Qualitaetsbeweis):
 
 ### Benchmark-Ergebnisse
 
-Folgen, sobald die Kette auf dem Server abgeschlossen ist (`scripts/03-benchmark/eval/run-modifier-benchmark-remote.sh` mit `POKEROGUE_MODIFIER_BENCHMARK_CONFIGS`, Vergleichsbasis `heuristic_v1`).
+Run 25 in `docs/benchmark-history.md` (2026-10-17, Server). Gepaart gegen `heuristic_v1` (18,86 Wellen):
+
+| Modell | Differenz | 95-%-KI | besser / gleich / schlechter |
+|---|---:|---|---|
+| `bc` | −0,33 | [−1,24, 0,53] | 2 / 44 / 3 |
+| `dqn-d` | −0,50 | [−2,15, 1,15] | 4 / 35 / 9 |
+| `model_v2` (Run 24) | −0,82 | [−3,16, 1,63] | 10 / 20 / 19 |
+| `dqn-e` | −1,12 | [−3,24, 1,12] | 3 / 35 / 11 |
+| `dqn-c` | −1,33 | [−2,67, 0,00] | 6 / 29 / 14 |
+| `mc-init2` | −1,73 | [−4,43, 0,84] | 13 / 18 / 18 |
+| `dqn-b` | −2,06 | [−4,94, 0,73] | 16 / 9 / 24 |
+| `mc-init3` | −2,16 | [−4,67, 0,51] | 10 / 20 / 19 |
+| `dqn-a` | −2,27 | [−5,84, 1,39] | 13 / 15 / 21 |
+| `mc-ep40` | −2,86 | [−5,33, −0,31] | 4 / 23 / 22 (Heuristik signifikant besser) |
+
+Antworten auf die Fragen der Versuchsreihe:
+
+- **Liegt es am Netz?** Nein. `bc` bildet die Heuristik auf 44 von 49 Seeds exakt ab.
+- **Liegt es am Training?**
+  - Teilweise. Andere Startgewichte verschieben das MC-Ergebnis um mehr als 1 Welle, das Ergebnis eines einzelnen Modells ist also wenig aussagekraeftig.
+  - Laenger trainieren schadet (`mc-ep40`): Das Modell lernt das Rauschen des Run-Credits.
+- **Liegt es am Reward bzw. Verfahren?**
+  - DQN mit Bootstrapping ist nicht besser als MC.
+  - Ohne konservativen Loss weicht es stark ab und verliert. Mit konservativem Loss bleibt es nahe an der Heuristik und verliert weniger.
+  - Kein Verfahren findet Abweichungen, die im Mittel helfen.
+- **Muster ueber alle Modelle:** Je haeufiger ein Modell die Heuristik trifft, desto kleiner ist sein Rueckstand. Abweichen kostet im Mittel, gleich mit welchem Lernziel. Das deckt sich mit dem Rollout-Pilot (Abschnitt 7).
+- **Hinweis, kein Befund:** Abweichende Modelle ueberleben den Rivalen in Welle 25 oefter (50-71 % gegen 41 %), scheitern aber oefter frueh. Die Basis sind nur 14-17 Runs, die Welle 25 erreichen.
 
 Naechster Schritt nach Versuchsreihe 1: Rollout-Daten, Plan in `docs/modifier-rollout-plan.md`.
 
